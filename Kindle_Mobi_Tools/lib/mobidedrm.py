@@ -1,3 +1,10 @@
+# This is a python script. You need a Python interpreter to run it.
+# For example, ActiveState Python, which exists for windows.
+#
+# Changelog
+#  0.01 - Initial version
+#  0.02 - Huffdic compressed books were not properly decrypted
+
 import sys,struct,binascii
 
 class DrmException(Exception):
@@ -49,6 +56,25 @@ def checksumPid(s):
 		res += letters[pos%l]
 		crc >>= 8
 	return res
+
+def getSizeOfTrailingDataEntries(ptr, size, flags):
+	def getSizeOfTrailingDataEntry(ptr, size):
+		bitpos, result = 0, 0
+		while True:
+			v = ord(ptr[size-1])
+			result |= (v & 0x7F) << bitpos
+			bitpos += 7
+			size -= 1
+			if (v & 0x80) != 0 or (bitpos >= 28) or (size == 0):
+				return result
+	num = 0
+	flags >>= 1
+	while flags:
+		if flags & 1:
+			num += getSizeOfTrailingDataEntry(ptr, size - num)
+		flags >>= 1		
+	return num
+
 
 class DrmStripper:
 	def loadSection(self, section):	
@@ -107,6 +133,7 @@ class DrmStripper:
 
 		sect = self.loadSection(0)
 		records, = struct.unpack('>H', sect[0x8:0x8+2])
+		extra_data_flags, = struct.unpack('>L', sect[0xF0:0xF4])
 
 		crypto_type, = struct.unpack('>H', sect[0xC:0xC+2])
 		if crypto_type != 2:
@@ -128,17 +155,18 @@ class DrmStripper:
 		# decrypt sections
 		print "Decrypting. Please wait...",
 		for i in xrange(1, records+1):
-			self.patchSection(i, PC1(found_key, self.loadSection(i)))
+			data = self.loadSection(i)
+			extra_size = getSizeOfTrailingDataEntries(data, len(data), extra_data_flags)
+			self.patchSection(i, PC1(found_key, data[0:len(data) - extra_size]))
 		print "done"
 	def getResult(self):
 		return self.data_file
 
-
-
-print "MobiDeDrm v0.01. Copyright (c) 2008 The Dark Reverser"
+print "MobiDeDrm v0.02. Copyright (c) 2008 The Dark Reverser"
 if len(sys.argv)<4:
 	print "Removes protection from Mobipocket books"
-	print "Usage: mobidedrm infile.mobi outfile.mobi PID"
+	print "Usage:"
+	print "  mobidedrm infile.mobi outfile.mobi PID"
 else:  
 	infile = sys.argv[1]
 	outfile = sys.argv[2]
