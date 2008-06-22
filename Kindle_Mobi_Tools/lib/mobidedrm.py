@@ -4,6 +4,7 @@
 # Changelog
 #  0.01 - Initial version
 #  0.02 - Huffdic compressed books were not properly decrypted
+#  0.03 - fix 0.02 to work with all Mobipocket eBooks
 
 import sys,struct,binascii
 
@@ -60,6 +61,8 @@ def checksumPid(s):
 def getSizeOfTrailingDataEntries(ptr, size, flags):
 	def getSizeOfTrailingDataEntry(ptr, size):
 		bitpos, result = 0, 0
+		if size <= 0:
+			return result
 		while True:
 			v = ord(ptr[size-1])
 			result |= (v & 0x7F) << bitpos
@@ -69,10 +72,10 @@ def getSizeOfTrailingDataEntries(ptr, size, flags):
 				return result
 	num = 0
 	flags >>= 1
-	while flags:
-		if flags & 1:
-			num += getSizeOfTrailingDataEntry(ptr, size - num)
-		flags >>= 1		
+#	while flags:
+	if flags & 1:
+		num += getSizeOfTrailingDataEntry(ptr, size - num)
+	flags >>= 1		
 	return num
 
 
@@ -162,7 +165,7 @@ class DrmStripper:
 	def getResult(self):
 		return self.data_file
 
-print "MobiDeDrm v0.02. Copyright (c) 2008 The Dark Reverser"
+print "MobiDeDrm v0.03. Copyright (c) 2008 The Dark Reverser"
 if len(sys.argv)<4:
 	print "Removes protection from Mobipocket books"
 	print "Usage:"
