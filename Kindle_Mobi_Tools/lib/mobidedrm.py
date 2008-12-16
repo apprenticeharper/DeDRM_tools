@@ -4,8 +4,9 @@
 # Changelog
 #  0.01 - Initial version
 #  0.02 - Huffdic compressed books were not properly decrypted
-#  0.03 - fix 0.02 to work with all Mobipocket eBooks
-#  0.04 - Wasn't checking MOBI header length
+#  0.03 - Wasn't checking MOBI header length
+#  0.04 - Wasn't sanity checking size of data record
+#  0.05 - It seems that the extra data flags take two bytes not four
 
 import sys,struct,binascii
 
@@ -140,7 +141,7 @@ class DrmStripper:
 		mobi_length, = struct.unpack('>L',sect[0x14:0x18])
 		extra_data_flags = 0
 		if mobi_length >= 0xE4:
-			extra_data_flags, = struct.unpack('>L', sect[0xF0:0xF4])
+			extra_data_flags, = struct.unpack('>H', sect[0xF2:0xF4])
 
 
 		crypto_type, = struct.unpack('>H', sect[0xC:0xC+2])
@@ -170,7 +171,7 @@ class DrmStripper:
 	def getResult(self):
 		return self.data_file
 
-print "MobiDeDrm v0.04. Copyright (c) 2008 The Dark Reverser"
+print "MobiDeDrm v0.05. Copyright (c) 2008 The Dark Reverser"
 if len(sys.argv)<4:
 	print "Removes protection from Mobipocket books"
 	print "Usage:"
