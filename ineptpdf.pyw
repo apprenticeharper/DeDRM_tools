@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# ineptpdf.pyw, version 2
+# ineptpdf.pyw, version 3
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -10,6 +10,7 @@
 # Revision history:
 #   1 - Initial release
 #   2 - Improved determination of key-generation algorithm
+#   3 - Correctly handle PDF >=1.5 cross-reference streams
 
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
@@ -25,7 +26,7 @@ import re
 import zlib
 import struct
 import hashlib
-from itertools import chain
+from itertools import chain, islice
 import xml.etree.ElementTree as etree
 import Tkinter
 import Tkconstants
@@ -163,11 +164,11 @@ def nunpack(s, default=0):
     elif l == 1:
         return ord(s)
     elif l == 2:
-        return unpack('>H', s)[0]
+        return struct.unpack('>H', s)[0]
     elif l == 3:
-        return unpack('>L', '\x00'+s)[0]
+        return struct.unpack('>L', '\x00'+s)[0]
     elif l == 4:
-        return unpack('>L', s)[0]
+        return struct.unpack('>L', s)[0]
     else:
         return TypeError('invalid length: %d' % l)
 
@@ -680,6 +681,12 @@ class PSStackParser(PSBaseParser):
         return obj
 
 
+LITERAL_CRYPT = PSLiteralTable.intern('Crypt')
+LITERALS_FLATE_DECODE = (PSLiteralTable.intern('FlateDecode'), PSLiteralTable.intern('Fl'))
+LITERALS_LZW_DECODE = (PSLiteralTable.intern('LZWDecode'), PSLiteralTable.intern('LZW'))
+LITERALS_ASCII85_DECODE = (PSLiteralTable.intern('ASCII85Decode'), PSLiteralTable.intern('A85'))
+
+
 ##  PDF Objects
 ##
 class PDFObject(PSObject): pass
@@ -741,11 +748,11 @@ def decipher_all(decipher, objid, genno, x):
     '''
     if isinstance(x, str):
         return decipher(objid, genno, x)
+    decf = lambda v: decipher_all(decipher, objid, genno, v)
     if isinstance(x, list):
-        x = [ decipher_all(decipher, objid, genno, v) for v in x ]
+        x = [decf(v) for v in x]
     elif isinstance(x, dict):
-        for (k,v) in x.iteritems():
-            x[k] = decipher_all(decipher, objid, genno, v)
+        x = dict((k, decf(v)) for (k, v) in x.iteritems())
     return x
 
 # Type cheking
@@ -805,6 +812,28 @@ def stream_value(x):
         return PDFStream({}, '')
     return x
 
+# ascii85decode(data)
+def ascii85decode(data):
+  n = b = 0
+  out = ''
+  for c in data:
+    if '!' <= c and c <= 'u':
+      n += 1
+      b = b*85+(ord(c)-33)
+      if n == 5:
+        out += struct.pack('>L',b)
+        n = b = 0
+    elif c == 'z':
+      assert n == 0
+      out += '\0\0\0\0'
+    elif c == '~':
+      if n:
+        for _ in range(5-n):
+          b = b*85+84
+        out += struct.pack('>L',b)[:n-1]
+      break
+  return out
+
 
 ##  PDFStream type
 ##
@@ -834,12 +863,76 @@ class PDFStream(PDFObject):
         return '<PDFStream(%r): raw=%d, %r>' % \
             (self.objid, len(self.rawdata), self.dic)
 
+    def decode(self):
+        assert self.data == None and self.rawdata != None
+        data = self.rawdata
+        if self.decipher:
+            # Handle encryption
+            data = self.decipher(self.objid, self.genno, data)
+        if 'Filter' not in self.dic:
+            self.data = data
+            self.rawdata = None
+            return
+        filters = self.dic['Filter']
+        if not isinstance(filters, list):
+            filters = [ filters ]
+        for f in filters:
+            if f in LITERALS_FLATE_DECODE:
+                # will get errors if the document is encrypted.
+                data = zlib.decompress(data)
+            elif f in LITERALS_LZW_DECODE:
+                try:
+                    from cStringIO import StringIO
+                except ImportError:
+                    from StringIO import StringIO
+                data = ''.join(LZWDecoder(StringIO(data)).run())
+            elif f in LITERALS_ASCII85_DECODE:
+                data = ascii85decode(data)
+            elif f == LITERAL_CRYPT:
+                raise PDFNotImplementedError('/Crypt filter is unsupported')
+            else:
+                raise PDFNotImplementedError('Unsupported filter: %r' % f)
+            # apply predictors
+            if 'DP' in self.dic:
+                params = self.dic['DP']
+            else:
+                params = self.dic.get('DecodeParms', {})
+            if 'Predictor' in params:
+                pred = int_value(params['Predictor'])
+                if pred:
+                    if pred != 12:
+                        raise PDFNotImplementedError(
+                            'Unsupported predictor: %r' % pred)
+                    if 'Columns' not in params:
+                        raise PDFValueError(
+                            'Columns undefined for predictor=12')
+                    columns = int_value(params['Columns'])
+                    buf = ''
+                    ent0 = '\x00' * columns
+                    for i in xrange(0, len(data), columns+1):
+                        pred = data[i]
+                        ent1 = data[i+1:i+1+columns]
+                        if pred == '\x02':
+                            ent1 = ''.join(chr((ord(a)+ord(b)) & 255) \
+                                               for (a,b) in zip(ent0,ent1))
+                        buf += ent1
+                        ent0 = ent1
+                    data = buf
+        self.data = data
+        self.rawdata = None
+        return
+
+    def get_data(self):
+        if self.data == None:
+            self.decode()
+        return self.data
+
     def get_rawdata(self):
         return self.rawdata
 
     def get_decdata(self):
         data = self.rawdata
-        if self.decipher:
+        if self.decipher and data:
             # Handle encryption
             data = self.decipher(self.objid, self.genno, data)
         return data
@@ -932,6 +1025,66 @@ class PDFXRef(object):
         return (None, pos)
 
 
+##  PDFXRefStream
+##
+class PDFXRefStream(object):
+
+    def __init__(self):
+        self.index = None
+        self.data = None
+        self.entlen = None
+        self.fl1 = self.fl2 = self.fl3 = None
+        return
+
+    def __repr__(self):
+        return '<PDFXRef: objid=%d-%d>' % (self.objid_first, self.objid_last)
+
+    def objids(self):
+        for first, size in self.index:
+            for objid in xrange(first, first + size):
+                yield objid
+    
+    def load(self, parser, debug=0):
+        (_,objid) = parser.nexttoken() # ignored
+        (_,genno) = parser.nexttoken() # ignored
+        (_,kwd) = parser.nexttoken()
+        (_,stream) = parser.nextobject()
+        if not isinstance(stream, PDFStream) or \
+           stream.dic['Type'] is not LITERAL_XREF:
+            raise PDFNoValidXRef('Invalid PDF stream spec.')
+        size = stream.dic['Size']
+        index = stream.dic.get('Index', (0,size))
+        self.index = zip(islice(index, 0, None, 2),
+                         islice(index, 1, None, 2))
+        (self.fl1, self.fl2, self.fl3) = stream.dic['W']
+        self.data = stream.get_data()
+        self.entlen = self.fl1+self.fl2+self.fl3
+        self.trailer = stream.dic
+        return
+    
+    def getpos(self, objid):
+        offset = 0
+        for first, size in self.index:
+            if first <= objid  and objid < (first + size):
+                break
+            offset += size
+        else:
+            raise KeyError(objid)
+        i = self.entlen * ((objid - first) + offset)
+        ent = self.data[i:i+self.entlen]
+        f1 = nunpack(ent[:self.fl1], 1)
+        if f1 == 1:
+            pos = nunpack(ent[self.fl1:self.fl1+self.fl2])
+            genno = nunpack(ent[self.fl1+self.fl2:])
+            return (None, pos)
+        elif f1 == 2:
+            objid = nunpack(ent[self.fl1:self.fl1+self.fl2])
+            index = nunpack(ent[self.fl1+self.fl2:])
+            return (objid, index)
+        # this is a free object
+        raise KeyError(objid)
+
+
 ##  PDFDocument
 ##
 ##  A PDFDocument object represents a PDF document.
@@ -1020,7 +1173,7 @@ class PDFDocument(object):
         key = ASN1Parser([ord(x) for x in keyder])
         key = [bytesToNumber(key.getChild(x).value) for x in xrange(1, 4)]
         rsa = RSA.construct(key)
-        length = int_value(param.get('Length')) / 8
+        length = int_value(param.get('Length', 0)) / 8
         rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
@@ -1031,11 +1184,13 @@ class PDFDocument(object):
             raise ADEPTError('error decrypting book session key')
         index = bookkey.index('\0') + 1
         bookkey = bookkey[index:]
-        V = 2
-        if (length and len(bookkey) == (length + 1)) or \
-           (not length and len(bookkey) & 1 == 1):
+        ebx_V = int_value(param.get('V', 4))
+        ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
+        if ebx_V < 4 or ebx_type < 6:
             V = ord(bookkey[0])
             bookkey = bookkey[1:]
+        else:
+            V = 2
         if length and len(bookkey) != length:
             raise ADEPTError('error decrypting book session key')
         self.decrypt_key = bookkey
@@ -1131,7 +1286,7 @@ class PDFDocument(object):
         else:
             for xref in self.xrefs:
                 try:
-                    (strmid, index) = xref.getpos(objid)
+                    (stmid, index) = xref.getpos(objid)
                     break
                 except KeyError:
                     pass
@@ -1139,38 +1294,8 @@ class PDFDocument(object):
                 if STRICT:
                     raise PDFSyntaxError('Cannot locate objid=%r' % objid)
                 return None
-            if strmid:
-                stream = stream_value(self.getobj(strmid))
-                if stream.dic.get('Type') is not LITERAL_OBJSTM:
-                    if STRICT:
-                        raise PDFSyntaxError('Not a stream object: %r' % stream)
-                try:
-                    n = stream.dic['N']
-                except KeyError:
-                    if STRICT:
-                        raise PDFSyntaxError('N is not defined: %r' % stream)
-                    n = 0
-                if strmid in self.parsed_objs:
-                    objs = self.parsed_objs[strmid]
-                else:
-                    parser = PDFObjStrmParser(self, stream.get_data())
-                    objs = []
-                    try:
-                        while 1:
-                            (_,obj) = parser.nextobject()
-                            objs.append(obj)
-                    except PSEOF:
-                        pass
-                    self.parsed_objs[strmid] = objs
-                genno = 0
-                i = n*2+index
-                try:
-                    obj = objs[i]
-                except IndexError:
-                    raise PDFSyntaxError(
-                        'Invalid object number: objid=%r' % (objid))
-                if isinstance(obj, PDFStream):
-                    obj.set_objid(objid, 0)
+            if stmid:
+                return PDFObjStmRef(objid, stmid, index)
             else:
                 self.parser.seek(index)
                 (_,objid1) = self.parser.nexttoken() # objid
@@ -1184,11 +1309,17 @@ class PDFDocument(object):
                 if isinstance(obj, PDFStream):
                     obj.set_objid(objid, genno)
             self.objs[objid] = obj
-            if self.decipher:
-                obj = decipher_all(self.decipher, objid, genno, obj)
+        if self.decipher:
+            obj = decipher_all(self.decipher, objid, genno, obj)
         return obj
 
+class PDFObjStmRef(object):
+    def __init__(self, objid, stmid, index):
+        self.objid = objid
+        self.stmid = stmid
+        self.index = index
 
+    
 ##  PDFParser
 ##
 class PDFParser(PSStackParser):
@@ -1290,14 +1421,24 @@ class PDFParser(PSStackParser):
             (pos, token) = self.nexttoken()
         except PSEOF:
             raise PDFNoValidXRef('Unexpected EOF')
-        if token is not self.KEYWORD_XREF:
-            raise PDFNoValidXRef('xref not found: pos=%d, token=%r' % 
-                                 (pos, token))
-        self.nextline()
-        xref = PDFXRef()
-        xref.load(self)
+        if isinstance(token, int):
+            # XRefStream: PDF-1.5
+            self.seek(pos)
+            self.reset()
+            xref = PDFXRefStream()
+            xref.load(self)
+        else:
+            if token is not self.KEYWORD_XREF:
+                raise PDFNoValidXRef('xref not found: pos=%d, token=%r' % 
+                                     (pos, token))
+            self.nextline()
+            xref = PDFXRef()
+            xref.load(self)
         xrefs.append(xref)
         trailer = xref.trailer
+        if 'XRefStm' in trailer:
+            pos = int_value(trailer['XRefStm'])
+            self.read_xref_from(pos, xrefs)
         if 'Prev' in trailer:
             # find previous xref
             pos = int_value(trailer['Prev'])
@@ -1345,10 +1486,13 @@ class PDFSerializer(object):
         parser = PDFParser(doc, inf)
         doc.initialize(keypath)
         self.objids = objids = set()
-        for xref in doc.xrefs:
+        for xref in reversed(doc.xrefs):
             trailer = xref.trailer
             for objid in xref.objids():
                 objids.add(objid)
+        trailer = dict(trailer)
+        trailer.pop('Prev', None)
+        trailer.pop('XRefStm', None)
         if 'Encrypt' in trailer:
             objids.remove(trailer.pop('Encrypt').objid)
         self.trailer = trailer
@@ -1360,26 +1504,64 @@ class PDFSerializer(object):
         doc = self.doc
         objids = self.objids
         xrefs = {}
+        xrefstm = {}
         maxobj = max(objids)
+        trailer = dict(self.trailer)
+        trailer['Size'] = maxobj + 1
         for objid in objids:
+            obj = doc.getobj(objid)
+            if isinstance(obj, PDFObjStmRef):
+                xrefstm[objid] = obj
+                continue
             xrefs[objid] = self.tell()
-            self.serialize_indirect(objid, doc.getobj(objid))
+            self.serialize_indirect(objid, obj)
         startxref = self.tell()
         self.write('xref\n')
         self.write('0 %d\n' % (maxobj + 1,))
         for objid in xrange(0, maxobj + 1):
-            if objid in objids:
+            if objid in xrefs:
                 self.write("%010d %05d n \n" % (xrefs[objid], 0))
             else:
                 self.write("%010d %05d f \n" % (0, 65535))
         self.write('trailer\n')
-        self.serialize_object(self.trailer)
+        self.serialize_object(trailer)
         self.write('\nstartxref\n%d\n%%%%EOF' % startxref)
-
-    def write(self, *data):
-        for datum in data:
-            self.outf.write(datum)
-        self.last = data[-1][-1:]
+        if not xrefstm:
+            return
+        index = []
+        first = None
+        prev = None
+        data = []
+        for objid in sorted(xrefstm):
+            if first is None:
+                first = objid
+            elif objid != prev + 1:
+                index.extend((first, prev - first + 1))
+                first = objid
+            prev = objid
+            stmid = xrefstm[objid].stmid
+            data.append(struct.pack('>BHB', 2, stmid, 0))
+        index.extend((first, prev - first + 1))
+        data = zlib.compress(''.join(data))
+        dic = {'Type': LITERAL_XREF, 'Size': prev + 1, 'Index': index,
+               'W': [1, 2, 1], 'Length': len(data), 'Prev': startxref,
+               'Filter': LITERALS_FLATE_DECODE[0],}
+        obj = PDFStream(dic, data)
+        self.write('\n')
+        trailer['XRefStm'] = startxrefstm = self.tell()
+        self.serialize_indirect(maxobj + 1, obj)
+        trailer['Prev'] = startxref
+        startxref = self.tell()
+        self.write('xref\n')
+        self.write('%d 1\n' % (maxobj + 1,))
+        self.write("%010d %05d n \n" % (startxrefstm, 0))
+        self.write('trailer\n')
+        self.serialize_object(trailer)
+        self.write('\nstartxref\n%d\n%%%%EOF' % startxref)
+    
+    def write(self, data):
+        self.outf.write(data)
+        self.last = data[-1:]
 
     def tell(self):
         return self.outf.tell()
@@ -1566,5 +1748,6 @@ def gui_main():
 
 
 if __name__ == '__main__':
-    # sys.exit(cli_main())
+    if len(sys.argv) > 1:
+        sys.exit(cli_main())
     sys.exit(gui_main())
