@@ -20,6 +20,7 @@
 #  0.06 - And that low bit does mean something after all :-)
 #  0.07 - The extra data flags aren't present in MOBI header < 0xE8 in size
 #  0.08 - ...and also not in Mobi header version < 6
+#  0.09 - ...but they are there with Mobi header version 6, header size 0xE4!
 
 import sys,struct,binascii
 
@@ -157,7 +158,7 @@ class DrmStripper:
 		extra_data_flags = 0
 		print "MOBI header length = %d" %mobi_length
 		print "MOBI header version = %d" %mobi_version
-		if (mobi_length >= 0xE8) and (mobi_version > 5):
+		if (mobi_length >= 0xE4) and (mobi_version > 5):
 			extra_data_flags, = struct.unpack('>H', sect[0xF2:0xF4])
 			print "Extra Data Flags = %d" %extra_data_flags
 
@@ -205,7 +206,7 @@ if not __name__ == "__main__":
 		description         = 'Removes DRM from secure Mobi files'
 		supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
 		author              = 'The Dark Reverser' # The author of this plugin
-		version             = (0, 0, 8)   # The version number of this plugin
+		version             = (0, 0, 9)   # The version number of this plugin
 		file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
 		on_import           = True # Run this plugin during the import
 
@@ -232,7 +233,7 @@ if not __name__ == "__main__":
 			return 'Enter PID (separate multiple PIDs with comma)'
 
 if __name__ == "__main__":
-	print "MobiDeDrm v0.08. Copyright (c) 2008 The Dark Reverser"
+	print "MobiDeDrm v0.09. Copyright (c) 2008 The Dark Reverser"
 	if len(sys.argv)<4:
 		print "Removes protection from Mobipocket books"
 		print "Usage:"

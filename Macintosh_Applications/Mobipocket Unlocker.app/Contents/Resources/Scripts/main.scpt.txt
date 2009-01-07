@@ -1,10 +1,12 @@
 on unlockfile(encryptedFile, MobiDeDRMPath, encryptionKey)
 	set encryptedFilePath to POSIX path of file encryptedFile
+	-- display dialog "filepath " & encryptedFilePath buttons {"OK"} default button 1 giving up after 10
 	tell application "Finder" to Â
 		set parent_folder to (container of file encryptedFile) as text
 	tell application "Finder" to set fileName to (name of file encryptedFile) as text
 	set unlockedFilePath to POSIX path of file (parent_folder & "Unlocked_" & fileName)
-	set shellcommand to "python \"" & MobiDeDRMPath & "\" \"" & encryptedFilePath & "\" \"" & unlockedFilePath & "\" '" & encryptionKey & "'"
+	set shellcommand to "python '" & MobiDeDRMPath & "' '" & encryptedFilePath & "' '" & unlockedFilePath & "' '" & encryptionKey & "'"
+	-- display dialog "shellcommand: " & shellcommand buttons {"OK"} default button 1 giving up after 10
 	try
 		--with timeout of 5 seconds
 		--	display dialog "About to Unlock " & fileName buttons {"Unlock"} default button 1 giving up after 1

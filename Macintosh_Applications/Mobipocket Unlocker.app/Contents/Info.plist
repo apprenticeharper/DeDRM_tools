@@ -28,7 +28,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Mobipocket Unlocker 4</string>
+	<string>Mobipocket Unlocker 9</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
@@ -40,9 +40,9 @@
 		<key>name</key>
 		<string>ScriptWindowState</string>
 		<key>positionOfDivider</key>
-		<real>435</real>
+		<real>422</real>
 		<key>savedFrame</key>
-		<string>53 78 661 691 0 0 1280 778 </string>
+		<string>91 171 1059 678 0 0 1440 878 </string>
 		<key>selectedTabView</key>
 		<string>result</string>
 	</dict>
