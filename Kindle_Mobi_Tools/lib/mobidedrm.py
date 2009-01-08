@@ -7,6 +7,7 @@
 #  0.03 - Wasn't checking MOBI header length
 #  0.04 - Wasn't sanity checking size of data record
 #  0.05 - It seems that the extra data flags take two bytes not four
+#  0.06 - And that low bit does mean something after all :-)
 
 import sys,struct,binascii
 
@@ -73,13 +74,14 @@ def getSizeOfTrailingDataEntries(ptr, size, flags):
 			if (v & 0x80) != 0 or (bitpos >= 28) or (size == 0):
 				return result
 	num = 0
-	flags >>= 1
-	while flags:
-		if flags & 1:
+	testflags = flags >> 1
+	while testflags:
+		if testflags & 1:
 			num += getSizeOfTrailingDataEntry(ptr, size - num)
-		flags >>= 1		
+		testflags >>= 1
+	if flags & 1:
+		num += (ord(ptr[size - num - 1]) & 0x3) + 1
 	return num
-
 
 class DrmStripper:
 	def loadSection(self, section):	
@@ -171,7 +173,7 @@ class DrmStripper:
 	def getResult(self):
 		return self.data_file
 
-print "MobiDeDrm v0.05. Copyright (c) 2008 The Dark Reverser"
+print "MobiDeDrm v0.06. Copyright (c) 2008 The Dark Reverser"
 if len(sys.argv)<4:
 	print "Removes protection from Mobipocket books"
 	print "Usage:"

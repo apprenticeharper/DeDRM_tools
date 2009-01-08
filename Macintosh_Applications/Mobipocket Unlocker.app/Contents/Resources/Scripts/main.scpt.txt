@@ -36,14 +36,14 @@ end unlockfolder
 on run
 	set MobiDeDRMPath to POSIX path of file ((path to me as text) & "Contents:Resources:MobiDeDRM.py")
 	set encryptedFolder to choose folder with prompt "Please choose the folder of encrypted Mobipocket files."
-	set encryptionKey to (display dialog "Enter Mobipocket key for encrypted Mobipocket files." default answer "X12QIL1M3D" buttons {"Cancel", "OK"} default button 2)
+	set encryptionKey to (display dialog "Enter Mobipocket key for encrypted Mobipocket files." default answer "Your PID Here" buttons {"Cancel", "OK"} default button 2)
 	set encryptionKey to text returned of encryptionKey
 	unlockfolder(encryptedFolder, MobiDeDRMPath, encryptionKey)
 end run
 
 on open some_items
 	set MobiDeDRMPath to POSIX path of file ((path to me as text) & "Contents:Resources:MobiDeDRM.py")
-	set encryptionKey to (display dialog "Enter Mobipocket key for encrypted Mobipocket files." default answer "X12QIL1M3D" buttons {"Cancel", "OK"} default button 2)
+	set encryptionKey to (display dialog "Enter Mobipocket key for encrypted Mobipocket files." default answer "Your PID Here" buttons {"Cancel", "OK"} default button 2)
 	set encryptionKey to text returned of encryptionKey
 	repeat with this_item in some_items
 		if (folder of (info for this_item) is true) then
@@ -55,5 +55,6 @@ on open some_items
 			end if
 		end if
 	end repeat
+	display dialog "Finished Unlocking." buttons {"OK"} default button 1
 end open
 
