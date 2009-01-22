@@ -246,13 +246,19 @@ class PageParser(object):
         'word_semantic.firstWord' : (1, 'scalar_number', 0, 0),
         'word_semantic.lastWord'  : (1, 'scalar_number', 0, 0),
 
-        'word'           : (1, 'snippets', 1, 0),
-        'word.type'      : (1, 'scalar_text', 0, 0),
-        'word.class'     : (1, 'scalar_text', 0, 0),
+        'word'            : (1, 'snippets', 1, 0),
+        'word.type'       : (1, 'scalar_text', 0, 0),
+        'word.class'      : (1, 'scalar_text', 0, 0),
+        'word.firstGlyph' : (1, 'scalar_number', 0, 0),
+        'word.lastGlyph'  : (1, 'scalar_number', 0, 0),
 
         '_span'           : (1, 'snippets', 1, 0),
         '_span.firstWord' : (1, 'scalar_number', 0, 0),
         '-span.lastWord'  : (1, 'scalar_number', 0, 0),
+
+        'span'           : (1, 'snippets', 1, 0),
+        'span.firstWord' : (1, 'scalar_number', 0, 0),
+        'span.lastWord'  : (1, 'scalar_number', 0, 0),
 
         'extratokens'            : (1, 'snippets', 1, 0),
         'extratokens.type'       : (1, 'scalar_text', 0, 0),

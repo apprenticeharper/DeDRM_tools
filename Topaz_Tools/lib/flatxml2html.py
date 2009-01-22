@@ -119,6 +119,7 @@ class DocParser(object):
 
         # this type of paragrph may be made up of multiple _spans, inline 
         # word monograms (images) and words with semantic meaning
+        # and now a new type "span" versus the old "_span"
         
         # need to parse this type line by line
         line = start + 1
@@ -132,10 +133,10 @@ class DocParser(object):
 
             (name, argres) = self.lineinDoc(line)
 
-            if name.endswith('_span.firstWord') :
+            if name.endswith('span.firstWord') :
                 first = int(argres)
                 (name, argres) = self.lineinDoc(line+1)
-                if not name.endswith('_span.lastWord'):
+                if not name.endswith('span.lastWord'):
                     print 'Error: - incorrect _span ordering inside paragraph'
                 last = int(argres)
                 for wordnum in xrange(first, last):
@@ -175,7 +176,7 @@ class DocParser(object):
         if pclass :
             classres = ' class="' + pclass + '"'
 
-        br_lb = (regtype == 'fixed') or (regtype == 'chapterheading')
+        br_lb = (regtype == 'fixed') or (regtype == 'chapterheading') or (regtype == 'vertical')
 
         handle_links = len(self.link_id) > 0
         
@@ -317,7 +318,7 @@ class DocParser(object):
 
             # set anchor for link target on this page
             if not anchorSet and not first_para_continued:
-                htmlpage += '<div id="' + self.id + '" class="page_' + pagetype + '">&nbsp</div>\n'
+                htmlpage += '<div style="visibility: hidden; height: 0; width: 0;" id="' + self.id + '" title="pagetype_' + pagetype + '"></div>\n'
                 anchorSet = True
 
             if regtype == 'graphic' :
@@ -343,7 +344,7 @@ class DocParser(object):
                 htmlpage += '</' + tag + '>'
 
 
-            elif (regtype == 'text') or (regtype == 'fixed') or (regtype == 'insert') or (regtype == 'listitem') :
+            elif (regtype == 'text') or (regtype == 'fixed') or (regtype == 'insert') or (regtype == 'listitem'):
                 ptype = 'full'
                 # check to see if this is a continution from the previous page
                 if first_para_continued :
@@ -371,6 +372,27 @@ class DocParser(object):
                 htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
 
 
+            elif (regtype == 'vertical') :
+                ptype = 'full'
+                if first_para_continued :
+                    ptype = 'end'
+                    first_para_continued = False
+                (pclass, pdesc) = self.getParaDescription(start,end)
+                htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+
+
+            elif (regtype == 'table') :
+                ptype = 'full'
+                if first_para_continued :
+                    ptype = 'end'
+                    first_para_continued = False
+                (pclass, pdesc) = self.getParaDescription(start,end)
+                htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+                print "Warnings - Table Conversions are notoriously poor"
+                print "Strongly recommend taking a screen capture image of the "
+                print "table in %s.svg and using it to replace this attempt at a table" % self.id
+
+
             elif (regtype == 'synth_fcvr.center') or (regtype == 'synth_text.center'):
                 (pos, simgsrc) = self.findinDoc('img.src',start,end)
                 if simgsrc:
@@ -378,10 +400,10 @@ class DocParser(object):
 
 
             else :
-                print 'Warning: Unknown region type', regtype
+                print 'Warning: region type', regtype
                 (pos, temp) = self.findinDoc('paragraph',start,end)
-                if temp:
-                    print 'Treating this like a "text" region'
+                if pos != -1:
+                    print '   is a "text" region'
                     regtype = 'fixed'
                     ptype = 'full'
                     # check to see if this is a continution from the previous page
@@ -400,7 +422,7 @@ class DocParser(object):
                     else :
                         htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
                 else :
-                    print 'Treating this like a "graphic" region'
+                    print '    is a "graphic" region'
                     (pos, simgsrc) = self.findinDoc('img.src',start,end)
                     if simgsrc:
                         htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)

@@ -6,7 +6,7 @@ Contributors:
      DiapDealer - for extensive testing and feedback, and standalone linux/macosx version of cmbtc_dump
      stewball - for extensive testing and feedback
 
-and others for posting, feedback and testing
+and many others for posting, feedback and testing
   
 
 This is experimental and it will probably not work for you but...

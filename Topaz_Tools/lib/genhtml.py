@@ -77,7 +77,8 @@ def main(argv):
 
 
     htmlFileName = "book.html"
-    htmlstr = '<html>\n'
+    htmlstr = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
+    htmlstr += '<html>\n'
 
     filenames = os.listdir(pageDir)
     filenames = sorted(filenames)
@@ -85,6 +86,7 @@ def main(argv):
     print 'Processing ... '
 
     htmlstr += '<head>\n'
+    htmlstr += '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>\n'
 
     # process metadata and retrieve fontSize info
     print '     ', 'metadata0000.dat'
@@ -93,6 +95,8 @@ def main(argv):
     metastr = decode_meta.getMetaData(fname)
     file(xname, 'wb').write(metastr)
     meta_array = decode_meta.getMetaArray(fname)
+
+    htmlstr += '<title>' + meta_array['Title'] + ' by ' + meta_array['Authors'] + '</title>\n' 
     htmlstr += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
     htmlstr += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
 
@@ -120,11 +124,9 @@ def main(argv):
     fname = os.path.join(bookDir,'other0000.dat')
     xname = os.path.join(bookDir, 'style.css')
     xmlstr = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname)
-    htmlstr += '<style>\n'
     cssstr , classlst = stylexml2css.convert2CSS(xmlstr, fontsize, ph, pw)
     file(xname, 'wb').write(cssstr)
-    htmlstr += cssstr
-    htmlstr += '</style>\n'
+    htmlstr += '<link href="style.css" rel="stylesheet" type="text/css" />\n'
     htmlstr += '</head>\n<body>\n'
 
     for filename in filenames:

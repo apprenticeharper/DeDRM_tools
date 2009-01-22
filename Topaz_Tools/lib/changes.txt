@@ -1,3 +1,12 @@
+Changes in version 1.7
+	- gensvg.py has been improved so that the glyphs render exactly (ClarkNova)
+	- gensvg.py has fixed a render order "bug" that allowed some images to cover or hide text. (ClarkNova)
+	- change generated html to use external stylesheet via a link to "style.css"
+	- add missing <title> tag
+	- make xhtml compliant doctype and minor changes to write correct xhtml
+	- make divs that act as anchors be hidden visually and to take up 0 height and 0 width to prevent any impact on layout
+	- added support for new version of the <_span> tag called <span>
+
 Changes in version 1.6
 	- support for books whose paragraphs have no styles
 	- support to run cmbtc_dump on Linux and Mac OSX provided you know your PID of your ipod or standalone Kindle
