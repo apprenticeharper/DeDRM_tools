@@ -1,17 +1,29 @@
-Changes in version 1.8
+Changes in version 2.0
 
+	- gensvg.py now accepts two options
+             -x : output browseable XHTML+SVG pages (default)
+ 	     -r : output raw SVG images (useful for later conversion to pdf)
+	  
+	- flatxml2html.py now understands page.groups of type graphic
+	     and handles vertical regions as svg images
+
+	- genhtml.py now accepts an option
+	     --fixed-image : which will force the conversion
+	                     of all fixed regions to svg images
+
+	- minor bug fixes and html conversion improvements
+
+
+Changes in version 1.8
 	- gensvg.py now builds wonderful xhtml pages with embedded svg 
 	    that can be easily paged through as if reading a book!
 	    (tested in Safari for Mac and Win and Firefox)
 	    (requires javascript to be enabled)
-
 	- genhtml.py now REQUIRES that gensvg.py be run FIRST
 	     this allows create of images on the fly from glyphs
-
 	- genhtml.py now automatically makes tables of words into svg
 	     based images and will handle glyph based ornate first 
 	     letters of words
-
 	- cmbtc_dump_mac_linux.py has been renamed to be
 	     cmbtc_dump_nonK4PC.py to make it clearer
 	     when it needs to be used

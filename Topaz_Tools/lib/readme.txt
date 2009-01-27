@@ -31,9 +31,8 @@ genhtml.py - main program to generate "book.html"
 gensvg.py - (author: clarknova) main program to create an xhmtl page with embedded svg graphics
 
 
-Please note, gensvg.py, genhtml.py, and genxml.py import and use
-decode_meta.py, convert2xml.py, flatxml2html.py, getpagedim.py and stylexml2css.py 
-so please keep all of these python scripts together in the same place.
+Please note, these scripts all import code from each other so please
+keep all of these python scripts together in the same place.
 
 
 
@@ -78,6 +77,12 @@ The step must NOW be done BEFORE attempting conversion to html
 When complete, use a web-browser to open the page*.xhtml files
 in TARGETDIR/svg/ to see what the book really looks like.
 
+If you would prefer pure svg pages, then use the -r option
+as follows:
+
+   gensvg.py -r TARGETDIR
+
+
 All thanks go to CLARKNOVA for this program.  This program is 
 needed to actually see the true image of each page and so that
 the next step can properly create images from glyphs for 
@@ -96,6 +101,16 @@ and the resulting html will need to be edited by hand to
 properly set bold and/or italics, handle font size changes,
 and to fix the sometimes horiffic mistakes in the ocrText
 used to create the html.  
+
+If there critical pages that need fixed layout in your book
+you might want to consider forcing these fixed regions to
+become svg images using the command instead
+
+    genhtml.py --fixed-image TARGETDIR
+
+This will convert all fixed regions into svg images at the 
+expense of increased book size, slower loading speed, and 
+a loss of the ability to search for words in those regions
 
 FYI: Sigil is a wonderful, free cross-
 platform program that can be used to edit the html and 

@@ -1,6 +1,6 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# For use with Topaz Scripts Version 1.8                                                                                                  
+# For use with Topaz Scripts Version 2.0
 
 import os, sys, getopt
 
@@ -14,13 +14,16 @@ import getpagedim
 def usage():
     print 'Usage: '
     print ' '
-    print '   genhtml.py unencryptedBookDir'
+    print '   genhtml.py [--fixed-image] unencryptedBookDir'
     print '  '
-
+    print '  Options:  '
+    print '     --fixed-image   : force translation of fixed regions into svg images '
+    print '  '
 
 
 def main(argv):
     bookDir = ''
+    fixedimage = False
 
     if len(argv) == 0:
         argv = sys.argv
@@ -28,7 +31,7 @@ def main(argv):
         argv = argv.split()
 
     try:
-        opts, args = getopt.getopt(argv[1:], "h:")
+        opts, args = getopt.getopt(argv[1:], "h:",["fixed-image"])
 
     except getopt.GetoptError, err:
         print str(err)
@@ -43,6 +46,8 @@ def main(argv):
         if o =="-h":
             usage()
             sys.exit(0)
+        if o =="--fixed-image":
+            fixedimage = True
 
     bookDir = args[0]
 
@@ -139,7 +144,7 @@ def main(argv):
         print '     ', filename
         fname = os.path.join(pageDir,filename)
         flat_xml = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname) 
-        htmlstr += flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir)
+        htmlstr += flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir, fixedimage)
 
     htmlstr += '</body>\n</html>\n'
 
