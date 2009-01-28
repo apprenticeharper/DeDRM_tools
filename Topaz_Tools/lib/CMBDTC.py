@@ -2,7 +2,7 @@
 
 """
 
-Comprehensive Mazama Book DRM with Topaz Cryptography V2.1
+Comprehensive Mazama Book DRM with Topaz Cryptography V2.2
 
 -----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdBHJ4CNc6DNFCw4MRCw4SWAK6
@@ -304,7 +304,10 @@ def encodeNumber(number):
        byte += flag
        result += chr(byte)
        flag = 0x80
-       if number == 0 : break
+       if number == 0 : 
+           if (byte == 0xFF and negative == False) :
+               result += chr(0x80)
+           break
    
    if negative:
        result += chr(0xFF)
@@ -650,10 +653,10 @@ def createDecryptedPayload(payload):
     for headerRecord in bookHeaderRecords:
        name = headerRecord
        newRecord = []
-       # if you are reading this, you might want to uncomment the next line :-D
-       #if name != "dkey" :
+
+       if name != "dkey" :
        
-       for index in range (0,len(bookHeaderRecords[name])) :
+           for index in range (0,len(bookHeaderRecords[name])) :
                offset = currentOffset
                
                if payload != None: 
@@ -747,7 +750,7 @@ def main(argv=sys.argv):
     
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "vir:o:p:")
+        opts, args = getopt.getopt(sys.argv[1:], "vdir:o:p:")
     except getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -894,3 +897,4 @@ def main(argv=sys.argv):
 
 if __name__ == '__main__':
     sys.exit(main())
+
