@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# ineptpdf.pyw, version 3
+# ineptpdf5.pyw, version 5
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -11,6 +11,8 @@
 #   1 - Initial release
 #   2 - Improved determination of key-generation algorithm
 #   3 - Correctly handle PDF >=1.5 cross-reference streams
+#   4 - Removal of ciando's personal ID (anon)
+#   5 - removing small bug with V3 ebooks (anon)
 
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
@@ -173,7 +175,7 @@ def nunpack(s, default=0):
         return TypeError('invalid length: %d' % l)
 
 
-STRICT = 0
+STRICT = 1
 
 
 ##  PS Exceptions
@@ -1186,7 +1188,10 @@ class PDFDocument(object):
         bookkey = bookkey[index:]
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
-        if ebx_V < 4 or ebx_type < 6:
+        # added because of the booktype / decryption book session key error
+        if ebx_V == 3:
+            V = 3        
+        elif ebx_V < 4 or ebx_type < 6:
             V = ord(bookkey[0])
             bookkey = bookkey[1:]
         else:
@@ -1291,8 +1296,9 @@ class PDFDocument(object):
                 except KeyError:
                     pass
             else:
-                if STRICT:
-                    raise PDFSyntaxError('Cannot locate objid=%r' % objid)
+                return
+                #if STRICT:
+                #    raise PDFSyntaxError('Cannot locate objid=%r' % objid)
                 return None
             if stmid:
                 return PDFObjStmRef(objid, stmid, index)
@@ -1571,6 +1577,9 @@ class PDFSerializer(object):
         string = string.replace('\n', r'\n')
         string = string.replace('(', r'\(')
         string = string.replace(')', r'\)')
+         # get rid of ciando id
+        regularexp = re.compile(r'http://www.ciando.com/index.cfm/intRefererID/\d{5}')
+        if regularexp.match(string): return ('http://www.ciando.com') 
         return string
     
     def serialize_object(self, obj):
