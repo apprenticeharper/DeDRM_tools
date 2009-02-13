@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 #
-# eRdr2Pml.py
+# erdr2pml.py
 #
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
@@ -50,9 +50,10 @@
 #  0.09 - fixed typos in first_pages to first_page to again support older formats
 #  0.10 - minor cleanups
 #  0.11 - fixups for using correct xml for footnotes and sidebars for use with Dropbook
-#  0.12 - fixup for file name cleaning - no longer converts to lower case
+#  0.12 - Fix added to prevent lowercasing of image names when the pml code itself uses a different case in the link name.
+#  0.13 - change to unbuffered stdout for use with gui front ends
 
-__version__='0.12'
+__version__='0.13'
 
 # Import Psyco if available
 try:
@@ -72,7 +73,20 @@ try:
 except ImportError:
     pass
 
-import struct, binascii, zlib, os, sys, os.path, urllib
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+import sys
+sys.stdout=Unbuffered(sys.stdout)
+
+import struct, binascii, zlib, os, os.path, urllib
+
 try:
     from hashlib import sha1
 except ImportError:
@@ -84,7 +98,6 @@ import logging
 
 logging.basicConfig()
 #logging.basicConfig(level=logging.DEBUG)
-
 
 ECB =	0
 CBC =	1
@@ -593,6 +606,7 @@ def main(argv=None):
         print "Note:"
         print "  if ommitted, outdir defaults based on 'infile.pdb'"
         print "  It's enough to enter the last 8 digits of the credit card number"
+        return 1
     else:
         if len(argv)==4:
             infile, name, cc = argv[1], argv[2], argv[3]
@@ -613,6 +627,8 @@ def main(argv=None):
             print "done"
         except ValueError, e:
             print "Error: %s" % e
+            return 1
+    return 0
 
 if __name__ == "__main__":
     #import cProfile

@@ -1,10 +1,20 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# For use with Topaz Scripts Version 2.0
+# For use with Topaz Scripts Version 2.2
 
-from __future__ import with_statement
-import csv
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
 import sys
+sys.stdout=Unbuffered(sys.stdout)
+
+import csv
 import os
 import getopt
 from struct import pack
@@ -61,7 +71,10 @@ def encodeNumber(number):
        byte += flag
        result += chr(byte)
        flag = 0x80
-       if number == 0 : break
+       if number == 0 :
+           if (byte == 0xFF and negative == False) :
+               result += chr(0x80)
+           break
    
    if negative:
        result += chr(0xFF)
@@ -729,8 +742,6 @@ def main(argv):
     if len(argv) == 0:
         printOutput = True
         argv = sys.argv
-    else :
-        argv = argv.split()
 
     try:
         opts, args = getopt.getopt(argv[1:], "hd", ["flat-xml"])

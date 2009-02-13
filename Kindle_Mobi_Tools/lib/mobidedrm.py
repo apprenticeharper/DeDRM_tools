@@ -21,7 +21,10 @@
 #  0.07 - The extra data flags aren't present in MOBI header < 0xE8 in size
 #  0.08 - ...and also not in Mobi header version < 6
 #  0.09 - ...but they are there with Mobi header version 6, header size 0xE4!
-#  0.10 - use autoflushed stdout and proper return values
+#  0.10 - Outputs unencrypted files as-is, so that when run as a Calibre
+#         import filter it works when importing unencrypted files.
+#         Also now handles encrypted files that don't need a specific PID.
+#  0.11 - use autoflushed stdout and proper return values
 
 class Unbuffered:
     def __init__(self, stream):
@@ -143,6 +146,17 @@ class DrmStripper:
 			if verification == ver and cksum == temp_key_sum and (flags & 0x1F) == 1:
 				found_key = finalkey
 				break
+		if not found_key:
+			# Then try the default encoding that doesn't require a PID
+			temp_key = keyvec1
+			temp_key_sum = sum(map(ord,temp_key)) & 0xff
+			for i in xrange(count):
+				verification, size, type, cksum, cookie = struct.unpack('>LLLBxxx32s', data[i*0x30:i*0x30+0x30])
+				cookie = PC1(temp_key, cookie)
+				ver,flags,finalkey,expiry,expiry2 = struct.unpack('>LL16sLL', cookie)
+				if verification == ver and cksum == temp_key_sum:
+					found_key = finalkey
+					break
 		return found_key		
 
 
@@ -178,34 +192,35 @@ class DrmStripper:
 
 		crypto_type, = struct.unpack('>H', sect[0xC:0xC+2])
 		if crypto_type == 0:
-			raise DrmException("it seems that this book isn't encrypted")
-		if crypto_type == 1:
-			raise DrmException("cannot decode Mobipocket encryption type 1")
-		if crypto_type != 2:
-			raise DrmException("unknown encryption type: %d" % crypto_type)
-
-		# calculate the keys
-		drm_ptr, drm_count, drm_size, drm_flags = struct.unpack('>LLLL', sect[0xA8:0xA8+16])
-		if drm_count == 0:
-			raise DrmException("no PIDs found in this file")
-		found_key = self.parseDRM(sect[drm_ptr:drm_ptr+drm_size], drm_count, pid)
-		if not found_key:
-			raise DrmException("no key found. maybe the PID is incorrect")
-
-		# kill the drm keys
-		self.patchSection(0, "\0" * drm_size, drm_ptr)
-		# kill the drm pointers
-		self.patchSection(0, "\xff" * 4 + "\0" * 12, 0xA8)
-		# clear the crypto type
-		self.patchSection(0, "\0" * 2, 0xC)
-
-		# decrypt sections
-		print "Decrypting. Please wait...",
-		for i in xrange(1, records+1):
-			data = self.loadSection(i)
-			extra_size = getSizeOfTrailingDataEntries(data, len(data), extra_data_flags)
-			# print "record %d, extra_size %d" %(i,extra_size)
-			self.patchSection(i, PC1(found_key, data[0:len(data) - extra_size]))
+			print "This book is not encrypted."
+		else:
+			if crypto_type == 1:
+				raise DrmException("cannot decode Mobipocket encryption type 1")
+			if crypto_type != 2:
+				raise DrmException("unknown encryption type: %d" % crypto_type)
+	
+			# calculate the keys
+			drm_ptr, drm_count, drm_size, drm_flags = struct.unpack('>LLLL', sect[0xA8:0xA8+16])
+			if drm_count == 0:
+				raise DrmException("no PIDs found in this file")
+			found_key = self.parseDRM(sect[drm_ptr:drm_ptr+drm_size], drm_count, pid)
+			if not found_key:
+				raise DrmException("no key found. maybe the PID is incorrect")
+	
+			# kill the drm keys
+			self.patchSection(0, "\0" * drm_size, drm_ptr)
+			# kill the drm pointers
+			self.patchSection(0, "\xff" * 4 + "\0" * 12, 0xA8)
+			# clear the crypto type
+			self.patchSection(0, "\0" * 2, 0xC)
+	
+			# decrypt sections
+			print "Decrypting. Please wait...",
+			for i in xrange(1, records+1):
+				data = self.loadSection(i)
+				extra_size = getSizeOfTrailingDataEntries(data, len(data), extra_data_flags)
+				# print "record %d, extra_size %d" %(i,extra_size)
+				self.patchSection(i, PC1(found_key, data[0:len(data) - extra_size]))
 		print "done"
 	def getResult(self):
 		return self.data_file
@@ -219,7 +234,7 @@ if not __name__ == "__main__":
 		description         = 'Removes DRM from secure Mobi files'
 		supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
 		author              = 'The Dark Reverser' # The author of this plugin
-		version             = (0, 0, 10)   # The version number of this plugin
+		version             = (0, 1, 0)   # The version number of this plugin
 		file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
 		on_import           = True # Run this plugin during the import
 
@@ -245,25 +260,22 @@ if not __name__ == "__main__":
 		def customization_help(self, gui=False):
 			return 'Enter PID (separate multiple PIDs with comma)'
 
-def main(argv=sys.argv):
-	print "MobiDeDrm v0.10. Copyright (c) 2008 The Dark Reverser"
+if __name__ == "__main__":
+	print "MobiDeDrm v0.11. Copyright (c) 2008 The Dark Reverser"
 	if len(sys.argv)<4:
 		print "Removes protection from Mobipocket books"
 		print "Usage:"
-		print "  mobidedrm infile.mobi outfile.mobi PID"
-                return 1
+		print "  mobidedrm infile.mobi outfile.mobi (PID)"
+		sys.exit(1)
 	else:  
 		infile = sys.argv[1]
 		outfile = sys.argv[2]
 		pid = sys.argv[3]
 		data_file = file(infile, 'rb').read()
 		try:
-			file(outfile, 'wb').write(DrmStripper(data_file, pid).getResult())
+			strippedFile = DrmStripper(data_file, pid)
+			file(outfile, 'wb').write(strippedFile.getResult())
 		except DrmException, e:
 			print "Error: %s" % e
-			return 1
-        return 0
-
-if __name__ == "__main__":
-    sys.exit(main())
-
+			sys.exit(1)
+	sys.exit(0)

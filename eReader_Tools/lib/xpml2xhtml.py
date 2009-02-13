@@ -29,10 +29,23 @@
 #  0.16 - use proper and safe temporary file when passing things to tidy
 #  0.17 - add support for tidy.exe under windows
 #  0.18 - fix corner case of lines that start with \axxx or \Uxxxx tags
+#  0.19 - change to use auto flushed stdout, and use proper return values
 
-__version__='0.18'
+__version__='0.19'
 
-import struct, binascii, zlib, os, getopt, sys, os.path, urllib, re, tempfile
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+import sys
+sys.stdout=Unbuffered(sys.stdout)
+
+import struct, binascii, zlib, os, getopt, os.path, urllib, re, tempfile
 import logging
 from subprocess import Popen, PIPE, STDOUT
 
@@ -790,10 +803,10 @@ def main(argv=None):
     except getopt.GetoptError, err:
         print str(err)
         usage()
-        return 2
+        return 1
     if len(args) != 2:
         usage()
-        return 2
+        return 1
     sigil_breaks = False
     use_tidy = False
     for o, a in opts:
@@ -832,7 +845,7 @@ def main(argv=None):
         print "Finished Processing"
     except ValueError, e:
         print "Error: %s" % e
-        return 2
+        return 1
     return 0
 
 if __name__ == "__main__":

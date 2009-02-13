@@ -1,10 +1,9 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# For use with Topaz Scripts Version 2.0
+# For use with Topaz Scripts Version 2.2
 
-from __future__ import with_statement
-import csv
 import sys
+import csv
 import os
 import math
 import getopt

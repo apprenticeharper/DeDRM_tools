@@ -1,8 +1,20 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# For use with Topaz Scripts Version 2.0
+# For use with Topaz Scripts Version 2.2
 
-import os, sys, getopt
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+import sys
+sys.stdout=Unbuffered(sys.stdout)
+
+import os, getopt
 
 # local routines
 import convert2xml
@@ -190,8 +202,6 @@ def main(argv):
 
  if len(argv) == 0:
      argv = sys.argv
- else :
-     argv = argv.split()
 
  try:
      opts, args = getopt.getopt(argv[1:], "xrh")
@@ -199,11 +209,11 @@ def main(argv):
  except getopt.GetoptError, err:
      print str(err)
      usage()
-     sys.exit(2)
+     sys.exit(1)
 
  if len(opts) == 0 and len(args) == 0 :
      usage()
-     sys.exit(2) 
+     sys.exit(1) 
 
  raw = 0
  for o, a in opts:
@@ -219,33 +229,33 @@ def main(argv):
 
  if not os.path.exists(bookDir) :
      print "Can not find directory with unencrypted book"
-     sys.exit(-1)
+     sys.exit(1)
 
  dictFile = os.path.join(bookDir,'dict0000.dat')
 
  if not os.path.exists(dictFile) :
      print "Can not find dict0000.dat file"
-     sys.exit(-1)
+     sys.exit(1)
 
  pageDir = os.path.join(bookDir,'page')
  if not os.path.exists(pageDir) :
      print "Can not find page directory in unencrypted book"
-     sys.exit(-1)
+     sys.exit(1)
 
  imgDir = os.path.join(bookDir,'img')
  if not os.path.exists(imgDir) :
      print "Can not find image directory in unencrypted book"
-     sys.exit(-1)
+     sys.exit(1)
 
  glyphsDir = os.path.join(bookDir,'glyphs')
  if not os.path.exists(glyphsDir) :
      print "Can not find glyphs directory in unencrypted book"
-     sys.exit(-1)
+     sys.exit(1)
 
  metaFile = os.path.join(bookDir,'metadata0000.dat')
  if not os.path.exists(metaFile) :
      print "Can not find metadata0000.dat in unencrypted book"
-     sys.exit(-1)
+     sys.exit(1)
 
  svgDir = os.path.join(bookDir,'svg')
  if not os.path.exists(svgDir) :
@@ -274,7 +284,12 @@ def main(argv):
  for filename in filenames:
      print '     ', filename
      fname = os.path.join(glyphsDir,filename)
-     flat_xml = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname) 
+     pargv=[]
+     pargv.append('convert2xml.py')
+     pargv.append('--flat-xml')
+     pargv.append(dictFile)
+     pargv.append(fname)
+     flat_xml = convert2xml.main(pargv)
      gp = GParser(flat_xml)
      for i in xrange(0, gp.count):
          path = gp.getPath(i)
@@ -297,7 +312,12 @@ def main(argv):
  for filename in filenames:
      print '     ', filename
      fname = os.path.join(pageDir,filename)
-     flat_xml = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname) 
+     pargv=[]
+     pargv.append('convert2xml.py')
+     pargv.append('--flat-xml')
+     pargv.append(dictFile)
+     pargv.append(fname)
+     flat_xml = convert2xml.main(pargv)
      pp = PParser(flat_xml)
      if (raw) :
          pfile = open(os.path.join(svgDir,filename.replace('.dat','.svg')), 'w')

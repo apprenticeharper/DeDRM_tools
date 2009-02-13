@@ -1,10 +1,19 @@
-#! /usr/bin/python
-# For use with Topaz Scripts Version 2.0
+#!/usr/bin/python
+# For use with Topaz Scripts Version 2.2
 
-from __future__ import with_statement
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+import sys
+sys.stdout=Unbuffered(sys.stdout)
 
 import csv
-import sys
 import os
 import getopt
 import zlib
@@ -90,7 +99,10 @@ def encodeNumber(number):
        byte += flag
        result += chr(byte)
        flag = 0x80
-       if number == 0 : break
+       if number == 0 :
+           if (byte == 0xFF and negative == False) :
+               result += chr(0x80)
+           break
    
    if negative:
        result += chr(0xFF)
@@ -480,12 +492,11 @@ def main(argv=sys.argv):
         if len(bookKeys) == 0 :
             if verbose > 0 :
                 print ("Book key could not be found. Maybe this book is not registered with this device.")
+                return 1
         else :
             bookKey = bookKeys[0]
             if verbose > 0:
                 print("Book key: " + bookKey.encode('hex'))
-                
-            
                   
             if command == "printRecord" :
                 extractBookPayloadRecord(recordName,int(recordIndex),outputFile)
@@ -498,6 +509,7 @@ def main(argv=sys.argv):
                         print ("Decrypted book saved. Don't pirate!")
                 elif verbose > 0:
                     print("Output directory name was not supplied.")
+                    return 1
     
     return 0
 
