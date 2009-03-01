@@ -23,7 +23,7 @@ on unlockfile(encryptedFile, MobiDeDRMPath, encryptionKey)
 end unlockfile
 
 on unlockfolder(encryptedFolder, MobiDeDRMPath, encryptionKey)
-	tell application "Finder" to set encryptedFileList to (every file in folder encryptedFolder) whose (name extension is "prc") or (name extension is "mobi")
+	tell application "Finder" to set encryptedFileList to (every file in folder encryptedFolder) whose (name extension is "prc") or (name extension is "mobi") or (name extension is "azw")
 	tell application "Finder" to set encryptedFolderList to (every folder in folder encryptedFolder)
 	repeat with this_item in encryptedFileList
 		unlockfile(this_item as text, MobiDeDRMPath, encryptionKey)
@@ -36,25 +36,24 @@ end unlockfolder
 on run
 	set MobiDeDRMPath to POSIX path of file ((path to me as text) & "Contents:Resources:MobiDeDRM.py")
 	set encryptedFolder to choose folder with prompt "Please choose the folder of encrypted Mobipocket files."
-	set encryptionKey to (display dialog "Enter Mobipocket key for encrypted Mobipocket files." default answer "Your PID Here" buttons {"Cancel", "OK"} default button 2)
+	set encryptionKey to (display dialog "Enter Mobipocket key for encrypted Mobipocket files." default answer "X12QIL1M3D" buttons {"Cancel", "OK"} default button 2)
 	set encryptionKey to text returned of encryptionKey
 	unlockfolder(encryptedFolder, MobiDeDRMPath, encryptionKey)
 end run
 
 on open some_items
 	set MobiDeDRMPath to POSIX path of file ((path to me as text) & "Contents:Resources:MobiDeDRM.py")
-	set encryptionKey to (display dialog "Enter Mobipocket key for encrypted Mobipocket files." default answer "Your PID Here" buttons {"Cancel", "OK"} default button 2)
+	set encryptionKey to (display dialog "Enter Mobipocket key for encrypted Mobipocket files." default answer "X12QIL1M3D" buttons {"Cancel", "OK"} default button 2)
 	set encryptionKey to text returned of encryptionKey
 	repeat with this_item in some_items
 		if (folder of (info for this_item) is true) then
 			unlockfolder(this_item as text, MobiDeDRMPath, encryptionKey)
 		else
 			tell application "Finder" to set item_extension to name extension of file this_item
-			if item_extension is "prc" or item_extension is "mobi" then
+			if item_extension is "prc" or item_extension is "mobi" or item_extension is "azw" then
 				unlockfile(this_item as text, MobiDeDRMPath, encryptionKey)
 			end if
 		end if
 	end repeat
-	display dialog "Finished Unlocking." buttons {"OK"} default button 1
 end open
 
