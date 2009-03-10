@@ -1,18 +1,19 @@
-Kindle Mobipocket tools 0.1 
-Copyright (c) 2007 Igor Skochinsky
+Kindle Mobipocket tools 0.2
+Copyright (c) 2007, 2009 Igor Skochinsky <skochinsky@mail.ru>
 
 These scripts allow one to read legally purchased Secure Mobipocket books
-on Amazon Kindle.
+on Amazon Kindle or Kindle for iPhone.
 
 * kindlepid.py
-  This script generates Mobipocket PID from the Kindle serial number. That
-  PID can then be added at a Mobi retailer site and used for downloading 
+  This script generates Mobipocket PID from the Kindle serial number or iPhone/iPod Touch
+  identifier (UDID). That PID can then be added at a Mobi retailer site and used for downloading 
   books locked to the Kindle.
   
   Example: 
     
     > kindlepid.py B001BAB012345678
-    Mobipocket PID calculator for Amazon Kindle. Copyright (c) 2007 Igor Skochinsky <skochinsky@mail.ru>
+    Mobipocket PID calculator for Amazon Kindle. Copyright (c) 2007, 2009 Igor Skochinsky
+    Kindle 1 serial number detected
     Mobipocked PID for Kindle serial# B001BAB012345678 is V176CXM*FZ
 
 * kindlefix.py
@@ -23,7 +24,7 @@ on Amazon Kindle.
 
   Example:
     > kindlefix.py MyBook.mobi V176CXM*FZ
-    The Kindleizer v0.1. Copyright (c) 2007 Igor Skochinsky
+    The Kindleizer v0.2. Copyright (c) 2007, 2009 Igor Skochinsky
     Encryption: 2
     Mobi publication type: 2
     Mobi format version: 4
@@ -32,3 +33,6 @@ on Amazon Kindle.
 
 * History
   2007-12-12 Initial release
+  2009-03-10 Updated scripts to version 0.2
+    kindlepid.py: Added support for generating PID for iPhone (thanks to mbp)
+    kindlefix.py: Fixed corrupted metadata issue (thanks to Mark Peek)

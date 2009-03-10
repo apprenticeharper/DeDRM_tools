@@ -1,4 +1,16 @@
+#!/usr/bin/python
+# The Kindleizer v0.2. Copyright (c) 2007, 2009 Igor Skochinsky <skochinsky@mail.ru>
+# This script enables encrypted Mobipocket books to be readable by Kindle
+# History: 
+#  0.1 initial release
+#  0.2 fixed corrupted metadata issue (thanks to Mark Peek)
+
 import prc, sys, struct
+
+if sys.hexversion >= 0x3000000:
+  print "This script is incompatible with Python 3.x. Please install Python 2.6.x from python.org"
+  sys.exit(2)
+
 from binascii import hexlify
 
 def strByte(s,off=0):
@@ -92,7 +104,7 @@ def find_key(rec0, pid):
             drmInfo = strPutDWord(drmInfo,4,(dw4|0x800))
             dw0, dw4, dw18, dw1c = struct.unpack(">II16xII", drmInfo)
             #print "Updated drmInfo:", "%08X, %08X, %s, %08X, %08X"%(dw0, dw4, hexlify(drmInfo[0x8:0x18]), dw18, dw1c)
-            return rec0[:iOff+0x10] + PC1(temp_key, drmInfo, False) + rec0[:iOff+0x30]
+            return rec0[:iOff+0x10] + PC1(temp_key, drmInfo, False) + rec0[iOff+0x30:]
       iOff += dwSize
     return None
 
@@ -147,7 +159,7 @@ def main(fname, pid):
   print "Output written to "+outfname
   return 0
 
-print "The Kindleizer v0.1. Copyright (c) 2007 Igor Skochinsky"
+print "The Kindleizer v0.2. Copyright (c) 2007, 2009 Igor Skochinsky"
 if len(sys.argv)<3:
   print "Fixes encrypted Mobipocket books to be readable by Kindle"
   print "Usage: kindlefix.py file.mobi PID"
