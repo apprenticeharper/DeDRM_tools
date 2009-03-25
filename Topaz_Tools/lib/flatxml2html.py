@@ -468,9 +468,13 @@ class DocParser(object):
                         if linktype == 'external' :
                             linkhref = self.link_href[link-1]
                             linkhtml = '<a href="%s">' % linkhref
-                        else :
-                            ptarget = self.link_page[link-1] - 1
-                            linkhtml = '<a href="#page%04d">' % ptarget
+                        else : 
+                            if len(self.link_page) >= link :
+                                ptarget = self.link_page[link-1] - 1
+                                linkhtml = '<a href="#page%04d">' % ptarget
+                            else :
+                                # just link to the current page
+                                linkhtml = '<a href="#' + self.id + '">'
                         linkhtml += title + '</a>'
                         pos = parares.rfind(title)
                         if pos >= 0:

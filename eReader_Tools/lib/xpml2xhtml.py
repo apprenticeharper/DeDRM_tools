@@ -30,8 +30,10 @@
 #  0.17 - add support for tidy.exe under windows
 #  0.18 - fix corner case of lines that start with \axxx or \Uxxxx tags
 #  0.19 - change to use auto flushed stdout, and use proper return values
+#  0.20 - properly handle T markup inside links
+#  0.21 - properly handle new sigil Chapter Breaks for 0.2X series and up
 
-__version__='0.19'
+__version__='0.21'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -624,7 +626,7 @@ class PmlConverter(object):
 
                     if sigil_breaks:
                         if (len(final) - lastbreaksize) > 3000:
-                            final += '<div>\n   <hr class="sigilChapterBreak" />\n</div>\n'
+                            final += '<hr class="sigilChapterBreak" />\n'
                             lastbreaksize = len(final)
 
                     # now create new start tags for all tags that 
@@ -699,7 +701,7 @@ class PmlConverter(object):
                     self.skipNewLine()
 
                 elif cmd == 'T':
-                    if inBlock():
+                    if inBlock() or inLink() or inComment():
                         final += '<span style="margin-left: %s;">&nbsp;</span>' % attr
                     else:
                         final += '<p style="text-indent: %s;">' % attr

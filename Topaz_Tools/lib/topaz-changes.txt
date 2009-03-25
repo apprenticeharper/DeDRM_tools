@@ -1,3 +1,7 @@
+Changes in this Version
+	- bug fix to prevent problems with sample books
+	modified version of patch submitted by that-guy
+
 Changes in 2.6
 	- fix for many additional version tags
 	- fixes to generate better links
