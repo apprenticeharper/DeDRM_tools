@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# ineptpdf.pyw, version 1
+# ineptpdf.pyw, version 2
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -9,6 +9,7 @@
 
 # Revision history:
 #   1 - Initial release
+#   2 - Improved determination of key-generation algorithm
 
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
@@ -1013,7 +1014,6 @@ class PDFDocument(object):
         raise PDFEncryptionError('Unknown filter: param=%r' % param)
 
     def initialize_ebx(self, password, docid, param):
-        V = int_value(param.get('V', 0))
         self.is_printable = self.is_modifiable = self.is_extractable = True
         with open(password, 'rb') as f:
             keyder = f.read()
@@ -1030,14 +1030,15 @@ class PDFDocument(object):
         if bookkey[0] != '\x02':
             raise ADEPTError('error decrypting book session key')
         index = bookkey.index('\0') + 1
-        if V == 3:
-            if bookkey[index] != '\x03':
-                raise ADEPTError('error decrypting book session key')
-            index += 1
         bookkey = bookkey[index:]
-        if len(bookkey) != length:
+        V = 2
+        if (length and len(bookkey) == (length + 1)) or \
+           (not length and len(bookkey) & 1 == 1):
+            V = ord(bookkey[0])
+            bookkey = bookkey[1:]
+        if length and len(bookkey) != length:
             raise ADEPTError('error decrypting book session key')
-        self.decrypt_key = bookkey[-length:]
+        self.decrypt_key = bookkey
         self.genkey = self.genkey_v3 if V == 3 else self.genkey_v2
         self.decipher = self.decrypt_rc4
         self.ready = True
