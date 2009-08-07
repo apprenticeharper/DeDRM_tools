@@ -4,6 +4,7 @@
 #  0.01 - Initial version
 #  0.02 - Support more eReader files. Support bold text and links. Fix PML decoder parsing bug.
 #  0.03 - Fix incorrect variable usage at one place.
+#  0.03b - Add support for type 259
 
 import struct, binascii, zlib, os, sha, sys, os.path
 
@@ -261,7 +262,7 @@ class EreaderProcessor:
 		self.section_reader = section_reader
 		data = section_reader(0)
 		version,  = struct.unpack('>H', data[0:2])
-		if version != 272 and version != 260:
+		if version != 272 and version != 260 and version != 259:
 			raise ValueError('incorrect eReader version %d (error 1)' % version)
 		data = section_reader(1)
 		self.data = data
@@ -296,7 +297,12 @@ class EreaderProcessor:
 			print "Flags: 0x%X" % self.flags
 			raise ValueError('incompatible eReader file')
 		des = Des(fixKey(user_key))
-		if version == 260:
+		if version == 259:
+			if drm_sub_version != 7:
+				raise ValueError('incorrect eReader version %d (error 3)' % drm_sub_version)
+			encrypted_key_sha = r[44:44+20]
+			encrypted_key = r[64:64+8]
+		elif version == 260:
 			if drm_sub_version != 13:
 				raise ValueError('incorrect eReader version %d (error 3)' % drm_sub_version)
 			encrypted_key = r[44:44+8]
@@ -476,7 +482,9 @@ def convertEreaderToHtml(infile, name, cc, outdir):
 	pml = PmlConverter(er.getText())
 	file(os.path.join(outdir, 'book.html'),'wb').write(pml.process())
 
-print "eReader2Html v0.03. Copyright (c) 2008 The Dark Reverser"
+print "eReader2Html v0.03b, derived from:"
+print "\teReader2Html v0.03. Copyright (c) 2008 The Dark Reverser"
+print "with enhancement by DeBockle"
 if len(sys.argv)!=5:
 	print "Converts eReader books to HTML"
 	print "Usage:"
