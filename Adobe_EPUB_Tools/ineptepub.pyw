@@ -1,14 +1,15 @@
 #! /usr/bin/python
 
-# adeptdecrypt.pyw, version 1
+# ineptepub.pyw, version 2
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
 # (make sure to install the version for Python 2.6).  Save this script file as
-# adeptdecrypt.pyw and double-click on it to run it.
+# ineptepub.pyw and double-click on it to run it.
 
 # Revision history:
 #   1 - Initial release
+#   2 - Rename to INEPT, fix exit code
 
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
@@ -323,15 +324,16 @@ def gui_main():
     if AES is None:
         root.withdraw()
         tkMessageBox.showerror(
-            "ADEPT Decrypt",
+            "INEPT EPUB Decrypter",
             "This script requires PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
-    root.title('ADEPT Decrypt')
+    root.title('INEPT EPUB Decrypter')
     root.resizable(True, False)
     root.minsize(300, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
     root.mainloop()
+    return 0
 
 if __name__ == '__main__':
     # sys.exit(cli_main())

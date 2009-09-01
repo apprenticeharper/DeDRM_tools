@@ -1,15 +1,17 @@
 #! /usr/bin/python
 
-# adeptkey.pyw, version 1
+# ineptkey.pyw, version 3
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
 # (make sure to install the version for Python 2.6).  Save this script file as
-# adeptkey.pyw and double-click on it to run it.  It will create a file named
+# ineptkey.pyw and double-click on it to run it.  It will create a file named
 # adeptkey.der in the same directory.  This is your ADEPT user key.
 
 # Revision history:
 #   1 - Initial release, for Adobe Digital Editions 1.7
+#   2 - Better algorithm for finding pLK; improved error handling
+#   3 - Rename to INEPT
 
 """
 Retrieve Adobe ADEPT user key under Windows.
@@ -27,7 +29,9 @@ from ctypes import windll, c_char_p, c_wchar_p, c_uint, POINTER, byref, \
     string_at, Structure, c_void_p, cast
 import _winreg as winreg
 import Tkinter
+import Tkconstants
 import tkMessageBox
+import traceback
 
 try:
     from Crypto.Cipher import AES
@@ -36,13 +40,17 @@ except ImportError:
 
 
 DEVICE_KEY = 'Software\\Adobe\\Adept\\Device'
-PRIVATE_LICENCE_KEY_KEY = 'Software\\Adobe\\Adept\\Activation\\0000\\0003'
+PRIVATE_LICENCE_KEY_KEY = 'Software\\Adobe\\Adept\\Activation\\%04d\\%04d'
 
 MAX_PATH = 255
 
 kernel32 = windll.kernel32
 advapi32 = windll.advapi32
 crypt32 = windll.crypt32
+
+
+class ADEPTError(Exception):
+    pass
 
 
 def GetSystemDirectory():
@@ -120,7 +128,7 @@ def CryptUnprotectData():
         outdata = DataBlob()
         if not _CryptUnprotectData(byref(indata), None, byref(entropy),
                                    None, None, 0, byref(outdata)):
-            raise RuntimeError("Failed to decrypt user key key (sic)")
+            raise ADEPTError("Failed to decrypt user key key (sic)")
         return string_at(outdata.pbData, outdata.cbData)
     return CryptUnprotectData
 CryptUnprotectData = CryptUnprotectData()
@@ -134,17 +142,45 @@ def retrieve_key(keypath):
     user = GetUserName()
     entropy = pack('>I12s3s13s', serial, vendor, signature, user)
     cuser = winreg.HKEY_CURRENT_USER
-    regkey = winreg.OpenKey(cuser, DEVICE_KEY)
+    try:
+        regkey = winreg.OpenKey(cuser, DEVICE_KEY)
+    except WindowsError:
+        raise ADEPTError("Adobe Digital Editions not activated")
     device = winreg.QueryValueEx(regkey, 'key')[0]
     keykey = CryptUnprotectData(device, entropy)
-    regkey = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_KEY)
-    userkey = winreg.QueryValueEx(regkey, 'value')[0]
+    userkey = None
+    for i in xrange(0, 16):
+        for j in xrange(0, 16):
+            plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
+            try:
+                regkey = winreg.OpenKey(cuser, plkkey)
+            except WindowsError:
+                break
+            type = winreg.QueryValueEx(regkey, None)[0]
+            if type != 'privateLicenseKey':
+                continue
+            userkey = winreg.QueryValueEx(regkey, 'value')[0]
+            break
+        if userkey is not None:
+            break
+    if userkey is None:
+        raise ADEPTError('Could not locate privateLicenseKey')
     userkey = userkey.decode('base64')
     userkey = AES.new(keykey, AES.MODE_CBC).decrypt(userkey)
     userkey = userkey[26:-ord(userkey[-1])]
     with open(keypath, 'wb') as f:
         f.write(userkey)
     return
+
+class ExceptionDialog(Tkinter.Frame):
+    def __init__(self, root, text):
+        Tkinter.Frame.__init__(self, root, border=5)
+        label = Tkinter.Label(self, text="Unexpected error:",
+                              anchor=Tkconstants.W, justify=Tkconstants.LEFT)
+        label.pack(fill=Tkconstants.X, expand=0)
+        self.text = Tkinter.Text(self)
+        self.text.pack(fill=Tkconstants.BOTH, expand=1)
+        self.text.insert(Tkconstants.END, text)
 
 
 def main(argv=sys.argv):
@@ -160,8 +196,15 @@ def main(argv=sys.argv):
     keypath = 'adeptkey.der'
     try:
         retrieve_key(keypath)
-    except Exception, e:
+    except ADEPTError, e:
         tkMessageBox.showerror("ADEPT Key", "Error: " + str(e))
+        return 1
+    except Exception:
+        root.wm_state('normal')
+        root.title('ADEPT Key')
+        text = traceback.format_exc()
+        ExceptionDialog(root, text).pack(fill=Tkconstants.BOTH, expand=1)
+        root.mainloop()
         return 1
     tkMessageBox.showinfo(
         "ADEPT Key", "Key successfully retrieved to %s" % (keypath))
