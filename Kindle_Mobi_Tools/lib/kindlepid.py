@@ -4,6 +4,7 @@
 # History:
 #  0.1 Initial release
 #  0.2 Added support for generating PID for iPhone (thanks to mbp)
+#  Unofficial: Added support for Kindle DX and Kindle 2 International
 
 import sys, binascii
 
@@ -56,6 +57,10 @@ if len(sys.argv)>1:
       print "Kindle 1 serial number detected"
     elif serial.startswith("B002"):
       print "Kindle 2 serial number detected"
+    elif serial.startswith("B003"):
+      print "Kindle 2i serial number detected"
+    elif serial.startswith("B004"):
+      print "Kindle DX serial number detected"
     else:
       print "Warning: unrecognized serial number. Please recheck input."
       sys.exit(1)
