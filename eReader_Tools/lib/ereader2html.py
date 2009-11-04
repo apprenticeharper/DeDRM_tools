@@ -4,9 +4,10 @@
 #  0.01 - Initial version
 #  0.02 - Support more eReader files. Support bold text and links. Fix PML decoder parsing bug.
 #  0.03 - Fix incorrect variable usage at one place.
-#  0.03b - Add support for type 259
-
+#  0.05 - Support for more things in type 272
 import struct, binascii, zlib, os, sha, sys, os.path
+
+DEBUG=0
 
 ECB =	0
 CBC =	1
@@ -229,13 +230,20 @@ class Sectionizer:
 	def __init__(self, filename, ident):
 		self.contents = file(filename, 'rb').read()
 		self.header = self.contents[0:72]
+		if DEBUG:
+			file("header.dat", 'wb').write(self.header)
+
 		self.num_sections, = struct.unpack('>H', self.contents[76:78])
+		if DEBUG:
+			print "number of sections: %d" % self.num_sections
 		if self.header[0x3C:0x3C+8] != ident:
 			raise ValueError('Invalid file format')
 		self.sections = []
 		for i in xrange(self.num_sections):
 			offset, a1,a2,a3,a4 = struct.unpack('>LBBBB', self.contents[78+i*8:78+i*8+8])
 			flags, val = a1, a2<<16|a3<<8|a4
+			if DEBUG:
+				print "section %d offset %d" % ( i, offset )
 			self.sections.append( (offset, flags, val) )
 	def loadSection(self, section):
 		if section + 1 == self.num_sections:
@@ -257,20 +265,40 @@ def fixKey(key):
 		return b ^ ((b ^ (b<<1) ^ (b<<2) ^ (b<<3) ^ (b<<4) ^ (b<<5) ^ (b<<6) ^ (b<<7) ^ 0x80) & 0x80)
 	return 	"".join([chr(fixByte(ord(a))) for a in key])
 
+def deXOR(text, sp, table):
+	r=''
+	j = sp
+	for i in xrange(len(text)):
+		r += chr(ord(table[j]) ^ ord(text[i]))
+		j = j + 1
+		if j == len(table):
+			j = 0
+	return r
+
+
 class EreaderProcessor:
 	def __init__(self, section_reader, username, creditcard):
 		self.section_reader = section_reader
 		data = section_reader(0)
+		self.data0 = data
+		if DEBUG:
+			file("data0.dat", 'wb').write(self.data0)
 		version,  = struct.unpack('>H', data[0:2])
-		if version != 272 and version != 260 and version != 259:
+		if version != 272 and version != 260:
 			raise ValueError('incorrect eReader version %d (error 1)' % version)
 		data = section_reader(1)
 		self.data = data
 		des = Des(fixKey(data[0:8]))
+                # first key is used on last 8 bytes of data to get cookie_shuf and cookie_size
+                self.first_key = data[0:8]
+                self.end_key = des.decrypt(data[-8:])
 		cookie_shuf, cookie_size = struct.unpack('>LL', des.decrypt(data[-8:]))
 		if cookie_shuf < 3 or cookie_shuf > 0x14 or cookie_size < 0xf0 or cookie_size > 0x200:
 			raise ValueError('incorrect eReader version (error 2)')
+		# first key is also used to decrypt all remaining bytes in data into their shuffled version
 		input = des.decrypt(data[-cookie_size:])
+		
+                # now unshuffle it
 		def unshuff(data, shuf):
 			r = [''] * len(data)
 			j = 0
@@ -280,29 +308,99 @@ class EreaderProcessor:
 			assert	len("".join(r)) == len(data)
 			return "".join(r)
 		r = unshuff(input[0:-8], cookie_shuf)
+		
 		def fixUsername(s):
 			r = ''
 			for c in s.lower():
 				if (c >= 'a' and c <= 'z' or c >= '0' and c <= '9'):
 					r += c
 			return r
+		
 		user_key = struct.pack('>LL', binascii.crc32(fixUsername(username)) & 0xffffffff, binascii.crc32(creditcard[-8:])& 0xffffffff)
+                # second key is made of of user private info i.e. name and crediticard info
+		self.user_key = user_key
+		
+		if DEBUG:
+			file("mainrecord.dat", 'wb').write(r)
+
+                # the unshuffled data is examined to find record information
 		drm_sub_version = struct.unpack('>H', r[0:2])[0]
 		self.num_text_pages = struct.unpack('>H', r[2:4])[0] - 1
 		self.num_image_pages = struct.unpack('>H', r[26:26+2])[0]
 		self.first_image_page = struct.unpack('>H', r[24:24+2])[0]
+
+		if version == 272:
+			self.num_chapter_pages = struct.unpack('>H', r[22:22+2])[0]
+			self.first_chapter_page = struct.unpack('>H', r[20:20+2])[0]
+
+			self.num_link_pages = struct.unpack('>H', r[30:30+2])[0]
+			self.first_link_page = struct.unpack('>H', r[28:28+2])[0]
+
+			self.num_bkinfo_pages = struct.unpack('>H', r[34:34+2])[0]
+			self.first_bkinfo_page = struct.unpack('>H', r[32:32+2])[0]
+
+			self.num_fnote_pages = struct.unpack('>H', r[46:46+2])[0]
+			self.first_fnote_page = struct.unpack('>H', r[44:44+2])[0]
+
+			self.num_xtextsize_pages = struct.unpack('>H', r[54:54+2])[0]
+			self.first_xtextsize_page = struct.unpack('>H', r[52:52+2])[0]
+
+			self.num_sidebar_pages = struct.unpack('>H', r[38:38+2])[0]
+			self.first_sidebar_page = struct.unpack('>H', r[36:36+2])[0]
+
+			# **before** data record 1 was decrypted and unshuffled, it contained data
+			# to create an XOR table and which is used to fix footnote record 0, link records, chapter records, etc
+			self.xortable_offset  = struct.unpack('>H', r[40:40+2])[0]
+			self.xortable_size = struct.unpack('>H', r[42:42+2])[0]
+			self.xortable = self.data[self.xortable_offset:self.xortable_offset + self.xortable_size]
+		else:
+			self.num_chapter_pages = 0
+			self.num_link_pages = 0
+			self.num_bkinfo_pages = 0
+			self.num_fnote_pages = 0
+			self.num_xtextsize_pages = 0
+			self.num_sidebar_pages = 0
+			self.first_chapter_pages = -1
+			self.first_link_pages = -1
+			self.first_bkinfo_pages = -1
+			self.first_fnote_pages = -1
+			self.first_xtextsize_pages = -1
+			self.first_sidebar_pages = -1
+
+		if DEBUG:
+			print "num_text_pages: %d" % self.num_text_pages
+			print "first_text_page: %d" % 1
+
+			print "num_chapter_pages: %d" % self.num_chapter_pages
+			print "first_chapter_page: %d" % self.first_chapter_page
+
+			print "num_image_pages: %d" % self.num_image_pages
+			print "first_image_page: %d" % self.first_image_page
+
+			print "num_fnote_pages: %d" % self.num_fnote_pages
+			print "first_fnote_page: %d" % self.first_fnote_page
+
+			print "num_link_pages: %d" % self.num_link_pages
+			print "first_link_page: %d" % self.first_link_page
+
+			print "num_bkinfo_pages: %d" % self.num_bkinfo_pages
+			print "first_bkinfo_page: %d" % self.first_bkinfo_page
+
+			print "num_xtextsize_pages: %d" % self.num_xtextsize_pages
+			print "first_xtextsize_page: %d" % self.first_xtextsize_page
+
+			print "num_sidebar_pages: %d" % self.num_sidebar_pages
+			print "first_sidebar_page: %d" % self.first_sidebar_page
+		
 		self.flags = struct.unpack('>L', r[4:8])[0]
 		reqd_flags = (1<<9) | (1<<7) | (1<<10)
 		if (self.flags & reqd_flags) != reqd_flags:
 			print "Flags: 0x%X" % self.flags
 			raise ValueError('incompatible eReader file')
+                # the user_key is used to unpack the encrypted key which is stored in the unshuffled data
 		des = Des(fixKey(user_key))
-		if version == 259:
-			if drm_sub_version != 7:
-				raise ValueError('incorrect eReader version %d (error 3)' % drm_sub_version)
-			encrypted_key_sha = r[44:44+20]
-			encrypted_key = r[64:64+8]
-		elif version == 260:
+		
+		if version == 260:
 			if drm_sub_version != 13:
 				raise ValueError('incorrect eReader version %d (error 3)' % drm_sub_version)
 			encrypted_key = r[44:44+8]
@@ -310,22 +408,99 @@ class EreaderProcessor:
 		elif version == 272:
 			encrypted_key = r[172:172+8]
 			encrypted_key_sha = r[56:56+20]
+
+		# the decrypted version of encrypted_key is the content_key
 		self.content_key = des.decrypt(encrypted_key)
+
 		if sha.new(self.content_key).digest() != encrypted_key_sha:
 			raise ValueError('Incorrect Name and/or Credit Card')
+
+		
 	def getNumImages(self):
 		return self.num_image_pages
+	
 	def getImage(self, i):
 		sect = self.section_reader(self.first_image_page + i)
 		name = sect[4:4+32].strip('\0')
 		data = sect[62:]
 		return sanitizeFileName(name), data
+	
+	def getChapterNamePMLOffsetData(self):
+		cv = ''
+		if self.num_chapter_pages > 0:
+			# now dump chapter offsets and chapter names
+			# see mobile read wiki for details
+			for i in xrange(self.num_chapter_pages):
+				chaps = self.section_reader(self.first_chapter_page + i)
+                                j = i % self.xortable_size
+				cv += deXOR(chaps, j, self.xortable)
+		return cv
+
+	def getLinkNamePMLOffsetData(self):
+		lv = ''
+		if self.num_link_pages > 0:
+			# now dump link offset and link names
+			# see mobileread wiki for details
+			for i in xrange(self.num_link_pages):
+				links = self.section_reader(self.first_link_page + i)
+                                j = i % self.xortable_size
+				lv += deXOR(links, j, self.xortable)
+		return lv
+
+
+	def getBookInfoData(self):
+		bi = ''
+		if self.num_bkinfo_pages > 0:
+			# now dump book information
+			# see mobileread wiki for details
+			for i in xrange(self.num_bkinfo_pages):
+				binfo = self.section_reader(self.first_bkinfo_page + i)
+                                j = i % self.xortable_size
+				bi += deXOR(binfo, j, self.xortable)
+		return bi
+
+
+	def getExpandedTextSizesData(self):
+		ts = ''
+		if self.num_xtextsize_pages > 0:
+			# now dump table of expanded sizes for each text page
+			# (two bytes for each text page - see mobileread wiki for details)
+			for i in xrange(self.num_xtextsize_pages):
+				tsize = self.section_reader(self.first_xtextsize_page + i)
+                                j = i % self.xortable_size
+				ts += deXOR(tsize, j, self.xortable)
+		return ts
+
 	def getText(self):
+                # uses the content_key and zlib to decrypt and then inflate text sections
 		des = Des(fixKey(self.content_key))
 		r = ''
 		for i in xrange(self.num_text_pages):
 			r += zlib.decompress(des.decrypt(self.section_reader(1 + i)))
+             
+                # now handle footnotes pages
+                if self.num_fnote_pages > 0:
+			# the first record of the footnote section must pass through the Xor Table to make it useful
+			sect = self.section_reader(self.first_fnote_page)
+			fnote_ids = deXOR(sect, 0, self.xortable)
+			p = 0
+			# the remaining records of the footnote sections need to be decoded with the content_key and zlib inflated
+		        des = Des(fixKey(self.content_key))
+			r += '\\w="100%"'
+			r += 'Footnotes\p'
+			for i in xrange(1,self.num_fnote_pages):
+				id_len = ord(fnote_ids[2])
+				id = fnote_ids[3:3+id_len]
+				fmarker='\Q="%s"' % id
+				r+=fmarker
+				r += zlib.decompress(des.decrypt(self.section_reader(self.first_fnote_page + i)))
+				r += '\n'
+				fnote_ids = fnote_ids[id_len+4:]
+
+		# TO-DO - handle sidebar pages similar to footnotes pages
+
 		return r
+
 
 class PmlConverter:
 	def __init__(self, s):
@@ -377,6 +552,8 @@ class PmlConverter:
 		return None, None, None
 	def linkPrinter(link):
 		return '<a href="%s">' % link
+	def ilinkPrinter(link):
+		return '<a href="#%s">' % link
 	
 	html_tags = {
 		'c' : ('<p align="center">', '</p>'),
@@ -397,6 +574,7 @@ class PmlConverter:
 		'X4' : ('<h5>', '</h5>'),
 		'l' : ('<font size="+2">', '</font>'),
 		'q' : (linkPrinter, '</a>'),
+		'Fn' : (ilinkPrinter, '</a>'),
 	}
 	html_one_tags = {
 		'p' : '<br><br>'
@@ -456,7 +634,7 @@ class PmlConverter:
 				if cmd == 'm':
 					final += '<img src="%s">' % attr
 				if cmd == 'Q':
-					final += '<a name="%s"> </a>' % attr
+					final += '<a name="%s" id="%s"> </a>' % (attr, attr)
 				if cmd == 'a':
 					final += self.pml_chars.get(attr, '&#%d;' % attr)
 				if cmd == 'U':
@@ -479,12 +657,26 @@ def convertEreaderToHtml(infile, name, cc, outdir):
 		name, contents = er.getImage(i)
 		file(os.path.join(outdir, name), 'wb').write(contents)
 
-	pml = PmlConverter(er.getText())
+        rawpml = er.getText()
+	file(os.path.join(outdir, 'book.pml'),'wb').write(rawpml)
+
+        pml = PmlConverter(rawpml)
 	file(os.path.join(outdir, 'book.html'),'wb').write(pml.process())
 
-print "eReader2Html v0.03b, derived from:"
-print "\teReader2Html v0.03. Copyright (c) 2008 The Dark Reverser"
-print "with enhancement by DeBockle"
+        ts = er.getExpandedTextSizesData()
+	file(os.path.join(outdir, 'xtextsizes.dat'), 'wb').write(ts)
+
+        cv = er.getChapterNamePMLOffsetData()
+	file(os.path.join(outdir, 'chapters.dat'), 'wb').write(cv)
+
+	bi = er.getBookInfoData() 
+	file(os.path.join(outdir, 'bookinfo.dat'), 'wb').write(bi)
+	
+	lv = er.getLinkNamePMLOffsetData()
+	file(os.path.join(outdir, 'links.dat'), 'wb').write(lv)
+
+
+print "eReader2Html v0.05. Copyright (c) 2008 The Dark Reverser"
 if len(sys.argv)!=5:
 	print "Converts eReader books to HTML"
 	print "Usage:"
@@ -494,7 +686,7 @@ if len(sys.argv)!=5:
 else:  
 	infile, outdir, name, cc = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 	try:
-		print "Processing...",
+		print "Processing..."
 		convertEreaderToHtml(infile, name, cc, outdir)
 		print "done"
 	except ValueError, e:
