@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: ascii -*-
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 #
 # This is a python script. You need a Python interpreter to run it.
@@ -37,17 +36,18 @@
 #   
 #   TODO run this through a profiler - speed increases so far was from
 #   applying "quick known fixes", added (commented out) cprofiler call
-#  0.05 - Support for more things in type 272
+#  0.05 - Improved type 272 support for sidebars, links, chapters, metainfo, etc
 #  0.06 - Merge of 0.04 and 0.05. Improved HTML output
 #         Placed images in subfolder, so that it's possible to just
 #         drop the book.pml file onto DropBook to make an unencrypted
 #         copy of the eReader file.
 #         Using that with Calibre works a lot better than the HTML
 #         conversion in this code.
+#  0.07 - Further Improved type 272 support for sidebars with all earlier fixes
+#  0.07a - Fixed some typos
 
-__version__='0.06'
-DEBUG = 0
 
+__version__='0.07'
 
 # Import Psyco if available
 try:
@@ -82,8 +82,8 @@ logging.basicConfig()
 
 write_pml=False
 
-ECB = 0
-CBC = 1
+ECB =	0
+CBC =	1
 class Des(object):
     __pc1 = [56, 48, 40, 32, 24, 16,  8,  0, 57, 49, 41, 33, 25, 17,
           9,  1, 58, 50, 42, 34, 26, 18, 10,  2, 59, 51, 43, 35,
@@ -91,13 +91,13 @@ class Des(object):
          13,  5, 60, 52, 44, 36, 28, 20, 12,  4, 27, 19, 11,  3]
     __left_rotations = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1]
     __pc2 = [13, 16, 10, 23,  0,  4,2, 27, 14,  5, 20,  9,
-        22, 18, 11,  3, 25,  7, 15,  6, 26, 19, 12,  1,
-        40, 51, 30, 36, 46, 54, 29, 39, 50, 44, 32, 47,
-        43, 48, 38, 55, 33, 52, 45, 41, 49, 35, 28, 31]
-    __ip = [57, 49, 41, 33, 25, 17,  9,  1, 59, 51, 43, 35, 27, 19, 11, 3,
-        61, 53, 45, 37, 29, 21, 13,  5, 63, 55, 47, 39, 31, 23, 15, 7,
-        56, 48, 40, 32, 24, 16,  8,  0, 58, 50, 42, 34, 26, 18, 10, 2,
-        60, 52, 44, 36, 28, 20, 12,  4, 62, 54, 46, 38, 30, 22, 14, 6]
+        22, 18, 11,  3, 25,  7,	15,  6, 26, 19, 12,  1,
+        40, 51, 30, 36, 46, 54,	29, 39, 50, 44, 32, 47,
+        43, 48, 38, 55, 33, 52,	45, 41, 49, 35, 28, 31]
+    __ip = [57, 49, 41, 33, 25, 17, 9,  1,	59, 51, 43, 35, 27, 19, 11, 3,
+        61, 53, 45, 37, 29, 21, 13, 5,	63, 55, 47, 39, 31, 23, 15, 7,
+        56, 48, 40, 32, 24, 16, 8,  0,	58, 50, 42, 34, 26, 18, 10, 2,
+        60, 52, 44, 36, 28, 20, 12, 4,	62, 54, 46, 38, 30, 22, 14, 6]
     __expansion_table = [31,  0,  1,  2,  3,  4, 3,  4,  5,  6,  7,  8,
          7,  8,  9, 10, 11, 12,11, 12, 13, 14, 15, 16,
         15, 16, 17, 18, 19, 20,19, 20, 21, 22, 23, 24,
@@ -141,8 +141,8 @@ class Des(object):
         35,  3, 43, 11, 51, 19, 59, 27,34,  2, 42, 10, 50, 18, 58, 26,
         33,  1, 41,  9, 49, 17, 57, 25,32,  0, 40,  8, 48, 16, 56, 24]
     # Type of crypting being done
-    ENCRYPT = 0x00
-    DECRYPT = 0x01
+    ENCRYPT =	0x00
+    DECRYPT =	0x01
     def __init__(self, key, mode=ECB, IV=None):
         if len(key) != 8:
             raise ValueError("Invalid DES key size. Key must be exactly 8 bytes long.")
@@ -154,7 +154,7 @@ class Des(object):
             self.setIV(IV)
         self.L = []
         self.R = []
-        self.Kn = [ [0] * 48 ] * 16    # 16 48-bit keys (K1 - K16)
+        self.Kn = [ [0] * 48 ] * 16	# 16 48-bit keys (K1 - K16)
         self.final = []
         self.setKey(key)
     def getKey(self):
@@ -303,20 +303,13 @@ class Sectionizer(object):
     def __init__(self, filename, ident):
         self.contents = file(filename, 'rb').read()
         self.header = self.contents[0:72]
-        if DEBUG:
-            file("header.dat", 'wb').write(self.header)
-
         self.num_sections, = struct.unpack('>H', self.contents[76:78])
-        if DEBUG:
-            print "number of sections: %d" % self.num_sections
         if self.header[0x3C:0x3C+8] != ident:
             raise ValueError('Invalid file format')
         self.sections = []
         for i in xrange(self.num_sections):
             offset, a1,a2,a3,a4 = struct.unpack('>LBBBB', self.contents[78+i*8:78+i*8+8])
             flags, val = a1, a2<<16|a3<<8|a4
-            if DEBUG:
-                print "section %d offset %d" % ( i, offset )
             self.sections.append( (offset, flags, val) )
     def loadSection(self, section):
         if section + 1 == self.num_sections:
@@ -336,7 +329,7 @@ def sanitizeFileName(s):
 def fixKey(key):
     def fixByte(b):
         return b ^ ((b ^ (b<<1) ^ (b<<2) ^ (b<<3) ^ (b<<4) ^ (b<<5) ^ (b<<6) ^ (b<<7) ^ 0x80) & 0x80)
-    return "".join([chr(fixByte(ord(a))) for a in key])
+    return 	"".join([chr(fixByte(ord(a))) for a in key])
 
 def deXOR(text, sp, table):
     r=''
@@ -352,9 +345,6 @@ class EreaderProcessor(object):
     def __init__(self, section_reader, username, creditcard):
         self.section_reader = section_reader
         data = section_reader(0)
-        self.data0 = data
-        if DEBUG:
-            file("data0.dat", 'wb').write(self.data0)
         version,  = struct.unpack('>H', data[0:2])
         self.version = version
         logging.info('eReader file format version %s', version)
@@ -362,62 +352,44 @@ class EreaderProcessor(object):
             raise ValueError('incorrect eReader version %d (error 1)' % version)
         data = section_reader(1)
         self.data = data
-        # first key is used on last 8 bytes of data to get cookie_shuf and cookie_size
-        self.first_key = data[0:8]
-        des = Des(fixKey(self.first_key))
-        self.end_key = des.decrypt(data[-8:])
-        cookie_shuf, cookie_size = struct.unpack('>LL', self.end_key)
+        des = Des(fixKey(data[0:8]))
+        cookie_shuf, cookie_size = struct.unpack('>LL', des.decrypt(data[-8:]))
         if cookie_shuf < 3 or cookie_shuf > 0x14 or cookie_size < 0xf0 or cookie_size > 0x200:
             raise ValueError('incorrect eReader version (error 2)')
-        # first key is also used to decrypt all remaining bytes in data into their shuffled version
-        cookie = des.decrypt(data[-cookie_size:])
-        
-        # now unshuffle it
+        input = des.decrypt(data[-cookie_size:])
         def unshuff(data, shuf):
             r = [''] * len(data)
             j = 0
             for i in xrange(len(data)):
                 j = (j + shuf) % len(data)
                 r[j] = data[i]
-            assert len("".join(r)) == len(data)
+            assert	len("".join(r)) == len(data)
             return "".join(r)
-        r = unshuff(cookie[0:-8], cookie_shuf)
-        if DEBUG:
-            file("mainrecord.dat", 'wb').write(r)
-        
+        r = unshuff(input[0:-8], cookie_shuf)
+
         def fixUsername(s):
             r = ''
             for c in s.lower():
                 if (c >= 'a' and c <= 'z' or c >= '0' and c <= '9'):
                     r += c
             return r
-        
-        # second key is made of of user private info i.e. name and crediticard info
+
         user_key = struct.pack('>LL', binascii.crc32(fixUsername(username)) & 0xffffffff, binascii.crc32(creditcard[-8:])& 0xffffffff)
-        self.user_key = user_key
-        
-        # the unshuffled data is examined to find record information
         drm_sub_version = struct.unpack('>H', r[0:2])[0]
         self.num_text_pages = struct.unpack('>H', r[2:4])[0] - 1
         self.num_image_pages = struct.unpack('>H', r[26:26+2])[0]
         self.first_image_page = struct.unpack('>H', r[24:24+2])[0]
-
-        if version == 272:
+        if self.version == 272:
             self.num_chapter_pages = struct.unpack('>H', r[22:22+2])[0]
             self.first_chapter_page = struct.unpack('>H', r[20:20+2])[0]
-
             self.num_link_pages = struct.unpack('>H', r[30:30+2])[0]
             self.first_link_page = struct.unpack('>H', r[28:28+2])[0]
-
-            self.num_bkinfo_pages = struct.unpack('>H', r[34:34+2])[0]
-            self.first_bkinfo_page = struct.unpack('>H', r[32:32+2])[0]
-
+            self.num_bookinfo_pages = struct.unpack('>H', r[34:34+2])[0]
+            self.first_bookinfo_page = struct.unpack('>H', r[32:32+2])[0]
             self.num_footnote_pages = struct.unpack('>H', r[46:46+2])[0]
             self.first_footnote_page = struct.unpack('>H', r[44:44+2])[0]
-
             self.num_xtextsize_pages = struct.unpack('>H', r[54:54+2])[0]
             self.first_xtextsize_page = struct.unpack('>H', r[52:52+2])[0]
-
             self.num_sidebar_pages = struct.unpack('>H', r[38:38+2])[0]
             self.first_sidebar_page = struct.unpack('>H', r[36:36+2])[0]
 
@@ -429,51 +401,25 @@ class EreaderProcessor(object):
         else:
             self.num_chapter_pages = 0
             self.num_link_pages = 0
-            self.num_bkinfo_pages = 0
+            self.num_bookinfo_pages = 0
             self.num_footnote_pages = 0
             self.num_xtextsize_pages = 0
             self.num_sidebar_pages = 0
             self.first_chapter_page = -1
             self.first_link_page = -1
-            self.first_bkinfo_page = -1
+            self.first_bookinfo_page = -1
             self.first_footnote_page = -1
             self.first_xtextsize_page = -1
             self.first_sidebar_page = -1
 
-        if DEBUG:
-            print "num_text_pages: %d" % self.num_text_pages
-            print "first_text_page: %d" % 1
-
-            print "num_chapter_pages: %d" % self.num_chapter_pages
-            print "first_chapter_page: %d" % self.first_chapter_page
-
-            print "num_image_pages: %d" % self.num_image_pages
-            print "first_image_page: %d" % self.first_image_page
-
-            print "num_footnote_pages: %d" % self.num_footnote_pages
-            print "first_footnote_page: %d" % self.first_footnote_page
-
-            print "num_link_pages: %d" % self.num_link_pages
-            print "first_link_page: %d" % self.first_link_page
-
-            print "num_bkinfo_pages: %d" % self.num_bkinfo_pages
-            print "first_bkinfo_page: %d" % self.first_bkinfo_page
-
-            print "num_xtextsize_pages: %d" % self.num_xtextsize_pages
-            print "first_xtextsize_page: %d" % self.first_xtextsize_page
-
-            print "num_sidebar_pages: %d" % self.num_sidebar_pages
-            print "first_sidebar_page: %d" % self.first_sidebar_page
-
         logging.debug('self.num_text_pages %d', self.num_text_pages)
         logging.debug('self.num_footnote_pages %d, self.first_footnote_page %d', self.num_footnote_pages , self.first_footnote_page)
-        
+        logging.debug('self.num_sidebar_pages %d, self.first_sidebar_page %d', self.num_sidebar_pages , self.first_sidebar_page)
         self.flags = struct.unpack('>L', r[4:8])[0]
         reqd_flags = (1<<9) | (1<<7) | (1<<10)
         if (self.flags & reqd_flags) != reqd_flags:
             print "Flags: 0x%X" % self.flags
             raise ValueError('incompatible eReader file')
-        # the user_key is used to unpack the encrypted key which is stored in the unshuffled data
         des = Des(fixKey(user_key))
         if version == 259:
             if drm_sub_version != 7:
@@ -488,71 +434,61 @@ class EreaderProcessor(object):
         elif version == 272:
             encrypted_key = r[172:172+8]
             encrypted_key_sha = r[56:56+20]
-
-        # the decrypted version of encrypted_key is the content_key
         self.content_key = des.decrypt(encrypted_key)
-        
         if sha1(self.content_key).digest() != encrypted_key_sha:
             raise ValueError('Incorrect Name and/or Credit Card')
-            
+
     def getNumImages(self):
         return self.num_image_pages
-        
+
     def getImage(self, i):
         sect = self.section_reader(self.first_image_page + i)
         name = sect[4:4+32].strip('\0')
         data = sect[62:]
         return sanitizeFileName(name), data
-        
-    
+
     def getChapterNamePMLOffsetData(self):
         cv = ''
         if self.num_chapter_pages > 0:
-            # now dump chapter offsets and chapter names
-            # see mobile read wiki for details
             for i in xrange(self.num_chapter_pages):
                 chaps = self.section_reader(self.first_chapter_page + i)
                 j = i % self.xortable_size
-                cv += deXOR(chaps, j, self.xortable)
+                offname = deXOR(chaps, j, self.xortable)
+                offset = struct.unpack('>L', offname[0:4])[0]
+                name = offname[4:].strip('\0')
+                cv += '%d,%s\n' % (offset, name) 
         return cv
 
     def getLinkNamePMLOffsetData(self):
         lv = ''
         if self.num_link_pages > 0:
-            # now dump link offset and link names
-            # see mobileread wiki for details
             for i in xrange(self.num_link_pages):
                 links = self.section_reader(self.first_link_page + i)
                 j = i % self.xortable_size
-                lv += deXOR(links, j, self.xortable)
+                offname = deXOR(links, j, self.xortable)
+                offset = struct.unpack('>L', offname[0:4])[0]
+                name = offname[4:].strip('\0')
+                lv += '%d,%s\n' % (offset, name) 
         return lv
 
-
-    def getBookInfoData(self):
-        bi = ''
-        if self.num_bkinfo_pages > 0:
-            # now dump book information
-            # see mobileread wiki for details
-            for i in xrange(self.num_bkinfo_pages):
-                binfo = self.section_reader(self.first_bkinfo_page + i)
-                j = i % self.xortable_size
-                bi += deXOR(binfo, j, self.xortable)
-        return bi
-
-
     def getExpandedTextSizesData(self):
-        ts = ''
-        if self.num_xtextsize_pages > 0:
-            # now dump table of expanded sizes for each text page
-            # (two bytes for each text page - see mobileread wiki for details)
-            for i in xrange(self.num_xtextsize_pages):
-                tsize = self.section_reader(self.first_xtextsize_page + i)
-                j = i % self.xortable_size
-                ts += deXOR(tsize, j, self.xortable)
-        return ts
+         ts = ''
+         if self.num_xtextsize_pages > 0:
+             tsize = deXOR(self.section_reader(self.first_xtextsize_page), 0, self.xortable)
+             for i in xrange(self.num_text_pages):
+                 xsize = struct.unpack('>H', tsize[0:2])[0]
+                 ts += "%d\n" % xsize
+                 tsize = tsize[2:]
+         return ts
+
+    def getBookInfo(self):
+        bkinfo = ''
+        if self.num_bookinfo_pages > 0:
+            info = self.section_reader(self.first_bookinfo_page)
+            bkinfo = deXOR(info, 0, self.xortable)
+        return bkinfo
 
     def getText(self):
-        # uses the content_key and zlib to decrypt and then inflate text sections
         des = Des(fixKey(self.content_key))
         r = ''
         for i in xrange(self.num_text_pages):
@@ -561,15 +497,15 @@ class EreaderProcessor(object):
              
         # now handle footnotes pages
         if self.num_footnote_pages > 0:
-            # the first record of the footnote section must pass through the Xor Table to make it useful
+            # the record 0 of the footnote section must pass through the Xor Table to make it useful
             sect = self.section_reader(self.first_footnote_page)
             fnote_ids = deXOR(sect, 0, self.xortable)
-            p = 0
             # the remaining records of the footnote sections need to be decoded with the content_key and zlib inflated
             des = Des(fixKey(self.content_key))
             r += '\\w="100%"'
             r += 'Footnotes\p'
             for i in xrange(1,self.num_footnote_pages):
+                logging.debug('get footnotepage %d', i)
                 id_len = ord(fnote_ids[2])
                 id = fnote_ids[3:3+id_len]
                 fmarker='\Q="%s"' % id
@@ -578,14 +514,30 @@ class EreaderProcessor(object):
                 r += '\n'
                 fnote_ids = fnote_ids[id_len+4:]
 
-        # TO-DO - handle sidebar pages similar to footnotes pages
-
+        # now handle sidebar pages
+        if self.num_sidebar_pages > 0:
+            # the record 0 of the sidebar section must pass through the Xor Table to make it useful
+            sect = self.section_reader(self.first_sidebar_page)
+            sbar_ids = deXOR(sect, 0, self.xortable)
+            # the remaining records of the sidebar sections need to be decoded with the content_key and zlib inflated
+            des = Des(fixKey(self.content_key))
+            r += '\\w="100%"'
+            r += 'Sidebars\p'
+            for i in xrange(1,self.num_sidebar_pages):
+                id_len = ord(sbar_ids[2])
+                id = sbar_ids[3:3+id_len]
+                fmarker='\Q="%s"' % id
+                r+=fmarker
+                r += zlib.decompress(des.decrypt(self.section_reader(self.first_sidebar_page + i)))
+                r += '\n'
+                sbar_ids = sbar_ids[id_len+4:]
         return r
 
 class PmlConverter(object):
-    def __init__(self, s):
+    def __init__(self, s, bkinfo):
         self.s = s
         self.pos = 0
+        self.bkinfo = bkinfo
     def nextOptAttr(self):
         p = self.pos
         if self.s[p:p+2] != '="':
@@ -630,12 +582,16 @@ class PmlConverter(object):
         print "unknown escape code %s" % c
         self.pos = p + 1
         return None, None, None
-    def linkPrinter(link):
-        return '<a href="%s">' % link
-    def footnotePrinter(link):
-        return '<a href="#%s">' % link ## TODO may need to cgi.escape name....
     def LinePrinter(link):
-        return '<hr width="%s">' % link
+        return '<hr width="%s" />' % link
+    def LinkPrinter(link):
+        return '<a href="%s">' % link
+    def InternalLinkPrinter(link):
+        return '<a href="#%s">' % link
+    def NotSupported(link):
+        raise NotImplemented()
+    def NewChapterNewPage(link):
+        raise NotImplemented()
     def ChapterTitle(link):
         print "Nonfatal Error: ChapterTitle not implemented."
         return '<!-- ChapterTitle %s -->' %link
@@ -657,12 +613,11 @@ class PmlConverter(object):
     def ReferenceIndexItem(link):
         print "Nonfatal Error: ReferenceIndexItem not implemented."
         return '<!-- CReferenceIndexItem: %s -->' %link
-
     
     # See http://wiki.mobileread.com/wiki/PML#Palm_Markup_Language
     html_tags = {
-        'c' : ('<div class="center">', '</div>\n'),
-        'r' : ('<div class="right">', '</div>\n'),
+        'c' : ('<div class="center">', '</div>'),
+        'r' : ('<div class="right">', '</div>'),
         'i' : ('<i>', '</i>'),
         'u' : ('<u>', '</u>'),
         'b' : ('<strong>', '</strong>'),
@@ -672,30 +627,30 @@ class PmlConverter(object):
         't' : ('', ''),
         'Sb' : ('<sub>', '</sub>'),
         'Sp' : ('<sup>', '</sup>'),
-        'X0' : ('<h1>', '</h1>\n'),
-        'X1' : ('<h2>', '</h2>\n'),
-        'X2' : ('<h3>', '</h3>\n'),
-        'X3' : ('<h4>', '</h4>\n'),
-        'X4' : ('<h5>', '</h5>\n'),
+        'X0' : ('<h1>', '</h1>'),
+        'X1' : ('<h2>', '</h2>'),
+        'X2' : ('<h3>', '</h3>'),
+        'X3' : ('<h4>', '</h4>'),
+        'X4' : ('<h5>', '</h5>'),
         'l' : ('<font size="+2">', '</font>'),
-        'q' : (linkPrinter, '</a>'),
-        'Fn' : (footnotePrinter, '</a>'),
+        'q' : (LinkPrinter, '</a>'),
+        'Fn' : (InternalLinkPrinter, '</a>'),
+        'Sd' : (InternalLinkPrinter, '</a>'),
         'w' : (LinePrinter, ''),
         #'m' : handled in if block, 
         #'Q' : handled in if block, 
         #'a' : handled in if block, 
         #'U' : handled in if block, 
-        'x' : ('<h1 class="breakbefore">', '</h1>\n'),
+        'x' : ('<h1> class="breakbefore">', '</h1>'),
         'Cn' : (ChapterTitle, ''),
         'T' : (IndentPercent, ''),
         'n' : (NormalFont, ''),
         #'s' : (StdFont, ''),
         's' : ('', ''),
-        'k' : ('<span style="font-variant: small-caps;">', '</span>'), # NOTE some pdb's then go ahead and use uppercase letters - which doesn't format the way one would expect (perhaps post process the output with html dom and lower case if only upper case letters are found?)
+        'k' : ('<span style="font-variant: small-caps;">', '</span>'), # NOTE some pdb's then go ahead and use uppercase letters - which doesn't format the way one would expect (perhaps post process the output with html dom and lower ase is only upper case letters are found?)
         '\\' : (SingleBackslash, ''),
         '-' : (SoftHyphen, ''),
         'I' : (ReferenceIndexItem, ''),
-        'Sd' : (footnotePrinter, '</a>'), ## untested
     }
     html_one_tags = {
         'p' : '<p class="breakafter">&nbsp;</p>\n'
@@ -709,7 +664,18 @@ class PmlConverter(object):
         156: '&#339;',159: '&#376;'
     }
     def process(self):
-        final = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">\n<html>\n<head>\n<meta http-equiv="content-type" content="text/html; charset=windows-1252">\n<style type="text/css">\ndiv.center { text-align:center; }\ndiv.right { text-align:right; }\n.breakbefore { page-break-before: always; }\n.breakafter { page-break-after: always; }\n</style>\n</head>\n<body>\n'
+        final = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">\n'
+        final += '<html>\n<head>\n<meta http-equiv="content-type" content="text/html; charset=windows-1252">\n'
+        if len(self.bkinfo) > 0:
+            title, author, copyright, publisher, isbn = self.bkinfo.split('\0',4)
+            isbn = isbn.strip('\0')
+            final += '<meta name="Title" content="%s"/>\n' % title
+            final += '<meta name="Author" content="%s"/>\n' % author
+            final += '<meta name="Copyright" content="%s"/>\n' % copyright
+            final += '<meta name="Publisher" content="%s"/>\n' % publisher
+            final += '<meta name="ISBN" content="%s"/>\n' % isbn
+            final += '<style type="text/css">\ndiv.center { text-align:center; }\ndiv.right { text-align:right; }\n.breakbefore { page-break-before: always; }\n.breakafter { page-break-after: always; }\n</style>\n'
+        final += '</head><body>\n'
         in_tags = []
         def makeText(s):
             s = s.replace('&', '&amp;')
@@ -732,7 +698,7 @@ class PmlConverter(object):
                     if type(r) != str:
                         r = r(attr)
                     return r
-                    
+
                 if cmd in self.html_tags:
                     pair = (cmd, attr)
                     if cmd not in [a for (a,b) in in_tags]:
@@ -749,7 +715,7 @@ class PmlConverter(object):
                         while j < len(in_tags):
                             final += getTag(in_tags[j], False)
                             j = j + 1
-                            
+
                 if cmd in self.html_one_tags:
                     final += self.html_one_tags[cmd]
                 if cmd == 'm':
@@ -781,28 +747,29 @@ def convertEreaderToHtml(infile, name, cc, outdir):
         imagedirpath = os.path.join(outdir,imagedir)
         if not os.path.exists(imagedirpath):
             os.makedirs(imagedirpath)
-        for i in xrange(er.getNumImages()):
-            name, contents = er.getImage(i)
-            file(os.path.join(imagedirpath, name), 'wb').write(contents)
+    for i in xrange(er.getNumImages()):
+        name, contents = er.getImage(i)
+        file(os.path.join(imagedirpath, name), 'wb').write(contents)
 
     pml_string = er.getText()
-    pml = PmlConverter(pml_string)
     pmlfilename = bookname + ".pml"
-    htmlfilename = bookname + ".html"
     file(os.path.join(outdir, pmlfilename),'wb').write(pml_string)
+
+    bkinfo = er.getBookInfo()
+
+    pml = PmlConverter(pml_string, bkinfo)
+    htmlfilename = bookname + ".html"
     file(os.path.join(outdir, htmlfilename),'wb').write(pml.process())
-    
+
     ts = er.getExpandedTextSizesData()
     file(os.path.join(outdir, 'xtextsizes.dat'), 'wb').write(ts)
 
     cv = er.getChapterNamePMLOffsetData()
     file(os.path.join(outdir, 'chapters.dat'), 'wb').write(cv)
-
-    bi = er.getBookInfoData() 
-    file(os.path.join(outdir, 'bookinfo.dat'), 'wb').write(bi)
-    
+	
     lv = er.getLinkNamePMLOffsetData()
     file(os.path.join(outdir, 'links.dat'), 'wb').write(lv)
+
 
 def main(argv=None):
     global bookname
@@ -825,7 +792,7 @@ def main(argv=None):
         elif len(argv)==5:
             infile, outdir, name, cc = argv[1], argv[2], argv[3], argv[4]
         bookname = os.path.splitext(os.path.basename(infile))[0]
-        
+
         try:
             print "Processing..."
             import time
@@ -845,4 +812,3 @@ if __name__ == "__main__":
     #cProfile.runctx( command, globals(), locals(), filename="cprofile.profile" )
     
     sys.exit(main())
-    
