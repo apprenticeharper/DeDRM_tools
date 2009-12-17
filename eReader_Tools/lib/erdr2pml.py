@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 #
+# eRdr2Pml.py
+#
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
 # Changelog
+#
+#  Based on ereader2html version 0.08 plus some later small fixes
+#
 #  0.01 - Initial version
 #  0.02 - Support more eReader files. Support bold text and links. Fix PML decoder parsing bug.
 #  0.03 - Fix incorrect variable usage at one place.
@@ -33,9 +38,6 @@
 #       in some pdb files :-( due to the same id being used multiple times
 #   - Added correct charset encoding (pml is based on cp1252)
 #   - Added logging support.
-#   
-#   TODO run this through a profiler - speed increases so far was from
-#   applying "quick known fixes", added (commented out) cprofiler call
 #  0.05 - Improved type 272 support for sidebars, links, chapters, metainfo, etc
 #  0.06 - Merge of 0.04 and 0.05. Improved HTML output
 #         Placed images in subfolder, so that it's possible to just
@@ -45,9 +47,11 @@
 #         conversion in this code.
 #  0.07 - Further Improved type 272 support for sidebars with all earlier fixes
 #  0.08 - fixed typos, removed extraneous things
-#  0.09 - tried to greatly improve html conversion especially with \t tags
+#  0.09 - fixed typos in first_pages to first_page to again support older formats
+#  0.10 - minor cleanups
+#  0.11 - fixups for using correct xml for footnotes and sidebars for use with Dropbook
 
-__version__='0.09'
+__version__='0.11'
 
 # Import Psyco if available
 try:
@@ -379,18 +383,18 @@ class EreaderProcessor(object):
         self.num_image_pages = struct.unpack('>H', r[26:26+2])[0]
         self.first_image_page = struct.unpack('>H', r[24:24+2])[0]
         if self.version == 272:
-            self.num_chapter_pages = struct.unpack('>H', r[22:22+2])[0]
-            self.first_chapter_page = struct.unpack('>H', r[20:20+2])[0]
-            self.num_link_pages = struct.unpack('>H', r[30:30+2])[0]
-            self.first_link_page = struct.unpack('>H', r[28:28+2])[0]
-            self.num_bookinfo_pages = struct.unpack('>H', r[34:34+2])[0]
-            self.first_bookinfo_page = struct.unpack('>H', r[32:32+2])[0]
             self.num_footnote_pages = struct.unpack('>H', r[46:46+2])[0]
             self.first_footnote_page = struct.unpack('>H', r[44:44+2])[0]
-            self.num_xtextsize_pages = struct.unpack('>H', r[54:54+2])[0]
-            self.first_xtextsize_page = struct.unpack('>H', r[52:52+2])[0]
             self.num_sidebar_pages = struct.unpack('>H', r[38:38+2])[0]
             self.first_sidebar_page = struct.unpack('>H', r[36:36+2])[0]
+            # self.num_bookinfo_pages = struct.unpack('>H', r[34:34+2])[0]
+            # self.first_bookinfo_page = struct.unpack('>H', r[32:32+2])[0]
+            # self.num_chapter_pages = struct.unpack('>H', r[22:22+2])[0]
+            # self.first_chapter_page = struct.unpack('>H', r[20:20+2])[0]
+            # self.num_link_pages = struct.unpack('>H', r[30:30+2])[0]
+            # self.first_link_page = struct.unpack('>H', r[28:28+2])[0]
+            # self.num_xtextsize_pages = struct.unpack('>H', r[54:54+2])[0]
+            # self.first_xtextsize_page = struct.unpack('>H', r[52:52+2])[0]
 
             # **before** data record 1 was decrypted and unshuffled, it contained data
             # to create an XOR table and which is used to fix footnote record 0, link records, chapter records, etc
@@ -398,18 +402,18 @@ class EreaderProcessor(object):
             self.xortable_size = struct.unpack('>H', r[42:42+2])[0]
             self.xortable = self.data[self.xortable_offset:self.xortable_offset + self.xortable_size]
         else:
-            self.num_chapter_pages = 0
-            self.num_link_pages = 0
-            self.num_bookinfo_pages = 0
             self.num_footnote_pages = 0
-            self.num_xtextsize_pages = 0
             self.num_sidebar_pages = 0
-            self.first_chapter_page = -1
-            self.first_link_page = -1
-            self.first_bookinfo_page = -1
             self.first_footnote_page = -1
-            self.first_xtextsize_page = -1
             self.first_sidebar_page = -1
+            # self.num_bookinfo_pages = 0
+            # self.num_chapter_pages = 0
+            # self.num_link_pages = 0
+            # self.num_xtextsize_pages = 0
+            # self.first_bookinfo_page = -1
+            # self.first_chapter_page = -1
+            # self.first_link_page = -1
+            # self.first_xtextsize_page = -1
 
         logging.debug('self.num_text_pages %d', self.num_text_pages)
         logging.debug('self.num_footnote_pages %d, self.first_footnote_page %d', self.num_footnote_pages , self.first_footnote_page)
@@ -446,46 +450,60 @@ class EreaderProcessor(object):
         data = sect[62:]
         return sanitizeFileName(name), data
 
-    def getChapterNamePMLOffsetData(self):
-        cv = ''
-        if self.num_chapter_pages > 0:
-            for i in xrange(self.num_chapter_pages):
-                chaps = self.section_reader(self.first_chapter_page + i)
-                j = i % self.xortable_size
-                offname = deXOR(chaps, j, self.xortable)
-                offset = struct.unpack('>L', offname[0:4])[0]
-                name = offname[4:].strip('\0')
-                cv += '%d,%s\n' % (offset, name) 
-        return cv
+    def cleanPML(self,pml):
+        # Update old \b font tag with correct \B bold font tag
+        pml2 = pml.replace('\\b', '\\B')
+        # Convert special characters to proper PML code.  High ASCII start at (\x82, \a130) and go up to (\xff, \a255)
+        for k in xrange(130,256):
+            # a2b_hex takes in a hexidecimal as a string and converts it 
+            # to a binary ascii code that we search and replace for
+            badChar=binascii.a2b_hex('%02x' % k)
+            pml2 = pml2.replace(badChar, '\\a%03d' % k)
+            #end for k
+        return pml2
 
-    def getLinkNamePMLOffsetData(self):
-        lv = ''
-        if self.num_link_pages > 0:
-            for i in xrange(self.num_link_pages):
-                links = self.section_reader(self.first_link_page + i)
-                j = i % self.xortable_size
-                offname = deXOR(links, j, self.xortable)
-                offset = struct.unpack('>L', offname[0:4])[0]
-                name = offname[4:].strip('\0')
-                lv += '%d,%s\n' % (offset, name) 
-        return lv
+    # def getChapterNamePMLOffsetData(self):
+    #     cv = ''
+    #     if self.num_chapter_pages > 0:
+    #         for i in xrange(self.num_chapter_pages):
+    #             chaps = self.section_reader(self.first_chapter_page + i)
+    #             j = i % self.xortable_size
+    #             offname = deXOR(chaps, j, self.xortable)
+    #             offset = struct.unpack('>L', offname[0:4])[0]
+    #             name = offname[4:].strip('\0')
+    #             cv += '%d|%s\n' % (offset, name) 
+    #     return cv
 
-    def getExpandedTextSizesData(self):
-         ts = ''
-         if self.num_xtextsize_pages > 0:
-             tsize = deXOR(self.section_reader(self.first_xtextsize_page), 0, self.xortable)
-             for i in xrange(self.num_text_pages):
-                 xsize = struct.unpack('>H', tsize[0:2])[0]
-                 ts += "%d\n" % xsize
-                 tsize = tsize[2:]
-         return ts
+    # def getLinkNamePMLOffsetData(self):
+    #     lv = ''
+    #     if self.num_link_pages > 0:
+    #         for i in xrange(self.num_link_pages):
+    #             links = self.section_reader(self.first_link_page + i)
+    #             j = i % self.xortable_size
+    #             offname = deXOR(links, j, self.xortable)
+    #             offset = struct.unpack('>L', offname[0:4])[0]
+    #             name = offname[4:].strip('\0')
+    #             lv += '%d|%s\n' % (offset, name) 
+    #     return lv
 
-    def getBookInfo(self):
-        bkinfo = ''
-        if self.num_bookinfo_pages > 0:
-            info = self.section_reader(self.first_bookinfo_page)
-            bkinfo = deXOR(info, 0, self.xortable)
-        return bkinfo
+    # def getExpandedTextSizesData(self):
+    #      ts = ''
+    #      if self.num_xtextsize_pages > 0:
+    #          tsize = deXOR(self.section_reader(self.first_xtextsize_page), 0, self.xortable)
+    #          for i in xrange(self.num_text_pages):
+    #              xsize = struct.unpack('>H', tsize[0:2])[0]
+    #              ts += "%d\n" % xsize
+    #              tsize = tsize[2:]
+    #      return ts
+
+    # def getBookInfo(self):
+    #     bkinfo = ''
+    #     if self.num_bookinfo_pages > 0:
+    #         info = self.section_reader(self.first_bookinfo_page)
+    #         bkinfo = deXOR(info, 0, self.xortable)
+    #         bkinfo = bkinfo.replace('\0','|')
+    #         bkinfo += '\n'
+    #     return bkinfo
 
     def getText(self):
         des = Des(fixKey(self.content_key))
@@ -496,349 +514,68 @@ class EreaderProcessor(object):
              
         # now handle footnotes pages
         if self.num_footnote_pages > 0:
+            r += '\n'
             # the record 0 of the footnote section must pass through the Xor Table to make it useful
             sect = self.section_reader(self.first_footnote_page)
             fnote_ids = deXOR(sect, 0, self.xortable)
             # the remaining records of the footnote sections need to be decoded with the content_key and zlib inflated
             des = Des(fixKey(self.content_key))
-            r += '\\w="100%"'
-            r += '\\pFootnotes:\n\n'
             for i in xrange(1,self.num_footnote_pages):
                 logging.debug('get footnotepage %d', i)
                 id_len = ord(fnote_ids[2])
                 id = fnote_ids[3:3+id_len]
-                fmarker='\\t\\Q="footnote-%s"' % id
-                r+=fmarker
-                r += zlib.decompress(des.decrypt(self.section_reader(self.first_footnote_page + i)))
-                r += '\\t\n\n'
+                fmarker = '<footnote id="%s">\n' % id
+                fmarker += zlib.decompress(des.decrypt(self.section_reader(self.first_footnote_page + i)))
+                fmarker += '\n</footnote>\n'
+                r += fmarker
                 fnote_ids = fnote_ids[id_len+4:]
-
-#               according to ereader pml spec we should be outputing the following xml for each footnote - but then we would have to handle
-#               parsing it back in to convert it since that xml is not valid xhtml
-#                fmarker = '<footnote id="footnote-%s">\n' % id
-#                fmarker += zlib.decompress(des.decrypt(self.section_reader(self.first_footnote_page + i)))
-#                fmarker += '\n</footnote>\n'
-#                r += fmarker
-
 
         # now handle sidebar pages
         if self.num_sidebar_pages > 0:
+            r += '\n'
             # the record 0 of the sidebar section must pass through the Xor Table to make it useful
             sect = self.section_reader(self.first_sidebar_page)
             sbar_ids = deXOR(sect, 0, self.xortable)
             # the remaining records of the sidebar sections need to be decoded with the content_key and zlib inflated
             des = Des(fixKey(self.content_key))
-            r += '\\w="100%"'
-            r += '\\pSidebars:\n\n'
             for i in xrange(1,self.num_sidebar_pages):
                 id_len = ord(sbar_ids[2])
                 id = sbar_ids[3:3+id_len]
-                smarker='\\t\\Q="sidebar-%s"' % id
-                r+=smarker
-                r += zlib.decompress(des.decrypt(self.section_reader(self.first_sidebar_page + i)))
-                r += '\\t\n\n'
+                smarker = '<sidebar id="%s">\n' % id
+                smarker += zlib.decompress(des.decrypt(self.section_reader(self.first_footnote_page + i)))
+                smarker += '\n</sidebar>\n'
+                r += smarker
                 sbar_ids = sbar_ids[id_len+4:]
 
-#               according to ereader pml spec we should be outputing the following xml for each sidebar - but then we would have to handle
-#               parsing it back in to convert it since that xml is not valid xhtml
-#                smarker = '<sidebar id="sidebar-%s">\n' % id
-#                smarker += zlib.decompress(des.decrypt(self.section_reader(self.first_footnote_page + i)))
-#                smarker += '\n</sidebar>\n'
-#                r += smarker
-
         return r
 
-class PmlConverter(object):
-    def __init__(self, s, bkinfo):
-        def findPrevStartofLine(src,p,n):
-            # find last end of previous line in substring from p to n
-            b1 = src.rfind('\n',p,n)
-            b2 = src.rfind('\\c',p,n)
-            b3 = src.rfind('\\r',p,n)
-            b4 = src.rfind('\\x',p,n)
-            b5 = src.rfind('\\p',p,n)
-            b = max(b1, b2, b3, b4, b5)
-            if b == -1:
-                return n
-            if b == b1:
-                return b + 1
-            return b + 2
-        def markHangingIndents(src):
-            r = ''
-            p = 0
-            while True:
-                if p > len(src):
-                    return r
-                n = src.find('\\t', p)
-                if n == -1:
-                    r += src[p:]
-                    return r
-                pc = findPrevStartofLine(src,p,n)
-                if pc == n :
-                    # \t tag is at start of line so indent block will work
-                    end = src.find('\\t',n+2)
-                    if end == -1:
-                        end = n
-                    r += src[p:end+2]
-                    p = end + 2
-                else : 
-                    # \t tag not at start of line so hanging indent case
-                    # recode \t to pseudo \h tags and move it to start of this line
-                    # and recode its close as well 
-                    r += src[p:pc] + '\\h' + src[pc:n]
-                    end = src.find('\\t',n+2)
-                    if end == -1:
-                        end = n+2
-                    r += src[n+2:end] + '\\h'
-                    p = end + 2
-        self.s = markHangingIndents(s)
-        # file(os.path.join("./pseudo.pml"), 'wb').write(self.s)
-        self.pos = 0
-        self.bkinfo = bkinfo
-    def nextOptAttr(self):
-        p = self.pos
-        if self.s[p:p+2] != '="':
-            return None
-        r = ''
-        p += 2
-        while self.s[p] != '"':
-            r += self.s[p]
-            p += 1
-        self.pos = p + 1
-        return r
-    def next(self):
-        p = self.pos
-        if p >= len(self.s):
-            return None
-        if self.s[p] != '\\':
-            res = self.s.find('\\', p)
-            if res == -1:
-                res = len(self.s)
-            self.pos = res
-            return self.s[p : res], None, None
-        c = self.s[p+1]
-        # add in support for new pseudo tag \\h
-        if c in 'pxcriuovthnsblBk-lI\\d':
-            self.pos = p + 2
-            return None, c, None
-        if c in 'TwmqQ':
-            self.pos = p + 2
-            return None, c, self.nextOptAttr()
-        if c == 'a':
-            self.pos = p + 5
-            return None, c, int(self.s[p+2:p+5])
-        if c == 'U':
-            self.pos = p + 6
-            return None, c, int(self.s[p+2:p+6], 16)
-        c = self.s[p+1:p+1+2]
-        if c in ('X0','X1','X2','X3','X4','Sp','Sb'):
-            self.pos = p + 3
-            return None, c, None
-        if c in ('C0','C1','C2','C3','C4','Fn','Sd'):
-            self.pos = p + 3
-            return None, c, self.nextOptAttr()
-        print "unknown escape code %s" % c
-        self.pos = p + 1
-        return None, None, None
-    def LinePrinter(link):
-        return '<hr width="%s" />\n' % link
-    def LinkPrinter(link):
-        return '<a href="%s">' % link
-    def FootnoteLinkPrinter(link):
-        return '<a href="#footnote-%s">' % link
-    def SidebarLinkPrinter(link):
-        return '<a href="#sidebar-%s">' % link
-    def NotSupported(link):
-        raise NotImplemented()
-    def IndentPercent(link):
-        return '<span style="padding-left: %s%%;"></span>' %link
-    def NormalFont(link):
-        print "Nonfatal Error: NormalFont not implemented."
-        return '<!-- NormalFont %s -->' %link
-    def StdFont(link):
-        print "Nonfatal Error: StdFont not implemented."
-        return '<!-- StdFont: %s -->' %link
-    
-    # See http://wiki.mobileread.com/wiki/PML#Palm_Markup_Language
-    html_tags = {
-        'c' : ('<div class="center">', '</div>'),
-        'r' : ('<div class="right">', '</div>'),
-        'i' : ('<i>', '</i>'),
-        'u' : ('<span class="under">', '</span>'),
-        'b' : ('<strong>', '</strong>'),
-        'B' : ('<strong>', '</strong>'),
-        'o' : ('<del>', '</del>'),
-        'v' : ('<!-- ', ' -->'),
-        't' : ('<div class="indent">','</div>'),
-        'h' : ('<div class="hang">','</div>'), # pseudo-tag created to handle hanging indent cases
-        'Sb' : ('<sub>', '</sub>'),
-        'Sp' : ('<sup>', '</sup>'),
-        'X0' : ('<h1>', '</h1>'),
-        'X1' : ('<h2>', '</h2>'),
-        'X2' : ('<h3>', '</h3>'),
-        'X3' : ('<h4>', '</h4>'),
-        'X4' : ('<h5>', '</h5>'),
-        'l' : ('<span class="big">', '</span>'),
-        'q' : (LinkPrinter, '</a>'),
-        'Fn' : (FootnoteLinkPrinter, '</a>'),
-        'Sd' : (SidebarLinkPrinter, '</a>'),
-        'w' : (LinePrinter, ''),
-        #'m' : handled in if block, 
-        #'Q' : handled in if block, 
-        #'a' : handled in if block, 
-        #'U' : handled in if block, 
-        'x' : ('<h1 class="breakbefore">', '</h1>'),
-        #'C0' : handled in if block,
-        #'C1' : handled in if block,
-        #'C2' : handled in if block,
-        #'C3' : handled in if block,
-        #'C4' : handled in if block,
-        'T' : (IndentPercent, ''),
-        'n' : (NormalFont, ''),
-        's' : ('', ''),
-        'k' : ('<span class="small">', '</span>'),
-        'I' : ('<i>', '</i>'), # according to calibre - all ereader does is italicize the index entries
-    }
-    html_one_tags = {
-        'p' : '<p class="breakafter">&nbsp;</p>\n',
-        '\\': '\\',
-        '-' : '&shy;',
-    }
-    pml_chars = {
-        160 : '&nbsp;',130 : '&#8212;',131: '&#402;',132: '&#8222;',
-        133: '&#8230;',134: '&#8224;',135: '&#8225;',138: '&#352;',
-        139: '&#8249;',140: '&#338;',145: '&#8216;',146: '&#8217;',
-        147: '&#8220;',148: '&#8221;',149: '&#8226;',150: '&#8211;',
-        151: '&#8212;',153: '&#8482;',154: '&#353;',155: '&#8250;',
-        156: '&#339;',159: '&#376;'
-    }
-    def process(self):
-        final = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">\n'
-        final += '<html>\n<head>\n<meta http-equiv="content-type" content="text/html; charset=windows-1252">\n'
-        if len(self.bkinfo) > 0:
-            title, author, copyright, publisher, isbn = self.bkinfo.split('\0',4)
-            isbn = isbn.strip('\0')
-            final += '<meta name="Title" content="%s"/>\n' % title
-            final += '<meta name="Author" content="%s"/>\n' % author
-            final += '<meta name="Copyright" content="%s"/>\n' % copyright
-            final += '<meta name="Publisher" content="%s"/>\n' % publisher
-            final += '<meta name="ISBN" content="%s"/>\n' % isbn
-            final += '<style type="text/css">\n'
-            final += 'div.center { text-align:center; }\n'
-            final += 'div.right { text-align:right; }\n'
-            final += 'div.indent { margin-left: 5%; }\n'
-            final += 'div.hang { text-indent: -5%; margin-left: 5%; }\n'
-            final += 'span.big { font-size: 175%; }\n'
-            final += 'span.small { font-size: 50%; }\n'
-            final += 'span.under { text-decoration: underline; }\n'
-            final += '.breakbefore { page-break-before: always; }\n'
-            final += '.breakafter { page-break-after: always; }\n'
-            final += '</style>\n'
-        final += '</head><body>\n'
-        in_tags = []
-        def makeText(s):
-            s = s.replace('&', '&amp;')
-            #s = s.replace('"', '&quot;')
-            s = s.replace('<', '&lt;')
-            s = s.replace('>', '&gt;')
-            s = s.replace('\n', '<br />\n')
-            return s
-        while True:
-            r = self.next()
-            if not r:
-                break
-            text, cmd, attr = r
-            if text:
-                final += makeText(text)
-            if cmd:
-                def getTag(ti, end):
-                    cmd, attr = ti
-                    r = self.html_tags[cmd][end]
-                    if type(r) != str:
-                        r = r(attr)
-                    return r
-                if cmd in self.html_tags:
-                    pair = (cmd, attr)
-                    if cmd not in [a for (a,b) in in_tags]:
-                        final += getTag(pair, False)
-                        in_tags.append(pair)
-                    else:
-                        j = len(in_tags)
-                        while True:
-                            j = j - 1
-                            final += getTag(in_tags[j], True)
-                            if in_tags[j][0] == cmd:
-                                break
-                        del in_tags[j]
-                        while j < len(in_tags):
-                            final += getTag(in_tags[j], False)
-                            j = j + 1
-
-                if cmd in self.html_one_tags:
-                    final += self.html_one_tags[cmd]
-                if cmd == 'm':
-                    unquotedimagepath = "images/" + attr
-                    imagepath = urllib.quote( unquotedimagepath )
-                    final += '<img src="%s" alt="">' % imagepath
-                if cmd == 'Q':
-                    final += '<span id="%s"> </span>' % attr
-                if cmd == 'C0':
-                    final += '<!-- ContentsList "%s" -->' % attr
-                if cmd == 'C1':
-                    final += '<!-- ContentsList " %s" -->' % attr
-                if cmd == 'C2':
-                    final += '<!-- ContentsList "  %s" -->' % attr
-                if cmd == 'C3':
-                    final += '<!-- ContentsList "   %s" -->' % attr
-                if cmd == 'C4':
-                    final += '<!-- ContentsList "    %s" -->' % attr
-                if cmd == 'a':
-                    final += self.pml_chars.get(attr, '&#%d;' % attr)
-                if cmd == 'U':
-                    final += '&#%d;' % attr
-        final += '</body></html>\n'
-        # while True:
-        #    s = final.replace('<br />\n<br />\n<br />\n', '<br />\n<br />\n')
-        #    if s == final:
-        #        break
-        #    final = s
-        s = final.replace('</div><br />','</div>\n')
-        final = s
-        return final
-
-def convertEreaderToHtml(infile, name, cc, outdir):
+def convertEreaderToPml(infile, name, cc, outdir):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
+
+    print "   Decoding File"
     sect = Sectionizer(infile, 'PNRdPPrs')
     er = EreaderProcessor(sect.loadSection, name, cc)
 
     if er.getNumImages() > 0:
-        imagedir = "images/"
+        print "   Extracting images"
+        imagedir = bookname + '_img/'
         imagedirpath = os.path.join(outdir,imagedir)
         if not os.path.exists(imagedirpath):
             os.makedirs(imagedirpath)
-    for i in xrange(er.getNumImages()):
-        name, contents = er.getImage(i)
-        file(os.path.join(imagedirpath, name), 'wb').write(contents)
+        for i in xrange(er.getNumImages()):
+            name, contents = er.getImage(i)
+            file(os.path.join(imagedirpath, name), 'wb').write(contents)
 
+    print "   Extracting pml"
     pml_string = er.getText()
     pmlfilename = bookname + ".pml"
     file(os.path.join(outdir, pmlfilename),'wb').write(pml_string)
 
-    bkinfo = er.getBookInfo()
-
-    pml = PmlConverter(pml_string, bkinfo)
-    htmlfilename = bookname + ".html"
-    file(os.path.join(outdir, htmlfilename),'wb').write(pml.process())
-
-    # ts = er.getExpandedTextSizesData()
-    # file(os.path.join(outdir, 'xtextsizes.dat'), 'wb').write(ts)
-
-    cv = er.getChapterNamePMLOffsetData()
-    file(os.path.join(outdir, 'chapters.dat'), 'wb').write(cv)
-	
-    # lv = er.getLinkNamePMLOffsetData()
-    # file(os.path.join(outdir, 'links.dat'), 'wb').write(lv)
+    # bkinfo = er.getBookInfo()
+    # if bkinfo != '':
+    #     print "   Extracting book meta information"
+    #     file(os.path.join(outdir, 'bookinfo.txt'),'wb').write(bkinfo)
 
 
 def main(argv=None):
@@ -846,12 +583,12 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     
-    print "eReader2Html v%s. Copyright (c) 2008 The Dark Reverser" % __version__
+    print "eRdr2Pml v%s. Copyright (c) 2009 The Dark Reverser" % __version__
 
     if len(argv)!=4 and len(argv)!=5:
-        print "Converts DRMed eReader books to PML Source and HTML"
+        print "Converts DRMed eReader books to PML Source"
         print "Usage:"
-        print "  ereader2html infile.pdb [outdir] \"your name\" credit_card_number "
+        print "  erdr2pml infile.pdb [outdir] \"your name\" credit_card_number "
         print "Note:"
         print "  if ommitted, outdir defaults based on 'infile.pdb'"
         print "  It's enough to enter the last 8 digits of the credit card number"
@@ -867,7 +604,7 @@ def main(argv=None):
             print "Processing..."
             import time
             start_time = time.time()
-            convertEreaderToHtml(infile, name, cc, outdir)
+            convertEreaderToPml(infile, name, cc, outdir)
             end_time = time.time()
             search_time = end_time - start_time
             print 'elapsed time: %.2f seconds' % (search_time, ) 

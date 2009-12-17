@@ -1,555 +1,83 @@
-#!/usr/bin/env python
+#!/bin/env python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+#
+# xPml2XHtml.py
 #
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
+#
+# Based on Code, Input and Ideas from: 
+#      The Dark Reverser (original author)
+#      Kevin Hendricks
+#      Logan Kennelly
+#      John Schember (Calibre project)
+#      WayneD's (perl pml2html.pl)
+
 # Changelog
-#  0.01 - Initial version
-#  0.02 - Support more eReader files. Support bold text and links. Fix PML decoder parsing bug.
-#  0.03 - Fix incorrect variable usage at one place.
-#  0.03b - enhancement by DeBockle (version 259 support)
-# Custom version 0.03 - no change to eReader support, only usability changes
-#   - start of pep-8 indentation (spaces not tab), fix trailing blanks
-#   - version variable, only one place to change
-#   - added main routine, now callable as a library/module, 
-#     means tools can add optional support for ereader2html
-#   - outdir is no longer a mandatory parameter (defaults based on input name if missing)
-#   - time taken output to stdout
-#   - Psyco support - reduces runtime by a factor of (over) 3!
-#     E.g. (~600Kb file) 90 secs down to 24 secs
-#       - newstyle classes
-#       - changed map call to list comprehension
-#         may not work with python 2.3
-#         without Psyco this reduces runtime to 90%
-#         E.g. 90 secs down to 77 secs
-#         Psyco with map calls takes longer, do not run with map in Psyco JIT!
-#       - izip calls used instead of zip (if available), further reduction
-#         in run time (factor of 4.5).
-#         E.g. (~600Kb file) 90 secs down to 20 secs
-#   - Python 2.6+ support, avoid DeprecationWarning with sha/sha1
-#  0.04 - Footnote support, PML output, correct charset in html, support more PML tags
-#   - Feature change, dump out PML file
-#   - Added supprt for footnote tags. NOTE footnote ids appear to be bad (not usable)
-#       in some pdb files :-( due to the same id being used multiple times
-#   - Added correct charset encoding (pml is based on cp1252)
-#   - Added logging support.
-#   
-#   TODO run this through a profiler - speed increases so far was from
-#   applying "quick known fixes", added (commented out) cprofiler call
-#  0.05 - Improved type 272 support for sidebars, links, chapters, metainfo, etc
-#  0.06 - Merge of 0.04 and 0.05. Improved HTML output
-#         Placed images in subfolder, so that it's possible to just
-#         drop the book.pml file onto DropBook to make an unencrypted
-#         copy of the eReader file.
-#         Using that with Calibre works a lot better than the HTML
-#         conversion in this code.
-#  0.07 - Further Improved type 272 support for sidebars with all earlier fixes
-#  0.08 - fixed typos, removed extraneous things
-#  0.09 - tried to greatly improve html conversion especially with \t tags
+#  0.02 - tried to greatly improve html conversion especially with \t tags
+#  0.03 - more cleanup, a few fixes, and add in use of tidy to output xhtml
+#  0.04 - incorporate more cleanups
+#  0.05 - add check to fix block elements nested in inline elements which are not allowed
+#  0.07 - handle clean up for remains left over from fixing nesting issues rampant in pml
+#  0.08 - deal with inline style tags nesting issues in new way using a style tag list
+#  0.09 - add in support for wrapping all text not in a block in <p></p> tags
+#  0.10 - treat links effectively as block elements for style markup
+#  0.11 - add in various paragraphs indentations to handle leading spaces that html would ignore or compress
+#  0.12 - add in support for handling xml based pml footnotes and sidebars - using pseudo pml tags
+#  0.14 - add in full header info parsing and remove need for bookinfo.txt
+#  0.15 - cleanup high chars better handled, optional use of tidy with command line switch
+#  0.16 - use proper and safe temporary file when passing things to tidy
+#  0.17 - add support for tidy.exe under windows
+#  0.18 - fix corner case of lines that start with \axxx or \Uxxxx tags
 
-__version__='0.09'
+__version__='0.18'
 
-# Import Psyco if available
-try:
-    # Dumb speed hack 1
-    # http://psyco.sourceforge.net
-    import psyco
-    psyco.full()
-    pass
-except ImportError:
-    pass
-try:
-    # Dumb speed hack 2
-    # All map() calls converted to list comprehension (some use zip)
-    # override zip with izip - saves memory and in rough testing
-    # appears to be faster zip() is only used in the converted map() calls
-    from itertools import izip as zip
-except ImportError:
-    pass
-
-import struct, binascii, zlib, os, sys, os.path, urllib
-try:
-    from hashlib import sha1
-except ImportError:
-    # older Python release
-    import sha
-    sha1 = lambda s: sha.new(s)
-import cgi
+import struct, binascii, zlib, os, getopt, sys, os.path, urllib, re, tempfile
 import logging
+from subprocess import Popen, PIPE, STDOUT
 
 logging.basicConfig()
 #logging.basicConfig(level=logging.DEBUG)
 
 
-ECB =	0
-CBC =	1
-class Des(object):
-    __pc1 = [56, 48, 40, 32, 24, 16,  8,  0, 57, 49, 41, 33, 25, 17,
-          9,  1, 58, 50, 42, 34, 26, 18, 10,  2, 59, 51, 43, 35,
-         62, 54, 46, 38, 30, 22, 14,  6, 61, 53, 45, 37, 29, 21,
-         13,  5, 60, 52, 44, 36, 28, 20, 12,  4, 27, 19, 11,  3]
-    __left_rotations = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1]
-    __pc2 = [13, 16, 10, 23,  0,  4,2, 27, 14,  5, 20,  9,
-        22, 18, 11,  3, 25,  7,	15,  6, 26, 19, 12,  1,
-        40, 51, 30, 36, 46, 54,	29, 39, 50, 44, 32, 47,
-        43, 48, 38, 55, 33, 52,	45, 41, 49, 35, 28, 31]
-    __ip = [57, 49, 41, 33, 25, 17, 9,  1,	59, 51, 43, 35, 27, 19, 11, 3,
-        61, 53, 45, 37, 29, 21, 13, 5,	63, 55, 47, 39, 31, 23, 15, 7,
-        56, 48, 40, 32, 24, 16, 8,  0,	58, 50, 42, 34, 26, 18, 10, 2,
-        60, 52, 44, 36, 28, 20, 12, 4,	62, 54, 46, 38, 30, 22, 14, 6]
-    __expansion_table = [31,  0,  1,  2,  3,  4, 3,  4,  5,  6,  7,  8,
-         7,  8,  9, 10, 11, 12,11, 12, 13, 14, 15, 16,
-        15, 16, 17, 18, 19, 20,19, 20, 21, 22, 23, 24,
-        23, 24, 25, 26, 27, 28,27, 28, 29, 30, 31,  0]
-    __sbox = [[14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,
-         0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8,
-         4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0,
-         15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13],
-        [15, 1, 8, 14, 6, 11, 3, 4, 9, 7, 2, 13, 12, 0, 5, 10,
-         3, 13, 4, 7, 15, 2, 8, 14, 12, 0, 1, 10, 6, 9, 11, 5,
-         0, 14, 7, 11, 10, 4, 13, 1, 5, 8, 12, 6, 9, 3, 2, 15,
-         13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9],
-        [10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 12, 7, 11, 4, 2, 8,
-         13, 7, 0, 9, 3, 4, 6, 10, 2, 8, 5, 14, 12, 11, 15, 1,
-         13, 6, 4, 9, 8, 15, 3, 0, 11, 1, 2, 12, 5, 10, 14, 7,
-         1, 10, 13, 0, 6, 9, 8, 7, 4, 15, 14, 3, 11, 5, 2, 12],
-        [7, 13, 14, 3, 0, 6, 9, 10, 1, 2, 8, 5, 11, 12, 4, 15,
-         13, 8, 11, 5, 6, 15, 0, 3, 4, 7, 2, 12, 1, 10, 14, 9,
-         10, 6, 9, 0, 12, 11, 7, 13, 15, 1, 3, 14, 5, 2, 8, 4,
-         3, 15, 0, 6, 10, 1, 13, 8, 9, 4, 5, 11, 12, 7, 2, 14],
-        [2, 12, 4, 1, 7, 10, 11, 6, 8, 5, 3, 15, 13, 0, 14, 9,
-         14, 11, 2, 12, 4, 7, 13, 1, 5, 0, 15, 10, 3, 9, 8, 6,
-         4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14,
-         11, 8, 12, 7, 1, 14, 2, 13, 6, 15, 0, 9, 10, 4, 5, 3],
-        [12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 3, 4, 14, 7, 5, 11,
-         10, 15, 4, 2, 7, 12, 9, 5, 6, 1, 13, 14, 0, 11, 3, 8,
-         9, 14, 15, 5, 2, 8, 12, 3, 7, 0, 4, 10, 1, 13, 11, 6,
-         4, 3, 2, 12, 9, 5, 15, 10, 11, 14, 1, 7, 6, 0, 8, 13],
-        [4, 11, 2, 14, 15, 0, 8, 13, 3, 12, 9, 7, 5, 10, 6, 1,
-         13, 0, 11, 7, 4, 9, 1, 10, 14, 3, 5, 12, 2, 15, 8, 6,
-         1, 4, 11, 13, 12, 3, 7, 14, 10, 15, 6, 8, 0, 5, 9, 2,
-         6, 11, 13, 8, 1, 4, 10, 7, 9, 5, 0, 15, 14, 2, 3, 12],
-        [13, 2, 8, 4, 6, 15, 11, 1, 10, 9, 3, 14, 5, 0, 12, 7,
-         1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 0, 14, 9, 2,
-         7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8,
-         2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11],]
-    __p = [15, 6, 19, 20, 28, 11,27, 16, 0, 14, 22, 25,
-        4, 17, 30, 9, 1, 7,23,13, 31, 26, 2, 8,18, 12, 29, 5, 21, 10,3, 24]
-    __fp = [39,  7, 47, 15, 55, 23, 63, 31,38,  6, 46, 14, 54, 22, 62, 30,
-        37,  5, 45, 13, 53, 21, 61, 29,36,  4, 44, 12, 52, 20, 60, 28,
-        35,  3, 43, 11, 51, 19, 59, 27,34,  2, 42, 10, 50, 18, 58, 26,
-        33,  1, 41,  9, 49, 17, 57, 25,32,  0, 40,  8, 48, 16, 56, 24]
-    # Type of crypting being done
-    ENCRYPT =	0x00
-    DECRYPT =	0x01
-    def __init__(self, key, mode=ECB, IV=None):
-        if len(key) != 8:
-            raise ValueError("Invalid DES key size. Key must be exactly 8 bytes long.")
-        self.block_size = 8
-        self.key_size = 8
-        self.__padding = ''
-        self.setMode(mode)
-        if IV:
-            self.setIV(IV)
-        self.L = []
-        self.R = []
-        self.Kn = [ [0] * 48 ] * 16	# 16 48-bit keys (K1 - K16)
-        self.final = []
-        self.setKey(key)
-    def getKey(self):
-        return self.__key
-    def setKey(self, key):
-        self.__key = key
-        self.__create_sub_keys()
-    def getMode(self):
-        return self.__mode
-    def setMode(self, mode):
-        self.__mode = mode
-    def getIV(self):
-        return self.__iv
-    def setIV(self, IV):
-        if not IV or len(IV) != self.block_size:
-            raise ValueError("Invalid Initial Value (IV), must be a multiple of " + str(self.block_size) + " bytes")
-        self.__iv = IV
-    def getPadding(self):
-        return self.__padding
-    def __String_to_BitList(self, data):
-        l = len(data) * 8
-        result = [0] * l
-        pos = 0
-        for c in data:
-            i = 7
-            ch = ord(c)
-            while i >= 0:
-                if ch & (1 << i) != 0:
-                    result[pos] = 1
-                else:
-                    result[pos] = 0
-                pos += 1
-                i -= 1
-        return result
-    def __BitList_to_String(self, data):
-        result = ''
-        pos = 0
-        c = 0
-        while pos < len(data):
-            c += data[pos] << (7 - (pos % 8))
-            if (pos % 8) == 7:
-                result += chr(c)
-                c = 0
-            pos += 1
-        return result
-    def __permutate(self, table, block):
-        return [block[x] for x in table]
-    def __create_sub_keys(self):
-        key = self.__permutate(Des.__pc1, self.__String_to_BitList(self.getKey()))
-        i = 0
-        self.L = key[:28]
-        self.R = key[28:]
-        while i < 16:
-            j = 0
-            while j < Des.__left_rotations[i]:
-                self.L.append(self.L[0])
-                del self.L[0]
-                self.R.append(self.R[0])
-                del self.R[0]
-                j += 1
-            self.Kn[i] = self.__permutate(Des.__pc2, self.L + self.R)
-            i += 1
-    def __des_crypt(self, block, crypt_type):
-        block = self.__permutate(Des.__ip, block)
-        self.L = block[:32]
-        self.R = block[32:]
-        if crypt_type == Des.ENCRYPT:
-            iteration = 0
-            iteration_adjustment = 1
-        else:
-            iteration = 15
-            iteration_adjustment = -1
-        i = 0
-        while i < 16:
-            tempR = self.R[:]
-            self.R = self.__permutate(Des.__expansion_table, self.R)
-            self.R = [x ^ y for x,y in zip(self.R, self.Kn[iteration])]
-            B = [self.R[:6], self.R[6:12], self.R[12:18], self.R[18:24], self.R[24:30], self.R[30:36], self.R[36:42], self.R[42:]]
-            j = 0
-            Bn = [0] * 32
-            pos = 0
-            while j < 8:
-                m = (B[j][0] << 1) + B[j][5]
-                n = (B[j][1] << 3) + (B[j][2] << 2) + (B[j][3] << 1) + B[j][4]
-                v = Des.__sbox[j][(m << 4) + n]
-                Bn[pos] = (v & 8) >> 3
-                Bn[pos + 1] = (v & 4) >> 2
-                Bn[pos + 2] = (v & 2) >> 1
-                Bn[pos + 3] = v & 1
-                pos += 4
-                j += 1
-            self.R = self.__permutate(Des.__p, Bn)
-            self.R = [x ^ y for x, y in zip(self.R, self.L)]
-            self.L = tempR
-            i += 1
-            iteration += iteration_adjustment
-        self.final = self.__permutate(Des.__fp, self.R + self.L)
-        return self.final
-    def crypt(self, data, crypt_type):
-        if not data:
-            return ''
-        if len(data) % self.block_size != 0:
-            if crypt_type == Des.DECRYPT: # Decryption must work on 8 byte blocks
-                raise ValueError("Invalid data length, data must be a multiple of " + str(self.block_size) + " bytes\n.")
-            if not self.getPadding():
-                raise ValueError("Invalid data length, data must be a multiple of " + str(self.block_size) + " bytes\n. Try setting the optional padding character")
-            else:
-                data += (self.block_size - (len(data) % self.block_size)) * self.getPadding()
-        if self.getMode() == CBC:
-            if self.getIV():
-                iv = self.__String_to_BitList(self.getIV())
-            else:
-                raise ValueError("For CBC mode, you must supply the Initial Value (IV) for ciphering")
-        i = 0
-        dict = {}
-        result = []
-        while i < len(data):
-            block = self.__String_to_BitList(data[i:i+8])
-            if self.getMode() == CBC:
-                if crypt_type == Des.ENCRYPT:
-                    block = [x ^ y for x, y in zip(block, iv)]
-                processed_block = self.__des_crypt(block, crypt_type)
-                if crypt_type == Des.DECRYPT:
-                    processed_block = [x ^ y for x, y in zip(processed_block, iv)]
-                    iv = block
-                else:
-                    iv = processed_block
-            else:
-                processed_block = self.__des_crypt(block, crypt_type)
-            result.append(self.__BitList_to_String(processed_block))
-            i += 8
-        if crypt_type == Des.DECRYPT and self.getPadding():
-            s = result[-1]
-            while s[-1] == self.getPadding():
-                s = s[:-1]
-            result[-1] = s
-        return ''.join(result)
-    def encrypt(self, data, pad=''):
-        self.__padding = pad
-        return self.crypt(data, Des.ENCRYPT)
-    def decrypt(self, data, pad=''):
-        self.__padding = pad
-        return self.crypt(data, Des.DECRYPT)
-
-class Sectionizer(object):
-    def __init__(self, filename, ident):
-        self.contents = file(filename, 'rb').read()
-        self.header = self.contents[0:72]
-        self.num_sections, = struct.unpack('>H', self.contents[76:78])
-        if self.header[0x3C:0x3C+8] != ident:
-            raise ValueError('Invalid file format')
-        self.sections = []
-        for i in xrange(self.num_sections):
-            offset, a1,a2,a3,a4 = struct.unpack('>LBBBB', self.contents[78+i*8:78+i*8+8])
-            flags, val = a1, a2<<16|a3<<8|a4
-            self.sections.append( (offset, flags, val) )
-    def loadSection(self, section):
-        if section + 1 == self.num_sections:
-            end_off = len(self.contents)
-        else:
-            end_off = self.sections[section + 1][0]
-        off = self.sections[section][0]
-        return self.contents[off:end_off]
-
-def sanitizeFileName(s):
-    r = ''
-    for c in s.lower():
-        if c in "abcdefghijklmnopqrstuvwxyz0123456789_.-":
-            r += c
-    return r
-
-def fixKey(key):
-    def fixByte(b):
-        return b ^ ((b ^ (b<<1) ^ (b<<2) ^ (b<<3) ^ (b<<4) ^ (b<<5) ^ (b<<6) ^ (b<<7) ^ 0x80) & 0x80)
-    return 	"".join([chr(fixByte(ord(a))) for a in key])
-
-def deXOR(text, sp, table):
-    r=''
-    j = sp
-    for i in xrange(len(text)):
-        r += chr(ord(table[j]) ^ ord(text[i]))
-        j = j + 1
-        if j == len(table):
-            j = 0
-    return r
-
-class EreaderProcessor(object):
-    def __init__(self, section_reader, username, creditcard):
-        self.section_reader = section_reader
-        data = section_reader(0)
-        version,  = struct.unpack('>H', data[0:2])
-        self.version = version
-        logging.info('eReader file format version %s', version)
-        if version != 272 and version != 260 and version != 259:
-            raise ValueError('incorrect eReader version %d (error 1)' % version)
-        data = section_reader(1)
-        self.data = data
-        des = Des(fixKey(data[0:8]))
-        cookie_shuf, cookie_size = struct.unpack('>LL', des.decrypt(data[-8:]))
-        if cookie_shuf < 3 or cookie_shuf > 0x14 or cookie_size < 0xf0 or cookie_size > 0x200:
-            raise ValueError('incorrect eReader version (error 2)')
-        input = des.decrypt(data[-cookie_size:])
-        def unshuff(data, shuf):
-            r = [''] * len(data)
-            j = 0
-            for i in xrange(len(data)):
-                j = (j + shuf) % len(data)
-                r[j] = data[i]
-            assert	len("".join(r)) == len(data)
-            return "".join(r)
-        r = unshuff(input[0:-8], cookie_shuf)
-
-        def fixUsername(s):
-            r = ''
-            for c in s.lower():
-                if (c >= 'a' and c <= 'z' or c >= '0' and c <= '9'):
-                    r += c
-            return r
-
-        user_key = struct.pack('>LL', binascii.crc32(fixUsername(username)) & 0xffffffff, binascii.crc32(creditcard[-8:])& 0xffffffff)
-        drm_sub_version = struct.unpack('>H', r[0:2])[0]
-        self.num_text_pages = struct.unpack('>H', r[2:4])[0] - 1
-        self.num_image_pages = struct.unpack('>H', r[26:26+2])[0]
-        self.first_image_page = struct.unpack('>H', r[24:24+2])[0]
-        if self.version == 272:
-            self.num_chapter_pages = struct.unpack('>H', r[22:22+2])[0]
-            self.first_chapter_page = struct.unpack('>H', r[20:20+2])[0]
-            self.num_link_pages = struct.unpack('>H', r[30:30+2])[0]
-            self.first_link_page = struct.unpack('>H', r[28:28+2])[0]
-            self.num_bookinfo_pages = struct.unpack('>H', r[34:34+2])[0]
-            self.first_bookinfo_page = struct.unpack('>H', r[32:32+2])[0]
-            self.num_footnote_pages = struct.unpack('>H', r[46:46+2])[0]
-            self.first_footnote_page = struct.unpack('>H', r[44:44+2])[0]
-            self.num_xtextsize_pages = struct.unpack('>H', r[54:54+2])[0]
-            self.first_xtextsize_page = struct.unpack('>H', r[52:52+2])[0]
-            self.num_sidebar_pages = struct.unpack('>H', r[38:38+2])[0]
-            self.first_sidebar_page = struct.unpack('>H', r[36:36+2])[0]
-
-            # **before** data record 1 was decrypted and unshuffled, it contained data
-            # to create an XOR table and which is used to fix footnote record 0, link records, chapter records, etc
-            self.xortable_offset  = struct.unpack('>H', r[40:40+2])[0]
-            self.xortable_size = struct.unpack('>H', r[42:42+2])[0]
-            self.xortable = self.data[self.xortable_offset:self.xortable_offset + self.xortable_size]
-        else:
-            self.num_chapter_pages = 0
-            self.num_link_pages = 0
-            self.num_bookinfo_pages = 0
-            self.num_footnote_pages = 0
-            self.num_xtextsize_pages = 0
-            self.num_sidebar_pages = 0
-            self.first_chapter_page = -1
-            self.first_link_page = -1
-            self.first_bookinfo_page = -1
-            self.first_footnote_page = -1
-            self.first_xtextsize_page = -1
-            self.first_sidebar_page = -1
-
-        logging.debug('self.num_text_pages %d', self.num_text_pages)
-        logging.debug('self.num_footnote_pages %d, self.first_footnote_page %d', self.num_footnote_pages , self.first_footnote_page)
-        logging.debug('self.num_sidebar_pages %d, self.first_sidebar_page %d', self.num_sidebar_pages , self.first_sidebar_page)
-        self.flags = struct.unpack('>L', r[4:8])[0]
-        reqd_flags = (1<<9) | (1<<7) | (1<<10)
-        if (self.flags & reqd_flags) != reqd_flags:
-            print "Flags: 0x%X" % self.flags
-            raise ValueError('incompatible eReader file')
-        des = Des(fixKey(user_key))
-        if version == 259:
-            if drm_sub_version != 7:
-                raise ValueError('incorrect eReader version %d (error 3)' % drm_sub_version)
-            encrypted_key_sha = r[44:44+20]
-            encrypted_key = r[64:64+8]
-        elif version == 260:
-            if drm_sub_version != 13:
-                raise ValueError('incorrect eReader version %d (error 3)' % drm_sub_version)
-            encrypted_key = r[44:44+8]
-            encrypted_key_sha = r[52:52+20]
-        elif version == 272:
-            encrypted_key = r[172:172+8]
-            encrypted_key_sha = r[56:56+20]
-        self.content_key = des.decrypt(encrypted_key)
-        if sha1(self.content_key).digest() != encrypted_key_sha:
-            raise ValueError('Incorrect Name and/or Credit Card')
-
-    def getNumImages(self):
-        return self.num_image_pages
-
-    def getImage(self, i):
-        sect = self.section_reader(self.first_image_page + i)
-        name = sect[4:4+32].strip('\0')
-        data = sect[62:]
-        return sanitizeFileName(name), data
-
-    def getChapterNamePMLOffsetData(self):
-        cv = ''
-        if self.num_chapter_pages > 0:
-            for i in xrange(self.num_chapter_pages):
-                chaps = self.section_reader(self.first_chapter_page + i)
-                j = i % self.xortable_size
-                offname = deXOR(chaps, j, self.xortable)
-                offset = struct.unpack('>L', offname[0:4])[0]
-                name = offname[4:].strip('\0')
-                cv += '%d,%s\n' % (offset, name) 
-        return cv
-
-    def getLinkNamePMLOffsetData(self):
-        lv = ''
-        if self.num_link_pages > 0:
-            for i in xrange(self.num_link_pages):
-                links = self.section_reader(self.first_link_page + i)
-                j = i % self.xortable_size
-                offname = deXOR(links, j, self.xortable)
-                offset = struct.unpack('>L', offname[0:4])[0]
-                name = offname[4:].strip('\0')
-                lv += '%d,%s\n' % (offset, name) 
-        return lv
-
-    def getExpandedTextSizesData(self):
-         ts = ''
-         if self.num_xtextsize_pages > 0:
-             tsize = deXOR(self.section_reader(self.first_xtextsize_page), 0, self.xortable)
-             for i in xrange(self.num_text_pages):
-                 xsize = struct.unpack('>H', tsize[0:2])[0]
-                 ts += "%d\n" % xsize
-                 tsize = tsize[2:]
-         return ts
-
-    def getBookInfo(self):
-        bkinfo = ''
-        if self.num_bookinfo_pages > 0:
-            info = self.section_reader(self.first_bookinfo_page)
-            bkinfo = deXOR(info, 0, self.xortable)
-        return bkinfo
-
-    def getText(self):
-        des = Des(fixKey(self.content_key))
-        r = ''
-        for i in xrange(self.num_text_pages):
-            logging.debug('get page %d', i)
-            r += zlib.decompress(des.decrypt(self.section_reader(1 + i)))
-             
-        # now handle footnotes pages
-        if self.num_footnote_pages > 0:
-            # the record 0 of the footnote section must pass through the Xor Table to make it useful
-            sect = self.section_reader(self.first_footnote_page)
-            fnote_ids = deXOR(sect, 0, self.xortable)
-            # the remaining records of the footnote sections need to be decoded with the content_key and zlib inflated
-            des = Des(fixKey(self.content_key))
-            r += '\\w="100%"'
-            r += '\\pFootnotes:\n\n'
-            for i in xrange(1,self.num_footnote_pages):
-                logging.debug('get footnotepage %d', i)
-                id_len = ord(fnote_ids[2])
-                id = fnote_ids[3:3+id_len]
-                fmarker='\\t\\Q="footnote-%s"' % id
-                r+=fmarker
-                r += zlib.decompress(des.decrypt(self.section_reader(self.first_footnote_page + i)))
-                r += '\\t\n\n'
-                fnote_ids = fnote_ids[id_len+4:]
-
-#               according to ereader pml spec we should be outputing the following xml for each footnote - but then we would have to handle
-#               parsing it back in to convert it since that xml is not valid xhtml
-#                fmarker = '<footnote id="footnote-%s">\n' % id
-#                fmarker += zlib.decompress(des.decrypt(self.section_reader(self.first_footnote_page + i)))
-#                fmarker += '\n</footnote>\n'
-#                r += fmarker
-
-
-        # now handle sidebar pages
-        if self.num_sidebar_pages > 0:
-            # the record 0 of the sidebar section must pass through the Xor Table to make it useful
-            sect = self.section_reader(self.first_sidebar_page)
-            sbar_ids = deXOR(sect, 0, self.xortable)
-            # the remaining records of the sidebar sections need to be decoded with the content_key and zlib inflated
-            des = Des(fixKey(self.content_key))
-            r += '\\w="100%"'
-            r += '\\pSidebars:\n\n'
-            for i in xrange(1,self.num_sidebar_pages):
-                id_len = ord(sbar_ids[2])
-                id = sbar_ids[3:3+id_len]
-                smarker='\\t\\Q="sidebar-%s"' % id
-                r+=smarker
-                r += zlib.decompress(des.decrypt(self.section_reader(self.first_sidebar_page + i)))
-                r += '\\t\n\n'
-                sbar_ids = sbar_ids[id_len+4:]
-
-#               according to ereader pml spec we should be outputing the following xml for each sidebar - but then we would have to handle
-#               parsing it back in to convert it since that xml is not valid xhtml
-#                smarker = '<sidebar id="sidebar-%s">\n' % id
-#                smarker += zlib.decompress(des.decrypt(self.section_reader(self.first_footnote_page + i)))
-#                smarker += '\n</sidebar>\n'
-#                r += smarker
-
-        return r
-
 class PmlConverter(object):
-    def __init__(self, s, bkinfo):
+    def __init__(self, s):
+        def cleanupHighChars(src):
+            # special win1252 chars 0x80 - 0xa0 properly handled
+            src = re.sub('[\x80-\xff]', lambda x: '\\a%03d' % ord(x.group()), src)
+            src = re.sub('[^\x00-\xff]', lambda x: '\\U%04x' % ord(x.group()), src)
+            return src
+        def convertFootnoteXMLtoPseudoPML(src):
+            # creates pseudo tag \Ft="id"footnote text\Ft
+            p = re.compile(r'<footnote id="(?P<label>[^"]+)">\n')
+            m = p.search(src)
+            while m:
+                (b, e) = m.span()
+                fid = m.groups('label')[0]
+                src = src[0:b] + '\\p\\Ft="' + fid + '"' + src[e:]
+                src = re.sub('\n</footnote>\n','\\\\Ft\n\n',src,1)
+                m = p.search(src)
+            return src
+        def convertSidebarXMLtoPseudoPML(src):
+            # creates pseudo tag \St="id"sidebar text\St
+            p = re.compile(r'<sidebar id="(?P<label>[^"]+)">\n')
+            m = p.search(src)
+            while m:
+                (b, e) = m.span()
+                sid = m.groups('label')[0]
+                src = src[0:b] + '\\p\\St="' + sid + '"' + src[e:]
+                src = re.sub('\n</sidebar>\n','\\\\St\n\n',src,1)
+                m = p.search(src)
+            return src
+        def convert_x_to_pX0(src):
+            # converts all \x \x to \p\X0 \X0 make later code simpler
+            p = re.compile(r'\\x(.*?)\\x')
+            m = p.search(src)
+            while m:
+                (b, e) = m.span()
+                src = src[0:b] + '\\p\\X0' + src[b+2:e-2] + '\\X0' + src[e:]
+                m = p.search(src)
+            return src
         def findPrevStartofLine(src,p,n):
             # find last end of previous line in substring from p to n
             b1 = src.rfind('\n',p,n)
@@ -591,10 +119,36 @@ class PmlConverter(object):
                         end = n+2
                     r += src[n+2:end] + '\\h'
                     p = end + 2
-        self.s = markHangingIndents(s)
-        # file(os.path.join("./pseudo.pml"), 'wb').write(self.s)
+            return r
+        # recode double single slashes in pml to allow easier regular expression usage 
+        s = s.replace('\\\\','_amp#92_')
+        s = cleanupHighChars(s)
+        s = markHangingIndents(s)
+        s = convertFootnoteXMLtoPseudoPML(s)
+        s = convertSidebarXMLtoPseudoPML(s)
+        s = convert_x_to_pX0(s)
+        # file('converted.pml','wb').write(s)
+        self.s = s
         self.pos = 0
-        self.bkinfo = bkinfo
+        self.markChapters = (s.find('\\X') == -1)
+    def headerInfo(self):
+        title, author, copyright, publisher, eisbn = None, None, None, None, None
+        m = re.search(r'\\v.*TITLE="(?P<value>[^"]+)".*\\v', self.s, re.DOTALL)
+        if m:
+            title = m.groups('value')[0]
+        m = re.search(r'\\v.*AUTHOR="(?P<value>[^"]+)".*\\v', self.s, re.DOTALL)
+        if m:
+            author = m.groups('value')[0]
+        m = re.search(r'\\v.*PUBLISHER="(?P<value>[^"]+)".*\\v', self.s, re.DOTALL)
+        if m:
+            publisher = m.groups('value')[0]
+        m = re.search(r'\\v.*EISBN="(?P<value>[^"]+)".*\\v', self.s, re.DOTALL)
+        if m:
+            eisbn = m.groups('value')[0]
+        m = re.search(r'\\v.*COPYRIGHT="(?P<value>[^"]+)".*\\v', self.s, re.DOTALL)
+        if m:
+            copyright = m.groups('value')[0]
+        return title, author, copyright, publisher, eisbn
     def nextOptAttr(self):
         p = self.pos
         if self.s[p:p+2] != '="':
@@ -606,6 +160,13 @@ class PmlConverter(object):
             p += 1
         self.pos = p + 1
         return r
+    def skipNewLine(self):
+        p = self.pos
+        if p >= len(self.s):
+            return
+        if self.s[p] == '\n':
+            self.pos = p + 1
+        return
     def next(self):
         p = self.pos
         if p >= len(self.s):
@@ -634,247 +195,645 @@ class PmlConverter(object):
         if c in ('X0','X1','X2','X3','X4','Sp','Sb'):
             self.pos = p + 3
             return None, c, None
-        if c in ('C0','C1','C2','C3','C4','Fn','Sd'):
+        # add in support for new pseudo tags Ft and St
+        if c in ('C0','C1','C2','C3','C4','Fn','Sd', 'Ft', 'St'):
             self.pos = p + 3
             return None, c, self.nextOptAttr()
         print "unknown escape code %s" % c
         self.pos = p + 1
         return None, None, None
-    def LinePrinter(link):
-        return '<hr width="%s" />\n' % link
     def LinkPrinter(link):
         return '<a href="%s">' % link
+    # for every footnote provide a unique id (built on footnote unique id) 
+    # so that a hyperlink return is possibly
     def FootnoteLinkPrinter(link):
-        return '<a href="#footnote-%s">' % link
+        rlink = 'return_' + link
+        footnote_ids[link] = rlink 
+        return '<a id="%s" href="#%s">' % (rlink, link)
+    def Footnote(link):
+        return '<div title="footnote" id="%s">' % link
+    def EndFootnote(link):
+        return '&nbsp;&nbsp;<a href="#%s"><small>return</small></a></div>' % footnote_ids[link]
+    # for every sidebar provide a unique id (built from sidebar unique id) 
+    # so that a hyperlink return is possibly
     def SidebarLinkPrinter(link):
-        return '<a href="#sidebar-%s">' % link
-    def NotSupported(link):
-        raise NotImplemented()
-    def IndentPercent(link):
-        return '<span style="padding-left: %s%%;"></span>' %link
-    def NormalFont(link):
-        print "Nonfatal Error: NormalFont not implemented."
-        return '<!-- NormalFont %s -->' %link
-    def StdFont(link):
-        print "Nonfatal Error: StdFont not implemented."
-        return '<!-- StdFont: %s -->' %link
-    
+        rlink = 'return_' + link
+        sidebar_ids[link] = rlink 
+        return '<a id="%s" href="#%s">' % (rlink, link)
+    def Sidebar(link):
+        return '<div title="sidebar" id="%s">' % link
+    def EndSidebar(link):
+        return '&nbsp;&nbsp;<a href="#%s"><small>return</small></a></div>' % sidebar_ids[link]
+    # standard font switch is used mainly for special chars that may not be in user fonts
+    # but since these special chars are html encoded neither of these are needed
+    # def NormalFont(link):
+    #     return '<!-- NormalFont -->%s' %link
+    # def EndNormalFont(link):
+    #     return '<!-- EndNormalFont -->'
+    # def StdFont(link):
+    #     return '<!-- StdFont -->%s' %link
+    # def EndStdFont(link):
+    #     return '<!-- EndStdFont -->'
+
     # See http://wiki.mobileread.com/wiki/PML#Palm_Markup_Language
+    # html non-style related beg and end tags
     html_tags = {
-        'c' : ('<div class="center">', '</div>'),
-        'r' : ('<div class="right">', '</div>'),
-        'i' : ('<i>', '</i>'),
-        'u' : ('<span class="under">', '</span>'),
-        'b' : ('<strong>', '</strong>'),
-        'B' : ('<strong>', '</strong>'),
-        'o' : ('<del>', '</del>'),
         'v' : ('<!-- ', ' -->'),
-        't' : ('<div class="indent">','</div>'),
-        'h' : ('<div class="hang">','</div>'), # pseudo-tag created to handle hanging indent cases
-        'Sb' : ('<sub>', '</sub>'),
-        'Sp' : ('<sup>', '</sup>'),
-        'X0' : ('<h1>', '</h1>'),
-        'X1' : ('<h2>', '</h2>'),
-        'X2' : ('<h3>', '</h3>'),
-        'X3' : ('<h4>', '</h4>'),
-        'X4' : ('<h5>', '</h5>'),
-        'l' : ('<span class="big">', '</span>'),
+        'c' : ('\n<div class="center">', '</div>\n'),
+        'r' : ('\n<div class="right">', '</div>\n'),
+        't' : ('<div class="indent">','</div>\n'),
+        'h' : ('<div class="hang">','</div>\n'), # pseudo-tag created to handle hanging indent cases
+        'X0' : ('<h1>', '</h1>\n'),
+        'X1' : ('<h2>', '</h2>\n'),
+        'X2' : ('<h3>', '</h3>\n'),
+        'X3' : ('<h4>', '</h4>\n'),
+        'X4' : ('<h5>', '</h5>\n'),
         'q' : (LinkPrinter, '</a>'),
         'Fn' : (FootnoteLinkPrinter, '</a>'),
         'Sd' : (SidebarLinkPrinter, '</a>'),
-        'w' : (LinePrinter, ''),
+        'Ft' : (Footnote, EndFootnote),
+        'St' : (Sidebar, EndSidebar),
+        'I' : ('<i>', '</i>'),
+        'P' : ('<p>', '</p>\n'), # pseudo tag indicating a paragraph (imputed from pml file contents)
+        #'x' : ('<div class="breakafter"></div><h1>', '</h1>\n'), handled via recoding
+    }
+    
+    # html style related beg and end tags
+    html_style_tags = {
+        'i' : ('<i>', '</i>'),
+        'u' : ('<span class="under">', '</span>'),
+        'b' : ('<b>', '</b>'),
+        'B' : ('<b>', '</b>'),
+        'o' : ('<del>', '</del>'),
+        'v' : ('<!-- ', ' -->'),
+        'Sb' : ('<sub>', '</sub>'),
+        'Sp' : ('<sup>', '</sup>'),
+        'l' : ('<span class="big">', '</span>'),
+        'k' : ('<span class="smallcaps">', '</span>'),
+        'I' : ('<i>', '</i>'), # according to calibre - all ereader does is italicize the index entries
+        'l' : ('<span class="big">', '</span>'),
+        'k' : ('<span class="smallcaps">', '</span>'),
+        #'n' : (NormalFont, EndNormalFont), handle as a single and strip out to prevent undesired mid word breaks
+        #'s' : (StdFont, EndStdFont), handle as a single and strip out to prevent undesired mid word breaks
+    }
+
+    # single tags (non-paired) that require no arguments
+    html_one_tags = {
+        #'p' : '<div class="breakafter"></div>\n', handle them in the if block to create at body level
+        #'\\': '\\', handled via recoding
+        '-' : '&shy;',
+        's' : '', # strip out see earlier note on standard and normla font use
+        'n' : '', # strip out see earlier note on standard and normla font use
+    }
+
+    # single tags that are not paired but that require attribute an argument
+        #'w' : handled in the if block, 
         #'m' : handled in if block, 
         #'Q' : handled in if block, 
         #'a' : handled in if block, 
         #'U' : handled in if block, 
-        'x' : ('<h1 class="breakbefore">', '</h1>'),
         #'C0' : handled in if block,
         #'C1' : handled in if block,
         #'C2' : handled in if block,
         #'C3' : handled in if block,
         #'C4' : handled in if block,
-        'T' : (IndentPercent, ''),
-        'n' : (NormalFont, ''),
-        's' : ('', ''),
-        'k' : ('<span class="small">', '</span>'),
-        'I' : ('<i>', '</i>'), # according to calibre - all ereader does is italicize the index entries
-    }
-    html_one_tags = {
-        'p' : '<p class="breakafter">&nbsp;</p>\n',
-        '\\': '\\',
-        '-' : '&shy;',
-    }
+        #'T' : handled in if block,
+ 
+    html_block_tags = ('c','r','t','h','X0','X1','X2','X3','X4','x','P', 'Ft', 'St')
+
+    html_link_tags = ('q','Fn','Sd')
+
+    html_comment_tags = ('v')
+
     pml_chars = {
-        160 : '&nbsp;',130 : '&#8212;',131: '&#402;',132: '&#8222;',
-        133: '&#8230;',134: '&#8224;',135: '&#8225;',138: '&#352;',
-        139: '&#8249;',140: '&#338;',145: '&#8216;',146: '&#8217;',
-        147: '&#8220;',148: '&#8221;',149: '&#8226;',150: '&#8211;',
-        151: '&#8212;',153: '&#8482;',154: '&#353;',155: '&#8250;',
-        156: '&#339;',159: '&#376;'
+        128 : '&#8364;', 129 : ''       , 130 : '&#8212;', 131 : '&#402;' , 132 : '&#8222;',
+        133 : '&#8230;', 134 : '&#8224;', 135 : '&#8225;', 136 : '&#710;' , 137 : '&#8240;', 
+        138 : '&#352;' , 139 : '&#8249;', 140 : '&#338;' , 141 : ''       , 142 : '&#381;' ,
+        143 : ''       , 144 : ''       , 145 : '&#8216;', 146 : '&#8217;', 147 : '&#8220;', 
+        148 : '&#8221;', 149 : '&#8226;', 150 : '&#8211;', 151 : '&#8212;', 152 : ''       ,
+        153 : '&#8482;', 154 : '&#353;' , 155 : '&#8250;', 156 : '&#339;' , 157 : ''       , 
+        158 : '&#382;' , 159 : '&#376;' , 160 : '&nbsp;' ,
     }
+
+
     def process(self):
-        final = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">\n'
-        final += '<html>\n<head>\n<meta http-equiv="content-type" content="text/html; charset=windows-1252">\n'
-        if len(self.bkinfo) > 0:
-            title, author, copyright, publisher, isbn = self.bkinfo.split('\0',4)
-            isbn = isbn.strip('\0')
-            final += '<meta name="Title" content="%s"/>\n' % title
-            final += '<meta name="Author" content="%s"/>\n' % author
-            final += '<meta name="Copyright" content="%s"/>\n' % copyright
-            final += '<meta name="Publisher" content="%s"/>\n' % publisher
-            final += '<meta name="ISBN" content="%s"/>\n' % isbn
-            final += '<style type="text/css">\n'
-            final += 'div.center { text-align:center; }\n'
-            final += 'div.right { text-align:right; }\n'
-            final += 'div.indent { margin-left: 5%; }\n'
-            final += 'div.hang { text-indent: -5%; margin-left: 5%; }\n'
-            final += 'span.big { font-size: 175%; }\n'
-            final += 'span.small { font-size: 50%; }\n'
-            final += 'span.under { text-decoration: underline; }\n'
-            final += '.breakbefore { page-break-before: always; }\n'
-            final += '.breakafter { page-break-after: always; }\n'
-            final += '</style>\n'
-        final += '</head><body>\n'
+        lastbreaksize = 0
+        final = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
+        final += '<html>\n<head>\n'
+        final += '<meta http-equiv="content-type" content="text/html; charset=windows-1252"/>\n'
+        title, author, copyright, publisher, eisbn = self.headerInfo()
+        if not title: title = bookname
+        if not author: author = 'Unknown' 
+        final += '<title>%s by %s</title>\n' % (title, author)
+        final += '<meta name="Title" content="%s"/>\n' % title
+        final += '<meta name="Author" content="%s"/>\n' % author
+        if copyright: final += '<meta name="Copyright" content="%s"/>\n' % copyright
+        if publisher: final += '<meta name="Publisher" content="%s"/>\n' % publisher
+        if eisbn: final += '<meta name="EISBN" content="%s"/>\n' % eisbn
+        final += '<style type="text/css">\n'
+        final += 'div.center { text-align:center; }\n'
+        final += 'div.right { text-align:right; }\n'
+        final += 'div.indent { margin-left: 5%; margin-right: 5%; }\n'
+        final += 'div.hang { text-indent: -5%; margin-left: 5%; margin-right: 5%; }\n'
+        final += 'span.big { font-size: 175%; }\n'
+        final += 'span.smallcaps { font-size: 80%; font-variant: small-caps; }\n'
+        final += 'span.under { text-decoration: underline; }\n'
+        final += '.breakafter { page-break-after: always; }\n'
+        final += 'p { text-indent: 0; margin-top: 0; margin-bottom: 0; }\n' 
+        final += 'p.i0 { text-indent: 0; margin-top: 0; margin-bottom: 0; }\n' 
+        final += 'p.i1 { text-indent: 1%; margin-top: 0; margin-bottom: 0; }\n' 
+        final += 'p.i2 { text-indent: 2%; margin-top: 0; margin-bottom: 0; }\n' 
+        final += 'p.i3 { text-indent: 3%; margin-top: 0; margin-bottom: 0; }\n' 
+        final += 'p.i4 { text-indent: 4%; margin-top: 0; margin-bottom: 0; }\n' 
+        final += 'p.i5 { text-indent: 5%; margin-top: 0; margin-bottom: 0; }\n' 
+        final += '</style>\n'
+        final += '</head>\n<body>\n'
         in_tags = []
+        st_tags = []
+        
+        def inSet(slist):
+            rval = False
+            j = len(in_tags)
+            if j == 0:
+                return False
+            while True:
+                j = j - 1
+                if in_tags[j][0] in slist:
+                    rval = True
+                    break
+                if j == 0:
+                    break
+            return rval
+
+        def inBlock():
+            return inSet(self.html_block_tags)
+
+        def inLink():
+            return inSet(self.html_link_tags)
+
+        def inComment():
+            return inSet(self.html_comment_tags)
+
+        def inParaNow():
+            j = len(in_tags)
+            if j == 0:
+                return False
+            if in_tags[j-1][0] == 'P':
+                return True
+            return False
+
+        def getTag(ti, end):
+            cmd, attr = ti
+            r = self.html_tags[cmd][end]
+            if type(r) != str:
+                r = r(attr)
+            return r
+
+        def getSTag(ti, end):
+            cmd, attr = ti
+            r = self.html_style_tags[cmd][end]
+            if type(r) != str:
+                r = r(attr)
+            return r
+
+        def applyStyles(ending):
+            s = ''
+            j = len(st_tags)
+            if j > 0:
+                if ending:
+                    while True:
+                        j = j - 1
+                        s += getSTag(st_tags[j], True)
+                        if j == 0:
+                            break
+                else:
+                    k = 0
+                    while True:
+                        s += getSTag(st_tags[k], False)
+                        k = k + 1
+                        if k == j:
+                            break
+            return s
+
+        def indentLevel(line_start):
+            nb = 0
+            while line_start[nb:nb+1] == ' ':
+                nb = nb + 1
+            line_start = line_start[nb:]
+            if nb > 5:
+                nb = 5
+            return nb, line_start
+            
+
         def makeText(s):
+            # handle replacements required for html
             s = s.replace('&', '&amp;')
-            #s = s.replace('"', '&quot;')
             s = s.replace('<', '&lt;')
             s = s.replace('>', '&gt;')
-            s = s.replace('\n', '<br />\n')
-            return s
+            return_s =''
+            # parse the text line by line
+            lp = s.find('\n')
+            while lp != -1:
+                line = s[0:lp]
+                s = s[lp+1:]
+                if not inBlock() and not inLink() and not inComment():
+                    if len(line) > 0:
+                        # text should not exist in the <body> tag level unless it is in a comment
+                        nb, line = indentLevel(line)
+                        return_s += '<p class="i%d">' % nb
+                        return_s += applyStyles(False)    
+                        return_s += line
+                        return_s += applyStyles(True)
+                        return_s += '</p>\n'
+                    else:
+                        return_s += '<p>&nbsp;</p>\n'
+                elif inParaNow():
+                    # text is a continuation of a previously started paragraph
+                    return_s += line
+                    return_s += applyStyles(True)
+                    return_s += '</p>\n'
+                    j = len(in_tags)
+                    del in_tags[j-1]
+                else:
+                    if len(line) > 0:
+                        return_s += line + '<br />\n'
+                    else:
+                        return_s += '<br />\n'
+                lp = s.find('\n')
+            linefrag = s
+            if len(linefrag) > 0:
+                if not inBlock() and not inLink() and not inComment():
+                    nb, linefrag = indentLevel(linefrag)
+                    return_s += '<p class="i%d">' % nb
+                    return_s += applyStyles(False)
+                    return_s += linefrag
+                    ppair = ('P', None)
+                    in_tags.append(ppair)
+                else:
+                    return_s += linefrag
+            return return_s
+
         while True:
             r = self.next()
             if not r:
                 break
             text, cmd, attr = r
+
             if text:
                 final += makeText(text)
+
             if cmd:
-                def getTag(ti, end):
-                    cmd, attr = ti
-                    r = self.html_tags[cmd][end]
-                    if type(r) != str:
-                        r = r(attr)
-                    return r
-                if cmd in self.html_tags:
+
+                # handle pseudo paragraph P tags
+                # close if starting a new block element
+                if cmd in self.html_block_tags or cmd == 'w':
+                    j = len(in_tags)
+                    if j > 0:
+                        if in_tags[j-1][0] == 'P':
+                            final += applyStyles(True)
+                            final += getTag(in_tags[j-1],True)
+                            del in_tags[j-1]
+
+                if cmd in self.html_block_tags:
                     pair = (cmd, attr)
                     if cmd not in [a for (a,b) in in_tags]:
-                        final += getTag(pair, False)
+                        # starting a new block tag
+                        final += getTag(pair, False)                  
+                        final += applyStyles(False)
                         in_tags.append(pair)
                     else:
+                        # process ending tag for a tag pair
+                        # ending tag should be for the most recently added start tag 
                         j = len(in_tags)
+                        if cmd == in_tags[j-1][0]:
+                            final += applyStyles(True)
+                            final += getTag(in_tags[j-1], True)
+                            del in_tags[j-1]
+                        else:
+                            # ow: things are not properly nested
+                            # process ending tag for block
+                            # ending tag **should** be for the most recently added block tag
+                            # but in too many cases it is not so we must fix this by
+                            # closing all open tags up to the current one and then
+                            # reopen all of the tags we had to close due to improper nesting of styles
+                            print 'Warning: Improperly Nested Block Tags: expected %s found %s' % (cmd, in_tags[j-1][0])
+                            print 'after processing %s' % final[-40:]
+                            j = len(in_tags)
+                            while True:
+                                j = j - 1
+                                final += applyStyles(True)
+                                final += getTag(in_tags[j], True)
+                                if in_tags[j][0] == cmd:
+                                    break
+                            del in_tags[j]
+                            # now create new block start tags if they were previously open
+                            while j < len(st_tags):
+                                final += getTag(in_tags[j], False)
+                                final += applyStyles(False)
+                                j = j + 1
+                        self.skipNewLine()
+
+                elif cmd in self.html_link_tags:
+                    pair = (cmd, attr)
+                    if cmd not in [a for (a,b) in in_tags]:
+                        # starting a new link tag
+                        # first close out any still open styles
+                        if inBlock():
+                            final += applyStyles(True)
+                        # output start tag and styles needed
+                        final += getTag(pair, False)
+                        final += applyStyles(False)
+                        in_tags.append(pair)
+                    else:
+                        # process ending tag for a tag pair
+                        # ending tag should be for the most recently added start tag 
+                        j = len(in_tags)
+                        if cmd == in_tags[j-1][0]:
+                            j = len(in_tags)
+                            # apply closing styles and tag
+                            final += applyStyles(True)
+                            final += getTag(in_tags[j-1], True)
+                            # if needed reopen any style tags
+                            if inBlock():
+                                final += applyStyles(False)
+                            del in_tags[j-1]
+                        else:
+                            # ow: things are not properly nested
+                            print 'Error: Improperly Nested Link Tags: expected %s found %s' % (cmd, in_tags[j-1][0])
+                            print 'after processing %s' % final[-40:]
+
+                elif cmd in self.html_style_tags:
+                    spair = (cmd, attr)
+                    if cmd not in [a for (a,b) in st_tags]:
+                        # starting a new style
+                        if inBlock() or inLink():
+                            final += getSTag(spair,False)
+                        st_tags.append(spair)
+                    else:
+                        # process ending tag for style
+                        # ending tag **should** be for the most recently added style tag
+                        # but in too many cases it is not so we must fix this by
+                        # closing all open tags up to the current one and then
+                        # reopen all of the tags we had to close due to improper nesting of styles
+                        j = len(st_tags)
                         while True:
                             j = j - 1
-                            final += getTag(in_tags[j], True)
-                            if in_tags[j][0] == cmd:
+                            if inBlock() or inLink():
+                                final += getSTag(st_tags[j], True)
+                            if st_tags[j][0] == cmd:
                                 break
-                        del in_tags[j]
-                        while j < len(in_tags):
-                            final += getTag(in_tags[j], False)
+                        del st_tags[j]
+                        # now create new style start tags if they were previously open
+                        while j < len(st_tags):
+                            if inBlock() or inLink():
+                                final += getSTag(st_tags[j], False)
                             j = j + 1
 
-                if cmd in self.html_one_tags:
+                elif cmd in self.html_one_tags:
                     final += self.html_one_tags[cmd]
-                if cmd == 'm':
-                    unquotedimagepath = "images/" + attr
+
+                elif cmd == 'p':
+                    # create page breaks at the <body> level so
+                    # they can be easily used for safe html file segmentation breakpoints
+                    # first close any open tags
+                    j = len(in_tags)
+                    if j > 0:
+                        while True:
+                            j = j - 1
+                            if in_tags[j][0] in self.html_block_tags:
+                                final += applyStyles(True)
+                            final += getTag(in_tags[j], True)
+                            if j == 0:
+                                break
+
+                    # insert the page break tag
+                    final += '\n<div class="breakafter"></div>\n'
+
+                    if sigil_breaks:
+                        if (len(final) - lastbreaksize) > 3000:
+                            final += '<div>\n   <hr class="sigilChapterBreak" />\n</div>\n'
+                            lastbreaksize = len(final)
+
+                    # now create new start tags for all tags that 
+                    # were previously open
+                    while j < len(in_tags):
+                        final += getTag(in_tags[j], False)
+                        if in_tags[j][0] in self.html_block_tags:
+                            final += applyStyles(False)
+                        j = j + 1
+                    self.skipNewLine()
+
+                elif cmd[0:1] == 'C':
+                    if self.markChapters:
+                        # create toc entries at the <body> level
+                        # since they will be in an invisible block
+                        # first close any open tags
+                        j = len(in_tags)
+                        if j > 0:
+                            while True:
+                                j = j - 1
+                                if in_tags[j][0] in self.html_block_tags:
+                                    final += applyStyles(True)
+                                final += getTag(in_tags[j], True)
+                                if j == 0:
+                                    break
+                        level = int(cmd[1:2]) + 1
+                        final += '<h%d title="%s"></h%d>' % (level, attr, level)
+                        # now create new start tags for all tags that 
+                        # were previously open
+                        while j < len(in_tags):
+                            final += getTag(in_tags[j], False)
+                            if in_tags[j][0] in self.html_block_tags:
+                                final += applyStyles(False)
+                            j = j + 1
+                    else:
+                        final += '<!-- ToC%s: %s -->' % (cmd[1:2], attr)
+
+                # now handle single tags (non-paired) that have attributes
+                elif cmd == 'm':
+                    unquotedimagepath = bookname + '_img/' + attr
                     imagepath = urllib.quote( unquotedimagepath )
-                    final += '<img src="%s" alt="">' % imagepath
-                if cmd == 'Q':
+                    final += '<img src="%s" alt="" />' % imagepath
+
+                elif cmd == 'Q':
                     final += '<span id="%s"> </span>' % attr
-                if cmd == 'C0':
-                    final += '<!-- ContentsList "%s" -->' % attr
-                if cmd == 'C1':
-                    final += '<!-- ContentsList " %s" -->' % attr
-                if cmd == 'C2':
-                    final += '<!-- ContentsList "  %s" -->' % attr
-                if cmd == 'C3':
-                    final += '<!-- ContentsList "   %s" -->' % attr
-                if cmd == 'C4':
-                    final += '<!-- ContentsList "    %s" -->' % attr
-                if cmd == 'a':
-                    final += self.pml_chars.get(attr, '&#%d;' % attr)
-                if cmd == 'U':
-                    final += '&#%d;' % attr
-        final += '</body></html>\n'
-        # while True:
-        #    s = final.replace('<br />\n<br />\n<br />\n', '<br />\n<br />\n')
-        #    if s == final:
-        #        break
-        #    final = s
-        s = final.replace('</div><br />','</div>\n')
-        final = s
+
+                elif cmd == 'a':
+                    if not inBlock() and not inLink() and not inComment():
+                        final += '<p class="i0">'
+                        final += applyStyles(False)
+                        final += self.pml_chars.get(attr, '&#%d;' % attr)
+                        ppair = ('P', None)
+                        in_tags.append(ppair)
+                    else:
+                        final += self.pml_chars.get(attr, '&#%d;' % attr)
+
+                elif cmd == 'U':
+                    if not inBlock() and not inLink() and not inComment():
+                        final += '<p class="i0">'
+                        final += applyStyles(False)
+                        final += '&#%d;' % attr
+                        ppair = ('P', None)
+                        in_tags.append(ppair)
+                    else:
+                        final += makeText('&#%d;' % attr)
+
+                elif cmd == 'w':
+                    # hr width and align parameters are not allowed in strict xhtml but style widths are possible 
+                    final += '\n<hr style="width: %s;" />' % attr
+                    # final += '<div style="width: %s; margin-left: auto; margin-right: auto;  \
+                    #  border-top-style: solid; border-top-color: grey; border-top-width: thin;">&nbsp;</div>' % attr
+                    self.skipNewLine()
+
+                elif cmd == 'T':
+                    if inBlock():
+                        final += '<span style="margin-left: %s;">&nbsp;</span>' % attr
+                    else:
+                        final += '<p style="text-indent: %s;">' % attr
+                        final += applyStyles(False)
+                        ppair = ('P', None)
+                        in_tags.append(ppair)
+
+                else:
+                    logging.warning("Unknown tag: %s-%s", cmd, attr)
+
+
+        # handle file ending condition for imputed P tags 
+        j = len(in_tags)
+        if (j > 0):
+            if in_tags[j-1][0] == 'P':
+                final += '</p>'
+
+        final += '</body>\n</html>\n'
+
+        # recode html back to a single slash
+        final = final.replace('_amp#92_', '\\')
+
+        # cleanup the html code for issues specifically generated by this translation process
+        # ending divs already break the line at the end so we don't need the <br /> we added
+        final = final.replace('</div><br />\n','</div>\n')
+
+        # clean up empty elements that can be created when fixing improperly nested pml tags
+        # and by moving page break tags to the body level so that they can be used as  html file split points
+        while True:
+            s = final
+            final = final.replace('<b></b>','')
+            final = final.replace('<i></i>','')
+            final = final.replace('<del></del>','')
+            final = final.replace('<sup></sup>','')
+            final = final.replace('<sub></sub>','')
+            final = final.replace('<span class="under"></span>','')
+            final = final.replace('<span class="big"></span>','')
+            final = final.replace('<span class="smallcaps"></span>','')
+            final = final.replace('<span class="under"> </span>','')
+            final = final.replace('<span class="big"> </span>','')
+            final = final.replace('<span class="smallcaps"> </span>','')
+            final = final.replace('<p></p>','')
+            final = final.replace('<p> </p>','')
+            final = final.replace('<p class="i0"></p>','')
+            final = final.replace('<p class="i1"></p>','')
+            final = final.replace('<p class="i2"></p>','')
+            final = final.replace('<p class="i3"></p>','')
+            final = final.replace('<p class="i4"></p>','')
+            final = final.replace('<p class="i5"></p>','')
+            final = final.replace('<h1></h1>\n','')
+            final = final.replace('<h2></h2>\n','')
+            final = final.replace('<h3></h3>\n','')
+            final = final.replace('<h4></h4>\n','')
+            final = final.replace('<h5></h5>\n','')
+            final = final.replace('<div class="center"></div>\n','')
+            final = final.replace('<div class="hang"></div>\n','')
+            final = final.replace('<div class="indent"></div>\n','')
+            final = final.replace('<div class="right"></div>\n','')
+            if s == final:
+               break
         return final
 
-def convertEreaderToHtml(infile, name, cc, outdir):
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-    sect = Sectionizer(infile, 'PNRdPPrs')
-    er = EreaderProcessor(sect.loadSection, name, cc)
 
-    if er.getNumImages() > 0:
-        imagedir = "images/"
-        imagedirpath = os.path.join(outdir,imagedir)
-        if not os.path.exists(imagedirpath):
-            os.makedirs(imagedirpath)
-    for i in xrange(er.getNumImages()):
-        name, contents = er.getImage(i)
-        file(os.path.join(imagedirpath, name), 'wb').write(contents)
+def tidy(rawhtmlfile):
+    # processes rawhtmlfile through command line tidy via pipes 
+    rawfobj = file(rawhtmlfile,'rb')
+    # --doctype strict forces strict dtd checking
+    # --enclose-text yes - enclosees non-block electment text inside <body></body> into its own <p></p> block to meet xhtml spec
+    # -w 100 -i will wrap text at column 120 and indent it to indicate level of nesting to make structure clearer
+    # -win1252 sets the input encoding of pml files
+    # -asxhtml convert to xhtml
+    # -q (quiet)
+    cmdline = 'tidy -w 120 -i -q -asxhtml -win1252  --enclose-text yes --doctype strict '
+    if sys.platform[0:3] == 'win':
+        cmdline = 'tidy.exe -w 120 -i -q -asxhtml -win1252  --enclose-text yes --doctype strict '
+    p2 = Popen(cmdline, shell=True, stdin=rawfobj, stdout=PIPE, stderr=PIPE, close_fds=False)
+    stdout, stderr = p2.communicate()
+    # print "Tidy Original Conversion Warnings and Errors" 
+    # print stderr
+    return stdout
 
-    pml_string = er.getText()
-    pmlfilename = bookname + ".pml"
-    file(os.path.join(outdir, pmlfilename),'wb').write(pml_string)
-
-    bkinfo = er.getBookInfo()
-
-    pml = PmlConverter(pml_string, bkinfo)
-    htmlfilename = bookname + ".html"
-    file(os.path.join(outdir, htmlfilename),'wb').write(pml.process())
-
-    # ts = er.getExpandedTextSizesData()
-    # file(os.path.join(outdir, 'xtextsizes.dat'), 'wb').write(ts)
-
-    cv = er.getChapterNamePMLOffsetData()
-    file(os.path.join(outdir, 'chapters.dat'), 'wb').write(cv)
-	
-    # lv = er.getLinkNamePMLOffsetData()
-    # file(os.path.join(outdir, 'links.dat'), 'wb').write(lv)
-
+def usage():
+    print "Converts PML file to XHTML"
+    print "Usage:"
+    print "  xpml2xhtml [options] infile.pml outfile.html "
+    print " "
+    print "Options: "
+    print "  -h                prints this message"
+    print "  --sigil-breaks    insert Sigil Chapterbbreaks"
+    print "  --use-tidy        use tidy to further clean up the html "
+    print " "
+    return
 
 def main(argv=None):
     global bookname
-    if argv is None:
-        argv = sys.argv
-    
-    print "eReader2Html v%s. Copyright (c) 2008 The Dark Reverser" % __version__
-
-    if len(argv)!=4 and len(argv)!=5:
-        print "Converts DRMed eReader books to PML Source and HTML"
-        print "Usage:"
-        print "  ereader2html infile.pdb [outdir] \"your name\" credit_card_number "
-        print "Note:"
-        print "  if ommitted, outdir defaults based on 'infile.pdb'"
-        print "  It's enough to enter the last 8 digits of the credit card number"
-    else:
-        if len(argv)==4:
-            infile, name, cc = argv[1], argv[2], argv[3]
-            outdir = infile[:-4] + '_Source'
-        elif len(argv)==5:
-            infile, outdir, name, cc = argv[1], argv[2], argv[3], argv[4]
-        bookname = os.path.splitext(os.path.basename(infile))[0]
-
-        try:
-            print "Processing..."
-            import time
-            start_time = time.time()
-            convertEreaderToHtml(infile, name, cc, outdir)
-            end_time = time.time()
-            search_time = end_time - start_time
-            print 'elapsed time: %.2f seconds' % (search_time, ) 
-            print 'output in %s' % outdir
-            print "done"
-        except ValueError, e:
-            print "Error: %s" % e
+    global footnote_ids
+    global sidebar_ids
+    global sigil_breaks
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h", ["sigil-breaks", "use-tidy"])
+    except getopt.GetoptError, err:
+        print str(err)
+        usage()
+        return 2
+    if len(args) != 2:
+        usage()
+        return 2
+    sigil_breaks = False
+    use_tidy = False
+    for o, a in opts:
+        if o == "-h":
+            usage()
+            return 0
+        elif o == "--sigil-breaks":
+            sigil_breaks = True
+        elif o == "--use-tidy":
+            use_tidy = True
+    infile, outfile = args[0], args[1]
+    bookname = os.path.splitext(os.path.basename(infile))[0]
+    footnote_ids = { }
+    sidebar_ids = { }
+    try:
+        print "Processing..."
+        import time
+        start_time = time.time()
+        print "   Converting pml to raw html"
+        pml_string = file(infile,'rb').read()
+        pml = PmlConverter(pml_string)
+        html_src = pml.process()
+        if use_tidy:
+            print "   Tidying html to xhtml"
+            fobj = tempfile.NamedTemporaryFile(mode='w+b',suffix=".html",delete=False)
+            tempname = fobj.name
+            fobj.write(html_src)
+            fobj.close()
+            html_src = tidy(tempname)
+            os.remove(tempname)
+        file(outfile,'wb').write(html_src)
+        end_time = time.time()
+        convert_time = end_time - start_time
+        print 'elapsed time: %.2f seconds' % (convert_time, ) 
+        print 'output is in file %s' % outfile
+        print "Finished Processing"
+    except ValueError, e:
+        print "Error: %s" % e
+        return 2
+    return 0
 
 if __name__ == "__main__":
     #import cProfile
