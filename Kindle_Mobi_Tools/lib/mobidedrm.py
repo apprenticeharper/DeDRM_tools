@@ -1,5 +1,15 @@
+#!/usr/bin/python
+#
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
+#
+# It can run standalone to convert files, or it can be installed as a
+# plugin for Calibre (http://calibre-ebook.com/about) so that
+# importing files with DRM 'Just Works'.
+#
+# To create a Calibre plugin, rename this file so that the filename
+# ends in '_plugin.py', put it into a ZIP file and import that Calibre
+# using its plugin configuration GUI.
 #
 # Changelog
 #  0.01 - Initial version
@@ -8,6 +18,7 @@
 #  0.04 - Wasn't sanity checking size of data record
 #  0.05 - It seems that the extra data flags take two bytes not four
 #  0.06 - And that low bit does mean something after all :-)
+#  0.07 - The extra data flags aren't present in MOBI header < 0xE8
 
 import sys,struct,binascii
 
@@ -142,16 +153,22 @@ class DrmStripper:
 		records, = struct.unpack('>H', sect[0x8:0x8+2])
 		mobi_length, = struct.unpack('>L',sect[0x14:0x18])
 		extra_data_flags = 0
-		if mobi_length >= 0xE4:
+		if mobi_length >= 0xE8:
 			extra_data_flags, = struct.unpack('>H', sect[0xF2:0xF4])
 
 
 		crypto_type, = struct.unpack('>H', sect[0xC:0xC+2])
+		if crypto_type == 0:
+			raise DrmException("it seems that this book isn't encrypted")
+		if crypto_type == 1:
+			raise DrmException("cannot decode Mobipocket encryption type 1")
 		if crypto_type != 2:
-			raise DrmException("invalid encryption type: %d" % crypto_type)
+			raise DrmException("unknown encryption type: %d" % crypto_type)
 
 		# calculate the keys
 		drm_ptr, drm_count, drm_size, drm_flags = struct.unpack('>LLLL', sect[0xA8:0xA8+16])
+		if drm_count == 0:
+			raise DrmException("no PIDs found in this file")
 		found_key = self.parseDRM(sect[drm_ptr:drm_ptr+drm_size], drm_count, pid)
 		if not found_key:
 			raise DrmException("no key found. maybe the PID is incorrect")
@@ -173,17 +190,51 @@ class DrmStripper:
 	def getResult(self):
 		return self.data_file
 
-print "MobiDeDrm v0.06. Copyright (c) 2008 The Dark Reverser"
-if len(sys.argv)<4:
-	print "Removes protection from Mobipocket books"
-	print "Usage:"
-	print "  mobidedrm infile.mobi outfile.mobi PID"
-else:  
-	infile = sys.argv[1]
-	outfile = sys.argv[2]
-	pid = sys.argv[3]
-	data_file = file(infile, 'rb').read()
-	try:
-		file(outfile, 'wb').write(DrmStripper(data_file, pid).getResult())
-	except DrmException, e:
-		print "Error: %s" % e
+if not __name__ == "__main__":
+	from calibre.customize import FileTypePlugin
+
+	class MobiDeDRM(FileTypePlugin):
+
+		name                = 'MobiDeDRM' # Name of the plugin
+		description         = 'Removes DRM from secure Mobi files'
+		supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
+		author              = 'The Dark Reverser' # The author of this plugin
+		version             = (0, 0, 7)   # The version number of this plugin
+		file_types          = set(['prc']) # The file types that this plugin will be applied to
+		on_import           = True # Run this plugin during the import
+
+	
+		def run(self, path_to_ebook):
+			of = self.temporary_file('.mobi')
+			PID = self.site_customization
+			data_file = file(path_to_ebook, 'rb').read()
+			try:
+				file(of.name, 'wb').write(DrmStripper(data_file, PID).getResult())
+			except Exception, e:
+				# Hm, we should display an error dialog here.
+				# Dunno how though.
+				# Ignore the dirty hack behind the curtain.
+#				strexcept = 'echo exception: %s > /dev/tty' % e
+#				subprocess.call(strexcept,shell=True)
+				raise e
+
+			return of.name
+		
+		def customization_help(self, gui=False):
+			return 'Enter PID'
+
+if __name__ == "__main__":
+	print "MobiDeDrm v0.07. Copyright (c) 2008 The Dark Reverser"
+	if len(sys.argv)<4:
+		print "Removes protection from Mobipocket books"
+		print "Usage:"
+		print "  mobidedrm infile.mobi outfile.mobi PID"
+	else:  
+		infile = sys.argv[1]
+		outfile = sys.argv[2]
+		pid = sys.argv[3]
+		data_file = file(infile, 'rb').read()
+		try:
+			file(outfile, 'wb').write(DrmStripper(data_file, pid).getResult())
+		except DrmException, e:
+			print "Error: %s" % e
