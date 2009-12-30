@@ -2,7 +2,7 @@
 
 """
 
-Comprehensive Mazama Book DRM with Topaz Cryptography V1.1
+Comprehensive Mazama Book DRM with Topaz Cryptography V2.0
 
 -----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdBHJ4CNc6DNFCw4MRCw4SWAK6
@@ -44,6 +44,7 @@ global bookPayloadOffset
 global bookHeaderRecords
 global bookMetadata
 global bookKey
+global command
 
 #
 # Various character maps used to decrypt books. Probably supposed to act as obfuscation
@@ -262,7 +263,7 @@ def getKindleInfoValueForKey(key):
     return getKindleInfoValueForHash(encodeHash(key,charMap2))
   
 #
-# Get a 7 bit encoded number form the book file
+# Get a 7 bit encoded number from the book file
 #
 
 def bookReadEncodedNumber():
@@ -283,6 +284,32 @@ def bookReadEncodedNumber():
     if flag:
        data = -data
     return data
+    
+#
+# Encode a number in 7 bit format
+#
+
+def encodeNumber(number):
+   result = ""
+   negative = False
+   flag = 0
+   
+   if number < 0 :
+       number = -number + 1
+       negative = True
+   
+   while True:
+       byte = number & 0x7F
+       number = number >> 7
+       byte += flag
+       result += chr(byte)
+       flag = 0x80
+       if number == 0 : break
+   
+   if negative:
+       result += chr(0xFF)
+   
+   return result[::-1]
   
 #
 # Get a length prefixed string from the file 
@@ -292,6 +319,14 @@ def bookReadString():
     stringLength = bookReadEncodedNumber()
     return unpack(str(stringLength)+"s",bookFile.read(stringLength))[0]  
     
+#
+# Returns a length prefixed string
+#
+
+def lengthPrefixString(data):
+    return encodeNumber(len(data))+data
+    
+
 #
 # Read and return the data of one header record at the current book file position [[offset,compressedLength,decompressedLength],...]
 #
@@ -583,7 +618,95 @@ def generateDevicePID(table,dsn,nbRoll):
         index = ((((pid[counter] >>5) & 3) ^ pid[counter]) & 0x1f) + (pid[counter] >> 7)
         pidAscii += charMap4[index]
     return pidAscii
+    
+#
+# Create decrypted book payload
+#
+
+def createDecryptedPayload(payload):
+   
+   # store data to be able to create the header later 
+    headerData= []
+    currentOffset = 0
+   
+    # Add social DRM to decrypted files
+    
+    try:
+        data = getKindleInfoValueForKey("kindle.name.info")+":"+ getKindleInfoValueForKey("login")
+        if payload!= None:
+            payload.write(lengthPrefixString("sdrm"))
+            payload.write(encodeNumber(0))
+            payload.write(data)
+        else:
+            currentOffset += len(lengthPrefixString("sdrm"))
+            currentOffset += len(encodeNumber(0))
+            currentOffset += len(data)
+    except:
+        pass
+    
+    for headerRecord in bookHeaderRecords:
+       name = headerRecord
+       newRecord = []
+       # if you are reading this, you might want to uncomment the next line :-D
+       #if name != "dkey" :
+       
+       for index in range (0,len(bookHeaderRecords[name])) :
+               offset = currentOffset
+               
+               if payload != None: 
+                   # write tag
+                   payload.write(lengthPrefixString(name))
+                   # write data
+                   payload.write(encodeNumber(index))
+                   payload.write(getBookPayloadRecord(name, index))
+                   
+               else :
+                   currentOffset += len(lengthPrefixString(name))
+                   currentOffset += len(encodeNumber(index))
+                   currentOffset += len(getBookPayloadRecord(name, index))
+                   newRecord.append([offset,bookHeaderRecords[name][index][1],bookHeaderRecords[name][index][2]])
+               
+       headerData.append([name,newRecord])
+       
+
  
+    return headerData    
+           
+#
+# Create decrypted book
+#
+
+def createDecryptedBook(outputFile):
+    outputFile = open(outputFile,"wb")
+    # Write the payload in a temporary file
+    headerData = createDecryptedPayload(None)
+    outputFile.write("TPZ0")
+    outputFile.write(encodeNumber(len(headerData)))
+    
+    for header in headerData :
+        outputFile.write(chr(0x63))
+        outputFile.write(lengthPrefixString(header[0]))
+        outputFile.write(encodeNumber(len(header[1])))
+        for numbers in header[1] :
+            outputFile.write(encodeNumber(numbers[0]))
+            outputFile.write(encodeNumber(numbers[1]))
+            outputFile.write(encodeNumber(numbers[2]))
+            
+    outputFile.write(chr(0x64))
+    createDecryptedPayload(outputFile)
+    outputFile.close()
+
+#
+# Set the command to execute by the programm according to cmdLine parameters
+#
+
+def setCommand(name) :
+    global command
+    if command != "" :
+         raise CMBDTCFatal("Invalid command line parameters")
+    else :
+        command = name
+
 # 
 # Program usage
 #
@@ -592,10 +715,11 @@ def usage():
     print("\nUsage:")
     print("\nCMBDTC.py [options] bookFileName\n")
     print("-p Adds a PID to the list of PIDs that are tried to decrypt the book key (can be used several times)")
+    print("-d Saves a decrypted copy of the book")
     print("-r Prints or writes to disk a record indicated in the form name:index (e.g \"img:0\")")
-    print("-o Output file name to write records")
+    print("-o Output file name to write records and decrypted books")
     print("-v Verbose (can be used several times)")
-    print("-i Print kindle.info database")
+    print("-i Prints kindle.info database")
  
 #
 # Main
@@ -606,15 +730,17 @@ def main(argv=sys.argv):
     global bookMetadata
     global bookKey
     global bookFile
+    global command
+    
     progname = os.path.basename(argv[0])
     
     verbose = 0
-    printInfo = False
     recordName = ""
     recordIndex = 0
     outputFile = ""
     PIDs = []
     kindleDatabase = None
+    command = ""
     
     
     try:
@@ -633,13 +759,24 @@ def main(argv=sys.argv):
         if o == "-v":
             verbose+=1
         if o == "-i":
-            printInfo = True
+            setCommand("printInfo")
         if o =="-o":
+            if a == None :
+                raise CMBDTCFatal("Invalid parameter for -o")
             outputFile = a
         if o =="-r":
-            recordName,recordIndex = a.split(':')
+            setCommand("printRecord")
+            try:
+                recordName,recordIndex = a.split(':')
+            except:
+                raise CMBDTCFatal("Invalid parameter for -r")
         if o =="-p":
             PIDs.append(a)
+        if o =="-d":
+            setCommand("doit")
+            
+    if command == "" :
+        raise CMBDTCFatal("No action supplied on command line")
    
     #
     # Read the encrypted database
@@ -652,7 +789,7 @@ def main(argv=sys.argv):
             print(message)
     
     if kindleDatabase != None :
-        if printInfo:
+        if command == "printInfo" :
             printKindleInfo()
      
     #
@@ -735,11 +872,20 @@ def main(argv=sys.argv):
             bookKey = bookKeys[0]
             if verbose > 0:
                 print("Book key: " + bookKey.encode('hex'))
+                
+            
                   
-            if recordName != "" :
+            if command == "printRecord" :
                 extractBookPayloadRecord(recordName,int(recordIndex),outputFile)
-            if outputFile != "" and verbose>0 :
-                print("Wrote record to file: "+outputFile) 
+                if outputFile != "" and verbose>0 :
+                    print("Wrote record to file: "+outputFile) 
+            elif command == "doit" :
+                if outputFile!="" :
+                    createDecryptedBook(outputFile)
+                    if verbose >0 :
+                        print ("Decrypted book saved. Don't pirate!")
+                elif verbose > 0:
+                    print("Output file name was not supplied.")
     
     return 0
 
