@@ -1,6 +1,11 @@
 #! /usr/bin/python
+# -*- coding: utf-8 -*-
 
-# unswindle.pyw, version 5
+# unswindle.pyw, version 6-rc1
+# Copyright © 2009 i♥cabbages
+
+# Released under the terms of the GNU General Public Licence, version 3 or
+# later.  <http://www.gnu.org/licenses/>
 
 # To run this program install a 32-bit version of Python 2.6 from
 # <http://www.python.org/download/>.  Save this script file as unswindle.pyw.
@@ -16,6 +21,7 @@
 #   4 - Fix error opening threads; detect Topaz books;
 #       detect unsupported versions of K4PC
 #   5 - Work with new (20091222) version of K4PC
+#   6 - Detect and just copy DRM-free books
 
 """
 Decrypt Kindle For PC encrypted Mobipocket books.
@@ -636,7 +642,7 @@ class PC1KeyGrabber(object):
     def _i_like_wine(self, debugger, context):
         context.Eax = 1
         return
-        
+
     def _no_debugger_here(self, debugger, context):
         context.Eip += 2
         context.Eax = 0
@@ -661,6 +667,7 @@ class PC1KeyGrabber(object):
         addr = debugger.read_process_memory(addr, type=ctypes.c_char_p)
         pid = debugger.read_process_memory(addr, 8)
         pid = self._checksum_pid(pid)
+        print pid
         self.book_pid = pid
 
     def _checksum_pid(self, s):
@@ -675,6 +682,30 @@ class PC1KeyGrabber(object):
             res += letters[pos%l]
             crc >>= 8
         return res
+
+class MobiParser(object):
+    def __init__(self, data):
+        self.data = data
+        header = data[0:72]
+        if header[0x3C:0x3C+8] != 'BOOKMOBI':
+            raise UnswindleError("invalid file format")
+        self.nsections = nsections = struct.unpack('>H', data[76:78])[0]
+        self.sections = sections = []
+        for i in xrange(nsections):
+            offset, a1, a2, a3, a4 = \
+                struct.unpack('>LBBBB', data[78+i*8:78+i*8+8])
+            flags, val = a1, ((a2 << 16) | (a3 << 8) | a4)
+            sections.append((offset, flags, val))
+        sect = self.load_section(0)
+        self.crypto_type = struct.unpack('>H', sect[0x0c:0x0c+2])[0]
+
+    def load_section(self, snum):
+        if (snum + 1) == self.nsections:
+            endoff = len(self.data)
+        else:
+            endoff = self.sections[snum + 1][0]
+        off = self.sections[snum][0]
+        return self.data[off:endoff]
 
 class Unswindler(object):
     def __init__(self):
@@ -719,13 +750,18 @@ class Unswindler(object):
         if not PC1KeyGrabber.supported_version(hexdigest):
             raise UnswindleError("Unsupported version of Kindle For PC")
         return hexdigest
-    
-    def _is_topaz(self, path):
+
+    def _check_topaz(self, path):
         with open(path, 'rb') as f:
             magic = f.read(4)
         if magic == 'TPZ0':
             return True
         return False
+
+    def _check_drm_free(self, path):
+        with open(path, 'rb') as f:
+            crypto = MobiParser(f.read()).crypto_type
+        return (crypto == 0)
 
     def get_book(self):
         creation_flags = (CREATE_UNICODE_ENVIRONMENT |
@@ -752,15 +788,22 @@ class Unswindler(object):
                 CloseHandle(process_info.hProcess)
         if path is None:
             raise UnswindleError("failed to determine book path")
-        if self._is_topaz(path):
+        if self._check_topaz(path):
             raise UnswindleError("cannot decrypt Topaz format book")
-        if pid is None:
-            raise UnswindleError("failed to determine book PID")
         return (path, pid)
 
     def decrypt_book(self, inpath, outpath, pid):
+        if self._check_drm_free(inpath):
+            shutil.copy(inpath, outpath)
+        else:
+            self._mobidedrm(inpath, outpath, pid)
+        return
+
+    def _mobidedrm(self, inpath, outpath, pid):
         # darkreverser didn't protect mobidedrm's script execution to allow
         # importing, so we have to just run it in a subprocess
+        if pid is None:
+            raise UnswindleError("failed to determine book PID")
         with tempfile.NamedTemporaryFile(delete=False) as tmpf:
             tmppath = tmpf.name
         args = [sys.executable, self._mobidedrmpath, inpath, tmppath, pid]
