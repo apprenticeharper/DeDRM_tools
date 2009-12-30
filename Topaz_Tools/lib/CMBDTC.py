@@ -2,7 +2,7 @@
 
 """
 
-Comprehensive Mazama Book DRM with Topaz Cryptography V1.0
+Comprehensive Mazama Book DRM with Topaz Cryptography V1.1
 
 -----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdBHJ4CNc6DNFCw4MRCw4SWAK6
@@ -142,7 +142,7 @@ def MD5(message):
     return ctx.digest()
 
 #
-# Returns the SHA1 digest of "message"
+# Returns the MD5 digest of "message"
 #
 
 def SHA1(message):
@@ -229,7 +229,7 @@ def findNameForHash(hash):
         if hash == encodeHash(name, charMap2):
            result = name
            break
-    return result
+    return name
     
 #
 # Print all the records from the kindle.info file (option -i)
@@ -297,7 +297,7 @@ def bookReadString():
 #
     
 def bookReadHeaderRecordData():
-    nbValues = ord(bookFile.read(1))
+    nbValues = bookReadEncodedNumber()
     values = []
     for i in range (0,nbValues):
         values.append([bookReadEncodedNumber(),bookReadEncodedNumber(),bookReadEncodedNumber()])
@@ -327,7 +327,7 @@ def parseTopazHeader():
     if magic != 'TPZ0':
         raise CMBDTCFatal("Parse Error : Invalid Header, not a Topaz file")
         
-    nbRecords = ord(bookFile.read(1))
+    nbRecords = bookReadEncodedNumber()
     bookHeaderRecords = {}
    
     for i in range (0,nbRecords):
@@ -591,10 +591,11 @@ def generateDevicePID(table,dsn,nbRoll):
 def usage():
     print("\nUsage:")
     print("\nCMBDTC.py [options] bookFileName\n")
-    print("-r prints a record indicated in the form name:index (e.g \"img:0\")")
+    print("-p Adds a PID to the list of PIDs that are tried to decrypt the book key (can be used several times)")
+    print("-r Prints or writes to disk a record indicated in the form name:index (e.g \"img:0\")")
     print("-o Output file name to write records")
-    print("-v verbose (can be used several times)")
-    print("-i print kindle.info database")
+    print("-v Verbose (can be used several times)")
+    print("-i Print kindle.info database")
  
 #
 # Main
@@ -612,9 +613,12 @@ def main(argv=sys.argv):
     recordName = ""
     recordIndex = 0
     outputFile = ""
+    PIDs = []
+    kindleDatabase = None
+    
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "vir:o:")
+        opts, args = getopt.getopt(sys.argv[1:], "vir:o:p:")
     except getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -634,43 +638,52 @@ def main(argv=sys.argv):
             outputFile = a
         if o =="-r":
             recordName,recordIndex = a.split(':')
+        if o =="-p":
+            PIDs.append(a)
    
     #
     # Read the encrypted database
     #
     
-    kindleDatabase = parseKindleInfo()
+    try:
+        kindleDatabase = parseKindleInfo()
+    except Exception as message:
+        if verbose>0:
+            print(message)
     
-    if printInfo:
-        printKindleInfo()
+    if kindleDatabase != None :
+        if printInfo:
+            printKindleInfo()
      
     #
     # Compute the DSN
     #
     
     # Get the Mazama Random number
-    MazamaRandomNumber = getKindleInfoValueForKey("MazamaRandomNumber")
+        MazamaRandomNumber = getKindleInfoValueForKey("MazamaRandomNumber")
     
     # Get the HDD serial
-    encodedSystemVolumeSerialNumber = encodeHash(str(GetVolumeSerialNumber(GetSystemDirectory().split('\\')[0] + '\\')),charMap1)
+        encodedSystemVolumeSerialNumber = encodeHash(str(GetVolumeSerialNumber(GetSystemDirectory().split('\\')[0] + '\\')),charMap1)
     
     # Get the current user name
-    encodedUsername = encodeHash(GetUserName(),charMap1)
+        encodedUsername = encodeHash(GetUserName(),charMap1)
     
     # concat, hash and encode
-    DSN = encode(SHA1(MazamaRandomNumber+encodedSystemVolumeSerialNumber+encodedUsername),charMap1)
-    if verbose >1:
-        print("DSN: " + DSN)
+        DSN = encode(SHA1(MazamaRandomNumber+encodedSystemVolumeSerialNumber+encodedUsername),charMap1)
+       
+        if verbose >1:
+            print("DSN: " + DSN)
     
     #
     # Compute the device PID
     #
+     
+        table =  generatePidEncryptionTable()
+        devicePID = generateDevicePID(table,DSN,4)
+        PIDs.append(devicePID)
     
-    table =  generatePidEncryptionTable()
-    devicePID = generateDevicePID(table,DSN,4)
-    
-    if verbose > 0:
-        print("Device PID: " + devicePID)
+        if verbose > 0:
+            print("Device PID: " + devicePID)
     
     #
     # Open book and parse metadata
@@ -687,36 +700,46 @@ def main(argv=sys.argv):
     # 
     
     # Get the account token
-        kindleAccountToken = getKindleInfoValueForKey("kindle.account.tokens")
     
-        if verbose >1:
-            print("Account Token: " + kindleAccountToken)
+        if kindleDatabase != None:
+            kindleAccountToken = getKindleInfoValueForKey("kindle.account.tokens")
+    
+            if verbose >1:
+                print("Account Token: " + kindleAccountToken)
 
-        keysRecord = bookMetadata["keys"]
-        keysRecordRecord = bookMetadata[keysRecord]
+            keysRecord = bookMetadata["keys"]
+            keysRecordRecord = bookMetadata[keysRecord]
     
-        pidHash = SHA1(DSN+kindleAccountToken+keysRecord+keysRecordRecord)
+            pidHash = SHA1(DSN+kindleAccountToken+keysRecord+keysRecordRecord)
    
-        PID = encodePID(pidHash)
+            bookPID = encodePID(pidHash)
+            PIDs.append(bookPID)
     
-        if verbose > 0:
-            print ("Book PID: " + PID )
+            if verbose > 0:
+                print ("Book PID: " + bookPID )
     
     #
     #  Decrypt book key
     #
     
         dkey = getBookPayloadRecord('dkey', 0) 
-     
-        bookKey = decryptDkeyRecords(dkey,PID)[0]
         
-        if verbose > 0:
-           print("Book key: " + bookKey.encode('hex'))
-    
-        if recordName != "" :
-            extractBookPayloadRecord(recordName,int(recordIndex),outputFile)
+        bookKeys = []
+        for PID in PIDs :
+            bookKeys+=decryptDkeyRecords(dkey,PID)
+            
+        if len(bookKeys) == 0 :
+            if verbose > 0 :
+                print ("Book key could not be found. Maybe this book is not registered with this device.")
+        else :
+            bookKey = bookKeys[0]
+            if verbose > 0:
+                print("Book key: " + bookKey.encode('hex'))
+                  
+            if recordName != "" :
+                extractBookPayloadRecord(recordName,int(recordIndex),outputFile)
             if outputFile != "" and verbose>0 :
-                 print("Wrote record to file: "+outputFile) 
+                print("Wrote record to file: "+outputFile) 
     
     return 0
 
