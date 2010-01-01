@@ -2,7 +2,7 @@
 
 """
 
-Comprehensive Mazama Book DRM with Topaz Cryptography V2.0
+Comprehensive Mazama Book DRM with Topaz Cryptography V2.1
 
 -----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdBHJ4CNc6DNFCw4MRCw4SWAK6
@@ -400,8 +400,11 @@ def getBookPayloadRecord(name, index):
     
     if recordIndex != index :
       raise CMBDTCFatal("Parse Error : Invalid Record, index doesn't match")
-            
-    record = bookFile.read(bookHeaderRecords[name][index][1])
+
+    if bookHeaderRecords[name][index][2] != 0 :
+        record = bookFile.read(bookHeaderRecords[name][index][2])
+    else:
+        record = bookFile.read(bookHeaderRecords[name][index][1])
     
     if encrypted:
        ctx = topazCryptoInit(bookKey)
