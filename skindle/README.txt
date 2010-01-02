@@ -1,6 +1,6 @@
 
 /*
-   Copyright 2010 BartSimpson
+   Copyright 2010 BartSimpson aka skindle
    
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,13 +16,9 @@
 */
 
 /*
- * Dependencies: none
- * build on cygwin: gcc -o skindle skindle.c md5.c sha1.c b64.c -lCrypt32
- * Under cygwin, you can just type make to build it.
- * While the binary builds if you use the -mno-cygwin switch, it fails to
- * work for some reason.  The code should compile with Visual Studio, just
- * add all the files to a project and add the Crypt32.lib dependency and
- * it should build as a Win32 console app.
+ * Dependencies: zlib (included)
+ * build on cygwin using make and the included make file
+ * A fully functionaly windows executable is included
  */
 
 /*
@@ -31,6 +27,7 @@
  * Requires your kindle.info file which can be found in something like:
  * <User home>\...\Amazon\Kindle For PC\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}
  * where ... varies by platform but is "Local Settings\Application Data" on XP
+ * skindle will attempt to find this file automatically.
  */
 
 /*
@@ -49,7 +46,9 @@
        You guys shouldn't need to spend all your time responding to all the
        changes Amazon is going to force you to make in unswindle each time
        the release a new version.
+       CMBDTC - nice work on the topaz break!
        Lawrence Lessig - You are my hero. 'Nuff said.
+       Cory Doctorow - A voice of reason in a sea of insanity
    Thumbs down: Disney, MPAA, RIAA - you guys suck.  Making billions off 
        of the exploitation of works out of copyright while vigourously
        pushing copyright extension to prevent others from doing the same
@@ -67,12 +66,20 @@ file and the data and algorthims that are used to derive per book
 PID values.
 
 Installing:
-A cygwin compatable binary is included.  You need a minimal cygwin
-installation in order to run it.  To build from source, you will need
-cygwin with gcc and make.  This has not been tested with Visual Studio.
+A compiled binary is included.  Though it was built using cygwin, it
+should not require a cygwin installation in order to run it.  To build
+from source, you will need cygwin with gcc and make.  
+This has not been tested with Visual Studio, though you may be able to
+pile all the files into a project and add the Crypt32.lib, Advapi32 and
+zlib1 dependencies to build it.
 
-Usage:
-./skindle <drm'ed prc file> <name of output file> <kindle.info path>
-You need to locate your kindle.info file somewhere on your system.
-You can copy it to a local directory, but you need to refer to it
-each time you run skindle.
+usage: ./skindle [-d] [-v] -i <ebook file> -o <output file> [-k kindle.info file] [-p pid]
+    -d optional, for topaz files only, produce a decompressed output file
+    -i required name of the input mobi or topaz file
+    -o required name of the output file to generate
+    -k optional kindle.info path
+    -v dump the contents of kindle.info
+    -p additional PID values to attempt (can specifiy multiple times)
+
+You only need to specify a kindle.info path if skindle can't find
+your kindle.info file automatically
