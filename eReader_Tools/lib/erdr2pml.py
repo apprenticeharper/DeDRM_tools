@@ -50,8 +50,9 @@
 #  0.09 - fixed typos in first_pages to first_page to again support older formats
 #  0.10 - minor cleanups
 #  0.11 - fixups for using correct xml for footnotes and sidebars for use with Dropbook
+#  0.12 - fixup for file name cleaning - no longer converts to lower case
 
-__version__='0.11'
+__version__='0.12'
 
 # Import Psyco if available
 try:
@@ -324,8 +325,8 @@ class Sectionizer(object):
 
 def sanitizeFileName(s):
     r = ''
-    for c in s.lower():
-        if c in "abcdefghijklmnopqrstuvwxyz0123456789_.-":
+    for c in s:
+        if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-":
             r += c
     return r
 
