@@ -18,7 +18,8 @@
 #  0.04 - Wasn't sanity checking size of data record
 #  0.05 - It seems that the extra data flags take two bytes not four
 #  0.06 - And that low bit does mean something after all :-)
-#  0.07 - The extra data flags aren't present in MOBI header < 0xE8
+#  0.07 - The extra data flags aren't present in MOBI header < 0xE8 in size
+#  0.08 - ...and also not in Mobi header version < 6
 
 import sys,struct,binascii
 
@@ -152,9 +153,13 @@ class DrmStripper:
 		sect = self.loadSection(0)
 		records, = struct.unpack('>H', sect[0x8:0x8+2])
 		mobi_length, = struct.unpack('>L',sect[0x14:0x18])
+		mobi_version, = struct.unpack('>L',sect[0x68:0x6C])
 		extra_data_flags = 0
-		if mobi_length >= 0xE8:
+		print "MOBI header length = %d" %mobi_length
+		print "MOBI header version = %d" %mobi_version
+		if (mobi_length >= 0xE8) and (mobi_version > 5):
 			extra_data_flags, = struct.unpack('>H', sect[0xF2:0xF4])
+			print "Extra Data Flags = %d" %extra_data_flags
 
 
 		crypto_type, = struct.unpack('>H', sect[0xC:0xC+2])
@@ -185,6 +190,7 @@ class DrmStripper:
 		for i in xrange(1, records+1):
 			data = self.loadSection(i)
 			extra_size = getSizeOfTrailingDataEntries(data, len(data), extra_data_flags)
+			# print "record %d, extra_size %d" %(i,extra_size)
 			self.patchSection(i, PC1(found_key, data[0:len(data) - extra_size]))
 		print "done"
 	def getResult(self):
@@ -199,8 +205,8 @@ if not __name__ == "__main__":
 		description         = 'Removes DRM from secure Mobi files'
 		supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
 		author              = 'The Dark Reverser' # The author of this plugin
-		version             = (0, 0, 7)   # The version number of this plugin
-		file_types          = set(['prc']) # The file types that this plugin will be applied to
+		version             = (0, 0, 8)   # The version number of this plugin
+		file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
 		on_import           = True # Run this plugin during the import
 
 	
@@ -208,23 +214,25 @@ if not __name__ == "__main__":
 			of = self.temporary_file('.mobi')
 			PID = self.site_customization
 			data_file = file(path_to_ebook, 'rb').read()
-			try:
-				file(of.name, 'wb').write(DrmStripper(data_file, PID).getResult())
-			except Exception, e:
-				# Hm, we should display an error dialog here.
-				# Dunno how though.
-				# Ignore the dirty hack behind the curtain.
-#				strexcept = 'echo exception: %s > /dev/tty' % e
-#				subprocess.call(strexcept,shell=True)
-				raise e
+			ar = PID.split(',')
+			for i in ar:
+				try:
+					file(of.name, 'wb').write(DrmStripper(data_file, i).getResult())
+				except DrmException:
+					# Hm, we should display an error dialog here.
+					# Dunno how though.
+					# Ignore the dirty hack behind the curtain.
+#					strexcept = 'echo exception: %s > /dev/tty' % e
+#					subprocess.call(strexcept,shell=True)
+					print i + ": not PID for book"
+				else:
+					return of.name
 
-			return of.name
-		
 		def customization_help(self, gui=False):
-			return 'Enter PID'
+			return 'Enter PID (separate multiple PIDs with comma)'
 
 if __name__ == "__main__":
-	print "MobiDeDrm v0.07. Copyright (c) 2008 The Dark Reverser"
+	print "MobiDeDrm v0.08. Copyright (c) 2008 The Dark Reverser"
 	if len(sys.argv)<4:
 		print "Removes protection from Mobipocket books"
 		print "Usage:"
