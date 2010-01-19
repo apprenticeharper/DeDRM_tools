@@ -160,101 +160,159 @@ class PageParser(object):
     # tag : (number of arguments, argument type, subtags present, special case of subtags presents when escaped)
 
     token_tags = {
-        'book'         : (1, 'snippets', 1, 0),
-        'version'      : (1, 'snippets', 1, 0),
-        'stylesheet'   : (1, 'snippets', 1, 0),
-        'links'        : (0, 'number', 0, 1),
-        'pages'        : (0, 'number', 0, 1),
-        'page'         : (1, 'snippets', 1, 0),
-        'group'        : (1, 'snippets', 1, 0),
-        'region'       : (1, 'snippets', 1, 0),
-        'reflow'       : (1, 'number', 1, 0),
-        'img'          : (1, 'snippets', 1, 0),
-        'paragraph'    : (1, 'snippets', 1, 0),
-        'extratokens'  : (1, 'snippets', 1, 0),
-        'style'        : (1, 'snippets', 1, 0),
-        'rule'         : (1, 'snippets', 1, 0),
-        '_span'        : (1, 'snippets', 1, 0),
-        'word_semantic': (1, 'snippets', 1, 1),
-        'value'        : (1, 'scalar_text', 0, 0),
+        'x'            : (1, 'scalar_number', 0, 0),
+        'y'            : (1, 'scalar_number', 0, 0),
         'h'            : (1, 'scalar_number', 0, 0),
         'w'            : (1, 'scalar_number', 0, 0),
         'firstWord'    : (1, 'scalar_number', 0, 0),
         'lastWord'     : (1, 'scalar_number', 0, 0),
-        'x'            : (1, 'number', 0, 0),
-        'y'            : (1, 'number', 0, 0),
+        'rootID'       : (1, 'scalar_number', 0, 0),
+        'stemID'       : (1, 'scalar_number', 0, 0),
+        'type'         : (1, 'scalar_text', 0, 0),
+
+        'info'            : (0, 'number', 1, 0),
+
+        'info.word'            : (0, 'number', 1, 1),
+        'info.word.ocrText'    : (1, 'text', 0, 0),
+        'info.word.firstGlyph' : (1, 'raw', 0, 0),
+        'info.word.lastGlyph'  : (1, 'raw', 0, 0),
+        'info.word.bl'         : (1, 'raw', 0, 0),
+        'info.word.link_id'    : (1, 'number', 0, 0),
+
+        'glyph'           : (0, 'number', 1, 1),
+        'glyph.x'         : (1, 'number', 0, 0),
+        'glyph.y'         : (1, 'number', 0, 0),
+        'glyph.glyphID'   : (1, 'number', 0, 0),
+
+        'dehyphen'          : (0, 'number', 1, 1),
+        'dehyphen.rootID'   : (1, 'number', 0, 0),
+        'dehyphen.stemID'   : (1, 'number', 0, 0),
+        'dehyphen.stemPage' : (1, 'number', 0, 0),
+        'dehyphen.sh'       : (1, 'number', 0, 0),
+
+        'links'        : (0, 'number', 1, 1),
         'links.page'   : (1, 'number', 0, 0),
-        'link_id'      : (1, 'number', 0, 0),
-        'glyph'        : (0, 'number', 1, 1),
+        'links.rel'    : (1, 'number', 0, 0),
+        'links.row'    : (1, 'number', 0, 0),
+        'links.title'  : (1, 'text', 0, 0),
+        'links.href'   : (1, 'text', 0, 0),
+        'links.type'   : (1, 'text', 0, 0),
+
+        'paraCont'          : (0, 'number', 1, 1),
+        'paraCont.rootID'   : (1, 'number', 0, 0),
+        'paraCont.stemID'   : (1, 'number', 0, 0),
+        'paraCont.stemPage' : (1, 'number', 0, 0),
+
+        'paraStems'        : (0, 'number', 1, 1),
+        'paraStems.stemID' : (1, 'number', 0, 0),
+
+        'wordStems'          : (0, 'number', 1, 1),
+        'wordStems.stemID'   : (1, 'number', 0, 0),
+
+        'page'           : (1, 'snippets', 1, 0),
+        'page.pageid'    : (1, 'scalar_text', 0, 0),
+        'page.pagelabel' : (1, 'scalar_text', 0, 0),
+        'page.type'      : (1, 'scalar_text', 0, 0),
+        'page.h'         : (1, 'scalar_number', 0, 0),
+        'page.w'         : (1, 'scalar_number', 0, 0),
+        'page.startID' : (1, 'scalar_number', 0, 0),
+
+        'group'           : (1, 'snippets', 1, 0),
+        'group.type'      : (1, 'scalar_text', 0, 0),
+
+        'region'           : (1, 'snippets', 1, 0),
+        'region.type'      : (1, 'scalar_text', 0, 0),
+        'region.x'         : (1, 'scalar_number', 0, 0),
+        'region.y'         : (1, 'scalar_number', 0, 0),
+        'region.h'         : (1, 'scalar_number', 0, 0),
+        'region.w'         : (1, 'scalar_number', 0, 0),
+
+        'img'          : (1, 'snippets', 1, 0),
+        'img.x'        : (1, 'scalar_number', 0, 0),
+        'img.y'        : (1, 'scalar_number', 0, 0),
+        'img.h'        : (1, 'scalar_number', 0, 0),
+        'img.w'        : (1, 'scalar_number', 0, 0),
+        'img.src'      : (1, 'scalar_number', 0, 0),
+
+        'paragraph'           : (1, 'snippets', 1, 0),
+        'paragraph.class'     : (1, 'scalar_text', 0, 0),
+        'paragraph.firstWord' : (1, 'scalar_number', 0, 0),
+        'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
+
+        'word_semantic'           : (1, 'snippets', 1, 1),
+        'word_semantic.type'      : (1, 'scalar_text', 0, 0),
+        'word_semantic.firstWord' : (1, 'scalar_number', 0, 0),
+        'word_semantic.lastWord'  : (1, 'scalar_number', 0, 0),
+
+        'word'           : (1, 'snippets', 1, 0),
+        'word.type'      : (1, 'scalar_text', 0, 0),
+        'word.class'     : (1, 'scalar_text', 0, 0),
+
+        '_span'           : (1, 'snippets', 1, 0),
+        '_span.firstWord' : (1, 'scalar_number', 0, 0),
+        '-span.lastWord'  : (1, 'scalar_number', 0, 0),
+
+        'extratokens'            : (1, 'snippets', 1, 0),
+        'extratokens.type'       : (1, 'scalar_text', 0, 0),
+        'extratokens.firstGlyph' : (1, 'scalar_number', 0, 0),
+        'extratokens.lastGlyph'  : (1, 'scalar_number', 0, 0),
+
         'glyph.h'      : (1, 'number', 0, 0),
         'glyph.w'      : (1, 'number', 0, 0),
-        'sh'           : (1, 'number', 0, 0),
-        'word'         : (0, 'number', 1, 1),
-        'src'          : (1, 'scalar_number', 0, 0),
-        'rel'          : (1, 'number', 0, 0),
-        'row'          : (1, 'number', 0, 0),
-        'startID'      : (1, 'number', 0, 1),
+        'glyph.use'    : (1, 'number', 0, 0),
+        'glyph.vtx'    : (1, 'number', 0, 1),
+        'glyph.len'    : (1, 'number', 0, 1),
+        'glyph.dpi'    : (1, 'number', 0, 0),
+        'vtx'          : (0, 'number', 1, 1),
+        'vtx.x'        : (1, 'number', 0, 0),
+        'vtx.y'        : (1, 'number', 0, 0),
+        'len'          : (0, 'number', 1, 1),
+        'len.n'        : (1, 'number', 0, 0),
+
+        'book'         : (1, 'snippets', 1, 0),
+        'version'      : (1, 'snippets', 1, 0),
+        'version.FlowEdit_1_id'            : (1, 'scalar_text', 0, 0),
+        'version.FlowEdit_1_version'       : (1, 'scalar_text', 0, 0),
+        'version.Schema_id'                : (1, 'scalar_text', 0, 0),
+        'version.Schema_version'           : (1, 'scalar_text', 0, 0),
+        'version.Topaz_version'            : (1, 'scalar_text', 0, 0),
+        'version.WordDetailEdit_1_id'      : (1, 'scalar_text', 0, 0),
+        'version.WordDetailEdit_1_version' : (1, 'scalar_text', 0, 0),
+        'version.ZoneEdit_1_id'            : (1, 'scalar_text', 0, 0),
+        'version.ZoneEdit_1_version'       : (1, 'scalar_text', 0, 0),
+        'version.chapterheaders'           : (1, 'scalar_text', 0, 0),
+        'version.creation_date'            : (1, 'scalar_text', 0, 0),
+        'version.header_footer'            : (1, 'scalar_text', 0, 0),
+        'version.init_from_ocr'            : (1, 'scalar_text', 0, 0),
+        'version.letter_insertion'         : (1, 'scalar_text', 0, 0),
+        'version.xmlinj_convert'           : (1, 'scalar_text', 0, 0),
+        'version.xmlinj_reflow'            : (1, 'scalar_text', 0, 0),
+        'version.xmlinj_transform'         : (1, 'scalar_text', 0, 0),
+        'version.findlists'                : (1, 'scalar_text', 0, 0),
+        'version.page_num'                 : (1, 'scalar_text', 0, 0),
+        'version.page_type'                : (1, 'scalar_text', 0, 0),
+
+        'stylesheet'   : (1, 'snippets', 1, 0),
+        'style'              : (1, 'snippets', 1, 0),
+        'style._tag'         : (1, 'scalar_text', 0, 0),
+        'style.type'         : (1, 'scalar_text', 0, 0),
+        'style._parent_type' : (1, 'scalar_text', 0, 0),
+        'style.class'        : (1, 'scalar_text', 0, 0),
+        'style._after_class' : (1, 'scalar_text', 0, 0),
+        'rule'               : (1, 'snippets', 1, 0),
+        'rule.attr'          : (1, 'scalar_text', 0, 0),
+        'rule.value'         : (1, 'scalar_text', 0, 0),
+
+        'original'      : (0, 'number', 1, 1),
+        'original.pnum' : (1, 'number', 0, 0),
+        'original.pid'  : (1, 'text', 0, 0),
+        'pages'        : (0, 'number', 1, 1),
+        'pages.ref'    : (1, 'number', 0, 0),
+        'pages.id'     : (1, 'number', 0, 0),
+        'startID'      : (0, 'number', 1, 1),
         'startID.page' : (1, 'number', 0, 0),
-        'glyphID'      : (1, 'number', 0, 0),
-        'rootID'       : (1, 'number', 0, 0),
-        'stemID'       : (1, 'number', 0, 0),
-        'margin-top'   : (1, 'number', 0, 0),
-        'stemPage'     : (1, 'number', 0, 0),
-        'dehyphen'     : (1, 'number', 1, 1),
-        'rootID'       : (1, 'number', 0, 0),
-        'paraCont'     : (1, 'number', 1, 1),
-        'paraStems'    : (1, 'number', 1, 1),
-        'wordStems'    : (1, 'number', 1, 1),
-        'original'     : (0, 'number', 0, 1),
-        'use'          : (1, 'number', 0, 0),
-        'vtx'          : (1, 'number', 0, 1),
-        'len'          : (1, 'number', 0, 1),
-        'dpi'          : (1, 'number', 0, 0),
-        'n'            : (1, 'number', 0, 0),
-        'id'           : (1, 'number', 0, 0),
-        'ref'          : (1, 'number', 0, 0),
-        'pnum'         : (1, 'number', 0, 0),
-        'pid'          : (1, 'text', 0, 0),
-        'info'         : (0, 'number', 1, 0),
-        'bl'           : (1, 'raw', 0, 0),
-        'firstGlyph'   : (1, 'raw', 0, 0),
-        'lastGlyph'    : (1, 'raw', 0, 0),
-        'ocrText'      : (1, 'text', 0, 0),
-        'title'        : (1, 'text', 0, 0),
-        'href'         : (1, 'text', 0, 0),
-        '_parent_type' : (1, 'text', 0, 0),
-        'attr'         : (1, 'scalar_text', 0, 0),
-        'justify'      : (1, 'scalar_text', 0, 0),
-        'align'        : (1, 'scalar_text', 0, 0),
-        'layout'       : (1, 'scalar_text', 0, 0),
-        'pageid'       : (1, 'scalar_text', 0, 0),
-        'pagelabel'    : (1, 'scalar_text', 0, 0),
-        'type'         : (1, 'text', 0, 0),
-        'class'        : (1, 'scalar_text', 0, 0),
-        'container'    : (1, 'scalar_text', 0, 0),
-        '_after_class' : (1, 'scalar_text', 0, 0),
-        '_tag'         : (1, 'scalar_text', 0, 0),
-        'pos'          : (1, 'scalar_text', 0, 0),
-        'page_num'     : (1, 'scalar_text', 0, 0),
-        'page_type'    : (1, 'scalar_text', 0, 0),
-        'findlists'    : (1, 'scalar_text', 0, 0),
-        'FlowEdit_1_id'            : (1, 'scalar_text', 0, 0),
-        'FlowEdit_1_version'       : (1, 'scalar_text', 0, 0),
-        'Schema_id'                : (1, 'scalar_text', 0, 0),
-        'Schema_version'           : (1, 'scalar_text', 0, 0),
-        'Topaz_version'            : (1, 'scalar_text', 0, 0),
-        'WordDetailEdit_1_id'      : (1, 'scalar_text', 0, 0),
-        'WordDetailEdit_1_version' : (1, 'scalar_text', 0, 0),
-        'ZoneEdit_1_id'            : (1, 'scalar_text', 0, 0),
-        'ZoneEdit_1_version'       : (1, 'scalar_text', 0, 0),
-        'chapterheaders'           : (1, 'scalar_text', 0, 0),
-        'creation_date'            : (1, 'scalar_text', 0, 0),
-        'header_footer'            : (1, 'scalar_text', 0, 0),
-        'init_from_ocr'            : (1, 'scalar_text', 0, 0),
-        'letter_insertion'         : (1, 'scalar_text', 0, 0),
-        'xmlinj_convert'           : (1, 'scalar_text', 0, 0),
-        'xmlinj_reflow'            : (1, 'scalar_text', 0, 0),
-        'xmlinj_transform'         : (1, 'scalar_text', 0, 0),
+        'startID.id'   : (1, 'number', 0, 0),
+
      }
 
 
@@ -404,99 +462,23 @@ class PageParser(object):
         return
 
 
-    # loop: pass though values unchanged
-    # DO NOT CHANGE - this has proven to be correct
-    def doLoop76Mode0(self, argtype, cnt):
-        result = [] 
+
+    # general loop code gracisouly submitted by "skindle" - thank you!
+    def doLoop76Mode(self, argtype, cnt, mode):
+        result = []
+        adj = 0
+        if mode & 1:
+            adj = readEncodedNumber(self.fo)
+        mode = mode >> 1
+        x = []
         for i in xrange(cnt):
-            result.append(self.formatArg(readEncodedNumber(self.fo), argtype))
-        return result
-
-
-    # loop generating values relative to the *negative* 
-    # of the offset - don't ask why - it just is
-    # DO NOT CHANGE - this has proven to be correct
-    def doLoop76Mode1(self, argtype, cnt):
-        result = []
-        offset = -readEncodedNumber(self.fo)
+            x.append(readEncodedNumber(self.fo) - adj)
+        for i in xrange(mode):
+            for j in xrange(1, cnt):
+                x[j] = x[j] + x[j - 1]
         for i in xrange(cnt):
-            val = readEncodedNumber(self.fo) + offset
-            result.append(self.formatArg(val, argtype))
+            result.append(self.formatArg(x[i],argtype))
         return result
-
-
-    # loop generating values with starting value and accumulation
-    # DO NOT CHANGE - this has proven to be the correct
-    def doLoop76Mode2(self, argtype, cnt):
-        result = []
-        ptr = readEncodedNumber(self.fo)
-        result.append(self.formatArg(ptr, argtype))
-        for i in xrange(cnt-1):
-            ptr = ptr + readEncodedNumber(self.fo) 
-            result.append(self.formatArg(ptr, argtype))
-        return result
-
-
-    # loop generating values with starting value and accumulation
-    # **after** subtracting adjustment value from each
-    # DO NOT CHANGE - this has been proven to be correct
-    def doLoop76Mode3(self, argtype, cnt):
-        result = []
-        adj = readEncodedNumber(self.fo)
-        ptr = readEncodedNumber(self.fo)
-        ptr = ptr - adj 
-        result.append(self.formatArg(ptr, argtype))
-        for i in xrange(cnt-1):
-            ptr = ptr + readEncodedNumber(self.fo) - adj
-            result.append(self.formatArg(ptr,argtype))
-        return result
-
-
-    # loop using runing sum of data values and starting value
-    # with accumulation to get new value
-    # Again, don't ask it took me forever to figure this out
-    # DO NOT CHANGE - this has been proven to be correct
-    def doLoop76Mode4(self, argtype, cnt):
-        result = []
-        val = readEncodedNumber(self.fo)
-        runsum = val
-        ptr = val
-        result.append(self.formatArg(ptr, argtype))
-        for i in xrange(cnt-1):
-            runsum += readEncodedNumber(self.fo)
-            ptr = ptr + runsum
-            result.append(self.formatArg(ptr,argtype))
-        return result
-
-
-    # loop using and extra value as an adjustment
-    # and a running sum of the values after subtracting
-    # the adjustment, added to a ptr to get a new pointer
-    def doLoop76Mode5(self, argtype, cnt):
-        result = []
-        adj = readEncodedNumber(self.fo)
-        ptr = 0
-        runsum = 0
-        for i in xrange(cnt):
-            val = readEncodedNumber(self.fo)
-            runsum += (val - adj)
-            ptr = ptr +runsum
-            result.append(self.formatArg(ptr,argtype))
-        return result
-
-
-    # FIXME:  I have only 4 points to work this out with inside my book
-    # So may be wrong but it is correct for my 4 points
-    def doLoop76Mode6(self, argtype, cnt):
-        result = []
-        oldval = 0
-        for i in xrange(cnt):
-            val = readEncodedNumber(self.fo)
-            ptr= (3 * oldval) + val + 1
-            result.append(self.formatArg(ptr,argtype))
-            oldval = val
-        return result
-
 
 
     # dispatches loop commands bytes with various modes
@@ -507,57 +489,20 @@ class PageParser(object):
     # since they did not appear in the test cases
 
     def decodeCMD(self, cmd, argtype):
-
-        # if (cmd == 0x72):
-        #     self.doLoop72(argtype)
-        #     result =[]
-        #     return result
-
         if (cmd == 0x76):
+
             # loop with cnt, and mode to control loop styles
             cnt = readEncodedNumber(self.fo)
             mode = readEncodedNumber(self.fo)
 
-            if self.debug : print 'Loop for', cnt, 'with  mode', mode,  ':  '  
-
-            if (mode == 0x00):
-                return self.doLoop76Mode0(argtype, cnt)
-
-            elif (mode == 0x01):
-                return self.doLoop76Mode1(argtype, cnt)
-
-            elif (mode == 0x02):
-                return self.doLoop76Mode2(argtype, cnt)
-
-            elif (mode == 0x03):
-                return self.doLoop76Mode3(argtype, cnt)
-
-            elif (mode == 0x04):
-                return self.doLoop76Mode4(argtype, cnt)
-
-            elif (mode == 0x05):
-                return self.doLoop76Mode5(argtype, cnt)
-
-            elif (mode == 0x06):
-                return self.doLoop76Mode6(argtype, cnt)
-
-            else:
-
-                if self.debug :
-                    # try to mark any unknown loop comands
-                    # if they exist, unless they are used to process
-                    # text or some other known list, we won't be able to prove them correct
-                    print '*** Unknown Loop 0x%x %d %d :' % (cmd, cnt, mode) 
-                    for i in xrange(cnt):
-                        val = readEncodedNumber(self.fo)
-                        print ' 0x%x' % val,
-                        print ' '
-                result = []
-                return result
+            if self.debug : print 'Loop for', cnt, 'with  mode', mode,  ':  '
+            return self.doLoop76Mode(argtype, cnt, mode)
 
         if self.dbug: print  "Unknown command", cmd
         result = []
         return result
+
+
             
     # add full tag path to injected snippets
     def updateName(self, tag, prefix):
@@ -727,7 +672,7 @@ class PageParser(object):
                     self.doc.append(tag)
             else:
                 if self.debug:
-                    print "Mina Loop:  Unknown value: %x" % v 
+                    print "Main Loop:  Unknown value: %x" % v 
 
 
         # now do snippet injection

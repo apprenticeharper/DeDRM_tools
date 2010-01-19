@@ -1,3 +1,13 @@
+Contributors:
+     cmbtc - removal of drm which made all of this possible
+     clarknova - for all of the svg and glyph generation and many other bug fixes and improvements
+     skindle - for figuing out the general case for the mode loops
+     some updates -  for conversion to xml, basic html
+     DiapDealer - for extensive testing and feeback
+
+and others for posting, feedback and testing
+  
+
 This is experimental and it will probably not work for you but...
 
 ALSO:  Please do not use any of this to steal.  Theft is wrong. 

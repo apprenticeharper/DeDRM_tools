@@ -95,22 +95,27 @@ def main(argv):
     htmlstr += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
     htmlstr += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
 
+    # get some scaling info from metadata to use while processing styles
+    fontsize = '135'
+    if 'fontSize' in meta_array:
+        fontsize = meta_array['fontSize']
+
     print '     ', 'other0000.dat'
     fname = os.path.join(bookDir,'other0000.dat')
     xname = os.path.join(bookDir, 'style.css')
     xmlstr = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname)
-    cssstr = '<style>\n'
-    cssstr += stylexml2css.convert2CSS(xmlstr)
-    cssstr += '</style>\n'
+    htmlstr += '<style>\n'
+    cssstr , classlst = stylexml2css.convert2CSS(xmlstr, fontsize)
     file(xname, 'wb').write(cssstr)
     htmlstr += cssstr
+    htmlstr += '</style>\n'
     htmlstr += '</head>\n<body>\n'
 
     for filename in filenames:
         print '     ', filename
         fname = os.path.join(pageDir,filename)
         flat_xml = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname) 
-        htmlstr += flatxml2html.convert2HTML(flat_xml, fname)
+        htmlstr += flatxml2html.convert2HTML(flat_xml, classlst, fname)
 
     htmlstr += '</body>\n</html>\n'
 

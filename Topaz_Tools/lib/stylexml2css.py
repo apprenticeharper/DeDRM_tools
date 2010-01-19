@@ -11,8 +11,9 @@ from struct import unpack
 
 
 class DocParser(object):
-    def __init__(self, flatxml):
+    def __init__(self, flatxml, fontsize):
         self.flatdoc = flatxml.split('\n')
+        self.fontsize = int(fontsize)
 
     stags = {
         'paragraph' : 'p',
@@ -20,14 +21,14 @@ class DocParser(object):
     }
 
     attr_val_map = {
-        'hang'            : ('text-indent: ', 135),
-        'indent'          : ('text-indent: ', 135),
-        'line-space'      : ('line-height: ', 190),
-        'margin-bottom'   : ('margin-bottom: ', 135),
-        'margin-left'     : ('margin-left: ', 135),
-        'margin-right'    : ('margin-right: ', 135),
-        'margin-top'      : ('margin-top: ', 135),
-        'space-after'     : ('padding-bottom: ', 135),
+        'hang'            : 'text-indent: ',
+        'indent'          : 'text-indent: ',
+        'line-space'      : 'line-height: ',
+        'margin-bottom'   : 'margin-bottom: ',
+        'margin-left'     : 'margin-left: ',
+        'margin-right'    : 'margin-right: ',
+        'margin-top'      : 'margin-top: ',
+        'space-after'     : 'padding-bottom: ',
     }
 
     attr_str_map = {
@@ -55,7 +56,7 @@ class DocParser(object):
         for j in xrange(pos, end):
             item = docList[j]
             if item.find('=') >= 0:
-                (name, argres) = item.split('=')
+                (name, argres) = item.split('=',1)
             else : 
                 name = item
                 argres = ''
@@ -81,6 +82,7 @@ class DocParser(object):
 
     def process(self):
 
+        classlst = ''
         csspage = ''
 
         # generate a list of each <style> starting point in the stylesheet
@@ -132,22 +134,18 @@ class DocParser(object):
                     else :
                         # handle value based attributes
                         if attr in self.attr_val_map :
-                            (name, scale) = self.attr_val_map[attr]
+                            name = self.attr_val_map[attr]
+                            scale = self.fontsize
+                            if attr == 'line-space': scale = scale * 1.41
                             if not ((attr == 'hang') and (int(val) == 0)) :
                                 ems = int(val)/scale
-                                cssargs[attr] = (self.attr_val_map[attr][0], ems)
+                                cssargs[attr] = (self.attr_val_map[attr], ems)
                                 keep = True
 
                     start = pos + 1
 
                 # disable all of the after class tags until I figure out how to handle them
-                # remove all numerals after the "reclustered" 
-
                 if aftclass != "" : keep = False
-
-                p = sclass.find('reclustered') 
-                if p >= 0:
-                    sclass = sclass[0:p+11]
 
                 if keep :
                     # make sure line-space does not go below 1em
@@ -156,7 +154,7 @@ class DocParser(object):
                         val = cssargs['line-space'][1]
                         if val < 1.0: val = 1.0
                         del cssargs['line-space']
-                        cssargs['line-space'] = (self.attr_val_map['line-space'][0], val)
+                        cssargs['line-space'] = (self.attr_val_map['line-space'], val)
 
 
                     
@@ -165,7 +163,7 @@ class DocParser(object):
                         hseg = cssargs['hang'][0]
                         hval = cssargs['hang'][1]
                         del cssargs['hang']
-                        cssargs['hang'] = (self.attr_val_map['hang'][0], -hval)
+                        cssargs['hang'] = (self.attr_val_map['hang'], -hval)
                         mval = 0
                         mseg = 'margin-left: '
                         if 'margin-left' in cssargs:
@@ -188,6 +186,9 @@ class DocParser(object):
 
                     cssline += '}'
 
+                    if sclass != '' :
+                        classlst += sclass + '\n'
+                    
                     # handle special case of paragraph class used inside chapter heading
                     # and non-chapter headings
                     if sclass != '' :
@@ -206,15 +207,16 @@ class DocParser(object):
                             csspage += 'h6' + cssline + '\n'
 
                     csspage += self.stags[tag] + cssline + '\n'
-        
-        return csspage
+
+                
+        return csspage, classlst
 
 
 
-def convert2CSS(flatxml):
+def convert2CSS(flatxml, fontsize):
 
     # create a document parser
-    dp = DocParser(flatxml)
+    dp = DocParser(flatxml, fontsize)
 
     csspage = dp.process()
 

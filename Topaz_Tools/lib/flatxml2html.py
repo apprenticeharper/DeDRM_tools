@@ -11,9 +11,16 @@ from struct import unpack
 
 
 class DocParser(object):
-    def __init__(self, flatxml, fileid):
+    def __init__(self, flatxml, classlst, fileid):
         self.id = os.path.basename(fileid).replace('.dat','')
         self.flatdoc = flatxml.split('\n')
+        self.classList = {}
+        tmpList = classlst.split('\n')
+        for pclass in tmpList:
+            if pclass != '':
+                # remove the leading period from the css name
+                cname = pclass[1:]
+            self.classList[cname] = True
         self.ocrtext = []
         self.link_id = []
         self.link_title = []
@@ -22,6 +29,18 @@ class DocParser(object):
         self.paracont_stemid = []
         self.parastems_stemid = []
 
+    # find tag if within pos to end inclusive
+    def lineinDoc(self, pos) :
+        docList = self.flatdoc
+        cnt = len(docList)
+        if (pos >= 0) and (pos < cnt) :
+            item = docList[pos]
+            if item.find('=') >= 0:
+                (name, argres) = item.split('=',1)
+            else : 
+                name = item
+                argres = ''
+        return name, argres
 
         
     # find tag if within pos to end inclusive
@@ -61,91 +80,161 @@ class DocParser(object):
         return startpos
 
 
-    # get a description of the paragraph
+    # build a description of the paragraph
     def getParaDescription(self, start, end):
+
+        result = []
+
         # normal paragraph
         (pos, pclass) = self.findinDoc('paragraph.class',start,end) 
 
-        # class names are an issue given topaz starts them with numerals (not allowed)
-        # use a mix of cases, (which cause some browsers problems), and actually
-        # attach numbers after "reclustered*" to the end to deal with reflow issues
-        # so we clean this up by lowercasing, prepend 'cl_', and remove all end pieces after reclustered
+        # class names are an issue given topaz may start them with numerals (not allowed),
+        # use a mix of cases (which cause some browsers problems), and actually
+        # attach numbers after "_reclustered*" to the end to deal with reflow issues
+        # but then not actually provide all of these _reclustereed classes in the stylesheet!
+
+        # so we clean this up by lowercasing, prepend 'cl_', and if not in the class
+        # list from the stylesheet, trying once more with "_reclustered*" removed
+        # if still not in stylesheet, let it pass as is
         pclass = pclass.lower()
         pclass = 'cl_' + pclass
-        p = pclass.find('reclustered')
-        if p > 0 : pclass = pclass[0:p+11]
+        if pclass not in self.classList:
+            p = pclass.find('_reclustered')
+            if p > 0 : 
+                baseclass = pclass[0:p]
+                if baseclass in self.classList:
+                    pclass = baseclass
 
+        # build up a description of the paragraph in result and return it
+        # first check for the  basic - all words paragraph
         (pos, sfirst) = self.findinDoc('paragraph.firstWord',start,end)
         (pos, slast) = self.findinDoc('paragraph.lastWord',start,end)
         if (sfirst != None) and (slast != None) :
-            return pclass, int(sfirst), int(slast)
+            first = int(sfirst)
+            last = int(slast)
+            for wordnum in xrange(first, last):
+                result.append(('ocr', wordnum))
+            return pclass, result
 
-        # some paragraphs are instead split into multiple spans and some even have word_semantic tags as well
-        # so walk through this region keeping track of the first firstword, and the last lastWord
-        # on any items that have it
-        (pos, sfirst) = self.findinDoc('firstWord',start, end)
-        first = int(sfirst)
-        last = -1
-        for i in xrange(pos+1,end):
-            (pos, slast) = self.findinDoc('lastWord',i,i+1)
-            if slast != None:
-                last = int(slast)
-        return pclass, first, last
+        # this type of paragrph may be made up of multiple _spans, inline 
+        # word monograms (images) and words with semantic meaning
+        
+        # need to parse this type line by line
+        line = start + 1
+        word_class = ''
 
+        while (line < end) :
 
-    def buildParagraph(self, cname, first, last, type, regtype) :
+            (name, argres) = self.lineinDoc(line)
+
+            if name.endswith('_span.firstWord') :
+                first = int(argres)
+                (name, argres) = self.lineinDoc(line+1)
+                if not name.endswith('_span.lastWord'):
+                    print 'Error: - incorrect _span ordering inside paragraph'
+                last = int(argres)
+                for wordnum in xrange(first, last):
+                    result.append(('ocr', wordnum))
+                line += 1
+
+            elif name.endswith('word.class'):
+               (cname, space) = argres.split('-',1)
+               if cname == 'spaceafter':
+                   word_class = 'sa'
+
+            elif name.endswith('word.img.src'):
+                result.append(('img' + word_class, int(argres)))
+                word_class = ''
+
+            elif name.endswith('word_semantic.firstWord'):
+                first = int(argres)
+                (name, argres) = self.lineinDoc(line+1)
+                if not name.endswith('word_semantic.lastWord'):
+                    print 'Error: - incorrect word_semantic ordering inside paragraph'
+                last = int(argres)
+                for wordnum in xrange(first, last):
+                    result.append(('ocr', wordnum))
+                line += 1
+                              
+            line += 1
+
+        return pclass, result
+                            
+
+    def buildParagraph(self, cname, pdesc, type, regtype) :
         parares = ''
         sep =''
+
         br_lb = False
         if (regtype == 'fixed') or (regtype == 'chapterheading') :
             br_lb = True
+
         handle_links = False
         if len(self.link_id) > 0:
             handle_links = True
+
         if (type == 'full') or (type == 'begin') :
             parares += '<p class="' + cname + '">'
+
         if (type == 'end'):
             parares += ' '
-        for j in xrange(first, last) :
-            word = self.ocrtext[j]
-            sep = ' '
 
-            if handle_links:
-                link = self.link_id[j]
-                if (link > 0): 
-                    title = self.link_title[link-1]
-                    if title == "": title='_link_'
-                    ptarget = self.link_page[link-1] - 1
-                    linkhtml = '<a href="#page%04d">' % ptarget
-                    linkhtml += title + '</a>'
-                    pos = parares.rfind(title)
-                    if pos >= 0:
-                        parares = parares[0:pos] + linkhtml + parares[pos+len(title):]
+        cnt = len(pdesc)
+
+        for j in xrange( 0, cnt) :
+
+            (wtype, num) = pdesc[j]
+
+            if wtype == 'ocr' :
+                word = self.ocrtext[num]
+                sep = ' '
+
+                if handle_links:
+                    link = self.link_id[num]
+                    if (link > 0): 
+                        title = self.link_title[link-1]
+                        if title == "": title='_link_'
+                        ptarget = self.link_page[link-1] - 1
+                        linkhtml = '<a href="#page%04d">' % ptarget
+                        linkhtml += title + '</a>'
+                        pos = parares.rfind(title)
+                        if pos >= 0:
+                            parares = parares[0:pos] + linkhtml + parares[pos+len(title):]
+                        else :
+                            parares += linkhtml
+                        if word == '_link_' : word = ''
+                    elif (link < 0) :
+                        if word == '_link_' : word = ''
+
+                if word == '_lb_':
+                    if (num-1) in self.dehyphen_rootid :
+                        word = ''
+                        sep = ''
+                    elif handle_links :
+                        word = ''
+                        sep = ''
+                    elif br_lb :
+                        word = '<br />\n'
+                        sep = ''
                     else :
-                        parares += linkhtml
-                    if word == '_link_' : word = ''
-                elif (link < 0) :
-                    if word == '_link_' : word = ''
+                        word = '\n'
+                        sep = ''
 
-            if word == '_lb_':
-                if (j-1) in self.dehyphen_rootid :
-                    word = ''
-                    sep = ''
-                elif handle_links :
-                    word = ''
-                    sep = ''
-                elif br_lb :
-                    word = '<br />\n'
-                    sep = ''
-                else :
-                    word = '\n'
+                if num in self.dehyphen_rootid :
+                    word = word[0:-1]
                     sep = ''
 
-            if j in self.dehyphen_rootid :
-                word = word[0:-1]
+                parares += word + sep
+
+            elif wtype == 'img' :
                 sep = ''
+                parares += '<img src="img/img%04d.jpg" alt="" />' % num
+                parares += sep
 
-            parares += word + sep
+            elif wtype == 'imgsa' :
+                sep = ' '
+                parares += '<img src="img/img%04d.jpg" alt="" />' % num
+                parares += sep
 
         if len(sep) > 0 : parares = parares[0:-1]
         if (type == 'full') or (type == 'end') :
@@ -222,7 +311,7 @@ class DocParser(object):
                     htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)
             
             elif regtype == 'chapterheading' :
-                (pclass, first, last) = self.getParaDescription(start,end)
+                (pclass, pdesc) = self.getParaDescription(start,end)
                 if not breakSet:
                     htmlpage += '<div style="page-break-after: always;">&nbsp;</div>\n'
                     breakSet = True
@@ -234,7 +323,7 @@ class DocParser(object):
                 if pclass[3:7] == 'ch2-' : tag = 'h2'
                 if pclass[3:7] == 'ch3-' : tag = 'h3'
                 htmlpage += '<' + tag + ' class="' + pclass + '">'
-                htmlpage += self.buildParagraph(pclass,first,last,'middle', regtype)
+                htmlpage += self.buildParagraph(pclass, pdesc, 'middle', regtype)
                 htmlpage += '</' + tag + '>'
 
             elif (regtype == 'text') or (regtype == 'fixed') or (regtype == 'insert') :
@@ -247,17 +336,17 @@ class DocParser(object):
                     if not anchorSet:
                         htmlpage += '<div id="' + self.id + '" class="page_' + pagetype + '">&nbsp</div>\n'
                         anchorSet = True
-                (pclass, first, last) = self.getParaDescription(start,end)
+                (pclass, pdesc) = self.getParaDescription(start,end)
                 if ptype == 'full' :
                     tag = 'p'
                     if pclass[3:6] == 'h1-' : tag = 'h4'
                     if pclass[3:6] == 'h2-' : tag = 'h5'
                     if pclass[3:6] == 'h3-' : tag = 'h6'
                     htmlpage += '<' + tag + ' class="' + pclass + '">'
-                    htmlpage += self.buildParagraph(pclass, first, last, 'middle', regtype)
+                    htmlpage += self.buildParagraph(pclass, pdesc, 'middle', regtype)
                     htmlpage += '</' + tag + '>'
                 else :
-                    htmlpage += self.buildParagraph(pclass, first, last, ptype, regtype)
+                    htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
 
 
             elif (regtype == 'tocentry') :
@@ -271,12 +360,43 @@ class DocParser(object):
                     if not anchorSet:
                         htmlpage += '<div id="' + self.id + '" class="page_' + pagetype + '">&nbsp</div>\n'
                         anchorSet = True
-                (pclass, first, last) = self.getParaDescription(start,end)
-                htmlpage += self.buildParagraph(pclass, first, last, ptype, regtype)
+                (pclass, pdesc) = self.getParaDescription(start,end)
+                htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+
+            elif regtype == 'synth_fcvr.center' :
+                if not anchorSet:
+                    htmlpage += '<div id="' + self.id + '" class="page_' + pagetype + '">&nbsp</div>\n'
+                    anchorSet = True
+                (pos, simgsrc) = self.findinDoc('img.src',start,end)
+                if simgsrc:
+                    htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)
 
             else :
-                print 'Unknown region type', regtype
-                print 'Warning: skipping this region'
+                print 'Warning: Unknown region type', regtype
+                print 'Treating this like a "fixed" region'
+                regtype = 'fixed'
+                ptype = 'full'
+                # check to see if this is a continution from the previous page
+                if (len(self.parastems_stemid) > 0):
+                    ptype = 'end'
+                    self.parastems_stemid=[]
+                else:
+                    if not anchorSet:
+                        htmlpage += '<div id="' + self.id + '" class="page_' + pagetype + '">&nbsp</div>\n'
+                        anchorSet = True
+                (pclass, desc) = self.getParaDescription(start,end)
+                if ptype == 'full' :
+                    tag = 'p'
+                    if pclass[3:6] == 'h1-' : tag = 'h4'
+                    if pclass[3:6] == 'h2-' : tag = 'h5'
+                    if pclass[3:6] == 'h3-' : tag = 'h6'
+                    htmlpage += '<' + tag + ' class="' + pclass + '">'
+                    htmlpage += self.buildParagraph(pclass, pdesc, 'middle', regtype)
+                    htmlpage += '</' + tag + '>'
+                else :
+                    htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+
+
 
         if len(self.paracont_stemid) > 0 :
             if htmlpage[-4:] == '</p>':
@@ -289,10 +409,10 @@ class DocParser(object):
 
 
 
-def convert2HTML(flatxml, fileid):
+def convert2HTML(flatxml, classlst, fileid):
 
     # create a document parser
-    dp = DocParser(flatxml, fileid)
+    dp = DocParser(flatxml, classlst, fileid)
 
     htmlpage = dp.process()
 
