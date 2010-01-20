@@ -1,0 +1,20 @@
+Changes in version 1.5
+	- completely reworked generation of styles to use actual page heights and widths
+	- added new script getpagedim.py to support the above
+	- style names with underscores in them are now properly paired with their base class
+	- fixed hanging indents that did not ever set a left margin
+	- added support for a number of not previously known region types
+	- added support for a previously unknown snippet - <empty></empty>
+	- corrected a bug that caused unknown regions to abort the program
+	- added code to make the handling of unknown regions better in general
+	- corrected a bug that caused the last link on a page to be missing (if it was the last thing on the page)
+
+Changes in version 1.3
+	- font generation by gensvg.py is now greatly improved with support for contour points added
+	- support for more region types
+	- support for inline images in paragraphs or text fields (ie. initial graphics for the first letter of a word)
+	- greatly improved dtd information used for the xml to prevent parsing mistakes
+
+Version 1.0
+	- initial release
+

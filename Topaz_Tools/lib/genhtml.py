@@ -8,7 +8,7 @@ import convert2xml
 import flatxml2html
 import decode_meta
 import stylexml2css
-
+import getpagedim
 
 def usage():
     print 'Usage: '
@@ -86,6 +86,7 @@ def main(argv):
 
     htmlstr += '<head>\n'
 
+    # process metadata and retrieve fontSize info
     print '     ', 'metadata0000.dat'
     fname = os.path.join(bookDir,'metadata0000.dat')
     xname = os.path.join(bookDir, 'metadata.txt')
@@ -100,12 +101,27 @@ def main(argv):
     if 'fontSize' in meta_array:
         fontsize = meta_array['fontSize']
 
+    # also get the size of a normal text page
+    spage = '1'
+    if 'firstTextPage' in meta_array:
+        spage = meta_array['firstTextPage']
+    pnum = int(spage)
+
+    # get page height and width from first text page for use in stylesheet scaling
+    pname = 'page%04d.dat' % pnum
+    fname = os.path.join(pageDir,pname)
+    flat_xml = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname)
+    (ph, pw) = getpagedim.getPageDim(flat_xml)
+    if (ph == '-1') : ph = 11000
+    if (pw == '-1') : pw = 8500
+
+    # now build up the style sheet
     print '     ', 'other0000.dat'
     fname = os.path.join(bookDir,'other0000.dat')
     xname = os.path.join(bookDir, 'style.css')
     xmlstr = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname)
     htmlstr += '<style>\n'
-    cssstr , classlst = stylexml2css.convert2CSS(xmlstr, fontsize)
+    cssstr , classlst = stylexml2css.convert2CSS(xmlstr, fontsize, ph, pw)
     file(xname, 'wb').write(cssstr)
     htmlstr += cssstr
     htmlstr += '</style>\n'

@@ -93,7 +93,7 @@ def convert(i):
     for j in xrange(len(val)):
         c = ord(val[j:j+1])
         result += '%02x' % c
-        return result
+    return result
 
 
 
@@ -208,6 +208,8 @@ class PageParser(object):
 
         'wordStems'          : (0, 'number', 1, 1),
         'wordStems.stemID'   : (1, 'number', 0, 0),
+
+        'empty'          : (1, 'snippets', 1, 0),
 
         'page'           : (1, 'snippets', 1, 0),
         'page.pageid'    : (1, 'scalar_text', 0, 0),
@@ -750,6 +752,7 @@ def main(argv):
 
     # read in the string table dictionary
     dict = Dictionary(dictFile)
+    # dict.dumpDict()
 
     # create a page parser
     pp = PageParser(pageFile, dict, debug, flat_xml)

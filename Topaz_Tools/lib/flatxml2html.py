@@ -90,20 +90,23 @@ class DocParser(object):
 
         # class names are an issue given topaz may start them with numerals (not allowed),
         # use a mix of cases (which cause some browsers problems), and actually
-        # attach numbers after "_reclustered*" to the end to deal with reflow issues
-        # but then not actually provide all of these _reclustereed classes in the stylesheet!
+        # attach numbers after "_reclustered*" to the end to deal classeses that inherit
+        # from a base class (but then not actually provide all of these _reclustereed 
+        # classes in the stylesheet!
 
-        # so we clean this up by lowercasing, prepend 'cl_', and if not in the class
-        # list from the stylesheet, trying once more with "_reclustered*" removed
-        # if still not in stylesheet, let it pass as is
+        # so we clean this up by lowercasing, prepend 'cl_', and getting any baseclass
+        # that exists in the stylesheet first, and then adding this specific class
+        # after
+        classres = ''
         pclass = pclass.lower()
-        pclass = 'cl_' + pclass
-        if pclass not in self.classList:
-            p = pclass.find('_reclustered')
-            if p > 0 : 
-                baseclass = pclass[0:p]
-                if baseclass in self.classList:
-                    pclass = baseclass
+        pclass = 'cl-' + pclass
+        p = pclass.find('_')
+        if p > 0 :
+            baseclass = pclass[0:p]
+            if baseclass in self.classList:
+                classres += baseclass + ' '
+        classres += pclass
+        pclass = classres
 
         # build up a description of the paragraph in result and return it
         # first check for the  basic - all words paragraph
@@ -123,6 +126,12 @@ class DocParser(object):
         line = start + 1
         word_class = ''
 
+        # if end is -1 then we must search to end of document
+        if end == -1 :
+            docList = self.flatdoc
+            cnt = len(docList)
+            end = cnt
+
         while (line < end) :
 
             (name, argres) = self.lineinDoc(line)
@@ -139,7 +148,8 @@ class DocParser(object):
 
             elif name.endswith('word.class'):
                (cname, space) = argres.split('-',1)
-               if cname == 'spaceafter':
+               if space == '' : space = '0'
+               if (cname == 'spaceafter') and (int(space) > 0) :
                    word_class = 'sa'
 
             elif name.endswith('word.img.src'):
@@ -166,7 +176,7 @@ class DocParser(object):
         sep =''
 
         br_lb = False
-        if (regtype == 'fixed') or (regtype == 'chapterheading') :
+        if (regtype == 'fixed') or (regtype == 'chapterheading'):
             br_lb = True
 
         handle_links = False
@@ -193,7 +203,8 @@ class DocParser(object):
                     link = self.link_id[num]
                     if (link > 0): 
                         title = self.link_title[link-1]
-                        if title == "": title='_link_'
+                        if (title == "") or (parares.rfind(title) < 0): 
+                            title='_link_'
                         ptarget = self.link_page[link-1] - 1
                         linkhtml = '<a href="#page%04d">' % ptarget
                         linkhtml += title + '</a>'
@@ -326,7 +337,7 @@ class DocParser(object):
                 htmlpage += self.buildParagraph(pclass, pdesc, 'middle', regtype)
                 htmlpage += '</' + tag + '>'
 
-            elif (regtype == 'text') or (regtype == 'fixed') or (regtype == 'insert') :
+            elif (regtype == 'text') or (regtype == 'fixed') or (regtype == 'insert') or (regtype == 'listitem') :
                 ptype = 'full'
                 # check to see if this is a continution from the previous page
                 if (len(self.parastems_stemid) > 0):
@@ -347,7 +358,6 @@ class DocParser(object):
                     htmlpage += '</' + tag + '>'
                 else :
                     htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
-
 
             elif (regtype == 'tocentry') :
                 ptype = 'full'
@@ -363,7 +373,7 @@ class DocParser(object):
                 (pclass, pdesc) = self.getParaDescription(start,end)
                 htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
 
-            elif regtype == 'synth_fcvr.center' :
+            elif (regtype == 'synth_fcvr.center') or (regtype == 'synth_text.center'):
                 if not anchorSet:
                     htmlpage += '<div id="' + self.id + '" class="page_' + pagetype + '">&nbsp</div>\n'
                     anchorSet = True
@@ -373,30 +383,38 @@ class DocParser(object):
 
             else :
                 print 'Warning: Unknown region type', regtype
-                print 'Treating this like a "fixed" region'
-                regtype = 'fixed'
-                ptype = 'full'
-                # check to see if this is a continution from the previous page
-                if (len(self.parastems_stemid) > 0):
-                    ptype = 'end'
-                    self.parastems_stemid=[]
-                else:
+                (pos, temp) = self.findinDoc('paragraph',start,end)
+                if temp:
+                    print 'Treating this like a "text" region'
+                    regtype = 'fixed'
+                    ptype = 'full'
+                    # check to see if this is a continution from the previous page
+                    if (len(self.parastems_stemid) > 0):
+                        ptype = 'end'
+                        self.parastems_stemid=[]
+                    else:
+                        if not anchorSet:
+                            htmlpage += '<div id="' + self.id + '" class="page_' + pagetype + '">&nbsp</div>\n'
+                            anchorSet = True
+                    (pclass, pdesc) = self.getParaDescription(start,end)
+                    if ptype == 'full' :
+                        tag = 'p'
+                        if pclass[3:6] == 'h1-' : tag = 'h4'
+                        if pclass[3:6] == 'h2-' : tag = 'h5'
+                        if pclass[3:6] == 'h3-' : tag = 'h6'
+                        htmlpage += '<' + tag + ' class="' + pclass + '">'
+                        htmlpage += self.buildParagraph(pclass, pdesc, 'middle', regtype)
+                        htmlpage += '</' + tag + '>'
+                    else :
+                        htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+                else :
+                    print 'Treating this like a "image" region'
                     if not anchorSet:
                         htmlpage += '<div id="' + self.id + '" class="page_' + pagetype + '">&nbsp</div>\n'
                         anchorSet = True
-                (pclass, desc) = self.getParaDescription(start,end)
-                if ptype == 'full' :
-                    tag = 'p'
-                    if pclass[3:6] == 'h1-' : tag = 'h4'
-                    if pclass[3:6] == 'h2-' : tag = 'h5'
-                    if pclass[3:6] == 'h3-' : tag = 'h6'
-                    htmlpage += '<' + tag + ' class="' + pclass + '">'
-                    htmlpage += self.buildParagraph(pclass, pdesc, 'middle', regtype)
-                    htmlpage += '</' + tag + '>'
-                else :
-                    htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
-
-
+                    (pos, simgsrc) = self.findinDoc('img.src',start,end)
+                    if simgsrc:
+                        htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)
 
         if len(self.paracont_stemid) > 0 :
             if htmlpage[-4:] == '</p>':

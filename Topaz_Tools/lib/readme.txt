@@ -3,7 +3,8 @@ Contributors:
      clarknova - for all of the svg and glyph generation and many other bug fixes and improvements
      skindle - for figuing out the general case for the mode loops
      some updates -  for conversion to xml, basic html
-     DiapDealer - for extensive testing and feeback
+     DiapDealer - for extensive testing and feedback
+     stewball - for extensive testing and feedback
 
 and others for posting, feedback and testing
   
@@ -23,12 +24,13 @@ decode_meta.py - converts metadata0000.dat to human readable text (for the most 
 convert2xml.py - converts page*.dat, other*.dat, and glyphs*.dat files to pseudo xml descriptions
 flatxml2html.py - converts a "flattened" xml description to html using the ocrtext
 stylexml2css.py - converts stylesheet "flattened" xml into css (as best it can)
+getpagedim.py - reads page0000.dat to get the book height and width parameters
 genxml.py - main program to convert everything to xml
 genhtml.py - main program to generate "book.html"
 gensvg.py - (author: clarknova) main program to create an svg grpahic of each page
 
 Please note, gensvg.py, genhtml.py, and genxml.py import and use
-decode_meta.py, convert2xml.py, flatxml2html.py, and stylexml2css.py 
+decode_meta.py, convert2xml.py, flatxml2html.py, getpagedim.py and stylexml2css.py 
 so please keep all of these python scripts together in the same place.
 
 

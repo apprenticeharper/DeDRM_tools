@@ -11,9 +11,11 @@ from struct import unpack
 
 
 class DocParser(object):
-    def __init__(self, flatxml, fontsize):
+    def __init__(self, flatxml, fontsize, ph, pw):
         self.flatdoc = flatxml.split('\n')
         self.fontsize = int(fontsize)
+        self.ph = int(ph) * 1.0
+        self.pw = int(pw) * 1.0
 
     stags = {
         'paragraph' : 'p',
@@ -106,14 +108,14 @@ class DocParser(object):
                 # get the style class
                 (pos, sclass) = self.findinDoc('style.class',start,end)
                 if sclass != None:
-                    sclass = '.cl_' + sclass.lower()
+                    sclass = '.cl-' + sclass.lower()
                 else : 
                     sclass = ''
 
                 # check for any "after class" specifiers
                 (pos, aftclass) = self.findinDoc('style._after_class',start,end)
                 if aftclass != None:
-                    aftclass = '.cl_' + aftclass.lower()
+                    aftclass = '.cl-' + aftclass.lower()
                 else : 
                     aftclass = ''
 
@@ -121,8 +123,8 @@ class DocParser(object):
 
                 while True :
 
-                    (pos, attr) = self.findinDoc('style.rule.attr', start, end)
-                    (pos, val) = self.findinDoc('style.rule.value', start, end)
+                    (pos1, attr) = self.findinDoc('style.rule.attr', start, end)
+                    (pos2, val) = self.findinDoc('style.rule.value', start, end)
 
                     if attr == None : break
                     
@@ -135,27 +137,33 @@ class DocParser(object):
                         # handle value based attributes
                         if attr in self.attr_val_map :
                             name = self.attr_val_map[attr]
-                            scale = self.fontsize
-                            if attr == 'line-space': scale = scale * 1.41
+                            if attr in ('margin-bottom', 'margin-top', 'space-after') :
+                                scale = self.ph
+                            elif attr in ('margin-right', 'indent', 'margin-left', 'hang') :
+                                scale = self.pw
+                            elif attr == 'line-space':
+                                scale = self.fontsize * 2.0
+
                             if not ((attr == 'hang') and (int(val) == 0)) :
-                                ems = int(val)/scale
-                                cssargs[attr] = (self.attr_val_map[attr], ems)
+                                pv = float(val)/scale
+                                cssargs[attr] = (self.attr_val_map[attr], pv)
                                 keep = True
 
-                    start = pos + 1
+                    start = max(pos1, pos2) + 1
 
                 # disable all of the after class tags until I figure out how to handle them
                 if aftclass != "" : keep = False
 
                 if keep :
-                    # make sure line-space does not go below 1em
+                    # make sure line-space does not go below 100% or above 300% since 
+                    # it can be wacky in some styles
                     if 'line-space' in cssargs:
                         seg = cssargs['line-space'][0]
                         val = cssargs['line-space'][1]
                         if val < 1.0: val = 1.0
+                        if val > 3.0: val = 3.0
                         del cssargs['line-space']
                         cssargs['line-space'] = (self.attr_val_map['line-space'], val)
-
 
                     
                     # handle modifications for css style hanging indents
@@ -166,11 +174,13 @@ class DocParser(object):
                         cssargs['hang'] = (self.attr_val_map['hang'], -hval)
                         mval = 0
                         mseg = 'margin-left: '
+                        mval = hval
                         if 'margin-left' in cssargs:
                             mseg = cssargs['margin-left'][0]
                             mval = cssargs['margin-left'][1]
+                            if mval < 0: mval = 0
                             mval = hval + mval
-                            cssargs['margin-left'] = (mseg, mval)
+                        cssargs['margin-left'] = (mseg, mval)
                         if 'indent' in cssargs:
                             del cssargs['indent']
 
@@ -181,7 +191,7 @@ class DocParser(object):
                         if mval == '':
                             cssline += mseg + ' '
                         else :
-                            aseg = mseg + '%.1fem;' % mval
+                            aseg = mseg + '%.1f%%;' % (mval * 100.0)
                             cssline += aseg + ' '
 
                     cssline += '}'
@@ -213,10 +223,14 @@ class DocParser(object):
 
 
 
-def convert2CSS(flatxml, fontsize):
+def convert2CSS(flatxml, fontsize, ph, pw):
+
+    print '          ', 'Using font size:',fontsize
+    print '          ', 'Using page height:', ph
+    print '          ', 'Using page width:', pw
 
     # create a document parser
-    dp = DocParser(flatxml, fontsize)
+    dp = DocParser(flatxml, fontsize, ph, pw)
 
     csspage = dp.process()
 
