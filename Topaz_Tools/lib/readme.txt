@@ -3,7 +3,7 @@ Contributors:
      clarknova - for all of the svg and glyph generation and many other bug fixes and improvements
      skindle - for figuing out the general case for the mode loops
      some updates -  for conversion to xml, basic html
-     DiapDealer - for extensive testing and feedback
+     DiapDealer - for extensive testing and feedback, and standalone linux/macosx version of cmbtc_dump
      stewball - for extensive testing and feedback
 
 and others for posting, feedback and testing
@@ -28,6 +28,17 @@ getpagedim.py - reads page0000.dat to get the book height and width parameters
 genxml.py - main program to convert everything to xml
 genhtml.py - main program to generate "book.html"
 gensvg.py - (author: clarknova) main program to create an svg grpahic of each page
+
+
+In addition there is now a new file:
+
+cmbtc_dump_mac_linux.py  
+
+If you know the pid of your ipod and/or your standalone Kindle and your book
+was meant for that device, you can use this program to dump the proper sections
+on Mac OSX and Linux (and even Windows if you do not have Kindle4PC installed).
+Thank DiapDealer for creating it!
+
 
 Please note, gensvg.py, genhtml.py, and genxml.py import and use
 decode_meta.py, convert2xml.py, flatxml2html.py, getpagedim.py and stylexml2css.py 

@@ -1,3 +1,8 @@
+Changes in version 1.6
+	- support for books whose paragraphs have no styles
+	- support to run cmbtc_dump on Linux and Mac OSX provided you know your PID of your ipod or standalone Kindle
+	 (contributed by DiapDealer)
+
 Changes in version 1.5
 	- completely reworked generation of styles to use actual page heights and widths
 	- added new script getpagedim.py to support the above
