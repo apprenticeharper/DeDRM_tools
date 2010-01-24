@@ -19,25 +19,16 @@ Here are the steps:
 1. Unzip the topazscripts.zip file to get the full set of python scripts.
 The files you should have after unzipping are:
 
-cmbtc_dump.py - (author: cmbtc) unencrypts and dumps sections into separate files
-decode_meta.py - converts metadata0000.dat to human readable text (for the most part)
+cmbtc_dump.py - (author: cmbtc) unencrypts and dumps sections into separate files for Kindle for PC
+cmbtc_dump_nonK4PC.py - (author - DiapDealer) for use with standalone Kindle and ipod/iphone topaz books
+decode_meta.py - converts metadata0000.dat to make it available
 convert2xml.py - converts page*.dat, other*.dat, and glyphs*.dat files to pseudo xml descriptions
 flatxml2html.py - converts a "flattened" xml description to html using the ocrtext
 stylexml2css.py - converts stylesheet "flattened" xml into css (as best it can)
 getpagedim.py - reads page0000.dat to get the book height and width parameters
 genxml.py - main program to convert everything to xml
 genhtml.py - main program to generate "book.html"
-gensvg.py - (author: clarknova) main program to create an svg grpahic of each page
-
-
-In addition there is now a new file:
-
-cmbtc_dump_mac_linux.py  
-
-If you know the pid of your ipod and/or your standalone Kindle and your book
-was meant for that device, you can use this program to dump the proper sections
-on Mac OSX and Linux (and even Windows if you do not have Kindle4PC installed).
-Thank DiapDealer for creating it!
+gensvg.py - (author: clarknova) main program to create an xhmtl page with embedded svg graphics
 
 
 Please note, gensvg.py, genhtml.py, and genxml.py import and use
@@ -52,7 +43,19 @@ of its contents as files
 All Thanks go to CMBTC who broke the DRM for Topaz - without it nothing else 
 would be possible
 
+If you purchased the book for Kindle For PC, you must do the following:
+
    cmbtc_dump.py -d -o TARGETDIR [-p pid] YOURTOPAZBOOKNAMEHERE
+
+
+However, if you purchased the book for a standalone Kindle or ipod/iphone 
+and you know your pid (at least the first 8 characters) then you should 
+instead do the following
+
+   cmbtc_dump_nonK4PC.py -d -o TARGETDIR -p 12345678 YOURTOPAZBOOKNAMEHERE
+
+where 12345678 should be replaced by the first 8 characters of your PID
+
 
 This should create a directory called "TARGETDIR" in your current directory.  
 It should have the following files in it:
@@ -64,35 +67,48 @@ page - directory filled with page*.dat files
 glyphs - directory filled with glyphs*.dat files
 
 
+3. REQUIRED: Create xhtml page descriptions with embedded svg
+that show the exact representation of each page as an image
+with proper glyphs and positioning.
 
-3. Convert the files in "TARGETDIR" to their xml descriptions
-which can be found in TARGETDIR/xml/ upon completion.
+The step must NOW be done BEFORE attempting conversion to html
 
-   genxml.py TARGETDIR
+   gensvg.py TARGETDIR
+
+When complete, use a web-browser to open the page*.xhtml files
+in TARGETDIR/svg/ to see what the book really looks like.
+
+All thanks go to CLARKNOVA for this program.  This program is 
+needed to actually see the true image of each page and so that
+the next step can properly create images from glyphs for 
+monograms, dropcaps and tables.
 
 
-
-4. Create book.html which can be found in "TARGETDIR" after 
-completion.  This html conversion can not fully capture 
-all of the layouts actually used in the book and needs to 
-be edited to include special font handling such as bold 
-or italics that can not be determined from the ocrText
-information or the style information.  If you want to 
-see things exactly as they were, see step 5 below.
+4. Create "book.html" which can be found in "TARGETDIR" after 
+completion.  
 
    genhtml.py TARGETDIR
 
 
+***IMPORTANT NOTE***  This html conversion can not fully capture 
+all of the layouts and styles actually used in the book
+and the resulting html will need to be edited by hand to 
+properly set bold and/or italics, handle font size changes,
+and to fix the sometimes horiffic mistakes in the ocrText
+used to create the html.  
 
-5. Create an svg description of each page which can
-be found in TARGETDIR/svg/ upon completion.
+FYI: Sigil is a wonderful, free cross-
+platform program that can be used to edit the html and 
+create an epub if you so desire.
 
-All thanks go to CLARKNOVA for this program.  This program is 
-needed to actually see the true image of each page so that hand
-editing of the html created by step 4 can be done.  
 
-Or use the resulting svg files to read each page of the book
-exactly as it has been laid out originally.
+5. Optional Step:  Convert the files in "TARGETDIR" to their 
+xml descriptions which can be found in TARGETDIR/xml/ 
+upon completion.
 
-   gensvg.py TARGETDIR
+   genxml.py TARGETDIR
+
+
+These conversions are important for allowing future (and better)
+conversions to come later.
 

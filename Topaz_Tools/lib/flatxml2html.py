@@ -1,21 +1,27 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+# For use with Topaz Scripts Version 1.8                                                                                                  
 
 from __future__ import with_statement
 import csv
 import sys
 import os
+import math
 import getopt
 from struct import pack
 from struct import unpack
 
 
 class DocParser(object):
-    def __init__(self, flatxml, classlst, fileid):
+    def __init__(self, flatxml, classlst, fileid, bookDir):
         self.id = os.path.basename(fileid).replace('.dat','')
+        self.svgcount = 0
         self.docList = flatxml.split('\n')
         self.docSize = len(self.docList)
         self.classList = {}
+        self.bookDir = bookDir
+        self.glyphPaths = { }
+        self.numPaths = 0
         tmpList = classlst.split('\n')
         for pclass in tmpList:
             if pclass != '':
@@ -29,6 +35,107 @@ class DocParser(object):
         self.dehyphen_rootid = []
         self.paracont_stemid = []
         self.parastems_stemid = []
+
+
+    def getGlyph(self, gid):
+        result = ''
+        id='gl%d' % gid
+        return self.glyphPaths[id]
+
+
+    def glyphs_to_image(self, glyphList):
+
+        def extract(path, key):
+            b = path.find(key) + len(key)
+            e = path.find(' ',b)
+            return int(path[b:e])
+
+        def extractID(path, key):
+            b = path.find(key) + len(key)
+            e = path.find('"',b)
+            return path[b:e]
+            
+
+        svgDir = os.path.join(self.bookDir,'svg')
+        glyfile = os.path.join(svgDir,'glyphs.svg')
+
+        imgDir = os.path.join(self.bookDir,'img')
+        imgname = self.id + '_%04d.svg' % self.svgcount
+        imgfile = os.path.join(imgDir,imgname)
+
+        # build hash table of glyph paths keyed by glyph id
+        if self.numPaths == 0:
+            gfile = open(glyfile, 'r')
+            while True:
+                path = gfile.readline()
+                if (path == ''): break
+                glyphid = extractID(path,'id="')
+                self.glyphPaths[glyphid] = path
+                self.numPaths += 1
+            gfile.close()
+
+
+        # get glyph information
+        gxList = self.getData('info.glyph.x',0,-1)
+        gyList = self.getData('info.glyph.y',0,-1)
+        gidList = self.getData('info.glyph.glyphID',0,-1)
+
+        gids = []
+        maxws = []
+        maxhs = []
+        xs = []
+        ys = []
+        gdefs = []
+
+        # get path defintions, positions, dimensions for ecah glyph 
+        # that makes up the image, and find min x and min y to reposition origin
+        minx = -1
+        miny = -1
+        for j in glyphList:
+            gid = gidList[j]
+            gids.append(gid)
+
+            xs.append(gxList[j])
+            if minx == -1: minx = gxList[j]
+            else : minx = min(minx, gxList[j])
+ 
+            ys.append(gyList[j])
+            if miny == -1: miny = gyList[j]
+            else : miny = min(miny, gyList[j])
+
+            path = self.getGlyph(gid)
+            gdefs.append(path)
+
+            maxws.append(extract(path,'width='))
+            maxhs.append(extract(path,'height='))
+
+
+        # change the origin to minx, miny and calc max height and width
+        maxw = maxws[0] + xs[0] - minx
+        maxh = maxhs[0] + ys[0] - miny
+        for j in xrange(0, len(xs)):
+            xs[j] = xs[j] - minx
+            ys[j] = ys[j] - miny
+            maxw = max( maxw, (maxws[j] + xs[j]) )
+            maxh = max( maxh, (maxhs[j] + ys[j]) )
+
+        # open the image file for output
+        ifile = open(imgfile,'w')
+        ifile.write('<?xml version="1.0" standalone="no"?>\n')
+        ifile.write('<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n')
+        ifile.write('<svg width="%dpx" height="%dpx" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">\n' % (math.floor(maxw/10), math.floor(maxh/10), maxw, maxh))
+        ifile.write('<defs>\n')
+        for j in xrange(0,len(gdefs)):
+            ifile.write(gdefs[j])
+        ifile.write('</defs>\n')
+        for j in xrange(0,len(gids)):
+            ifile.write('<use xlink:href="#gl%d" x="%d" y="%d" />\n' % (gids[j], xs[j], ys[j]))
+        ifile.write('</svg>')
+        ifile.close()
+
+        return 0
+
+
 
     # return tag at line pos in document
     def lineinDoc(self, pos) :
@@ -77,6 +184,17 @@ class DocParser(object):
         return startpos
 
 
+    # returns a vector of integers for the tagpath
+    def getData(self, tagpath, pos, end):
+        argres=[]
+        (foundat, argt) = self.findinDoc(tagpath, pos, end)
+        if (argt != None) and (len(argt) > 0) :
+            argList = argt.split('|')
+            argres = [ int(strval) for strval in argList]
+        return argres
+
+
+
     # build a description of the paragraph
     def getParaDescription(self, start, end):
 
@@ -120,6 +238,7 @@ class DocParser(object):
         # this type of paragrph may be made up of multiple _spans, inline 
         # word monograms (images) and words with semantic meaning
         # and now a new type "span" versus the old "_span"
+        # plus glyphs used to form starting letter of first word
         
         # need to parse this type line by line
         line = start + 1
@@ -141,6 +260,21 @@ class DocParser(object):
                 last = int(argres)
                 for wordnum in xrange(first, last):
                     result.append(('ocr', wordnum))
+                line += 1
+
+            elif name.endswith('word.firstGlyph') :
+                first = int(argres)
+                (name, argres) = self.lineinDoc(line+1)
+                if not name.endswith('word.lastGlyph'):
+                    print 'Error: - incorrect glyph ordering inside word in paragraph'
+                last = int(argres)
+                glyphList = []
+                for glyphnum in xrange(first, last):
+                    glyphList.append(glyphnum)
+                num = self.svgcount
+                self.glyphs_to_image(glyphList)
+                self.svgcount += 1
+                result.append(('svg', num))
                 line += 1
 
             elif name.endswith('word.class'):
@@ -241,6 +375,11 @@ class DocParser(object):
                 parares += '<img src="img/img%04d.jpg" alt="" />' % num
                 parares += sep
 
+            elif wtype == 'svg' :
+                sep = ''
+                parares += '<img src="img/' + self.id + '_%04d.svg" alt="" />' % num 
+                parares += sep
+
         if len(sep) > 0 : parares = parares[0:-1]
         if (type == 'full') or (type == 'end') :
             parares += '</p>'
@@ -260,10 +399,7 @@ class DocParser(object):
         if argres :  self.ocrtext = argres.split('|')
 
         # get information to dehyphenate the text
-        (pos, argres) = self.findinDoc('info.dehyphen.rootID',0,-1)
-        if argres: 
-            argList = argres.split('|')
-            self.dehyphen_rootid = [ int(strval) for strval in argList]
+        self.dehyphen_rootid = self.getData('info.dehyphen.rootID',0,-1)
 
         # determine if first paragraph is continued from previous page
         (pos, self.parastems_stemid) = self.findinDoc('info.paraStems.stemID',0,-1)
@@ -274,16 +410,10 @@ class DocParser(object):
         last_para_continued = (self.paracont_stemid != None)
 
         # collect link ids
-        (pos, argres) = self.findinDoc('info.word.link_id',0,-1)
-        if argres:
-            argList = argres.split('|')
-            self.link_id = [ int(strval) for strval in argList]
+        self.link_id = self.getData('info.word.link_id',0,-1)
 
         # collect link destination page numbers
-        (pos, argres) = self.findinDoc('info.links.page',0,-1)
-        if argres :
-            argList = argres.split('|')
-            self.link_page = [ int(strval) for strval in argList]
+        self.link_page = self.getData('info.links.page',0,-1)
 
         # collect link titles
         (pos, argres) = self.findinDoc('info.links.title',0,-1)
@@ -382,22 +512,44 @@ class DocParser(object):
 
 
             elif (regtype == 'table') :
-                ptype = 'full'
-                if first_para_continued :
-                    ptype = 'end'
-                    first_para_continued = False
-                (pclass, pdesc) = self.getParaDescription(start,end)
-                htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
-                print "Warnings - Table Conversions are notoriously poor"
-                print "Strongly recommend taking a screen capture image of the "
-                print "table in %s.svg and using it to replace this attempt at a table" % self.id
-
+                # translate first and last word into first and last glyphs
+                # and generate table as an image and include a link to it
+                glyphList = []
+                (pos, sfirst) = self.findinDoc('paragraph.firstWord',start,end)
+                (pos, slast) = self.findinDoc('paragraph.lastWord',start,end)
+                firstglyphList = self.getData('word.firstGlyph',0,-1)
+                gidList = self.getData('info.glyph.glyphID',0,-1)
+                if (sfirst != None) and (slast != None) :
+                    first = int(sfirst)
+                    last = int(slast)
+                    firstGlyph = firstglyphList[first]
+                    if last < len(firstglyphList):
+                        lastGlyph = firstglyphList[last]
+                    else :
+                        lastGlyph = len(gidList)
+                    for glyphnum in xrange(firstGlyph, lastGlyph):
+                        glyphList.append(glyphnum)
+                    num = self.svgcount
+                    self.glyphs_to_image(glyphList)
+                    self.svgcount += 1
+                    htmlpage += '<div class="graphic"><img src="img/' + self.id + '_%04d.svg" alt="" /></div>' % num
+                else :
+                    ptype = 'full'
+                    if first_para_continued :
+                        ptype = 'end'
+                        first_para_continued = False
+                        (pclass, pdesc) = self.getParaDescription(start,end)
+                        htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+                        print " "
+                        print "Warning: - Table Conversions are notoriously poor"
+                        print "    Strongly recommend taking a screen capture image of the "
+                        print "    table in %s.svg and using it to replace this attempt at a table" % self.id
+                        print " "
 
             elif (regtype == 'synth_fcvr.center') or (regtype == 'synth_text.center'):
                 (pos, simgsrc) = self.findinDoc('img.src',start,end)
                 if simgsrc:
                     htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)
-
 
             else :
                 print 'Warning: region type', regtype
@@ -437,10 +589,10 @@ class DocParser(object):
 
 
 
-def convert2HTML(flatxml, classlst, fileid):
+def convert2HTML(flatxml, classlst, fileid, bookDir):
 
     # create a document parser
-    dp = DocParser(flatxml, classlst, fileid)
+    dp = DocParser(flatxml, classlst, fileid, bookDir)
 
     htmlpage = dp.process()
 

@@ -1,5 +1,6 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+# For use with Topaz Scripts Version 1.8                                                                                                  
 
 import os, sys, getopt
 
@@ -65,6 +66,12 @@ def main(argv):
         print "Can not find image directory in unencrypted book"
         sys.exit(-1)
 
+    svgDir = os.path.join(bookDir,'svg')
+    if not os.path.exists(svgDir) :
+        print "Can not find svg directory in unencrypted book"
+        print "please run gensvg.py before running genhtml.py"
+        sys.exit(-1)
+
     otherFile = os.path.join(bookDir,'other0000.dat')
     if not os.path.exists(otherFile) :
         print "Can not find other0000.dat in unencrypted book"
@@ -74,7 +81,6 @@ def main(argv):
     if not os.path.exists(metaFile) :
         print "Can not find metadata0000.dat in unencrypted book"
         sys.exit(-1)
-
 
     htmlFileName = "book.html"
     htmlstr = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n'
@@ -133,7 +139,7 @@ def main(argv):
         print '     ', filename
         fname = os.path.join(pageDir,filename)
         flat_xml = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname) 
-        htmlstr += flatxml2html.convert2HTML(flat_xml, classlst, fname)
+        htmlstr += flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir)
 
     htmlstr += '</body>\n</html>\n'
 

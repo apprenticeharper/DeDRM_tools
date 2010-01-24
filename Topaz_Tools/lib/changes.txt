@@ -1,3 +1,22 @@
+Changes in version 1.8
+
+	- gensvg.py now builds wonderful xhtml pages with embedded svg 
+	    that can be easily paged through as if reading a book!
+	    (tested in Safari for Mac and Win and Firefox)
+	    (requires javascript to be enabled)
+
+	- genhtml.py now REQUIRES that gensvg.py be run FIRST
+	     this allows create of images on the fly from glyphs
+
+	- genhtml.py now automatically makes tables of words into svg
+	     based images and will handle glyph based ornate first 
+	     letters of words
+
+	- cmbtc_dump_mac_linux.py has been renamed to be
+	     cmbtc_dump_nonK4PC.py to make it clearer
+	     when it needs to be used
+	
+
 Changes in version 1.7
 	- gensvg.py has been improved so that the glyphs render exactly (ClarkNova)
 	- gensvg.py has fixed a render order "bug" that allowed some images to cover or hide text. (ClarkNova)
@@ -5,7 +24,6 @@ Changes in version 1.7
 	- add missing <title> tag
 	- make xhtml compliant doctype and minor changes to write correct xhtml
 	- make divs that act as anchors be hidden visually and to take up 0 height and 0 width to prevent any impact on layout
-	- added support for new version of the <_span> tag called <span>
 
 Changes in version 1.6
 	- support for books whose paragraphs have no styles

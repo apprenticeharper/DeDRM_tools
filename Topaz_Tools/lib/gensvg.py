@@ -1,11 +1,11 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+# For use with Topaz Scripts Version 1.8                                                                                                  
 
 import os, sys, getopt
 
 # local routines
 import convert2xml
-import flatxml2html
 import decode_meta
 
 
@@ -44,6 +44,13 @@ class GParser(object):
          for j in xrange(0,len(argres)):
              argres[j] = int(argres[j])
      return result
+
+
+ def getGlyphDim(self, gly):
+     maxh = (self.gh[gly] * self.dpi) / self.gdpi[gly]
+     maxw = (self.gw[gly] * self.dpi) / self.gdpi[gly]
+     return maxh, maxw
+     
 
  def getPath(self, gly):
      path = ''
@@ -172,8 +179,10 @@ class PParser(object):
 def usage():
  print 'Usage: '
  print ' '
- print '   gensvg.py unencryptedBookDir'
+ print '   gensvg.py [options] unencryptedBookDir'
  print '  '
+ print '   -x : output browseable XHTML+SVG pages (default)'
+ print '   -r : output raw SVG images'
 
 
 def main(argv):
@@ -185,7 +194,7 @@ def main(argv):
      argv = argv.split()
 
  try:
-     opts, args = getopt.getopt(argv[1:], "h:")
+     opts, args = getopt.getopt(argv[1:], "xrh")
 
  except getopt.GetoptError, err:
      print str(err)
@@ -196,10 +205,15 @@ def main(argv):
      usage()
      sys.exit(2) 
 
+ raw = 0
  for o, a in opts:
      if o =="-h":
          usage()
          sys.exit(0)
+     if o =="-x":
+         raw = 0
+     if o =="-r":
+         raw = 1
 
  bookDir = args[0]
 
@@ -264,7 +278,9 @@ def main(argv):
      gp = GParser(flat_xml)
      for i in xrange(0, gp.count):
          path = gp.getPath(i)
-         glyfile.write('<path id="gl%d" d="%s" fill="black" />\n' % (counter * 256 + i, path))
+         maxh, maxw = gp.getGlyphDim(i)
+         # glyfile.write('<path id="gl%d" d="%s" fill="black" />\n' % (counter * 256 + i, path))
+         glyfile.write('<path id="gl%d" d="%s" fill="black" /><!-- width=%d height=%d -->\n' % (counter * 256 + i, path, maxw, maxh ))
      counter += 1
  glyfile.write('</defs>\n')
  glyfile.write('</svg>\n')
@@ -274,7 +290,7 @@ def main(argv):
 
  # Books are at 1440 DPI.  This is rendering at twice that size for
  # readability when rendering to the screen.  
- scaledpi = 720
+ scaledpi = 1440
  filenames = os.listdir(pageDir)
  filenames = sorted(filenames)
  counter = 0
@@ -283,11 +299,45 @@ def main(argv):
      fname = os.path.join(pageDir,filename)
      flat_xml = convert2xml.main('convert2xml.py --flat-xml ' + dictFile + ' ' + fname) 
      pp = PParser(flat_xml)
-     pfile = open(os.path.join(svgDir,filename.replace('.dat','.svg')), 'w')
+     if (raw) :
+         pfile = open(os.path.join(svgDir,filename.replace('.dat','.svg')), 'w')
+     else :
+         pfile = open(os.path.join(svgDir,'page%04d.xhtml' % counter), 'w')
+
      pfile.write('<?xml version="1.0" standalone="no"?>\n')
-     pfile.write('<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n')
-     pfile.write('<svg width="%fin" height="%fin" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">\n' % (pp.pw / scaledpi, pp.ph / scaledpi, pp.pw -1, pp.ph -1))
-     pfile.write('<title>Page %d - %s by %s</title>\n' % (counter, metadata['Title'],metadata['Authors']))
+     if (raw):
+         pfile.write('<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n')
+         pfile.write('<svg width="%fin" height="%fin" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">\n' % (pp.pw / scaledpi, pp.ph / scaledpi, pp.pw -1, pp.ph -1))
+         pfile.write('<title>Page %d - %s by %s</title>\n' % (counter, metadata['Title'],metadata['Authors']))
+     else:
+         pfile.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n');
+         pfile.write('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" ><head>\n');
+         pfile.write('<title>Page %d - %s by %s</title>\n' % (counter, metadata['Title'],metadata['Authors']))
+         pfile.write('<script><![CDATA[\n');
+         pfile.write('function gd(){var p=window.location.href.replace(/^.*\?dpi=(\d+).*$/i,"$1");return p;}\n');
+         pfile.write('var dpi=%d;\n' % scaledpi);
+         if (counter) :
+            pfile.write('var prevpage="page%04d.xhtml";\n' % (counter - 1))
+         if (counter < len(filenames)-1) :
+            pfile.write('var nextpage="page%04d.xhtml";\n' % (counter + 1))
+         pfile.write('var pw=%d;var ph=%d;' % (pp.pw, pp.ph))
+         pfile.write('function zoomin(){dpi=dpi*(2/3);setsize();}\n')
+         pfile.write('function zoomout(){dpi=dpi*1.5;setsize();}\n')
+         pfile.write('function setsize(){var svg=document.getElementById("svgimg");var prev=document.getElementById("prevsvg");var next=document.getElementById("nextsvg");var width=(pw/dpi)+"in";var height=(ph/dpi)+"in";svg.setAttribute("width",width);svg.setAttribute("height",height);prev.setAttribute("height",height);prev.setAttribute("width","50px");next.setAttribute("height",height);next.setAttribute("width","50px");}\n')
+         pfile.write('function ppage(){window.location.href=prevpage+"?dpi="+Math.round(dpi);}\n')
+         pfile.write('function npage(){window.location.href=nextpage+"?dpi="+Math.round(dpi);}\n')
+         pfile.write('var gt=gd();if(gt>0){dpi=gt;}\n')
+         pfile.write('window.onload=setsize;\n')
+         pfile.write(']]></script>\n')
+         pfile.write('</head>\n')
+         pfile.write('<body onLoad="setsize();" style="background-color:#777;text-align:center;">\n')
+         pfile.write('<div style="white-space:nowrap;">\n')
+         if (counter == 0) :
+             pfile.write('<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n')
+         else:
+             pfile.write('<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,150,95,5,95,295" fill="#AAAAAA" /></svg></a>\n')
+         pfile.write('<a href="javascript:npage();"><svg id="svgimg" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="background-color:#FFF;border:1px solid black;">' % (pp.pw, pp.ph))
+
      if (pp.gid != None): 
          pfile.write('<defs>\n')
          gdefs = pp.getGlyphs(glyfname)
@@ -303,7 +353,18 @@ def main(argv):
              pfile.write('<use xlink:href="#gl%d" x="%d" y="%d" />\n' % (pp.gid[j], pp.gx[j], pp.gy[j]))
      if (img == None or len(img) == 0) and (pp.gid == None or len(pp.gid) == 0):
          pfile.write('<text x="10" y="10" font-family="Helvetica" font-size="100" stroke="black">This page intentionally left blank.</text>\n<text x="10" y="110" font-family="Helvetica" font-size="50" stroke="black">Until this notice unintentionally gave it content.  (gensvg.py)</text>\n');
-     pfile.write('</svg>')
+     if (raw) :
+         pfile.write('</svg>')
+     else :
+         pfile.write('</svg></a>\n')
+         if (counter == len(filenames) - 1) :
+             pfile.write('<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n')
+         else :
+             pfile.write('<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,5,5,295,95,150" fill="#AAAAAA" /></svg></a>\n')
+         pfile.write('</div>\n')
+         pfile.write('<div><a href="javascript:zoomin();">zoom in</a> - <a href="javascript:zoomout();">zoom out</a></div>\n')
+         pfile.write('</body>\n')
+         pfile.write('</html>\n')
      pfile.close()
      counter += 1
 

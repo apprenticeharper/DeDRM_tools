@@ -1,5 +1,6 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+# For use with Topaz Scripts Version 1.8                                                                                                  
 
 import os, sys, getopt
 

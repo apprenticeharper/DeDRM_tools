@@ -1,4 +1,5 @@
 #! /usr/bin/python
+# For use with Topaz Scripts Version 1.8
 
 from __future__ import with_statement
 
