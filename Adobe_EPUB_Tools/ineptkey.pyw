@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# ineptkey.pyw, version 3
+# ineptkey.pyw, version 4
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -12,6 +12,8 @@
 #   1 - Initial release, for Adobe Digital Editions 1.7
 #   2 - Better algorithm for finding pLK; improved error handling
 #   3 - Rename to INEPT
+#   4 - quick beta fix for ADE 1.7.3 - for older versions use ineptkey v3
+#       or upgrade to ADE 1.7.3 (anon)
 
 """
 Retrieve Adobe ADEPT user key under Windows.
@@ -149,7 +151,23 @@ def retrieve_key(keypath):
     device = winreg.QueryValueEx(regkey, 'key')[0]
     keykey = CryptUnprotectData(device, entropy)
     userkey = None
-    for i in xrange(0, 16):
+    pkcs = None
+    for i in xrange(4, 16):
+        for j in xrange(0, 16):
+            plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
+            try:
+                pkcs = winreg.OpenKey(cuser, plkkey)
+            except WindowsError:
+                break
+            type = winreg.QueryValueEx(pkcs, None)[0]
+            if type != 'pkcs12':
+                continue
+            pkcs = winreg.QueryValueEx(pkcs, 'value')[0]
+            break
+        if pkcs is not None:
+            break
+        
+    for i in xrange(4, 16):
         for j in xrange(0, 16):
             plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
             try:
@@ -163,8 +181,12 @@ def retrieve_key(keypath):
             break
         if userkey is not None:
             break
+    if pkcs is None:
+        raise ADEPTError('Could not locate PKCS specification')
     if userkey is None:
         raise ADEPTError('Could not locate privateLicenseKey')
+    pkcs = pkcs.decode('base64')
+    print pkcs
     userkey = userkey.decode('base64')
     userkey = AES.new(keykey, AES.MODE_CBC).decrypt(userkey)
     userkey = userkey[26:-ord(userkey[-1])]
