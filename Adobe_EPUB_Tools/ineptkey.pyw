@@ -12,8 +12,7 @@
 #   1 - Initial release, for Adobe Digital Editions 1.7
 #   2 - Better algorithm for finding pLK; improved error handling
 #   3 - Rename to INEPT
-#   4 - quick beta fix for ADE 1.7.3 - for older versions use ineptkey v3
-#       or upgrade to ADE 1.7.3 (anon)
+#   4 - quick beta fix for ADE 1.7.2 (anon) 
 
 """
 Retrieve Adobe ADEPT user key under Windows.
@@ -43,6 +42,7 @@ except ImportError:
 
 DEVICE_KEY = 'Software\\Adobe\\Adept\\Device'
 PRIVATE_LICENCE_KEY_KEY = 'Software\\Adobe\\Adept\\Activation\\%04d\\%04d'
+ADE_VERSION = 'Software\\Adobe\\Digital Editions\\'
 
 MAX_PATH = 255
 
@@ -150,9 +150,21 @@ def retrieve_key(keypath):
         raise ADEPTError("Adobe Digital Editions not activated")
     device = winreg.QueryValueEx(regkey, 'key')[0]
     keykey = CryptUnprotectData(device, entropy)
+    try:
+        adeversion = winreg.OpenKey(cuser, ADE_VERSION)
+    except WindowsError:
+        raise ADEPTError("Adobe Digital Editions Version could not read")
+    adev = winreg.QueryValueEx(adeversion, 'FileVersion')[0]
+    adev = int(adev.replace(".",""))
     userkey = None
     pkcs = None
-    for i in xrange(4, 16):
+    srange = None
+    # differentiate ADE versions
+    if adev < 90108527:
+        srange = 0
+    else:
+        srange = 4
+    for i in xrange(srange, 16):
         for j in xrange(0, 16):
             plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
             try:
@@ -167,7 +179,7 @@ def retrieve_key(keypath):
         if pkcs is not None:
             break
         
-    for i in xrange(4, 16):
+    for i in xrange(srange, 16):
         for j in xrange(0, 16):
             plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
             try:
