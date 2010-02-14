@@ -62,7 +62,7 @@ class ASN1Parser(object):
         def __init__(self, bytes):
             self.bytes = bytes
             self.index = 0
-    
+
         def get(self, length):
             if self.index + length > len(self.bytes):
                 raise ASN1Error("Error decoding ASN.1")
@@ -72,22 +72,22 @@ class ASN1Parser(object):
                 x |= self.bytes[self.index]
                 self.index += 1
             return x
-    
+
         def getFixBytes(self, lengthBytes):
             bytes = self.bytes[self.index : self.index+lengthBytes]
             self.index += lengthBytes
             return bytes
-    
+
         def getVarBytes(self, lengthLength):
             lengthBytes = self.get(lengthLength)
             return self.getFixBytes(lengthBytes)
-    
+
         def getFixList(self, length, lengthList):
             l = [0] * lengthList
             for x in range(lengthList):
                 l[x] = self.get(length)
             return l
-    
+
         def getVarList(self, length, lengthLength):
             lengthList = self.get(lengthLength)
             if lengthList % length != 0:
@@ -97,19 +97,19 @@ class ASN1Parser(object):
             for x in range(lengthList):
                 l[x] = self.get(length)
             return l
-    
+
         def startLengthCheck(self, lengthLength):
             self.lengthCheck = self.get(lengthLength)
             self.indexCheck = self.index
-    
+
         def setLengthCheck(self, length):
             self.lengthCheck = length
             self.indexCheck = self.index
-    
+
         def stopLengthCheck(self):
             if (self.index - self.indexCheck) != self.lengthCheck:
                 raise ASN1Error("Error decoding ASN.1")
-    
+
         def atLengthCheck(self):
             if (self.index - self.indexCheck) < self.lengthCheck:
                 return False
@@ -162,7 +162,7 @@ class Decryptor(object):
             path = elem.get('URI', None)
             if path is not None:
                 encrypted.add(path)
-    
+
     def decompress(self, bytes):
         dc = zlib.decompressobj(-15)
         bytes = dc.decompress(bytes)
@@ -170,7 +170,7 @@ class Decryptor(object):
         if ex:
             bytes = bytes + ex
         return bytes
-    
+
     def decrypt(self, path, data):
         if path in self._encrypted:
             data = self._aes.decrypt(data)[16:]
@@ -336,5 +336,6 @@ def gui_main():
     return 0
 
 if __name__ == '__main__':
-    # sys.exit(cli_main())
+    if len(sys.argv) > 1:
+        sys.exit(cli_main())
     sys.exit(gui_main())

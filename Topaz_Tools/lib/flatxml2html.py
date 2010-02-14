@@ -346,35 +346,40 @@ class DocParser(object):
         if end == -1 :
             end = self.docSize
 
+        # seems some xml has last* coming before first* so we have to 
+        # handle any order
+        sp_first = -1
+        sp_last = -1
+
+        gl_first = -1
+        gl_last = -1
+
+        ws_first = -1
+        ws_last = -1
+
+        word_class = ''
+
         while (line < end) :
 
             (name, argres) = self.lineinDoc(line)
 
-            # handle both span and _span
             if name.endswith('span.firstWord') :
-                first = int(argres)
-                (name, argres) = self.lineinDoc(line+1)
-                if not name.endswith('span.lastWord'):
-                    print 'Error: - incorrect _span ordering inside paragraph'
-                last = int(argres)
-                for wordnum in xrange(first, last):
-                    result.append(('ocr', wordnum))
-                line += 1
+                sp_first = int(argres)
+
+            elif name.endswith('span.lastWord') :
+                sp_last = int(argres)
 
             elif name.endswith('word.firstGlyph') :
-                first = int(argres)
-                (name, argres) = self.lineinDoc(line+1)
-                if not name.endswith('word.lastGlyph'):
-                    print 'Error: - incorrect glyph ordering inside word in paragraph'
-                last = int(argres)
-                glyphList = []
-                for glyphnum in xrange(first, last):
-                    glyphList.append(glyphnum)
-                num = self.svgcount
-                self.glyphs_to_image(glyphList)
-                self.svgcount += 1
-                result.append(('svg', num))
-                line += 1
+                gl_first = int(argres)
+
+            elif name.endswith('word.lastGlyph') :
+                gl_last = int(argres)
+
+            elif name.endswith('word_semantic.firstWord'):
+                ws_first = int(argres)
+
+            elif name.endswith('word_semantic.lastWord'):
+                ws_last = int(argres)
 
             elif name.endswith('word.class'):
                (cname, space) = argres.split('-',1)
@@ -386,15 +391,28 @@ class DocParser(object):
                 result.append(('img' + word_class, int(argres)))
                 word_class = ''
 
-            elif name.endswith('word_semantic.firstWord'):
-                first = int(argres)
-                (name, argres) = self.lineinDoc(line+1)
-                if not name.endswith('word_semantic.lastWord'):
-                    print 'Error: - incorrect word_semantic ordering inside paragraph'
-                last = int(argres)
-                for wordnum in xrange(first, last):
+            if (sp_first != -1) and (sp_last != -1):
+                for wordnum in xrange(sp_first, sp_last):
                     result.append(('ocr', wordnum))
-                line += 1
+                sp_first = -1
+                sp_last = -1
+
+            if (gl_first != -1) and (gl_last != -1):
+                glyphList = []
+                for glyphnum in xrange(gl_first, gl_last):
+                    glyphList.append(glyphnum)
+                num = self.svgcount
+                self.glyphs_to_image(glyphList)
+                self.svgcount += 1
+                result.append(('svg', num))
+                gl_first = -1
+                gl_last = -1
+
+            if (ws_first != -1) and (ws_last != -1):
+                for wordnum in xrange(ws_first, ws_last):
+                    result.append(('ocr', wordnum))
+                ws_first = -1
+                ws_last = -1
                               
             line += 1
 
