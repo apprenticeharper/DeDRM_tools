@@ -1,18 +1,20 @@
 #! /usr/bin/python
 
-# ineptkey.pyw, version 4
+# ineptkey.pyw, version 4.2
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
 # (make sure to install the version for Python 2.6).  Save this script file as
 # ineptkey.pyw and double-click on it to run it.  It will create a file named
-# adeptkey.der in the same directory.  This is your ADEPT user key.
+# adeptkey4.der in the same directory.  These are your ADEPT user keys.
 
 # Revision history:
 #   1 - Initial release, for Adobe Digital Editions 1.7
 #   2 - Better algorithm for finding pLK; improved error handling
 #   3 - Rename to INEPT
-#   4 - quick beta fix for ADE 1.7.2 (anon) 
+#   4.1 - quick beta fix for ADE 1.7.2 (anon)
+#   4.2 - multiple key support, added old 1.7.1 processing,
+#         new adeptkey4.der format (anon) 
 
 """
 Retrieve Adobe ADEPT user key under Windows.
@@ -33,6 +35,9 @@ import Tkinter
 import Tkconstants
 import tkMessageBox
 import traceback
+import hashlib
+import pickle
+
 
 try:
     from Crypto.Cipher import AES
@@ -42,7 +47,7 @@ except ImportError:
 
 DEVICE_KEY = 'Software\\Adobe\\Adept\\Device'
 PRIVATE_LICENCE_KEY_KEY = 'Software\\Adobe\\Adept\\Activation\\%04d\\%04d'
-ADE_VERSION = 'Software\\Adobe\\Digital Editions\\'
+ACTIVATION = 'Software\\Adobe\\Adept\\Activation\\'
 
 MAX_PATH = 255
 
@@ -150,36 +155,11 @@ def retrieve_key(keypath):
         raise ADEPTError("Adobe Digital Editions not activated")
     device = winreg.QueryValueEx(regkey, 'key')[0]
     keykey = CryptUnprotectData(device, entropy)
-    try:
-        adeversion = winreg.OpenKey(cuser, ADE_VERSION)
-    except WindowsError:
-        raise ADEPTError("Adobe Digital Editions Version could not read")
-    adev = winreg.QueryValueEx(adeversion, 'FileVersion')[0]
-    adev = int(adev.replace(".",""))
     userkey = None
     pkcs = None
-    srange = None
-    # differentiate ADE versions
-    if adev < 90108527:
-        srange = 0
-    else:
-        srange = 4
-    for i in xrange(srange, 16):
-        for j in xrange(0, 16):
-            plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
-            try:
-                pkcs = winreg.OpenKey(cuser, plkkey)
-            except WindowsError:
-                break
-            type = winreg.QueryValueEx(pkcs, None)[0]
-            if type != 'pkcs12':
-                continue
-            pkcs = winreg.QueryValueEx(pkcs, 'value')[0]
-            break
-        if pkcs is not None:
-            break
-        
-    for i in xrange(srange, 16):
+    keys = {}
+    counter = 0
+    for i in xrange(0, 16):
         for j in xrange(0, 16):
             plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
             try:
@@ -190,20 +170,34 @@ def retrieve_key(keypath):
             if type != 'privateLicenseKey':
                 continue
             userkey = winreg.QueryValueEx(regkey, 'value')[0]
-            break
-        if userkey is not None:
-            break
-    if pkcs is None:
+            L = []
+            L.append(userkey)
+            keys[i] = L
+        for j in xrange(0, 16):
+            plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
+            try:
+                pkcs = winreg.OpenKey(cuser, plkkey)
+            except WindowsError:
+                break
+            type = winreg.QueryValueEx(pkcs, None)[0]
+            if type != 'pkcs12':
+                continue
+            pkcs = winreg.QueryValueEx(pkcs, 'value')[0]
+            keys[i].append(pkcs)
+            counter = counter + 1
+    if pkcs is None:       
         raise ADEPTError('Could not locate PKCS specification')
     if userkey is None:
         raise ADEPTError('Could not locate privateLicenseKey')
-    pkcs = pkcs.decode('base64')
-    print pkcs
-    userkey = userkey.decode('base64')
-    userkey = AES.new(keykey, AES.MODE_CBC).decrypt(userkey)
-    userkey = userkey[26:-ord(userkey[-1])]
+    userkeyw = []
+    print counter
+    for key in keys:
+        pkcs = keys[key][1].decode('base64')
+        userkey = keys[key][0].decode('base64')
+        userkey = AES.new(keykey, AES.MODE_CBC).decrypt(userkey)
+        userkeyw.append(userkey[26:-ord(userkey[-1])])
     with open(keypath, 'wb') as f:
-        f.write(userkey)
+        pickle.dump(userkeyw,f)
     return
 
 class ExceptionDialog(Tkinter.Frame):
@@ -227,7 +221,7 @@ def main(argv=sys.argv):
             "This script requires PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
-    keypath = 'adeptkey.der'
+    keypath = 'adeptkey4.der'
     try:
         retrieve_key(keypath)
     except ADEPTError, e:
