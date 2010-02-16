@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# ineptepub.pyw, version 3
+# ineptepub.pyw, version 4
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -11,6 +11,7 @@
 #   1 - Initial release
 #   2 - Rename to INEPT, fix exit code
 #   3 - Add cmd or gui choosing
+#   4 - changed to adeptkey4.der format for 1.7.2 support (anon)
 
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
@@ -31,6 +32,7 @@ import Tkinter
 import Tkconstants
 import tkFileDialog
 import tkMessageBox
+import pickle
 
 try:
     from Crypto.Cipher import AES
@@ -194,35 +196,52 @@ def cli_main(argv=sys.argv):
         print "usage: %s KEYFILE INBOOK OUTBOOK" % (progname,)
         return 1
     keypath, inpath, outpath = argv[1:]
-    with open(keypath, 'rb') as f:
-        keyder = f.read()
-    key = ASN1Parser([ord(x) for x in keyder])
-    key = [bytesToNumber(key.getChild(x).value) for x in xrange(1, 4)]
-    rsa = RSA.construct(key)
-    with closing(ZipFile(open(inpath, 'rb'))) as inf:
-        namelist = set(inf.namelist())
-        if 'META-INF/rights.xml' not in namelist or \
-           'META-INF/encryption.xml' not in namelist:
-            raise ADEPTError('%s: not an ADEPT EPUB' % (inpath,))
-        for name in META_NAMES:
-            namelist.remove(name)
-        rights = etree.fromstring(inf.read('META-INF/rights.xml'))
-        adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
-        expr = './/%s' % (adept('encryptedKey'),)
-        bookkey = ''.join(rights.findtext(expr))
-        bookkey = rsa.decrypt(bookkey.decode('base64'))
-        # Padded as per RSAES-PKCS1-v1_5
-        if bookkey[-17] != '\x00':
-            raise ADEPTError('problem decrypting session key')
-        encryption = inf.read('META-INF/encryption.xml')
-        decryptor = Decryptor(bookkey[-16:], encryption)
-        kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
-        with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
-            zi = ZipInfo('mimetype', compress_type=ZIP_STORED)
-            outf.writestr(zi, inf.read('mimetype'))
-            for path in namelist:
-                data = inf.read(path)
-                outf.writestr(path, decryptor.decrypt(path, data))
+    with open(keypath, 'r') as f:
+        keyderlist = pickle.load(f)
+    keynotfound = 1
+    for keyder in keyderlist:
+        key = ASN1Parser([ord(x) for x in keyder])
+        key = [bytesToNumber(key.getChild(x).value) for x in xrange(1, 4)]
+        try:
+            rsa = RSA.construct(key)
+        except Exception:
+            keynotfound = 1
+            continue
+        with closing(ZipFile(open(inpath, 'rb'))) as inf:
+            namelist = set(inf.namelist())
+            if 'META-INF/rights.xml' not in namelist or \
+               'META-INF/encryption.xml' not in namelist:
+                raise ADEPTError('%s: not an ADEPT EPUB' % (inpath,))
+            for name in META_NAMES:
+                namelist.remove(name)
+            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+            expr = './/%s' % (adept('encryptedKey'),)
+            bookkey = ''.join(rights.findtext(expr))
+            try:
+                bookkey = rsa.decrypt(bookkey.decode('base64'))
+            except Exception:
+                keynotfound = 1
+                continue
+            # Padded as per RSAES-PKCS1-v1_5
+            if bookkey[-17] != '\x00':
+                keynotfound = 1
+                inf.close()
+                continue
+            else:
+                keynotfound = 0
+            encryption = inf.read('META-INF/encryption.xml')
+            decryptor = Decryptor(bookkey[-16:], encryption)
+            kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
+            with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
+                zi = ZipInfo('mimetype', compress_type=ZIP_STORED)
+                outf.writestr(zi, inf.read('mimetype'))
+                for path in namelist:
+                    data = inf.read(path)
+                    outf.writestr(path, decryptor.decrypt(path, data))
+        break
+    if keynotfound == 1:
+        raise ADEPTError('problem decrypting session key')
     return 0
 
 
@@ -238,8 +257,8 @@ class DecryptionDialog(Tkinter.Frame):
         Tkinter.Label(body, text='Key file').grid(row=0)
         self.keypath = Tkinter.Entry(body, width=30)
         self.keypath.grid(row=0, column=1, sticky=sticky)
-        if os.path.exists('adeptkey.der'):
-            self.keypath.insert(0, 'adeptkey.der')
+        if os.path.exists('adeptkey4.der'):
+            self.keypath.insert(0, 'adeptkey4.der')
         button = Tkinter.Button(body, text="...", command=self.get_keypath)
         button.grid(row=0, column=2)
         Tkinter.Label(body, text='Input file').grid(row=1)
