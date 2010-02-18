@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# For use with Topaz Scripts Version 2.2
+# For use with Topaz Scripts Version 2.3
 
 class Unbuffered:
     def __init__(self, stream):

@@ -1,3 +1,7 @@
+Canges in 2.3
+       - fix for use with non-latin1 based systems (thank you Tedd)
+       - fixes for out of order tokens in xml
+
 Changes in 2.2
 	- fix for minor bug in encode_Number from clark nova
 	- more fixes to handle paths with spaces in them

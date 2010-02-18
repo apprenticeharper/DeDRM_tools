@@ -30,7 +30,9 @@ class MainDialog(Tkinter.Frame):
         Tkinter.Label(body, text='eBook Pml input file').grid(row=0, sticky=Tkconstants.E)
         self.pmlpath = Tkinter.Entry(body, width=50)
         self.pmlpath.grid(row=0, column=1, sticky=sticky)
-        self.pmlpath.insert(0, os.getcwd())
+        cwd = os.getcwdu()
+        cwd = cwd.encode('utf-8')
+        self.pmlpath.insert(0, cwd)
         button = Tkinter.Button(body, text="...", command=self.get_pmlpath)
         button.grid(row=0, column=2)
 
@@ -82,6 +84,7 @@ class MainDialog(Tkinter.Frame):
     # post output from subprocess in scrolled text widget
     def showCmdOutput(self, msg):
         if msg and msg !='':
+            msg = msg.encode('utf-8')
             self.stext.insert(Tkconstants.END,msg)
             self.stext.yview_pickplace(Tkconstants.END)
         return
@@ -98,6 +101,7 @@ class MainDialog(Tkinter.Frame):
             else :
                 cmdline = 'lib\\xpml2xhtml.py "' + infile + '" "' + outfile + '"'
 
+        cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
         return p2
 
@@ -156,6 +160,7 @@ class MainDialog(Tkinter.Frame):
         log += 'HTML Output File = "' + outpath + '"\n'
         log += '\n\n'
         log += 'Please Wait ...\n\n'
+        log = log.encode('utf-8')
         self.stext.insert(Tkconstants.END,log)
         self.p2 = self.pmlhtml(pmlpath, outpath)
 

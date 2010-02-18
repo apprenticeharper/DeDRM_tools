@@ -25,15 +25,16 @@
 #         import filter it works when importing unencrypted files.
 #         Also now handles encrypted files that don't need a specific PID.
 #  0.11 - use autoflushed stdout and proper return values
+#  0.12 - Fix for problems with metadata import as Calibre plugin, report errors
 
 class Unbuffered:
-    def __init__(self, stream):
-        self.stream = stream
-    def write(self, data):
-        self.stream.write(data)
-        self.stream.flush()
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
+	def __init__(self, stream):
+		self.stream = stream
+	def write(self, data):
+		self.stream.write(data)
+		self.stream.flush()
+	def __getattr__(self, attr):
+		return getattr(self.stream, attr)
 
 import sys
 sys.stdout=Unbuffered(sys.stdout)
@@ -45,37 +46,37 @@ class DrmException(Exception):
 
 #implementation of Pukall Cipher 1
 def PC1(key, src, decryption=True):
-    sum1 = 0;
-    sum2 = 0;
-    keyXorVal = 0;
-    if len(key)!=16:
-        print "Bad key length!"
-        return None
-    wkey = []
-    for i in xrange(8):
-        wkey.append(ord(key[i*2])<<8 | ord(key[i*2+1]))
+	sum1 = 0;
+	sum2 = 0;
+	keyXorVal = 0;
+	if len(key)!=16:
+		print "Bad key length!"
+		return None
+	wkey = []
+	for i in xrange(8):
+		wkey.append(ord(key[i*2])<<8 | ord(key[i*2+1]))
 
-    dst = ""
-    for i in xrange(len(src)):
-        temp1 = 0;
-        byteXorVal = 0;
-        for j in xrange(8):
-            temp1 ^= wkey[j]
-            sum2  = (sum2+j)*20021 + sum1
-            sum1  = (temp1*346)&0xFFFF
-            sum2  = (sum2+sum1)&0xFFFF
-            temp1 = (temp1*20021+1)&0xFFFF
-            byteXorVal ^= temp1 ^ sum2
-        curByte = ord(src[i])
-        if not decryption:
-            keyXorVal = curByte * 257;
-        curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
-        if decryption:
-            keyXorVal = curByte * 257;
-        for j in xrange(8):
-            wkey[j] ^= keyXorVal;
-        dst+=chr(curByte)
-    return dst
+	dst = ""
+	for i in xrange(len(src)):
+		temp1 = 0;
+		byteXorVal = 0;
+		for j in xrange(8):
+			temp1 ^= wkey[j]
+			sum2  = (sum2+j)*20021 + sum1
+			sum1  = (temp1*346)&0xFFFF
+			sum2  = (sum2+sum1)&0xFFFF
+			temp1 = (temp1*20021+1)&0xFFFF
+			byteXorVal ^= temp1 ^ sum2
+		curByte = ord(src[i])
+		if not decryption:
+			keyXorVal = curByte * 257;
+		curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
+		if decryption:
+			keyXorVal = curByte * 257;
+		for j in xrange(8):
+			wkey[j] ^= keyXorVal;
+		dst+=chr(curByte)
+	return dst
 
 def checksumPid(s):
 	letters = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
@@ -234,40 +235,46 @@ if not __name__ == "__main__":
 		description         = 'Removes DRM from secure Mobi files'
 		supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
 		author              = 'The Dark Reverser' # The author of this plugin
-		version             = (0, 1, 0)   # The version number of this plugin
+		version             = (0, 1, 2)   # The version number of this plugin
 		file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
 		on_import           = True # Run this plugin during the import
 
 	
 		def run(self, path_to_ebook):
-			of = self.temporary_file('.mobi')
+			from calibre.gui2 import is_ok_to_use_qt
+			from PyQt4.Qt import QMessageBox
 			PID = self.site_customization
 			data_file = file(path_to_ebook, 'rb').read()
 			ar = PID.split(',')
 			for i in ar:
 				try:
-					file(of.name, 'wb').write(DrmStripper(data_file, i).getResult())
+					unlocked_file = DrmStripper(data_file, i).getResult()
 				except DrmException:
-					# Hm, we should display an error dialog here.
-					# Dunno how though.
-					# Ignore the dirty hack behind the curtain.
-#					strexcept = 'echo exception: %s > /dev/tty' % e
-#					subprocess.call(strexcept,shell=True)
-					print i + ": not PID for book"
+					# ignore the error
+					pass
 				else:
+					of = self.temporary_file('.mobi')
+					of.write(unlocked_file)
+					of.close()
 					return of.name
+			if is_ok_to_use_qt():
+				d = QMessageBox(QMessageBox.Warning, "MobiDeDRM Plugin", "Couldn't decode: %s\n\nImporting encrypted version." % path_to_ebook)
+				d.show()
+				d.raise_()
+				d.exec_()
+			return path_to_ebook
 
 		def customization_help(self, gui=False):
 			return 'Enter PID (separate multiple PIDs with comma)'
 
 if __name__ == "__main__":
-	print "MobiDeDrm v0.11. Copyright (c) 2008 The Dark Reverser"
+	print "MobiDeDrm v0.12. Copyright (c) 2008 The Dark Reverser"
 	if len(sys.argv)<4:
 		print "Removes protection from Mobipocket books"
 		print "Usage:"
 		print "  mobidedrm infile.mobi outfile.mobi (PID)"
 		sys.exit(1)
-	else:  
+	else:
 		infile = sys.argv[1]
 		outfile = sys.argv[2]
 		pid = sys.argv[3]

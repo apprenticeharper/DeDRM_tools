@@ -30,7 +30,9 @@ class MainDialog(Tkinter.Frame):
         Tkinter.Label(body, text='Mobi eBook input file').grid(row=0, sticky=Tkconstants.E)
         self.mobipath = Tkinter.Entry(body, width=50)
         self.mobipath.grid(row=0, column=1, sticky=sticky)
-        self.mobipath.insert(0, os.getcwd())
+        cwd = os.getcwdu()
+        cwd = cwd.encode('utf-8')
+        self.mobipath.insert(0, cwd)
         button = Tkinter.Button(body, text="...", command=self.get_mobipath)
         button.grid(row=0, column=2)
 
@@ -87,6 +89,7 @@ class MainDialog(Tkinter.Frame):
     # post output from subprocess in scrolled text widget
     def showCmdOutput(self, msg):
         if msg and msg !='':
+            msg = msg.encode('utf-8')
             self.stext.insert(Tkconstants.END,msg)
             self.stext.yview_pickplace(Tkconstants.END)
         return
@@ -103,6 +106,7 @@ class MainDialog(Tkinter.Frame):
             else :
                 cmdline = 'lib\mobidedrm.py "' + infile + '" "' + outfile + '" "' + pidnum + '"'
 
+        cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
         return p2
 
@@ -167,6 +171,7 @@ class MainDialog(Tkinter.Frame):
         log += 'PID = "' + pidnum + '"\n'
         log += '\n\n'
         log += 'Please Wait ...\n\n'
+        log = log.encode('utf-8')
         self.stext.insert(Tkconstants.END,log)
         self.p2 = self.mobirdr(mobipath, outpath, pidnum)
 

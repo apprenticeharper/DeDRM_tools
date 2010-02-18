@@ -73,6 +73,7 @@ class MainDialog(Tkinter.Frame):
     # post output from subprocess in scrolled text widget
     def showCmdOutput(self, msg):
         if msg and msg !='':
+            msg = msg.encode('utf-8')
             self.stext.insert(Tkconstants.END,msg)
             self.stext.yview_pickplace(Tkconstants.END)
         return
@@ -88,7 +89,7 @@ class MainDialog(Tkinter.Frame):
                 cmdline = 'python lib\kindlepid.py "' + serial + '"'
             else :
                 cmdline = 'lib\kindlepid.py "' + serial + '"'
-
+        cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
         return p2
 
@@ -113,6 +114,7 @@ class MainDialog(Tkinter.Frame):
         log += 'Serial = "' + serial + '"\n'
         log += '\n\n'
         log += 'Please Wait ...\n\n'
+        log = log.encode('utf-8')
         self.stext.insert(Tkconstants.END,log)
         self.p2 = self.pidrdr(serial)
 
