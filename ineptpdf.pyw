@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# ineptpdf.pyw, version 6
+# ineptpdf.pyw, version 6.1
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -14,6 +14,7 @@
 #   4 - Removal of ciando's personal ID (anon)
 #   5 - removing small bug with V3 ebooks (anon)
 #   6 - changed to adeptkey4.der format for 1.7.2 support (anon)
+#   6.1 - backward compatibility for 1.7.1 and old adeptkey.der
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
 """
@@ -34,7 +35,6 @@ import Tkinter
 import Tkconstants
 import tkFileDialog
 import tkMessageBox
-import pickle
 
 try:
     from Crypto.Cipher import ARC4
@@ -1171,53 +1171,40 @@ class PDFDocument(object):
 
     def initialize_ebx(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
-        with open(password, 'r') as f:
-            keyderlist = pickle.load(f)
-        keynotfound = 1
-        for keyder in keyderlist:
-            key = ASN1Parser([ord(x) for x in keyder])
-            key = [bytesToNumber(key.getChild(x).value) for x in xrange(1, 4)]
-            try:            
-                rsa = RSA.construct(key)
-            except Exception:
-                continue            
-            length = int_value(param.get('Length', 0)) / 8
-            rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
-            rights = zlib.decompress(rights, -15)
-            rights = etree.fromstring(rights)
-            expr = './/{http://ns.adobe.com/adept}encryptedKey'
-            bookkey = ''.join(rights.findtext(expr)).decode('base64')
-            try:    
-                bookkey = rsa.decrypt(bookkey)
-            except Exception:
-                continue                
-            if bookkey[0] != '\x02':
-                keynotfound = 1
-                continue                
-            else:
-                keynotfound = 0
-            index = bookkey.index('\0') + 1
-            bookkey = bookkey[index:]
-            ebx_V = int_value(param.get('V', 4))
-            ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
-            # added because of the booktype / decryption book session key error
-            if ebx_V == 3:
-                V = 3        
-            elif ebx_V < 4 or ebx_type < 6:
-                V = ord(bookkey[0])
-                bookkey = bookkey[1:]
-            else:
-                V = 2
-            if length and len(bookkey) != length:
-                raise ADEPTError('error decrypting book session key')
-            self.decrypt_key = bookkey
-            self.genkey = self.genkey_v3 if V == 3 else self.genkey_v2
-            self.decipher = self.decrypt_rc4
-            self.ready = True
-            break
-        if keynotfound == 1:
-            raise ADEPTError('problem decrypting session key')
+        with open(password, 'rb') as f:
+            keyder = f.read()
+        key = ASN1Parser([ord(x) for x in keyder])
+        key = [bytesToNumber(key.getChild(x).value) for x in xrange(1, 4)]
+        rsa = RSA.construct(key)
+        length = int_value(param.get('Length', 0)) / 8
+        rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
+        rights = zlib.decompress(rights, -15)
+        rights = etree.fromstring(rights)
+        expr = './/{http://ns.adobe.com/adept}encryptedKey'
+        bookkey = ''.join(rights.findtext(expr)).decode('base64')
+        bookkey = rsa.decrypt(bookkey)
+        if bookkey[0] != '\x02':
+            raise ADEPTError('error decrypting book session key')
+        index = bookkey.index('\0') + 1
+        bookkey = bookkey[index:]
+        ebx_V = int_value(param.get('V', 4))
+        ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
+        # added because of the booktype / decryption book session key error
+        if ebx_V == 3:
+            V = 3        
+        elif ebx_V < 4 or ebx_type < 6:
+            V = ord(bookkey[0])
+            bookkey = bookkey[1:]
+        else:
+            V = 2
+        if length and len(bookkey) != length:
+            raise ADEPTError('error decrypting book session key')
+        self.decrypt_key = bookkey
+        self.genkey = self.genkey_v3 if V == 3 else self.genkey_v2
+        self.decipher = self.decrypt_rc4
+        self.ready = True
         return
+
     
     PASSWORD_PADDING = '(\xbfN^Nu\x8aAd\x00NV\xff\xfa\x01\x08..' \
                        '\x00\xb6\xd0h>\x80/\x0c\xa9\xfedSiz'
@@ -1672,8 +1659,8 @@ class DecryptionDialog(Tkinter.Frame):
         Tkinter.Label(body, text='Key file').grid(row=0)
         self.keypath = Tkinter.Entry(body, width=30)
         self.keypath.grid(row=0, column=1, sticky=sticky)
-        if os.path.exists('adeptkey4.der'):
-            self.keypath.insert(0, 'adeptkey4.der')
+        if os.path.exists('adeptkey.der'):
+            self.keypath.insert(0, 'adeptkey.der')
         button = Tkinter.Button(body, text="...", command=self.get_keypath)
         button.grid(row=0, column=2)
         Tkinter.Label(body, text='Input file').grid(row=1)
