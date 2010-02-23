@@ -1,6 +1,7 @@
 #! /usr/bin/python
 
-# ineptpdf.pyw, version 6.1
+# ineptpdf7.pyw
+# ineptpdf, version 7
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -15,6 +16,10 @@
 #   5 - removing small bug with V3 ebooks (anon)
 #   6 - changed to adeptkey4.der format for 1.7.2 support (anon)
 #   6.1 - backward compatibility for 1.7.1 and old adeptkey.der
+#   7 - Get cross reference streams and object streams working for input.
+#       Not yet supported on output but this only affects file size,
+#       not functionality. (by anon2)
+          
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
 """
@@ -42,6 +47,10 @@ try:
 except ImportError:
     ARC4 = None
     RSA = None
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 
 class ADEPTError(Exception):
@@ -569,16 +578,17 @@ class PSBaseParser(object):
         pos = self.fp.tell()
         buf = ''
         while 0 < pos:
+            prevpos = pos
             pos = max(0, pos-self.BUFSIZ)
             self.fp.seek(pos)
-            s = self.fp.read(self.BUFSIZ)
+            s = self.fp.read(prevpos-pos)
             if not s: break
             while 1:
                 n = max(s.rfind('\r'), s.rfind('\n'))
                 if n == -1:
                     buf = s + buf
                     break
-                yield buf+s[n:]
+                yield s[n:]+buf
                 s = s[:n]
                 buf = ''
         return
@@ -867,7 +877,7 @@ class PDFStream(PDFObject):
             (self.objid, len(self.rawdata), self.dic)
 
     def decode(self):
-        assert self.data == None and self.rawdata != None
+        assert self.data is None and self.rawdata is not None
         data = self.rawdata
         if self.decipher:
             # Handle encryption
@@ -884,10 +894,6 @@ class PDFStream(PDFObject):
                 # will get errors if the document is encrypted.
                 data = zlib.decompress(data)
             elif f in LITERALS_LZW_DECODE:
-                try:
-                    from cStringIO import StringIO
-                except ImportError:
-                    from StringIO import StringIO
                 data = ''.join(LZWDecoder(StringIO(data)).run())
             elif f in LITERALS_ASCII85_DECODE:
                 data = ascii85decode(data)
@@ -926,7 +932,7 @@ class PDFStream(PDFObject):
         return
 
     def get_data(self):
-        if self.data == None:
+        if self.data is None:
             self.decode()
         return self.data
 
@@ -934,6 +940,13 @@ class PDFStream(PDFObject):
         return self.rawdata
 
     def get_decdata(self):
+        if self.data is not None:
+            # Data has already been decrypted and decoded. This is the case
+            # for object streams. Note: this data is wrong to put in the
+            # output because it should be stored decrypted but
+            # uncompressed. This can be done by storing the intermediate
+            # data. For now object streams are useless in the output.
+            return self.data
         data = self.rawdata
         if self.decipher and data:
             # Handle encryption
@@ -989,7 +1002,7 @@ class PDFXRef(object):
             if len(f) != 2:
                 raise PDFNoValidXRef('Trailer not found: %r: line=%r' % (parser, line))
             try:
-                (start, nobjs) = map(long, f)
+                (start, nobjs) = map(int, f)
             except ValueError:
                 raise PDFNoValidXRef('Invalid line: %r: line=%r' % (parser, line))
             for objid in xrange(start, start+nobjs):
@@ -1002,7 +1015,7 @@ class PDFXRef(object):
                     raise PDFNoValidXRef('Invalid XRef format: %r, line=%r' % (parser, line))
                 (pos, genno, use) = f
                 if use != 'n': continue
-                self.offsets[objid] = (int(genno), long(pos))
+                self.offsets[objid] = (int(genno), int(pos))
         self.load_trailer(parser)
         return
     
@@ -1040,7 +1053,7 @@ class PDFXRefStream(object):
         return
 
     def __repr__(self):
-        return '<PDFXRef: objid=%d-%d>' % (self.objid_first, self.objid_last)
+        return '<PDFXRef: objids=%s>' % self.index
 
     def objids(self):
         for first, size in self.index:
@@ -1298,12 +1311,45 @@ class PDFDocument(object):
                 except KeyError:
                     pass
             else:
-                return
                 #if STRICT:
                 #    raise PDFSyntaxError('Cannot locate objid=%r' % objid)
                 return None
             if stmid:
-                return PDFObjStmRef(objid, stmid, index)
+# Later try to introduce PDFObjStmRef's
+#                return PDFObjStmRef(objid, stmid, index)
+# Stuff from pdfminer
+                stream = stream_value(self.getobj(stmid))
+                if stream.dic.get('Type') is not LITERAL_OBJSTM:
+                    if STRICT:
+                        raise PDFSyntaxError('Not a stream object: %r' % stream)
+                try:
+                    n = stream.dic['N']
+                except KeyError:
+                    if STRICT:
+                        raise PDFSyntaxError('N is not defined: %r' % stream)
+                    n = 0
+
+                if stmid in self.parsed_objs:
+                    objs = self.parsed_objs[stmid]
+                else:
+                    parser = PDFObjStrmParser(stream.get_data(), self)
+                    objs = []
+                    try:
+                        while 1:
+                            (_,obj) = parser.nextobject()
+                            objs.append(obj)
+                    except PSEOF:
+                        pass
+                    self.parsed_objs[stmid] = objs
+                genno = 0
+                i = n*2+index
+                try:
+                    obj = objs[i]
+                except IndexError:
+                    raise PDFSyntaxError('Invalid object number: objid=%r' % (objid))
+                if isinstance(obj, PDFStream):
+                    obj.set_objid(objid, 0)
+###
             else:
                 self.parser.seek(index)
                 (_,objid1) = self.parser.nexttoken() # objid
@@ -1316,9 +1362,9 @@ class PDFDocument(object):
                 (_,obj) = self.parser.nextobject()
                 if isinstance(obj, PDFStream):
                     obj.set_objid(objid, genno)
+                if self.decipher:
+                    obj = decipher_all(self.decipher, objid, genno, obj)
             self.objs[objid] = obj
-        if self.decipher:
-            obj = decipher_all(self.decipher, objid, genno, obj)
         return obj
 
 class PDFObjStmRef(object):
@@ -1419,7 +1465,7 @@ class PDFParser(PSStackParser):
                 prev = line
         else:
             raise PDFNoValidXRef('Unexpected EOF')
-        return long(prev)
+        return int(prev)
 
     # read xref table
     def read_xref_from(self, start, xrefs):
@@ -1482,6 +1528,34 @@ class PDFParser(PSStackParser):
             xrefs.append(xref)
         return xrefs
 
+##  PDFObjStrmParser
+##
+class PDFObjStrmParser(PDFParser):
+
+    def __init__(self, data, doc):
+        PSStackParser.__init__(self, StringIO(data))
+        self.doc = doc
+        return
+
+    def flush(self):
+        self.add_results(*self.popall())
+        return
+
+    KEYWORD_R = KWD('R')
+    def do_keyword(self, pos, token):
+        if token is self.KEYWORD_R:
+            # reference to indirect object
+            try:
+                ((_,objid), (_,genno)) = self.pop(2)
+                (objid, genno) = (int(objid), int(genno))
+                obj = PDFObjRef(self.doc, objid, genno)
+                self.push((pos, obj))
+            except PSSyntaxError:
+                pass
+            return
+        # others
+        self.push((pos, token))
+        return
 
 ###
 ### My own code, for which there is none else to blame
@@ -1521,8 +1595,9 @@ class PDFSerializer(object):
             if isinstance(obj, PDFObjStmRef):
                 xrefstm[objid] = obj
                 continue
-            xrefs[objid] = self.tell()
-            self.serialize_indirect(objid, obj)
+            if obj is not None:
+                xrefs[objid] = self.tell()
+                self.serialize_indirect(objid, obj)
         startxref = self.tell()
         self.write('xref\n')
         self.write('0 %d\n' % (maxobj + 1,))
@@ -1611,11 +1686,18 @@ class PDFSerializer(object):
                 self.write(' ')            
             self.write('%d %d R' % (obj.objid, 0))
         elif isinstance(obj, PDFStream):
-            data = obj.get_decdata()
-            self.serialize_object(obj.dic)
-            self.write('stream\n')
-            self.write(data)
-            self.write('\nendstream')
+            ### For now, we have extracted all objects from an Object Stream,
+            ### so we don't need these any more. Therefore leave them out
+            ### of the output. Later we could try to use object streams in
+            ### the output again to get smaller output.
+            if obj.dic.get('Type') == LITERAL_OBJSTM:
+                self.write('(deleted)')
+            else:
+                data = obj.get_decdata()
+                self.serialize_object(obj.dic)
+                self.write('stream\n')
+                self.write(data)
+                self.write('\nendstream')
         else:
             data = str(obj)
             if data[0].isalnum() and self.last.isalnum():
@@ -1697,7 +1779,7 @@ class DecryptionDialog(Tkinter.Frame):
     def get_inpath(self):
         inpath = tkFileDialog.askopenfilename(
             parent=None, title='Select ADEPT-encrypted PDF file to decrypt',
-            defaultextension='.epub', filetypes=[('PDF files', '.pdf'),
+            defaultextension='.pdf', filetypes=[('PDF files', '.pdf'),
                                                  ('All files', '.*')])
         if inpath:
             inpath = os.path.normpath(inpath)
@@ -1708,7 +1790,7 @@ class DecryptionDialog(Tkinter.Frame):
     def get_outpath(self):
         outpath = tkFileDialog.asksaveasfilename(
             parent=None, title='Select unencrypted PDF file to produce',
-            defaultextension='.epub', filetypes=[('PDF files', '.pdf'),
+            defaultextension='.pdf', filetypes=[('PDF files', '.pdf'),
                                                  ('All files', '.*')])
         if outpath:
             outpath = os.path.normpath(outpath)
