@@ -28,15 +28,24 @@ class GParser(object):
      self.gh = self.getData('info.glyph.h')
      self.gw = self.getData('info.glyph.w')
      self.guse = self.getData('info.glyph.use')
-     self.count = len(self.guse)
+     if self.guse :
+         self.count = len(self.guse)
+     else :
+         self.count = 0
      self.gvtx = self.getData('info.glyph.vtx')
      self.glen = self.getData('info.glyph.len')
      self.gdpi = self.getData('info.glyph.dpi')
      self.vx = self.getData('info.vtx.x')
      self.vy = self.getData('info.vtx.y')
      self.vlen = self.getData('info.len.n')
-     self.glen.append(len(self.vlen))
-     self.gvtx.append(len(self.vx))
+     if self.vlen :
+         self.glen.append(len(self.vlen))
+     elif self.glen:
+         self.glen.append(0)
+     if self.vx :
+         self.gvtx.append(len(self.vx))
+     elif self.gvtx :
+         self.gvtx.append(0)
 
  def getData(self, path):
      result = None

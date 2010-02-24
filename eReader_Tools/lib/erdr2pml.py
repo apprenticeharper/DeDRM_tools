@@ -52,8 +52,9 @@
 #  0.11 - fixups for using correct xml for footnotes and sidebars for use with Dropbook
 #  0.12 - Fix added to prevent lowercasing of image names when the pml code itself uses a different case in the link name.
 #  0.13 - change to unbuffered stdout for use with gui front ends
+#  0.14 - contributed enhancement to support --make-pmlz switch
 
-__version__='0.13'
+__version__='0.14'
 
 # Import Psyco if available
 try:
@@ -85,7 +86,7 @@ class Unbuffered:
 import sys
 sys.stdout=Unbuffered(sys.stdout)
 
-import struct, binascii, zlib, os, os.path, urllib
+import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile
 
 try:
     from hashlib import sha1
@@ -592,27 +593,54 @@ def convertEreaderToPml(infile, name, cc, outdir):
     #     file(os.path.join(outdir, 'bookinfo.txt'),'wb').write(bkinfo)
 
 
+def usage():
+    print "Converts DRMed eReader books to PML Source"
+    print "Usage:"
+    print "  erdr2pml [options] infile.pdb [outdir] \"your name\" credit_card_number "
+    print " "
+    print "Options: "
+    print "  -h                prints this message"
+    print "  --make-pmlz       create PMLZ instead of using output directory"
+    print " "
+    print "Note:"
+    print "  if ommitted, outdir defaults based on 'infile.pdb'"
+    print "  It's enough to enter the last 8 digits of the credit card number"
+    return
+
 def main(argv=None):
     global bookname
-    if argv is None:
-        argv = sys.argv
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "h", ["make-pmlz"])
+    except getopt.GetoptError, err:
+        print str(err)
+        usage()
+        return 1
+    make_pmlz = False
+    zipname = None
+    for o, a in opts:
+        if o == "-h":
+            usage()
+            return 0
+        elif o == "--make-pmlz":
+            make_pmlz = True
+            zipname = ''
     
     print "eRdr2Pml v%s. Copyright (c) 2009 The Dark Reverser" % __version__
 
-    if len(argv)!=4 and len(argv)!=5:
-        print "Converts DRMed eReader books to PML Source"
-        print "Usage:"
-        print "  erdr2pml infile.pdb [outdir] \"your name\" credit_card_number "
-        print "Note:"
-        print "  if ommitted, outdir defaults based on 'infile.pdb'"
-        print "  It's enough to enter the last 8 digits of the credit card number"
+    if len(args)!=3 and len(args)!=4:
+        usage()
         return 1
     else:
-        if len(argv)==4:
-            infile, name, cc = argv[1], argv[2], argv[3]
+        if len(args)==3:
+            infile, name, cc = args[0], args[1], args[2]
             outdir = infile[:-4] + '_Source'
-        elif len(argv)==5:
-            infile, outdir, name, cc = argv[1], argv[2], argv[3], argv[4]
+        elif len(args)==4:
+            infile, outdir, name, cc = args[0], args[1], args[2], args[3]
+
+        if make_pmlz :
+            # ignore specified outdir, use tempdir instead
+            outdir = tempfile.mkdtemp()
+                
         bookname = os.path.splitext(os.path.basename(infile))[0]
 
         try:
@@ -620,10 +648,38 @@ def main(argv=None):
             import time
             start_time = time.time()
             convertEreaderToPml(infile, name, cc, outdir)
+
+            if make_pmlz :
+                import zipfile
+                import shutil
+                print "   Creating PMLZ file"
+                zipname = infile[:-4] + '.pmlz'
+                myZipFile = zipfile.ZipFile(zipname,'w',zipfile.ZIP_STORED, False)
+                list = os.listdir(outdir)
+                for file in list:
+                    localname = file
+                    filePath = os.path.join(outdir,file)
+                    if os.path.isfile(filePath):
+                        myZipFile.write(filePath, localname)
+                    elif os.path.isdir(filePath):
+                        imageList = os.listdir(filePath)
+                        localimgdir = os.path.basename(filePath)
+                        for image in imageList:
+                            localname = os.path.join(localimgdir,image)
+                            imagePath = os.path.join(filePath,image)
+                            if os.path.isfile(imagePath):
+                                myZipFile.write(imagePath, localname)
+                myZipFile.close()
+                # remove temporary directory
+                shutil.rmtree(outdir)
+
             end_time = time.time()
             search_time = end_time - start_time
             print 'elapsed time: %.2f seconds' % (search_time, ) 
-            print 'output in %s' % outdir
+            if make_pmlz :
+                print 'output in %s' % zipname
+            else :
+                print 'output in %s' % outdir 
             print "done"
         except ValueError, e:
             print "Error: %s" % e

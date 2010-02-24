@@ -1,6 +1,6 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# For use with Topaz Scripts Version 2.3
+# For use with Topaz Scripts Version 2.4
 
 class Unbuffered:
     def __init__(self, stream):
@@ -242,6 +242,8 @@ class PageParser(object):
         'region.y'         : (1, 'scalar_number', 0, 0),
         'region.h'         : (1, 'scalar_number', 0, 0),
         'region.w'         : (1, 'scalar_number', 0, 0),
+
+        'empty_text_region' : (1, 'snippets', 1, 0),
 
         'img'          : (1, 'snippets', 1, 0),
         'img.x'        : (1, 'scalar_number', 0, 0),
