@@ -1,7 +1,7 @@
 #! /usr/bin/python
 
-# ineptpdf7.pyw
-# ineptpdf, version 7
+# ineptpdf72.pyw
+# ineptpdf, version 7.2
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -17,9 +17,12 @@
 #   6 - changed to adeptkey4.der format for 1.7.2 support (anon)
 #   6.1 - backward compatibility for 1.7.1 and old adeptkey.der
 #   7 - Get cross reference streams and object streams working for input.
-#       Not yet supported on output but this only affects file size,
+#       Not yet supported on output but this only effects file size,
 #       not functionality. (by anon2)
-          
+#   7.1 - Correct a problem when an old trailer is not followed by startxref
+#   7.2 - Correct malformed Mac OS resource forks for Stanza
+#       - Support for cross ref streams on output (decreases file size)
+#
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
 """
@@ -56,6 +59,15 @@ except ImportError:
 class ADEPTError(Exception):
     pass
 
+# Do we generate cross reference streams on output?
+# 0 = never
+# 1 = only if present in input
+# 2 = always
+
+GEN_XREF_STM = 1
+
+# This is the value for the current document
+gen_xref_stm = False # will be set in PDFSerializer
 
 ### 
 ### ASN.1 parsing code from tlslite
@@ -298,6 +310,7 @@ END_KEYWORD = re.compile(r'[#/%\[\]()<>{}\s]')
 END_STRING = re.compile(r'[()\134]')
 OCT_STRING = re.compile(r'[0-7]')
 ESC_STRING = { 'b':8, 't':9, 'n':10, 'f':12, 'r':13, '(':40, ')':41, '\\':92 }
+
 class PSBaseParser(object):
 
     '''
@@ -644,7 +657,7 @@ class PSStackParser(PSBaseParser):
     def do_keyword(self, pos, token):
         return
     
-    def nextobject(self):
+    def nextobject(self, direct=False):
         '''
         Yields a list of objects: keywords, literals, strings, 
         numbers, arrays and dictionaries. Arrays and dictionaries
@@ -689,6 +702,8 @@ class PSStackParser(PSBaseParser):
             if self.context:
                 continue
             else:
+                if direct:
+                    return self.pop(1)[0]
                 self.flush()
         obj = self.results.pop(0)
         return obj
@@ -714,13 +729,13 @@ class PDFNotImplementedError(PSException): pass
 ##
 class PDFObjRef(PDFObject):
     
-    def __init__(self, doc, objid, _):
+    def __init__(self, doc, objid, genno):
         if objid == 0:
             if STRICT:
                 raise PDFValueError('PDF object id cannot be 0.')
         self.doc = doc
         self.objid = objid
-        #self.genno = genno  # Never used.
+        self.genno = genno
         return
 
     def __repr__(self):
@@ -863,6 +878,7 @@ class PDFStream(PDFObject):
         self.rawdata = rawdata
         self.decipher = decipher
         self.data = None
+        self.decdata = None
         self.objid = None
         self.genno = None
         return
@@ -873,8 +889,12 @@ class PDFStream(PDFObject):
         return
     
     def __repr__(self):
-        return '<PDFStream(%r): raw=%d, %r>' % \
-            (self.objid, len(self.rawdata), self.dic)
+        if self.rawdata:
+            return '<PDFStream(%r): raw=%d, %r>' % \
+                   (self.objid, len(self.rawdata), self.dic)
+        else:
+            return '<PDFStream(%r): data=%d, %r>' % \
+                   (self.objid, len(self.data), self.dic)
 
     def decode(self):
         assert self.data is None and self.rawdata is not None
@@ -882,6 +902,8 @@ class PDFStream(PDFObject):
         if self.decipher:
             # Handle encryption
             data = self.decipher(self.objid, self.genno, data)
+            if gen_xref_stm:
+                self.decdata = data # keep decrypted data
         if 'Filter' not in self.dic:
             self.data = data
             self.rawdata = None
@@ -940,13 +962,8 @@ class PDFStream(PDFObject):
         return self.rawdata
 
     def get_decdata(self):
-        if self.data is not None:
-            # Data has already been decrypted and decoded. This is the case
-            # for object streams. Note: this data is wrong to put in the
-            # output because it should be stored decrypted but
-            # uncompressed. This can be done by storing the intermediate
-            # data. For now object streams are useless in the output.
-            return self.data
+        if self.decdata is not None:
+            return self.decdata
         data = self.rawdata
         if self.decipher and data:
             # Handle encryption
@@ -1024,7 +1041,7 @@ class PDFXRef(object):
         try:
             (_,kwd) = parser.nexttoken()
             assert kwd is self.KEYWORD_TRAILER
-            (_,dic) = parser.nextobject()
+            (_,dic) = parser.nextobject(direct=True)
         except PSEOF:
             x = parser.pop(1)
             if not x:
@@ -1138,6 +1155,7 @@ class PDFDocument(object):
         for xref in self.xrefs:
             trailer = xref.trailer
             if not trailer: continue
+
             # If there's an encryption info, remember it.
             if 'Encrypt' in trailer:
                 #assert not self.encryption
@@ -1315,9 +1333,9 @@ class PDFDocument(object):
                 #    raise PDFSyntaxError('Cannot locate objid=%r' % objid)
                 return None
             if stmid:
-# Later try to introduce PDFObjStmRef's
-#                return PDFObjStmRef(objid, stmid, index)
-# Stuff from pdfminer
+                if gen_xref_stm:
+                    return PDFObjStmRef(objid, stmid, index)
+# Stuff from pdfminer: extract objects from object stream
                 stream = stream_value(self.getobj(stmid))
                 if stream.dic.get('Type') is not LITERAL_OBJSTM:
                     if STRICT:
@@ -1368,10 +1386,13 @@ class PDFDocument(object):
         return obj
 
 class PDFObjStmRef(object):
+    maxindex = 0
     def __init__(self, objid, stmid, index):
         self.objid = objid
         self.stmid = stmid
         self.index = index
+        if index > PDFObjStmRef.maxindex:
+            PDFObjStmRef.maxindex = index
 
     
 ##  PDFParser
@@ -1477,6 +1498,9 @@ class PDFParser(PSStackParser):
             raise PDFNoValidXRef('Unexpected EOF')
         if isinstance(token, int):
             # XRefStream: PDF-1.5
+            if GEN_XREF_STM == 1:
+                global gen_xref_stm
+                gen_xref_stm = True
             self.seek(pos)
             self.reset()
             xref = PDFXRefStream()
@@ -1562,6 +1586,8 @@ class PDFObjStrmParser(PDFParser):
 
 class PDFSerializer(object):
     def __init__(self, inf, keypath):
+        global GEN_XREF_STM, gen_xref_stm
+        gen_xref_stm = GEN_XREF_STM > 1
         self.version = inf.read(8)
         inf.seek(0)
         self.doc = doc = PDFDocument()
@@ -1586,62 +1612,93 @@ class PDFSerializer(object):
         doc = self.doc
         objids = self.objids
         xrefs = {}
-        xrefstm = {}
         maxobj = max(objids)
         trailer = dict(self.trailer)
         trailer['Size'] = maxobj + 1
         for objid in objids:
             obj = doc.getobj(objid)
             if isinstance(obj, PDFObjStmRef):
-                xrefstm[objid] = obj
+                xrefs[objid] = obj
                 continue
             if obj is not None:
-                xrefs[objid] = self.tell()
-                self.serialize_indirect(objid, obj)
+                try:
+                    genno = obj.genno
+                except AttributeError:
+                    genno = 0
+                xrefs[objid] = (self.tell(), genno)
+                self.serialize_indirect(objid, genno, obj)
         startxref = self.tell()
-        self.write('xref\n')
-        self.write('0 %d\n' % (maxobj + 1,))
-        for objid in xrange(0, maxobj + 1):
-            if objid in xrefs:
-                self.write("%010d %05d n \n" % (xrefs[objid], 0))
-            else:
-                self.write("%010d %05d f \n" % (0, 65535))
-        self.write('trailer\n')
-        self.serialize_object(trailer)
-        self.write('\nstartxref\n%d\n%%%%EOF' % startxref)
-        if not xrefstm:
-            return
-        index = []
-        first = None
-        prev = None
-        data = []
-        for objid in sorted(xrefstm):
-            if first is None:
-                first = objid
-            elif objid != prev + 1:
-                index.extend((first, prev - first + 1))
-                first = objid
-            prev = objid
-            stmid = xrefstm[objid].stmid
-            data.append(struct.pack('>BHB', 2, stmid, 0))
-        index.extend((first, prev - first + 1))
-        data = zlib.compress(''.join(data))
-        dic = {'Type': LITERAL_XREF, 'Size': prev + 1, 'Index': index,
-               'W': [1, 2, 1], 'Length': len(data), 'Prev': startxref,
-               'Filter': LITERALS_FLATE_DECODE[0],}
-        obj = PDFStream(dic, data)
-        self.write('\n')
-        trailer['XRefStm'] = startxrefstm = self.tell()
-        self.serialize_indirect(maxobj + 1, obj)
-        trailer['Prev'] = startxref
-        startxref = self.tell()
-        self.write('xref\n')
-        self.write('%d 1\n' % (maxobj + 1,))
-        self.write("%010d %05d n \n" % (startxrefstm, 0))
-        self.write('trailer\n')
-        self.serialize_object(trailer)
-        self.write('\nstartxref\n%d\n%%%%EOF' % startxref)
-    
+
+        if not gen_xref_stm:
+            self.write('xref\n')
+            self.write('0 %d\n' % (maxobj + 1,))
+            for objid in xrange(0, maxobj + 1):
+                if objid in xrefs:
+                    self.write("%010d %05d n \n" % xrefs[objid])
+                else:
+                    self.write("%010d %05d f \n" % (0, 65535))
+            
+            self.write('trailer\n')
+            self.serialize_object(trailer)
+            self.write('\nstartxref\n%d\n%%%%EOF' % startxref)
+
+        else: # Generate crossref stream.
+
+            # Calculate size of entries
+            maxoffset = max(startxref, maxobj)
+            maxindex = PDFObjStmRef.maxindex
+            # TODO - max genno should also be taken into account
+            fl2 = 2
+            power = 65536
+            while maxoffset >= power:
+                fl2 += 1
+                power *= 256
+            fl3 = 1
+            power = 256
+            while maxindex >= power:
+                fl3 += 1
+                power *= 256
+                    
+            index = []
+            first = None
+            prev = None
+            data = []
+            for objid in sorted(xrefs):
+                if first is None:
+                    first = objid
+                elif objid != prev + 1:
+                    index.extend((first, prev - first + 1))
+                    first = objid
+                prev = objid
+                objref = xrefs[objid]
+                if isinstance(objref, PDFObjStmRef):
+                    f1 = 2
+                    f2 = objref.stmid
+                    f3 = objref.index
+                else:
+                    f1 = 1
+                    f2 = objref[0]
+                    f3 = objref[1]
+                
+                data.append(struct.pack('>B', f1))
+                data.append(struct.pack('>L', f2)[-fl2:])
+                data.append(struct.pack('>L', f3)[-fl3:])
+            index.extend((first, prev - first + 1))
+            data = zlib.compress(''.join(data))
+            dic = {'Type': LITERAL_XREF, 'Size': prev + 1, 'Index': index,
+                   'W': [1, fl2, fl3], 'Length': len(data), 
+                   'Filter': LITERALS_FLATE_DECODE[0],}
+            obj = PDFStream(dic, data)
+            trailer['XRefStm'] = startxrefstm = self.tell()
+            self.serialize_indirect(maxobj + 1, 0, obj)
+            startxref = self.tell()
+            self.write('xref\n')
+            self.write('%d 1\n' % (maxobj + 1,))
+            self.write("%010d %05d n \n" % (startxrefstm, 0))
+            self.write('trailer\n')
+            self.serialize_object(trailer)
+            self.write('\nstartxref\n%d\n%%%%EOF' % startxref)
+
     def write(self, data):
         self.outf.write(data)
         self.last = data[-1:]
@@ -1661,6 +1718,12 @@ class PDFSerializer(object):
     
     def serialize_object(self, obj):
         if isinstance(obj, dict):
+            # Correct malformed Mac OS resource forks for Stanza
+            if 'ResFork' in obj and 'Type' in obj and 'Subtype' not in obj \
+                   and isinstance(obj['Type'], int):
+                obj['Subtype'] = obj['Type']
+                del obj['Type']
+            # end - hope this doesn't have bad effects
             self.write('<<')
             for key, val in obj.items():
                 self.write('/%s' % key)
@@ -1690,8 +1753,8 @@ class PDFSerializer(object):
             ### so we don't need these any more. Therefore leave them out
             ### of the output. Later we could try to use object streams in
             ### the output again to get smaller output.
-            if obj.dic.get('Type') == LITERAL_OBJSTM:
-                self.write('(deleted)')
+            if obj.dic.get('Type') == LITERAL_OBJSTM and not gen_xref_stm:
+                    self.write('(deleted)')
             else:
                 data = obj.get_decdata()
                 self.serialize_object(obj.dic)
@@ -1704,8 +1767,8 @@ class PDFSerializer(object):
                 self.write(' ')
             self.write(data)
     
-    def serialize_indirect(self, objid, obj):
-        self.write('%d 0 obj' % (objid,))
+    def serialize_indirect(self, objid, genno, obj):
+        self.write('%d %d obj' % (objid, genno))
         self.serialize_object(obj)
         if self.last.isalnum():
             self.write('\n')
