@@ -1,7 +1,7 @@
 #! /usr/bin/python
 
-# ineptpdf72.pyw
-# ineptpdf, version 7.2
+# ineptpdf73.pyw
+# ineptpdf, version 7.3
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -22,7 +22,9 @@
 #   7.1 - Correct a problem when an old trailer is not followed by startxref
 #   7.2 - Correct malformed Mac OS resource forks for Stanza
 #       - Support for cross ref streams on output (decreases file size)
-#
+#   7.3 - Correct bug in trailer with cross ref stream that caused the error
+#         "The root object is missing or invalid" in Adobe Reader.
+
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
 """
@@ -1663,6 +1665,10 @@ class PDFSerializer(object):
             first = None
             prev = None
             data = []
+            # Put the xrefstream's reference in itself
+            startxref = self.tell()
+            maxobj += 1
+            xrefs[maxobj] = (startxref, 0)
             for objid in sorted(xrefs):
                 if first is None:
                     first = objid
@@ -1687,17 +1693,13 @@ class PDFSerializer(object):
             data = zlib.compress(''.join(data))
             dic = {'Type': LITERAL_XREF, 'Size': prev + 1, 'Index': index,
                    'W': [1, fl2, fl3], 'Length': len(data), 
-                   'Filter': LITERALS_FLATE_DECODE[0],}
-            obj = PDFStream(dic, data)
-            trailer['XRefStm'] = startxrefstm = self.tell()
-            self.serialize_indirect(maxobj + 1, 0, obj)
-            startxref = self.tell()
-            self.write('xref\n')
-            self.write('%d 1\n' % (maxobj + 1,))
-            self.write("%010d %05d n \n" % (startxrefstm, 0))
-            self.write('trailer\n')
-            self.serialize_object(trailer)
-            self.write('\nstartxref\n%d\n%%%%EOF' % startxref)
+                   'Filter': LITERALS_FLATE_DECODE[0],
+                   'Root': trailer['Root'],}
+            if 'Info' in trailer:
+                dic['Info'] = trailer['Info']
+            xrefstm = PDFStream(dic, data)
+            self.serialize_indirect(maxobj, 0, xrefstm)
+            self.write('startxref\n%d\n%%%%EOF' % startxref)
 
     def write(self, data):
         self.outf.write(data)
