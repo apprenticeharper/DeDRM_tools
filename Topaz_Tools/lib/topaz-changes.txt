@@ -1,4 +1,14 @@
-Canges in 2.3
+Changes in 2.6
+	- fix for many additional version tags
+	- fixes to generate better links
+	- fixes to handle external links
+	- now handles new "marker" page .dat files
+	- improved special region handling
+	- properly handle class names with spaces
+	- handle default alignment for synthetic regions
+
+
+Changes in 2.3
        - fix for use with non-latin1 based systems (thank you Tedd)
        - fixes for out of order tokens in xml
 

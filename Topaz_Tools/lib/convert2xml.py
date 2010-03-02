@@ -1,6 +1,6 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# For use with Topaz Scripts Version 2.4
+# For use with Topaz Scripts Version 2.6
 
 class Unbuffered:
     def __init__(self, stream):
@@ -315,6 +315,12 @@ class PageParser(object):
         'version.findlists'                : (1, 'scalar_text', 0, 0),
         'version.page_num'                 : (1, 'scalar_text', 0, 0),
         'version.page_type'                : (1, 'scalar_text', 0, 0),
+        'version.bad_text'                 : (1, 'scalar_text', 0, 0),
+        'version.glyph_mismatch'           : (1, 'scalar_text', 0, 0),
+        'version.margins'                  : (1, 'scalar_text', 0, 0),
+        'version.staggered_lines'          : (1, 'scalar_text', 0, 0),
+        'version.paragraph_continuation'   : (1, 'scalar_text', 0, 0),
+        'version.toc'                      : (1, 'scalar_text', 0, 0),
 
         'stylesheet'   : (1, 'snippets', 1, 0),
         'style'              : (1, 'snippets', 1, 0),
@@ -662,16 +668,19 @@ class PageParser(object):
     def process(self):
 
         # peek at the first bytes to see what type of file it is
-        magic = self.fo.read(11)
-        if (magic[0:1] == 'p') and (magic[2:10] == '__PAGE__'):
+        magic = self.fo.read(9)
+        if (magic[0:1] == 'p') and (magic[2:9] == 'marker_'):
             first_token = 'info'
-        elif (magic[0:1] == 'g') and (magic[2:11] == '__GLYPH__'):
-            skip = self.fo.read(1)
+        elif (magic[0:1] == 'p') and (magic[2:9] == '__PAGE_'):
+            skip = self.fo.read(2)
+            first_token = 'info'
+        elif (magic[0:1] == 'g') and (magic[2:9] == '__GLYPH'):
+            skip = self.fo.read(3)
             first_token = 'info'
         else :
             # other0.dat file
             first_token = None
-            self.fo.seek(-11,1)
+            self.fo.seek(-9,1)
 
 
         # main loop to read and build the document tree

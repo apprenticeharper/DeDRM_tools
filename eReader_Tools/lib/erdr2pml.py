@@ -53,8 +53,9 @@
 #  0.12 - Fix added to prevent lowercasing of image names when the pml code itself uses a different case in the link name.
 #  0.13 - change to unbuffered stdout for use with gui front ends
 #  0.14 - contributed enhancement to support --make-pmlz switch
+#  0.15 - enabled high-ascii to pml character encoding. DropBook now works on Mac.
 
-__version__='0.14'
+__version__='0.15'
 
 # Import Psyco if available
 try:
@@ -465,17 +466,6 @@ class EreaderProcessor(object):
         data = sect[62:]
         return sanitizeFileName(name), data
 
-    def cleanPML(self,pml):
-        # Update old \b font tag with correct \B bold font tag
-        pml2 = pml.replace('\\b', '\\B')
-        # Convert special characters to proper PML code.  High ASCII start at (\x82, \a130) and go up to (\xff, \a255)
-        for k in xrange(130,256):
-            # a2b_hex takes in a hexidecimal as a string and converts it 
-            # to a binary ascii code that we search and replace for
-            badChar=binascii.a2b_hex('%02x' % k)
-            pml2 = pml2.replace(badChar, '\\a%03d' % k)
-            #end for k
-        return pml2
 
     # def getChapterNamePMLOffsetData(self):
     #     cv = ''
@@ -564,6 +554,14 @@ class EreaderProcessor(object):
 
         return r
 
+def cleanPML(pml):
+	# Convert special characters to proper PML code.  High ASCII start at (\x80, \a128) and go up to (\xff, \a255)
+	pml2 = pml
+	for k in xrange(128,256):
+		badChar = chr(k)
+		pml2 = pml2.replace(badChar, '\\a%03d' % k)
+	return pml2
+
 def convertEreaderToPml(infile, name, cc, outdir):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -585,7 +583,7 @@ def convertEreaderToPml(infile, name, cc, outdir):
     print "   Extracting pml"
     pml_string = er.getText()
     pmlfilename = bookname + ".pml"
-    file(os.path.join(outdir, pmlfilename),'wb').write(pml_string)
+    file(os.path.join(outdir, pmlfilename),'wb').write(cleanPML(pml_string))
 
     # bkinfo = er.getBookInfo()
     # if bkinfo != '':
@@ -677,7 +675,7 @@ def main(argv=None):
             search_time = end_time - start_time
             print 'elapsed time: %.2f seconds' % (search_time, ) 
             if make_pmlz :
-                print 'output in %s' % zipname
+                print 'output is %s' % zipname
             else :
                 print 'output in %s' % outdir 
             print "done"

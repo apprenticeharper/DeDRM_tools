@@ -1,6 +1,6 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# For use with Topaz Scripts Version 2.3
+# For use with Topaz Scripts Version 2.6
 
 import csv
 import sys
@@ -85,7 +85,10 @@ class DocParser(object):
     def process(self):
 
         classlst = ''
-        csspage = ''
+        csspage = '.cl-center { text-align: center; margin-left: auto; margin-right: auto; }\n'
+        csspage += '.cl-right { text-align: right; }\n'
+        csspage += '.cl-left { text-align: left; }\n'
+        csspage += '.cl-justify { text-align: justify; }\n'
 
         # generate a list of each <style> starting point in the stylesheet
         styleList= self.posinDoc('book.stylesheet.style')
@@ -108,6 +111,7 @@ class DocParser(object):
                 # get the style class
                 (pos, sclass) = self.findinDoc('style.class',start,end)
                 if sclass != None:
+                    sclass = sclass.replace(' ','-')
                     sclass = '.cl-' + sclass.lower()
                 else : 
                     sclass = ''
@@ -115,6 +119,7 @@ class DocParser(object):
                 # check for any "after class" specifiers
                 (pos, aftclass) = self.findinDoc('style._after_class',start,end)
                 if aftclass != None:
+                    aftclass = aftclass.replace(' ','-')
                     aftclass = '.cl-' + aftclass.lower()
                 else : 
                     aftclass = ''
@@ -216,7 +221,8 @@ class DocParser(object):
                         if ctype == 'h3_' :
                             csspage += 'h6' + cssline + '\n'
 
-                    csspage += self.stags[tag] + cssline + '\n'
+                    if cssline != ' { }':
+                        csspage += self.stags[tag] + cssline + '\n'
 
                 
         return csspage, classlst

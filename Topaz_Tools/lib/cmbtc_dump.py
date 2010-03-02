@@ -1,5 +1,5 @@
 #! /usr/bin/python
-# For use in Topaz Scripts version 2.3
+# For use in Topaz Scripts version 2.6
 
 """
 

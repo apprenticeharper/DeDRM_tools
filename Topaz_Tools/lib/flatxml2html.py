@@ -1,6 +1,6 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# For use with Topaz Scripts Version 2.3
+# For use with Topaz Scripts Version 2.6
 
 import sys
 import csv
@@ -32,6 +32,8 @@ class DocParser(object):
         self.link_id = []
         self.link_title = []
         self.link_page = []
+        self.link_href = []
+        self.link_type = []
         self.dehyphen_rootid = []
         self.paracont_stemid = []
         self.parastems_stemid = []
@@ -197,6 +199,7 @@ class DocParser(object):
     # get the class
     def getClass(self, pclass):
         nclass = pclass
+
         # class names are an issue given topaz may start them with numerals (not allowed),
         # use a mix of cases (which cause some browsers problems), and actually
         # attach numbers after "_reclustered*" to the end to deal classeses that inherit
@@ -206,7 +209,10 @@ class DocParser(object):
         # so we clean this up by lowercasing, prepend 'cl-', and getting any baseclass
         # that exists in the stylesheet first, and then adding this specific class
         # after
+        
+        # also some class names have spaces in them so need to convert to dashes
         if nclass != None :
+            nclass = nclass.replace(' ','-')
             classres = ''
             nclass = nclass.lower()
             nclass = 'cl-' + nclass
@@ -334,7 +340,7 @@ class DocParser(object):
             result.append(('svg', num))
             return pclass, result
 
-        # this type of paragrph may be made up of multiple spans, inline 
+        # this type of paragraph may be made up of multiple spans, inline 
         # word monograms (images), and words with semantic meaning, 
         # plus glyphs used to form starting letter of first word
         
@@ -391,6 +397,9 @@ class DocParser(object):
                 result.append(('img' + word_class, int(argres)))
                 word_class = ''
 
+            elif name.endswith('region.img.src'):
+                result.append(('img' + word_class, int(argres)))
+
             if (sp_first != -1) and (sp_last != -1):
                 for wordnum in xrange(sp_first, sp_last):
                     result.append(('ocr', wordnum))
@@ -437,6 +446,8 @@ class DocParser(object):
         if (type == 'end'):
             parares += ' '
 
+        lstart = len(parares)
+
         cnt = len(pdesc)
 
         for j in xrange( 0, cnt) :
@@ -449,18 +460,24 @@ class DocParser(object):
 
                 if handle_links:
                     link = self.link_id[num]
-                    if (link > 0): 
+                    if (link > 0):
+                        linktype = self.link_type[link-1]
                         title = self.link_title[link-1]
-                        if (title == "") or (parares.rfind(title) < 0): 
-                            title='_link_'
-                        ptarget = self.link_page[link-1] - 1
-                        linkhtml = '<a href="#page%04d">' % ptarget
+                        if (title == "") or (parares.rfind(title) < 0):
+                            title=parares[lstart:]
+                        if linktype == 'external' :
+                            linkhref = self.link_href[link-1]
+                            linkhtml = '<a href="%s">' % linkhref
+                        else :
+                            ptarget = self.link_page[link-1] - 1
+                            linkhtml = '<a href="#page%04d">' % ptarget
                         linkhtml += title + '</a>'
                         pos = parares.rfind(title)
                         if pos >= 0:
                             parares = parares[0:pos] + linkhtml + parares[pos+len(title):]
                         else :
                             parares += linkhtml
+                        lstart = len(parares)
                         if word == '_link_' : word = ''
                     elif (link < 0) :
                         if word == '_link_' : word = ''
@@ -531,6 +548,14 @@ class DocParser(object):
 
         # collect link destination page numbers
         self.link_page = self.getData('info.links.page',0,-1)
+
+        # collect link types (container versus external)
+        (pos, argres) = self.findinDoc('info.links.type',0,-1)
+        if argres :  self.link_type = argres.split('|')
+
+        # collect link destinations
+        (pos, argres) = self.findinDoc('info.links.href',0,-1)
+        if argres :  self.link_href = argres.split('|')
 
         # collect link titles
         (pos, argres) = self.findinDoc('info.links.title',0,-1)
@@ -641,16 +666,18 @@ class DocParser(object):
                     htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
 
 
-                elif (regtype == 'synth_fcvr.center') or (regtype == 'synth_text.center'):
+                elif (regtype == 'synth_fcvr.center'):
                     (pos, simgsrc) = self.findinDoc('img.src',start,end)
                     if simgsrc:
                         htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)
 
                 else :
-                    print 'Warning: region type', regtype
+                    print '          Making region type', regtype,
                     (pos, temp) = self.findinDoc('paragraph',start,end)
-                    if pos != -1:
-                        print '   is a "text" region'
+                    (pos2, temp) = self.findinDoc('span',start,end)
+                    if pos != -1 or pos2 != -1:
+                        print ' a "text" region'
+                        orig_regtype = regtype
                         regtype = 'fixed'
                         ptype = 'full'
                         # check to see if this is a continution from the previous page
@@ -658,6 +685,11 @@ class DocParser(object):
                             ptype = 'end'
                             first_para_continued = False
                         (pclass, pdesc) = self.getParaDescription(start,end, regtype)
+                        if not pclass:
+                            if orig_regtype.endswith('.right')     : pclass = 'cl-right'
+                            elif orig_regtype.endswith('.center')  : pclass = 'cl-center'
+                            elif orig_regtype.endswith('.left')    : pclass = 'cl-left'
+                            elif orig_regtype.endswith('.justify') : pclass = 'cl-justify'
                         if pclass and (ptype == 'full') and (len(pclass) >= 6):
                             tag = 'p'
                             if pclass[3:6] == 'h1-' : tag = 'h4'
@@ -669,7 +701,7 @@ class DocParser(object):
                         else :
                             htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
                     else :
-                        print '    is a "graphic" region'
+                        print ' a "graphic" region'
                         (pos, simgsrc) = self.findinDoc('img.src',start,end)
                         if simgsrc:
                             htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)
