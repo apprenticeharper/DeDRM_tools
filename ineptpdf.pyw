@@ -1,7 +1,7 @@
 #! /usr/bin/python
 
-# ineptpdf73.pyw
-# ineptpdf, version 7.3
+# ineptpdf74.pyw
+# ineptpdf, version 7.4
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -24,7 +24,9 @@
 #       - Support for cross ref streams on output (decreases file size)
 #   7.3 - Correct bug in trailer with cross ref stream that caused the error
 #         "The root object is missing or invalid" in Adobe Reader.
-
+#   7.4 - Force all generation numbers in output file to be 0, like in v6.
+#         Fallback code for wrong xref improved (search till last trailer
+#         instead of first)
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
 """
@@ -741,7 +743,7 @@ class PDFObjRef(PDFObject):
         return
 
     def __repr__(self):
-        return '<PDFObjRef:%d>' % (self.objid)
+        return '<PDFObjRef:%d %d>' % (self.objid, self.genno)
 
     def resolve(self):
         return self.doc.getobj(self.objid)
@@ -1528,6 +1530,7 @@ class PDFParser(PSStackParser):
     # read xref tables and trailers
     def read_xref(self):
         xrefs = []
+        trailerpos = None
         try:
             pos = self.find_xref()
             self.read_xref_from(pos, xrefs)
@@ -1542,16 +1545,18 @@ class PDFParser(PSStackParser):
                     (pos, line) = self.nextline()
                 except PSEOF:
                     break
-                if line.startswith('trailer'): break
+                if line.startswith('trailer'):
+                    trailerpos = pos # remember last trailer
                 m = pat.match(line)
                 if not m: continue
                 (objid, genno) = m.groups()
                 offsets[int(objid)] = (0, pos)
             if not offsets: raise
             xref.offsets = offsets
-            self.seek(pos)
-            xref.load_trailer(self)
-            xrefs.append(xref)
+            if trailerpos:
+                self.seek(trailerpos)
+                xref.load_trailer(self)
+                xrefs.append(xref)
         return xrefs
 
 ##  PDFObjStrmParser
@@ -1628,7 +1633,7 @@ class PDFSerializer(object):
                 except AttributeError:
                     genno = 0
                 xrefs[objid] = (self.tell(), genno)
-                self.serialize_indirect(objid, genno, obj)
+                self.serialize_indirect(objid, obj)
         startxref = self.tell()
 
         if not gen_xref_stm:
@@ -1636,7 +1641,8 @@ class PDFSerializer(object):
             self.write('0 %d\n' % (maxobj + 1,))
             for objid in xrange(0, maxobj + 1):
                 if objid in xrefs:
-                    self.write("%010d %05d n \n" % xrefs[objid])
+                    # force the genno to be 0
+                    self.write("%010d 00000 n \n" % xrefs[objid][0])
                 else:
                     self.write("%010d %05d f \n" % (0, 65535))
             
@@ -1649,7 +1655,6 @@ class PDFSerializer(object):
             # Calculate size of entries
             maxoffset = max(startxref, maxobj)
             maxindex = PDFObjStmRef.maxindex
-            # TODO - max genno should also be taken into account
             fl2 = 2
             power = 65536
             while maxoffset >= power:
@@ -1684,7 +1689,9 @@ class PDFSerializer(object):
                 else:
                     f1 = 1
                     f2 = objref[0]
-                    f3 = objref[1]
+                    # we force all generation numbers to be 0
+                    # f3 = objref[1]
+                    f3 = 0
                 
                 data.append(struct.pack('>B', f1))
                 data.append(struct.pack('>L', f2)[-fl2:])
@@ -1698,7 +1705,7 @@ class PDFSerializer(object):
             if 'Info' in trailer:
                 dic['Info'] = trailer['Info']
             xrefstm = PDFStream(dic, data)
-            self.serialize_indirect(maxobj, 0, xrefstm)
+            self.serialize_indirect(maxobj, xrefstm)
             self.write('startxref\n%d\n%%%%EOF' % startxref)
 
     def write(self, data):
@@ -1751,10 +1758,9 @@ class PDFSerializer(object):
                 self.write(' ')            
             self.write('%d %d R' % (obj.objid, 0))
         elif isinstance(obj, PDFStream):
-            ### For now, we have extracted all objects from an Object Stream,
-            ### so we don't need these any more. Therefore leave them out
-            ### of the output. Later we could try to use object streams in
-            ### the output again to get smaller output.
+            ### If we don't generate cross ref streams the object streams
+            ### are no longer useful, as we have extracted all objects from
+            ### them. Therefore leave them out from the output.
             if obj.dic.get('Type') == LITERAL_OBJSTM and not gen_xref_stm:
                     self.write('(deleted)')
             else:
@@ -1769,8 +1775,8 @@ class PDFSerializer(object):
                 self.write(' ')
             self.write(data)
     
-    def serialize_indirect(self, objid, genno, obj):
-        self.write('%d %d obj' % (objid, genno))
+    def serialize_indirect(self, objid, obj):
+        self.write('%d 0 obj' % (objid,))
         self.serialize_object(obj)
         if self.last.isalnum():
             self.write('\n')
