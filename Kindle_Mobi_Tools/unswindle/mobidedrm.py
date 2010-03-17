@@ -37,8 +37,9 @@
 #         in utf8 file are encrypted. (Although neither kind gets compressed.)
 #         This knowledge leads to a simplification of the test for the 
 #         trailing data byte flags - version 5 and higher AND header size >= 0xE4. 
+#  0.15 - Now outputs 'hearbeat', and is also quicker for long files.
 
-__version__ = '0.14'
+__version__ = '0.15'
 
 import sys
 import struct
@@ -196,8 +197,7 @@ class DrmStripper:
         mobi_length, = struct.unpack('>L',sect[0x14:0x18])
         mobi_version, = struct.unpack('>L',sect[0x68:0x6C])
         extra_data_flags = 0
-        print "MOBI header length = %d" %mobi_length
-        print "MOBI header version = %d" %mobi_version
+        print "MOBI header version = %d, length = %d" %(mobi_version, mobi_length)
         if (mobi_length >= 0xE4) and (mobi_version >= 5):
             extra_data_flags, = struct.unpack('>H', sect[0xF2:0xF4])
             print "Extra Data Flags = %d" %extra_data_flags
@@ -227,13 +227,22 @@ class DrmStripper:
             self.patchSection(0, "\0" * 2, 0xC)
 
             # decrypt sections
-            print "Decrypting. Please wait...",
+            print "Decrypting. Please wait . . .",
+            new_data = self.data_file[:self.sections[1][0]]
             for i in xrange(1, records+1):
                 data = self.loadSection(i)
                 extra_size = getSizeOfTrailingDataEntries(data, len(data), extra_data_flags)
+                if i%100 == 0:
+                    print ".",
                 # print "record %d, extra_size %d" %(i,extra_size)
-                self.patchSection(i, PC1(found_key, data[0:len(data) - extra_size]))
-        print "done"
+                new_data += PC1(found_key, data[0:len(data) - extra_size])
+                if extra_size > 0:
+                    new_data += data[-extra_size:]
+                #self.patchSection(i, PC1(found_key, data[0:len(data) - extra_size]))
+            if self.num_sections > records+1:
+                new_data += self.data_file[self.sections[records+1][0]:]
+            self.data_file = new_data
+            print "done."
 
     def getResult(self):
         return self.data_file
@@ -246,7 +255,7 @@ if not __name__ == "__main__":
         description         = 'Removes DRM from secure Mobi files'
         supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
         author              = 'The Dark Reverser' # The author of this plugin
-        version             = (0, 1, 4)   # The version number of this plugin
+        version             = (0, 1, 5)   # The version number of this plugin
         file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
         on_import           = True # Run this plugin during the import
 
