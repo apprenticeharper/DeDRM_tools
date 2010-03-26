@@ -1,6 +1,7 @@
 #! /usr/bin/python
 
-# ineptkey.pyw, version 4.3
+# ineptkey.pyw, version 4.4
+# ineptkeyv44
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -15,7 +16,7 @@
 #   4.1 - quick beta fix for ADE 1.7.2 (anon)
 #   4.2 - added old 1.7.1 processing
 #   4.3 - better key search
-
+#   4.4 - Make it working on 64-bit Python
 
 """
 Retrieve Adobe ADEPT user key under Windows.
@@ -30,7 +31,9 @@ import os
 from struct import pack
 from ctypes import windll, c_char_p, c_wchar_p, c_uint, POINTER, byref, \
     create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
-    string_at, Structure, c_void_p, cast
+    string_at, Structure, c_void_p, cast, c_ulonglong, \
+    sizeof, c_void_p, c_size_t
+
 import _winreg as winreg
 import Tkinter
 import Tkconstants
@@ -102,22 +105,84 @@ def GetUserName():
     return GetUserName
 GetUserName = GetUserName()
 
-
-CPUID0_INSNS = create_string_buffer("\x53\x31\xc0\x0f\xa2\x8b\x44\x24\x08\x89"
-                                    "\x18\x89\x50\x04\x89\x48\x08\x5b\xc3")
-def cpuid0():
-    buffer = create_string_buffer(12)
-    cpuid0__ = CFUNCTYPE(c_char_p)(addressof(CPUID0_INSNS))
+if sizeof(c_void_p) == 4:
+    ## 32-bit Python
+    CPUID0_INSNS = create_string_buffer("\x53\x31\xc0\x0f\xa2\x8b\x44\x24\x08\x89"
+                                        "\x18\x89\x50\x04\x89\x48\x08\x5b\xc3")
     def cpuid0():
-        cpuid0__(buffer)
-        return buffer.raw
-    return cpuid0
-cpuid0 = cpuid0()
+        buffer = create_string_buffer(12)
+        cpuid0__ = CFUNCTYPE(c_char_p)(addressof(CPUID0_INSNS))
+        def cpuid0():
+            cpuid0__(buffer)
+            return buffer.raw
+        return cpuid0
+    cpuid0 = cpuid0()
 
+    CPUID1_INSNS = create_string_buffer("\x53\x31\xc0\x40\x0f\xa2\x5b\xc3")
+    cpuid1 = CFUNCTYPE(c_uint)(addressof(CPUID1_INSNS))
+else:
+    ## 64 bit Python
 
-CPUID1_INSNS = create_string_buffer("\x53\x31\xc0\x40\x0f\xa2\x5b\xc3")
-cpuid1 = CFUNCTYPE(c_uint)(addressof(CPUID1_INSNS))
+    # In 64-bit we cannot execute instructions stored in a string because
+    # the O.S. prevents that to defend against buffer overrun attacks.
+    # Therefore we have to allocate a block of memory with the execute
+    # permission and copy our code into it.
+    
+    NULL = c_void_p(0)
+    PAGE_EXECUTE_READWRITE = 0x40
+    MEM_COMMIT  = 0x1000
+    MEM_RESERVE = 0x2000
 
+    VirtualAlloc = windll.kernel32.VirtualAlloc
+    VirtualAlloc.restype = c_void_p
+    VirtualAlloc.argtypes = (c_void_p, c_size_t, c_uint, c_uint)
+
+    from ctypes import memmove
+    memmove.restype = c_void_p
+    memmove.argtypes = (c_void_p, c_void_p, c_size_t)
+
+    CPUID0_INSNS = (b"\x55"             # push   %rbp
+                    "\x48\x89\xe5"      # mov    %rsp,%rbp
+                    "\x48\x89\x4d\xf8"  # mov    %rcx,-0x8(%rbp)
+                    "\x31\xc0"          # xor    %eax,%eax
+                    "\x0f\xa2"          # cpuid  
+                    "\x48\x8b\x45\xf8"  # mov    -0x8(%rbp),%rax
+                    "\x89\x18"          # mov    %ebx,(%rax)
+                    "\x89\x50\x04"      # mov    %edx,0x4(%rax)
+                    "\x89\x48\x08"      # mov    %ecx,0x8(%rax)
+                    "\x48\x8b\x45\xf8"  # mov    -0x8(%rbp),%rax
+                    "\xc9"              # leave
+                    "\xc3"              # ret
+                    )
+
+    CPUID1_INSNS = (b"\x31\xc0"         # xor    %eax,%eax
+                    "\xff\xc0"          # inc    %eax
+                    "\x0f\xa2"          # cpuid  
+                    "\xc3"              # ret
+                    )
+
+    insnlen0 = len(CPUID0_INSNS)
+    insnlen1 = len(CPUID1_INSNS)
+    insnlen = insnlen0 + insnlen1
+
+    code_addr = (VirtualAlloc(NULL, insnlen,
+                    MEM_RESERVE|MEM_COMMIT, PAGE_EXECUTE_READWRITE))
+
+    if code_addr is None:
+        raise ADEPTError("Failed to allocate memory")
+
+    memmove(code_addr, CPUID0_INSNS + CPUID1_INSNS, insnlen)
+
+    def cpuid0():
+        buffer = create_string_buffer(12)
+        cpuid0__ = CFUNCTYPE(c_ulonglong, c_char_p)(code_addr)
+        def cpuid0():
+            cpuid0__(buffer)
+            return buffer.raw
+        return cpuid0
+    cpuid0 = cpuid0()
+
+    cpuid1 =  CFUNCTYPE(c_ulonglong)(code_addr + insnlen0)
 
 class DataBlob(Structure):
     _fields_ = [('cbData', c_uint),
