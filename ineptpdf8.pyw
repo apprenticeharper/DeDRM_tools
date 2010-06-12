@@ -1,12 +1,17 @@
 #! /usr/bin/python
 
-# ineptpdf74.pyw
-# ineptpdf, version 7.4
+# ineptpdf8.pyw
+# ineptpdf, version 8.2
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
-# (make sure to install the version for Python 2.6).  Save this script file as
-# ineptpdf.pyw and double-click on it to run it.
+# (make sure to install the version for Python 2.6).
+# 
+# Always use the 32-Bit Windows Python version - even with 64-bit
+# windows systems.
+#
+# Save this script file as
+# ineptpdf82.pyw and double-click on it to run it.
 
 # Revision history:
 #   1 - Initial release
@@ -27,6 +32,10 @@
 #   7.4 - Force all generation numbers in output file to be 0, like in v6.
 #         Fallback code for wrong xref improved (search till last trailer
 #         instead of first)
+#   8 - fileopen user machine identifier support (Tetrachroma)
+#   8.1 - fileopen user cookies support (Tetrachroma)
+#   8.2 - fileopen user name/password support (Tetrachroma)
+
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
 """
@@ -47,6 +56,16 @@ import Tkinter
 import Tkconstants
 import tkFileDialog
 import tkMessageBox
+# added for fileopen support
+import urllib
+import urlparse
+import time
+import ctypes
+import socket
+import string
+import uuid
+import subprocess
+
 
 try:
     from Crypto.Cipher import ARC4
@@ -62,6 +81,9 @@ except ImportError:
 
 class ADEPTError(Exception):
     pass
+
+# global variable (needed for fileopen)
+INPUTFILEPATH = ''
 
 # Do we generate cross reference streams on output?
 # 0 = never
@@ -911,6 +933,7 @@ class PDFStream(PDFObject):
         if 'Filter' not in self.dic:
             self.data = data
             self.rawdata = None
+            print self.dict
             return
         filters = self.dic['Filter']
         if not isinstance(filters, list):
@@ -1140,6 +1163,9 @@ class PDFDocument(object):
         self.parser = None
         self.encryption = None
         self.decipher = None
+        # dictionaries for fileopen
+        self.fileopen = {}
+        self.urlresult = {}        
         self.ready = False
         return
 
@@ -1186,7 +1212,6 @@ class PDFDocument(object):
             if STRICT:
                 raise PDFSyntaxError('Catalog not found!')
         return
-    
     # initialize(password='')
     #   Perform the initialization with a given password.
     #   This step is mandatory even if there's no password associated
@@ -1202,8 +1227,145 @@ class PDFDocument(object):
             return self.initialize_standard(password, docid, param)
         if type == 'EBX_HANDLER':
             return self.initialize_ebx(password, docid, param)
+        if type == 'FOPN_foweb':
+            return self.initialize_fopn(password, docid, param)        
         raise PDFEncryptionError('Unknown filter: param=%r' % param)
 
+        # experimental fileopen support    
+    def initialize_fopn(self, password, docid, param):
+        self.is_printable = self.is_modifiable = self.is_extractable = True
+        # get parameters and add it to the fo dictionary
+        self.fileopen['Length'] = int_value(param.get('Length', 0)) / 8
+        self.fileopen['VEID'] = str_value(param.get('VEID'))
+        self.fileopen['BUILD'] = str_value(param.get('BUILD'))
+        self.fileopen['SVID'] = str_value(param.get('SVID'))
+        self.fileopen['DUID'] = str_value(param.get('DUID'))
+        self.fileopen['V'] = int_value(param.get('V',2))        
+        # crypt base
+        rights = str_value(param.get('INFO')).decode('base64')
+        rights = self.genkey_fileopeninfo(rights)
+        # print rights        
+        for pair in rights.split(';'):
+            try:
+                key, value = pair.split('=')
+                self.fileopen[key] = value
+            # fix for some misconfigured INFO variables
+            except:
+                pass
+        kattr = { 'SVID': 'ServiceID', 'DUID': 'DocumentID', 'I3ID': 'Ident3ID', \
+                  'I4ID': 'Ident4ID', 'VERS': 'EncrVer', 'PRID': 'USR'}
+        for keys in  kattr:
+            try:
+                self.fileopen[kattr[keys]] = self.fileopen[keys]
+                del self.fileopen[keys]
+            except:
+                continue
+        # add static arguments for http/https request
+        self.fo_setattributes()
+        # add hardware specific arguments for http/https request        
+        self.fo_sethwids()
+        # print self.fileopen
+        try:
+            buildurl = self.fileopen['UURL']
+        except:
+            buildurl = self.fileopen['PURL']
+        buildurl = buildurl + self.fileopen['DPRM'] + '?'
+        buildurl = buildurl + 'Request=DocPerm'
+        # check for reversed offline handler
+        try:
+            test = self.fileopen['IdentID4']
+            raise ADEPTError('Reversed offline handler not supported yet!')
+        # great IdentID4 not present, let's keep on moving
+        except:
+            pass
+        # is it a user/pw pdf?
+        try:
+            test = self.fileopen['Ident3ID']
+        except:
+            self.pwtk = Tkinter.Tk()
+            self.pwtk.title('Ineptpdf8')
+            self.pwtk.minsize(150, 0)
+            self.label1 = Tkinter.Label(self.pwtk, text="Username")
+            self.un_entry = Tkinter.Entry(self.pwtk)
+            # cursor here
+            self.un_entry.focus()
+            self.label2 = Tkinter.Label(self.pwtk, text="Password")
+            self.pw_entry = Tkinter.Entry(self.pwtk, show="*")
+            self.button = Tkinter.Button(self.pwtk, text='Go for it!', command=self.fo_save_values)
+            # widget layout, stack vertical
+            self.label1.pack()
+            self.un_entry.pack()
+            self.label2.pack()
+            self.pw_entry.pack()
+            self.button.pack()
+            self.pwtk.update()            
+            # start the event loop
+            self.pwtk.mainloop()
+        # drive through tupple for building the url
+        burl = ( 'Stamp', 'Mode', 'USR', 'ServiceID', 'DocumentID',\
+                 'Ident3ID', 'Ident4ID','DocStrFmt', 'OSType', 'Language',\
+                 'LngLCID', 'LngRFC1766', 'LngISO4Char', 'Build', 'ProdVer', 'EncrVer',\
+                 'Machine', 'Disk', 'Uuid', 'User', 'SaUser', 'SaSID',\
+                 'FormHFT', 'UserName', 'UserPass',\
+                 'SelServer', 'AcroVersion', 'AcroProduct', 'AcroReader',\
+                 'AcroCanEdit', 'AcroPrefIDib', 'InBrowser', 'CliAppName',\
+                 'DocIsLocal', 'DocPathUrl', 'VolName', 'VolType', 'VolSN',\
+                 'FSName', 'FowpKbd', 'OSBuild', 'RequestSchema')
+        for keys in burl:
+            try:
+                buildurl = buildurl + '&' + keys + '=' + self.fileopen[keys]
+            except:
+                continue
+        # print 'url:'
+        # print buildurl
+        # custom user agent identification?
+        try:
+            useragent = self.fileopen['AGEN']
+            urllib.URLopener.version = useragent
+        # attribute doesn't exist - take the default user agent
+        except:
+            urllib.URLopener.version = 'Windows NT 6.0'
+        # try to open the url
+        try:
+            u = urllib.urlopen(buildurl)
+            u.geturl()
+            result = u.read()
+        except:
+            raise ADEPTError('No internet connection or a blocking firewall!')
+        # print result
+        if result[0:8] == 'RetVal=1':
+            for pair in result.split('&') :
+                key, value = pair.split('=')
+                self.urlresult[key] = value
+        else:
+            raise ADEPTError(result)    
+        # print result
+        try:
+            self.decrypt_key = self.urlresult['Code']
+        except:
+            raise ADEPTError('Cannot find decryption key')
+        self.genkey = self.genkey_fo
+        self.decipher = self.decrypt_rc4
+        self.ready = True
+        return
+
+    # user/password dialog    
+    def fo_save_values(self):
+        getout = 0
+        username = self.un_entry.get()
+        password = self.pw_entry.get()
+        un_length = len(username)
+        pw_length = len(password)
+        if (un_length != 0) and (pw_length != 0):
+            getout = 1
+        if getout == 1:
+            self.fileopen['UserName'] = urllib.quote(username)
+            self.fileopen['UserPass'] = urllib.quote(password)
+            # doesn't always close the password window, who
+            # knows why (Tkinter secrets ;=))
+            self.pwtk.quit()
+     
+            
     def initialize_ebx(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         with open(password, 'rb') as f:
@@ -1312,12 +1474,136 @@ class PDFDocument(object):
         hash = hashlib.md5(key)
         key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
+
+    def genkey_fo(self, objid, genno):
+        objid = struct.pack('<L', objid)[:3]
+        genno = struct.pack('<L', genno)[:2]
+        key =  self.decrypt_key + objid + genno
+        hash = hashlib.md5(key)
+        key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
+        return key
     
     def decrypt_rc4(self, objid, genno, data):
         key = self.genkey(objid, genno)
         return ARC4.new(key).decrypt(data)
     
+    def fo_setattributes(self):
+        self.fileopen['Request']='DocPerm'
+        self.fileopen['Mode']='CNR'
+        self.fileopen['DocStrFmt']='ASCII'
+        self.fileopen['OSType']='Windows'
+        self.fileopen['Language']='ENU'
+        self.fileopen['LngLCID']='ENU'
+        self.fileopen['LngRFC1766']='en'
+        self.fileopen['LngISO4Char']='en-us'
+        self.fileopen['Build']='879'
+        self.fileopen['ProdVer']='1.8.7.9'
+        # Machine, Disk, Uuid,
+        self.fileopen['FormHFT']='Yes'
+        self.fileopen['SelServer']='Yes'
+        self.fileopen['AcroVersion']='9.256'
+        self.fileopen['AcroProduct']='Exchange-Pro'
+        self.fileopen['AcroReader']='No'
+        self.fileopen['AcroCanEdit']='Yes'
+        self.fileopen['AcroPrefIDib']='Yes'
+        self.fileopen['InBrowser']='Unk'
+        self.fileopen['CliAppName']=''
+        self.fileopen['DocIsLocal']='Yes'
+        self.fileopen['FSName']='NTFS'
+        self.fileopen['FowpKbd']='No'
+        self.fileopen['OSBuild']='7600'
+        self.fileopen['RequestSchema']='Default'
+        self.fileopen['VolType']='Fixed'
+
+    # get nic mac address
+    def get_win_macaddress(self):
+        p = subprocess.Popen('ipconfig /all', shell = True, stdout=subprocess.PIPE)
+        p.wait()
+        rawtxt = p.stdout.read()
+        return re.findall(r'\s([0-9A-F-]{17})\s',rawtxt)[0].replace('-','')
+     
+    # custom conversion 5 bytes to 8 chars method
+    def fo_convert5to8(self, edisk):
+        # byte to number/char mapping table
+        darray=[0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x41,0x42,0x43,0x44,0x45,\
+                0x46,0x47,0x48,0x4A,0x4B,0x4C,0x4D,0x4E,0x50,0x51,0x52,0x53,0x54,\
+                0x55,0x56,0x57,0x58,0x59,0x5A]
+        pdid = struct.pack('<I', int(edisk[0:4].encode("hex"),16))
+        pdid = int(pdid.encode("hex"),16)
+        outputhw = ''
+        # disk id processing
+        for i in range(0,6):
+            index = pdid & 0x1f
+            # shift the disk id 5 bits to the right
+            pdid = pdid >> 5
+            outputhw = outputhw + chr(darray[index])
+        pdid = (ord(edisk[4]) << 2)|pdid
+        # get the last 2 bits from the hwid + low part of the cpuid
+        for i in range(0,2):
+            index = pdid & 0x1f
+            # shift the disk id 5 bits to the right
+            pdid = pdid >> 5
+            outputhw = outputhw + chr(darray[index])
+        return outputhw
+
+    def fo_sethwids(self):
+        # write hardware keys
+        hwkey = 0
+        # get the os type and save it in ostype
+        ostype = os.name
+        # if ostype is Windows
+        if ostype=='nt':
+            import win32api
+            v0 = win32api.GetVolumeInformation('C:\\')
+            v1 = win32api.GetSystemInfo()[6]
+            volserial = v0[1]
+            lowcpu = v1 & 255
+            highcpu = (v1 >> 8) & 255
+            volserial = struct.pack('<L', int(volserial))
+            lowcpu   = struct.pack('B', lowcpu)
+            highcpu = struct.pack('B',highcpu)
+            # save it to the fo dictionary
+            encrypteddisk = volserial + lowcpu + highcpu
+            self.fileopen['Disk'] = self.fo_convert5to8(encrypteddisk)
+            # get primary used default mac address
+            pmac = self.get_win_macaddress().decode("hex");
+            self.fileopen['Machine'] = self.fo_convert5to8(pmac[1:])
+            # get uuid
+            self.fileopen['Uuid'] = str(uuid.uuid1())
+            # get time stamp
+            self.fileopen['Stamp'] = str(time.time())[:-3]
+            # get fileopen input pdf name + path
+            self.fileopen['DocPathUrl'] = 'file%3a%2f%2f%2f' + INPUTFILEPATH
+            # get volume name (urllib quote necessairy?)
+            self.fileopen['VolName'] = urllib.quote(win32api.GetVolumeInformation("C:\\")[0])
+            # get volume serial number
+            self.fileopen['VolSN'] = str(win32api.GetVolumeInformation("C:\\")[1])
+        elif ostype=='linux':
+            adeptout = 'Linux is not supported, yet.\n'
+            raise ADEPTError(adeptout)            
+        else:
+            adeptout = adeptout + 'Due to various privacy violations from Apple\n'
+            adeptout = adeptout + 'Mac OS X support is disabled by default.'
+            raise ADEPTError(adeptout)
+        return
+
+    # decryption routine for the INFO area
+    def genkey_fileopeninfo(self, data):
+        input1 = struct.pack('L', 0xa4da49de)
+        seed   = struct.pack('B', 0x82)
+        key = input1[3] + input1[2] +input1[1] +input1[0] + seed
+        hash = hashlib.md5()
+        key = hash.update(key)
+        spointer4 = struct.pack('<L', 0xec8d6c58)
+        seed = struct.pack('B', 0x07)
+        key = spointer4[3] + spointer4[2] + spointer4[1] + spointer4[0] + seed 
+        key = hash.update(key)
+        md5 = hash.digest()
+        key = md5[0:10]
+        return ARC4.new(key).decrypt(data)
+    
     KEYWORD_OBJ = PSKeywordTable.intern('obj')
+    
     def getobj(self, objid):
         if not self.ready:
             raise PDFException('PDFDocument not initialized')
@@ -1803,7 +2089,8 @@ def cli_main(argv=sys.argv):
 class DecryptionDialog(Tkinter.Frame):
     def __init__(self, root):
         Tkinter.Frame.__init__(self, root, border=5)
-        self.status = Tkinter.Label(self, text='Select files for decryption')
+        ltext='Select file for decryption\n(Ignore Key file option for Fileopen PDFs)'        
+        self.status = Tkinter.Label(self, text=ltext)
         self.status.pack(fill=Tkconstants.X, expand=1)
         body = Tkinter.Frame(self)
         body.pack(fill=Tkconstants.X, expand=1)
@@ -1870,6 +2157,7 @@ class DecryptionDialog(Tkinter.Frame):
         return
 
     def decrypt(self):
+        global INPUTFILEPATH 
         keypath = self.keypath.get()
         inpath = self.inpath.get()
         outpath = self.outpath.get()
@@ -1885,8 +2173,9 @@ class DecryptionDialog(Tkinter.Frame):
         if inpath == outpath:
             self.status['text'] = 'Must have different input and output files'
             return
+        INPUTFILEPATH = urllib.quote(inpath)        
         argv = [sys.argv[0], keypath, inpath, outpath]
-        self.status['text'] = 'Decrypting...'
+        self.status['text'] = 'Processing ...'
         try:
             cli_main(argv)
         except Exception, e:
@@ -1903,9 +2192,9 @@ def gui_main():
             "This script requires PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
-    root.title('INEPT PDF Decrypter')
+    root.title('INEPT PDF Decrypter 8.2 (FileOpen Support)')
     root.resizable(True, False)
-    root.minsize(300, 0)
+    root.minsize(310, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
     root.mainloop()
     return 0
