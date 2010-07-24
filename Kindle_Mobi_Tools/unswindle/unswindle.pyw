@@ -1,13 +1,13 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-# unswindle.pyw, version 6-rc1
-# Copyright © 2009 i♥cabbages
+# unswindle.pyw, version 7
+# Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3 or
 # later.  <http://www.gnu.org/licenses/>
 
-# To run this program install a 32-bit version of Python 2.6 from
+# Before running this program, you must first install Python 2.6 from
 # <http://www.python.org/download/>.  Save this script file as unswindle.pyw.
 # Find and save in the same directory a copy of mobidedrm.py.  Double-click on
 # unswindle.pyw.  It will run Kindle For PC.  Open the book you want to
@@ -22,10 +22,13 @@
 #       detect unsupported versions of K4PC
 #   5 - Work with new (20091222) version of K4PC
 #   6 - Detect and just copy DRM-free books
+#   7 - Work with new (20100629) version of K4PC
 
 """
 Decrypt Kindle For PC encrypted Mobipocket books.
 """
+
+from __future__ import with_statement
 
 __license__ = 'GPL v3'
 
@@ -622,7 +625,16 @@ class PC1KeyGrabber(object):
             0x0054c9e0: '_get_pc1_pid',
             0x004f8ac9: '_get_book_path',
         },
+        'd791f52dd2ecc68722212d801ad52cb79d1b6fc9': {
+            0x0041724d: '_i_like_wine',
+            0x004bfe3d: '_no_debugger_here',
+            0x005bd9db: '_no_debugger_here',
+            0x00565920: '_get_pc1_pid',
+            0x0050fde9: '_get_book_path',
+        },
     }
+
+    MOBI_EXTENSIONS = set(['.prc', '.pdb', '.mobi', '.azw', '.az1', '.azw1'])
 
     @classmethod
     def supported_version(cls, hexdigest):
@@ -658,7 +670,8 @@ class PC1KeyGrabber(object):
         path = path.decode('utf-16', 'ignore')
         if u'\0' in path:
             path = path[:path.index(u'\0')]
-        if path[-4:].lower() not in ('.prc', '.pdb', '.mobi'):
+        root, ext = os.path.splitext(path)
+        if ext.lower() not in self.MOBI_EXTENSIONS:
             return
         self.book_path = path
 
@@ -667,7 +680,6 @@ class PC1KeyGrabber(object):
         addr = debugger.read_process_memory(addr, type=ctypes.c_char_p)
         pid = debugger.read_process_memory(addr, 8)
         pid = self._checksum_pid(pid)
-        print pid
         self.book_pid = pid
 
     def _checksum_pid(self, s):

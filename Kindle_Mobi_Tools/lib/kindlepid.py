@@ -76,6 +76,8 @@ def main(argv=sys.argv):
           print "Kindle 2 Global serial number detected"
       elif serial.startswith("B004"):
           print "Kindle DX serial number detected"
+      elif serial.startswith("B005"):
+          print "Kindle DX International serial number detected"
       else:
           print "Warning: unrecognized serial number. Please recheck input."
           return 1

@@ -38,8 +38,9 @@
 #         This knowledge leads to a simplification of the test for the 
 #         trailing data byte flags - version 5 and higher AND header size >= 0xE4. 
 #  0.15 - Now outputs 'hearbeat', and is also quicker for long files.
+#  0.16 - And reverts to 'done' not 'done.' at the end for unswindle compatibility.
 
-__version__ = '0.15'
+__version__ = '0.16'
 
 import sys
 import struct
@@ -242,7 +243,7 @@ class DrmStripper:
             if self.num_sections > records+1:
                 new_data += self.data_file[self.sections[records+1][0]:]
             self.data_file = new_data
-            print "done."
+            print "done"
 
     def getResult(self):
         return self.data_file
@@ -255,7 +256,7 @@ if not __name__ == "__main__":
         description         = 'Removes DRM from secure Mobi files'
         supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
         author              = 'The Dark Reverser' # The author of this plugin
-        version             = (0, 1, 5)   # The version number of this plugin
+        version             = (0, 1, 6)   # The version number of this plugin
         file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
         on_import           = True # Run this plugin during the import
 

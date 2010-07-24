@@ -46,7 +46,7 @@ class MainDialog(Tkinter.Frame):
         button = Tkinter.Button(body, text="...", command=self.get_outpath)
         button.grid(row=1, column=2)
 
-        Tkinter.Label(body, text='First 8 char of PID (optional)').grid(row=3, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='First 8 characters of PID').grid(row=3, sticky=Tkconstants.E)
         self.pidnum = Tkinter.StringVar()
         self.ccinfo = Tkinter.Entry(body, width=10, textvariable=self.pidnum)
         self.ccinfo.grid(row=3, column=1, sticky=sticky)
@@ -100,18 +100,16 @@ class MainDialog(Tkinter.Frame):
     # run as a subprocess via pipes and collect stdout
     def topazrdr(self, infile, outdir, pidnum):
         # os.putenv('PYTHONUNBUFFERED', '1')
-        pidoption = ''
-        if pidnum and pidnum != '':
-            pidoption = ' -p "' + pidnum + '" '
+        pidoption = ' -p "' + pidnum + '" '
         outoption = ' -o "' + outdir + '" '
-        cmdline = 'python ./lib/cmbtc_dump.py -v -d ' + pidoption + outoption + '"' + infile + '"'
+        cmdline = 'python ./lib/cmbtc_dump_nonK4PC.py -v -d ' + pidoption + outoption + '"' + infile + '"'
         if sys.platform[0:3] == 'win':
             search_path = os.environ['PATH']
             search_path = search_path.lower()
             if search_path.find('python') >= 0: 
-                cmdline = 'python lib\cmbtc_dump.py -v -d ' + pidoption + outoption + '"' + infile + '"'
+                cmdline = 'python lib\cmbtc_dump_nonK4PC.py -v -d ' + pidoption + outoption + '"' + infile + '"'
             else :
-                cmdline = 'lib\cmbtc_dump.py -v -d ' + pidoption + outoption + '"' + infile + '"'
+                cmdline = 'lib\cmbtc_dump_nonK4PC.py -v -d ' + pidoption + outoption + '"' + infile + '"'
 
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
@@ -121,7 +119,7 @@ class MainDialog(Tkinter.Frame):
     def get_tpzpath(self):
         tpzpath = tkFileDialog.askopenfilename(
             parent=None, title='Select Topaz File',
-            defaultextension='.prc', filetypes=[('Topaz azw', '.azw'),('Topaz azw1', '.azw1'), ('Topaz prc', '.prc'),
+            defaultextension='.prc', filetypes=[('Topaz azw1', '.azw1'), ('Topaz prc', '.prc'),('Topaz azw', '.azw'),
                                                 ('All Files', '.*')])
         if tpzpath:
             tpzpath = os.path.normpath(tpzpath)
@@ -165,12 +163,12 @@ class MainDialog(Tkinter.Frame):
         if not os.path.exists(outpath):
             os.makedirs(outpath)
         pidnum = self.pidnum.get()
-        # if not pidnum or pidnum == '':
-        #     self.status['text'] = 'You have not entered a PID '
-        #     self.sbotton.configure(state='normal')
-        #     return
+        if not pidnum or pidnum == '':
+            self.status['text'] = 'You have not entered a PID '
+            self.sbotton.configure(state='normal')
+            return
 
-        log = 'Command = "python cmbtc_dump.py"\n'
+        log = 'Command = "python cmbtc_dump_nonK4PC.py"\n'
         log += 'Topaz Path Path = "'+ tpzpath + '"\n'
         log += 'Output Directory = "' + outpath + '"\n'
         log += 'First 8 chars of PID = "' + pidnum + '"\n'

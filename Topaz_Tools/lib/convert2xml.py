@@ -245,12 +245,13 @@ class PageParser(object):
 
         'empty_text_region' : (1, 'snippets', 1, 0),
 
-        'img'          : (1, 'snippets', 1, 0),
-        'img.x'        : (1, 'scalar_number', 0, 0),
-        'img.y'        : (1, 'scalar_number', 0, 0),
-        'img.h'        : (1, 'scalar_number', 0, 0),
-        'img.w'        : (1, 'scalar_number', 0, 0),
-        'img.src'      : (1, 'scalar_number', 0, 0),
+        'img'           : (1, 'snippets', 1, 0),
+        'img.x'         : (1, 'scalar_number', 0, 0),
+        'img.y'         : (1, 'scalar_number', 0, 0),
+        'img.h'         : (1, 'scalar_number', 0, 0),
+        'img.w'         : (1, 'scalar_number', 0, 0),
+        'img.src'       : (1, 'scalar_number', 0, 0),
+        'img.color_src' : (1, 'scalar_number', 0, 0),
 
         'paragraph'           : (1, 'snippets', 1, 0),
         'paragraph.class'     : (1, 'scalar_text', 0, 0),
@@ -674,6 +675,8 @@ class PageParser(object):
         elif (magic[0:1] == 'p') and (magic[2:9] == '__PAGE_'):
             skip = self.fo.read(2)
             first_token = 'info'
+        elif (magic[0:1] == 'p') and (magic[2:8] == '_PAGE_'):
+            first_token = 'info'
         elif (magic[0:1] == 'g') and (magic[2:9] == '__GLYPH'):
             skip = self.fo.read(3)
             first_token = 'info'
@@ -706,7 +709,10 @@ class PageParser(object):
             else:
                 if self.debug:
                     print "Main Loop:  Unknown value: %x" % v 
-
+                if (v == 0):
+                    if (self.peek(1) == 0x5f):
+                        skip = self.fo.read(1)
+                        first_token = 'info'
 
         # now do snippet injection
         if len(self.snippetList) > 0 :

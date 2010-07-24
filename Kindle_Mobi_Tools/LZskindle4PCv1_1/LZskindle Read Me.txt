@@ -1,0 +1,44 @@
+LZskindle4PCv1_1    The Lazy skindle program for those who are typing impared
+
+To setup:
+
+1.  Create a new folder:   example C:\skindle
+
+2.  Place LZskindle4PCv1_1.exe and skindle.exe in this folder.
+
+3.  Create 2 subfolders:    C:\skindle\input 
+    and                     C:\skindle\output
+
+
+To run:
+
+1.  Copy the book(s) you wish to remove DRM from into the input directory 
+(leave the originals in my kindle folder).
+
+2.  Double click on LZskindle4PCv1_0.exe
+
+3.  A DOS window will open and will show skindle being called for 
+each book in the input directory.
+
+4.  The books with the DRM removed will now be in the output directory.
+
+Rev1_1
+
+fixed program to allow any file extension.  My testing indicates that 
+skindle does not care what file extension a file has.  If it is a file type
+that it can convert it will.  If the file is not compatible it will close
+and give an unknown file type message.
+
+Rev1_0
+
+If the program is run with no files in the input directory you will get a 
+“File not Found” error and the program will terminate.
+
+PLEASE USE ONLY FOR YOUR PERSONAL USE – ON BOOKS YOU PAID FOR!!
+
+This program is provided to allow you to archive your library in a format that 
+will outlast the kindle.  Technology moves on and you should not have to reinvest 
+in an entire new library when the Kindle is obsolete.  Please do not use this program 
+for piracy.
+
+

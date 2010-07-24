@@ -1,18 +1,29 @@
 #! /usr/bin/python
+# -*- coding: utf-8 -*-
 
-# ineptepub.pyw, version 4.1
+# ineptepub.pyw, version 5.2
+# Copyright © 2009-2010 i♥cabbages
 
-# To run this program install Python 2.6 from http://www.python.org/download/
-# and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
-# (make sure to install the version for Python 2.6).  Save this script file as
-# ineptepub.pyw and double-click on it to run it.
+# Released under the terms of the GNU General Public Licence, version 3 or
+# later.  <http://www.gnu.org/licenses/>
+
+# Windows users: Before running this program, you must first install Python 2.6
+#   from <http://www.python.org/download/> and PyCrypto from
+#   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
+#   install the version for Python 2.6).  Save this script file as
+#   ineptepub.pyw and double-click on it to run it.
+#
+# Mac OS X users: Save this script file as ineptepub.pyw.  You can run this
+#   program from the command line (pythonw ineptepub.pyw) or by double-clicking
+#   it when it has been associated with PythonLauncher.
 
 # Revision history:
 #   1 - Initial release
 #   2 - Rename to INEPT, fix exit code
-#   3 - Add cmd or gui choosing
-#   4 - support for 1.7.2 support (anon)
-#   4.1 - backward compatibility for 1.7.1 and old adeptkey.der
+#   5 - Version bump to avoid (?) confusion;
+#       Improve OS X support by using OpenSSL when available
+#   5.1 - Improve OpenSSL error checking
+#   5.2 - Fix ctypes error causing segfaults on some systems
 
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
@@ -34,116 +45,223 @@ import Tkconstants
 import tkFileDialog
 import tkMessageBox
 
-try:
-    from Crypto.Cipher import AES
-    from Crypto.PublicKey import RSA
-except ImportError:
-    AES = None
-    RSA = None
+class ADEPTError(Exception):
+    pass
+
+def _load_crypto_libcrypto():
+    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
+        Structure, c_ulong, create_string_buffer, cast
+    from ctypes.util import find_library
+
+    libcrypto = find_library('crypto')
+    if libcrypto is None:
+        raise ADEPTError('libcrypto not found')
+    libcrypto = CDLL(libcrypto)
+
+    RSA_NO_PADDING = 3
+    AES_MAXNR = 14
+    
+    c_char_pp = POINTER(c_char_p)
+    c_int_p = POINTER(c_int)
+
+    class RSA(Structure):
+        pass
+    RSA_p = POINTER(RSA)
+    
+    class AES_KEY(Structure):
+        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
+                    ('rounds', c_int)]
+    AES_KEY_p = POINTER(AES_KEY)
+    
+    def F(restype, name, argtypes):
+        func = getattr(libcrypto, name)
+        func.restype = restype
+        func.argtypes = argtypes
+        return func
+    
+    d2i_RSAPrivateKey = F(RSA_p, 'd2i_RSAPrivateKey',
+                          [RSA_p, c_char_pp, c_long])
+    RSA_size = F(c_int, 'RSA_size', [RSA_p])
+    RSA_private_decrypt = F(c_int, 'RSA_private_decrypt',
+                            [c_int, c_char_p, c_char_p, RSA_p, c_int])
+    RSA_free = F(None, 'RSA_free', [RSA_p])
+    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
+                            [c_char_p, c_int, AES_KEY_p])
+    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
+                        [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
+                         c_int])
+    
+    class RSA(object):
+        def __init__(self, der):
+            buf = create_string_buffer(der)
+            pp = c_char_pp(cast(buf, c_char_p))
+            rsa = self._rsa = d2i_RSAPrivateKey(None, pp, len(der))
+            if rsa is None:
+                raise ADEPTError('Error parsing ADEPT user key DER')
+        
+        def decrypt(self, from_):
+            rsa = self._rsa
+            to = create_string_buffer(RSA_size(rsa))
+            dlen = RSA_private_decrypt(len(from_), from_, to, rsa,
+                                       RSA_NO_PADDING)
+            if dlen < 0:
+                raise ADEPTError('RSA decryption failed')
+            return to[:dlen]
+    
+        def __del__(self):
+            if self._rsa is not None:
+                RSA_free(self._rsa)
+                self._rsa = None
+
+    class AES(object):
+        def __init__(self, userkey):
+            self._blocksize = len(userkey)
+            key = self._key = AES_KEY()
+            rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
+            if rv < 0:
+                raise ADEPTError('Failed to initialize AES key')
+    
+        def decrypt(self, data):
+            out = create_string_buffer(len(data))
+            iv = ("\x00" * self._blocksize)
+            rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
+            if rv == 0:
+                raise ADEPTError('AES decryption failed')
+            return out.raw
+
+    return (AES, RSA)
+
+def _load_crypto_pycrypto():
+    from Crypto.Cipher import AES as _AES
+    from Crypto.PublicKey import RSA as _RSA
+
+    # ASN.1 parsing code from tlslite
+    class ASN1Error(Exception):
+        pass
+    
+    class ASN1Parser(object):
+        class Parser(object):
+            def __init__(self, bytes):
+                self.bytes = bytes
+                self.index = 0
+    
+            def get(self, length):
+                if self.index + length > len(self.bytes):
+                    raise ASN1Error("Error decoding ASN.1")
+                x = 0
+                for count in range(length):
+                    x <<= 8
+                    x |= self.bytes[self.index]
+                    self.index += 1
+                return x
+    
+            def getFixBytes(self, lengthBytes):
+                bytes = self.bytes[self.index : self.index+lengthBytes]
+                self.index += lengthBytes
+                return bytes
+    
+            def getVarBytes(self, lengthLength):
+                lengthBytes = self.get(lengthLength)
+                return self.getFixBytes(lengthBytes)
+    
+            def getFixList(self, length, lengthList):
+                l = [0] * lengthList
+                for x in range(lengthList):
+                    l[x] = self.get(length)
+                return l
+    
+            def getVarList(self, length, lengthLength):
+                lengthList = self.get(lengthLength)
+                if lengthList % length != 0:
+                    raise ASN1Error("Error decoding ASN.1")
+                lengthList = int(lengthList/length)
+                l = [0] * lengthList
+                for x in range(lengthList):
+                    l[x] = self.get(length)
+                return l
+    
+            def startLengthCheck(self, lengthLength):
+                self.lengthCheck = self.get(lengthLength)
+                self.indexCheck = self.index
+    
+            def setLengthCheck(self, length):
+                self.lengthCheck = length
+                self.indexCheck = self.index
+    
+            def stopLengthCheck(self):
+                if (self.index - self.indexCheck) != self.lengthCheck:
+                    raise ASN1Error("Error decoding ASN.1")
+    
+            def atLengthCheck(self):
+                if (self.index - self.indexCheck) < self.lengthCheck:
+                    return False
+                elif (self.index - self.indexCheck) == self.lengthCheck:
+                    return True
+                else:
+                    raise ASN1Error("Error decoding ASN.1")
+    
+        def __init__(self, bytes):
+            p = self.Parser(bytes)
+            p.get(1)
+            self.length = self._getASN1Length(p)
+            self.value = p.getFixBytes(self.length)
+    
+        def getChild(self, which):
+            p = self.Parser(self.value)
+            for x in range(which+1):
+                markIndex = p.index
+                p.get(1)
+                length = self._getASN1Length(p)
+                p.getFixBytes(length)
+            return ASN1Parser(p.bytes[markIndex:p.index])
+    
+        def _getASN1Length(self, p):
+            firstLength = p.get(1)
+            if firstLength<=127:
+                return firstLength
+            else:
+                lengthLength = firstLength & 0x7F
+                return p.get(lengthLength)
+
+    class AES(object):
+        def __init__(self, key):
+            self._aes = _AES.new(key, _AES.MODE_CBC)
+
+        def decrypt(self, data):
+            return self._aes.decrypt(data)
+
+    class RSA(object):
+        def __init__(self, der):
+            key = ASN1Parser([ord(x) for x in der])
+            key = [key.getChild(x).value for x in xrange(1, 4)]
+            key = [self.bytesToNumber(v) for v in key]
+            self._rsa = _RSA.construct(key)
+
+        def bytesToNumber(self, bytes):
+            total = 0L
+            for byte in bytes:
+                total = (total << 8) + byte
+            return total
+    
+        def decrypt(self, data):
+            return self._rsa.decrypt(data)
+
+    return (AES, RSA)
+
+def _load_crypto():
+    AES = RSA = None
+    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+        try:
+            AES, RSA = loader()
+            break
+        except (ImportError, ADEPTError):
+            pass
+    return (AES, RSA)
+AES, RSA = _load_crypto()
 
 META_NAMES = ('mimetype', 'META-INF/rights.xml', 'META-INF/encryption.xml')
 NSMAP = {'adept': 'http://ns.adobe.com/adept',
          'enc': 'http://www.w3.org/2001/04/xmlenc#'}
-
-
-# ASN.1 parsing code from tlslite
-
-def bytesToNumber(bytes):
-    total = 0L
-    multiplier = 1L
-    for count in range(len(bytes)-1, -1, -1):
-        byte = bytes[count]
-        total += multiplier * byte
-        multiplier *= 256
-    return total
-
-class ASN1Error(Exception):
-    pass
-
-class ASN1Parser(object):
-    class Parser(object):
-        def __init__(self, bytes):
-            self.bytes = bytes
-            self.index = 0
-    
-        def get(self, length):
-            if self.index + length > len(self.bytes):
-                raise ASN1Error("Error decoding ASN.1")
-            x = 0
-            for count in range(length):
-                x <<= 8
-                x |= self.bytes[self.index]
-                self.index += 1
-            return x
-    
-        def getFixBytes(self, lengthBytes):
-            bytes = self.bytes[self.index : self.index+lengthBytes]
-            self.index += lengthBytes
-            return bytes
-    
-        def getVarBytes(self, lengthLength):
-            lengthBytes = self.get(lengthLength)
-            return self.getFixBytes(lengthBytes)
-    
-        def getFixList(self, length, lengthList):
-            l = [0] * lengthList
-            for x in range(lengthList):
-                l[x] = self.get(length)
-            return l
-    
-        def getVarList(self, length, lengthLength):
-            lengthList = self.get(lengthLength)
-            if lengthList % length != 0:
-                raise ASN1Error("Error decoding ASN.1")
-            lengthList = int(lengthList/length)
-            l = [0] * lengthList
-            for x in range(lengthList):
-                l[x] = self.get(length)
-            return l
-    
-        def startLengthCheck(self, lengthLength):
-            self.lengthCheck = self.get(lengthLength)
-            self.indexCheck = self.index
-    
-        def setLengthCheck(self, length):
-            self.lengthCheck = length
-            self.indexCheck = self.index
-    
-        def stopLengthCheck(self):
-            if (self.index - self.indexCheck) != self.lengthCheck:
-                raise ASN1Error("Error decoding ASN.1")
-    
-        def atLengthCheck(self):
-            if (self.index - self.indexCheck) < self.lengthCheck:
-                return False
-            elif (self.index - self.indexCheck) == self.lengthCheck:
-                return True
-            else:
-                raise ASN1Error("Error decoding ASN.1")
-
-    def __init__(self, bytes):
-        p = self.Parser(bytes)
-        p.get(1)
-        self.length = self._getASN1Length(p)
-        self.value = p.getFixBytes(self.length)
-
-    def getChild(self, which):
-        p = self.Parser(self.value)
-        for x in range(which+1):
-            markIndex = p.index
-            p.get(1)
-            length = self._getASN1Length(p)
-            p.getFixBytes(length)
-        return ASN1Parser(p.bytes[markIndex:p.index])
-
-    def _getASN1Length(self, p):
-        firstLength = p.get(1)
-        if firstLength<=127:
-            return firstLength
-        else:
-            lengthLength = firstLength & 0x7F
-            return p.get(lengthLength)
-
 
 class ZipInfo(zipfile.ZipInfo):
     def __init__(self, *args, **kwargs):
@@ -152,11 +270,10 @@ class ZipInfo(zipfile.ZipInfo):
         super(ZipInfo, self).__init__(*args, **kwargs)
         self.compress_type = compress_type
 
-
 class Decryptor(object):
     def __init__(self, bookkey, encryption):
         enc = lambda tag: '{%s}%s' % (NSMAP['enc'], tag)
-        self._aes = AES.new(bookkey, AES.MODE_CBC)
+        self._aes = AES(bookkey)
         encryption = etree.fromstring(encryption)
         self._encrypted = encrypted = set()
         expr = './%s/%s/%s' % (enc('EncryptedData'), enc('CipherData'),
@@ -165,7 +282,7 @@ class Decryptor(object):
             path = elem.get('URI', None)
             if path is not None:
                 encrypted.add(path)
-    
+
     def decompress(self, bytes):
         dc = zlib.decompressobj(-15)
         bytes = dc.decompress(bytes)
@@ -173,7 +290,7 @@ class Decryptor(object):
         if ex:
             bytes = bytes + ex
         return bytes
-    
+
     def decrypt(self, path, data):
         if path in self._encrypted:
             data = self._aes.decrypt(data)[16:]
@@ -181,16 +298,12 @@ class Decryptor(object):
             data = self.decompress(data)
         return data
 
-
-class ADEPTError(Exception):
-    pass
-
 def cli_main(argv=sys.argv):
     progname = os.path.basename(argv[0])
     if AES is None:
-        print "%s: This script requires PyCrypto, which must be installed " \
-              "separately.  Read the top-of-script comment for details." % \
-              (progname,)
+        print "%s: This script requires OpenSSL or PyCrypto, which must be" \
+              " installed separately.  Read the top-of-script comment for" \
+              " details." % (progname,)
         return 1
     if len(argv) != 4:
         print "usage: %s KEYFILE INBOOK OUTBOOK" % (progname,)
@@ -198,9 +311,7 @@ def cli_main(argv=sys.argv):
     keypath, inpath, outpath = argv[1:]
     with open(keypath, 'rb') as f:
         keyder = f.read()
-    key = ASN1Parser([ord(x) for x in keyder])
-    key = [bytesToNumber(key.getChild(x).value) for x in xrange(1, 4)]
-    rsa = RSA.construct(key)
+    rsa = RSA(keyder)
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
         namelist = set(inf.namelist())
         if 'META-INF/rights.xml' not in namelist or \
@@ -226,7 +337,6 @@ def cli_main(argv=sys.argv):
                 data = inf.read(path)
                 outf.writestr(path, decryptor.decrypt(path, data))
     return 0
-
 
 class DecryptionDialog(Tkinter.Frame):
     def __init__(self, root):
@@ -328,8 +438,9 @@ def gui_main():
         root.withdraw()
         tkMessageBox.showerror(
             "INEPT EPUB Decrypter",
-            "This script requires PyCrypto, which must be installed "
-            "separately.  Read the top-of-script comment for details.")
+            "This script requires OpenSSL or PyCrypto, which must be"
+            " installed separately.  Read the top-of-script comment for"
+            " details.")
         return 1
     root.title('INEPT EPUB Decrypter')
     root.resizable(True, False)

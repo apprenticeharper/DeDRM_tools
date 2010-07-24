@@ -114,7 +114,7 @@ class MainDialog(Tkinter.Frame):
     def get_mobipath(self):
         mobipath = tkFileDialog.askopenfilename(
             parent=None, title='Select Mobi eBook File',
-            defaultextension='.prc', filetypes=[('Mobi eBook File', '.prc'), ('Mobi eBook File', '.mobi'),
+            defaultextension='.prc', filetypes=[('Mobi eBook File', '.prc'), ('Mobi eBook File', '.azw'),('Mobi eBook File', '.mobi'),
                                                 ('All Files', '.*')])
         if mobipath:
             mobipath = os.path.normpath(mobipath)
