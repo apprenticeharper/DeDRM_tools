@@ -1,18 +1,16 @@
 #! /usr/bin/python
 
-# ignobleepub.pyw, version 1-rc2
+# ignobleepub.pyw, version 3
 
 # To run this program install Python 2.6 from <http://www.python.org/download/>
-# and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
+# and OpenSSL or PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
 # (make sure to install the version for Python 2.6).  Save this script file as
 # ignobleepub.pyw and double-click on it to run it.
 
 # Revision history:
 #   1 - Initial release
-
-"""
-Decrypt Barnes & Noble ADEPT encrypted EPUB books.
-"""
+#   2 - Added OS X support by using OpenSSL when available
+#   3 - screen out improper key lengths to prevent segfaults on Linux
 
 from __future__ import with_statement
 
@@ -30,10 +28,95 @@ import Tkconstants
 import tkFileDialog
 import tkMessageBox
 
-try:
-    from Crypto.Cipher import AES
-except ImportError:
+class IGNOBLEError(Exception):
+    pass
+
+def _load_crypto_libcrypto():
+    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
+        Structure, c_ulong, create_string_buffer, cast
+    from ctypes.util import find_library
+
+    libcrypto = find_library('crypto')
+    if libcrypto is None:
+        raise IGNOBLEError('libcrypto not found')
+    libcrypto = CDLL(libcrypto)
+
+    AES_MAXNR = 14
+    
+    c_char_pp = POINTER(c_char_p)
+    c_int_p = POINTER(c_int)
+
+    class AES_KEY(Structure):
+        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
+                    ('rounds', c_int)]
+    AES_KEY_p = POINTER(AES_KEY)
+    
+    def F(restype, name, argtypes):
+        func = getattr(libcrypto, name)
+        func.restype = restype
+        func.argtypes = argtypes
+        return func
+    
+    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
+                        [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
+                         c_int])
+    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
+                            [c_char_p, c_int, AES_KEY_p])
+    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
+                        [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
+                         c_int])
+    
+    class AES(object):
+        def __init__(self, userkey):
+            self._blocksize = len(userkey)
+            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
+                raise IGNOBLEError('AES improper key used')
+                return
+            key = self._key = AES_KEY()
+            rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
+            if rv < 0:
+                raise IGNOBLEError('Failed to initialize AES key')
+    
+        def decrypt(self, data):
+            out = create_string_buffer(len(data))
+            iv = ("\x00" * self._blocksize)
+            rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
+            if rv == 0:
+                raise IGNOBLEError('AES decryption failed')
+            return out.raw
+
+    return AES
+
+def _load_crypto_pycrypto():
+    from Crypto.Cipher import AES as _AES
+
+    class AES(object):
+        def __init__(self, key):
+            self._aes = _AES.new(key, _AES.MODE_CBC)
+
+        def decrypt(self, data):
+            return self._aes.decrypt(data)
+
+    return AES
+
+def _load_crypto():
     AES = None
+    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+        try:
+            AES = loader()
+            break
+        except (ImportError, IGNOBLEError):
+            pass
+    return AES
+AES = _load_crypto()
+
+
+ 
+
+"""
+Decrypt Barnes & Noble ADEPT encrypted EPUB books.
+"""
+
 
 META_NAMES = ('mimetype', 'META-INF/rights.xml', 'META-INF/encryption.xml')
 NSMAP = {'adept': 'http://ns.adobe.com/adept',
@@ -49,7 +132,8 @@ class ZipInfo(zipfile.ZipInfo):
 class Decryptor(object):
     def __init__(self, bookkey, encryption):
         enc = lambda tag: '{%s}%s' % (NSMAP['enc'], tag)
-        self._aes = AES.new(bookkey, AES.MODE_CBC)
+        # self._aes = AES.new(bookkey, AES.MODE_CBC)
+        self._aes = AES(bookkey)
         encryption = etree.fromstring(encryption)
         self._encrypted = encrypted = set()
         expr = './%s/%s/%s' % (enc('EncryptedData'), enc('CipherData'),
@@ -75,13 +159,11 @@ class Decryptor(object):
         return data
 
 
-class ADEPTError(Exception):
-    pass
 
 def cli_main(argv=sys.argv):
     progname = os.path.basename(argv[0])
     if AES is None:
-        print "%s: This script requires PyCrypto, which must be installed " \
+        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
               "separately.  Read the top-of-script comment for details." % \
               (progname,)
         return 1
@@ -92,12 +174,14 @@ def cli_main(argv=sys.argv):
     with open(keypath, 'rb') as f:
         keyb64 = f.read()
     key = keyb64.decode('base64')[:16]
-    aes = AES.new(key, AES.MODE_CBC)
+    # aes = AES.new(key, AES.MODE_CBC)
+    aes = AES(key)
+
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
         namelist = set(inf.namelist())
         if 'META-INF/rights.xml' not in namelist or \
            'META-INF/encryption.xml' not in namelist:
-            raise ADEPTError('%s: not an B&N ADEPT EPUB' % (inpath,))
+            raise IGNOBLEError('%s: not an B&N ADEPT EPUB' % (inpath,))
         for name in META_NAMES:
             namelist.remove(name)
         rights = etree.fromstring(inf.read('META-INF/rights.xml'))
@@ -219,7 +303,7 @@ def gui_main():
         root.withdraw()
         tkMessageBox.showerror(
             "Ignoble EPUB Decrypter",
-            "This script requires PyCrypto, which must be installed "
+            "This script requires OpenSSL or PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
     root.title('Ignoble EPUB Decrypter')

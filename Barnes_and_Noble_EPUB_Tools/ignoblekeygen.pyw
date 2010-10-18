@@ -1,14 +1,15 @@
 #! /usr/bin/python
 
-# ignoblekeygen.pyw, version 1
+# ignoblekeygen.pyw, version 2
 
 # To run this program install Python 2.6 from <http://www.python.org/download/>
-# and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
+# and OpenSSL or PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
 # (make sure to install the version for Python 2.6).  Save this script file as
 # ignoblekeygen.pyw and double-click on it to run it.
 
 # Revision history:
 #   1 - Initial release
+#   2 - Add OS X support by using OpenSSL when available (taken/modified from ineptepub v5)
 
 """
 Generate Barnes & Noble EPUB user key from name and credit card number.
@@ -26,10 +27,90 @@ import Tkconstants
 import tkFileDialog
 import tkMessageBox
 
-try:
-    from Crypto.Cipher import AES
-except ImportError:
+
+
+# use openssl's libcrypt if it exists in place of pycrypto
+# code extracted from the Adobe Adept DRM removal code also by I HeartCabbages
+class IGNOBLEError(Exception):
+    pass
+
+
+def _load_crypto_libcrypto():
+    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
+        Structure, c_ulong, create_string_buffer, cast
+    from ctypes.util import find_library
+
+    libcrypto = find_library('crypto')
+    if libcrypto is None:
+        print 'libcrypto not found'
+        raise IGNOBLEError('libcrypto not found')
+    libcrypto = CDLL(libcrypto)
+
+    AES_MAXNR = 14
+    
+    c_char_pp = POINTER(c_char_p)
+    c_int_p = POINTER(c_int)
+
+    class AES_KEY(Structure):
+        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
+                    ('rounds', c_int)]
+    AES_KEY_p = POINTER(AES_KEY)
+    
+    def F(restype, name, argtypes):
+        func = getattr(libcrypto, name)
+        func.restype = restype
+        func.argtypes = argtypes
+        return func
+    
+    AES_set_encrypt_key = F(c_int, 'AES_set_encrypt_key',
+                            [c_char_p, c_int, AES_KEY_p])
+    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
+                        [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
+                         c_int])
+    class AES(object):
+         def __init__(self, userkey, iv):
+            self._blocksize = len(userkey)
+            self._iv = iv
+            key = self._key = AES_KEY()
+            rv = AES_set_encrypt_key(userkey, len(userkey) * 8, key)
+            if rv < 0:
+                raise IGNOBLEError('Failed to initialize AES Encrypt key')
+    
+         def encrypt(self, data):
+            out = create_string_buffer(len(data))
+            rv = AES_cbc_encrypt(data, out, len(data), self._key, self._iv, 1)
+            if rv == 0:
+                raise IGNOBLEError('AES encryption failed')
+            return out.raw
+
+    return AES
+
+
+def _load_crypto_pycrypto():
+    from Crypto.Cipher import AES as _AES
+
+    class AES(object):
+        def __init__(self, key, iv):
+            self._aes = _AES.new(key, _AES.MODE_CBC, iv)
+
+        def encrypt(self, data):
+            return self._aes.encrypt(data)
+
+    return AES
+
+
+
+def _load_crypto():
     AES = None
+    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+        try:
+            AES = loader()
+            break
+        except (ImportError, IGNOBLEError):
+            pass
+    return AES
+
+AES = _load_crypto()
 
 def normalize_name(name):
     return ''.join(x for x in name.lower() if x != ' ')
@@ -40,7 +121,7 @@ def generate_keyfile(name, ccn, outpath):
     name_sha = hashlib.sha1(name).digest()[:16]
     ccn_sha = hashlib.sha1(ccn).digest()[:16]
     both_sha = hashlib.sha1(name + ccn).digest()
-    aes = AES.new(ccn_sha, AES.MODE_CBC, name_sha)
+    aes = AES(ccn_sha, name_sha)
     crypt = aes.encrypt(both_sha + ('\x0c' * 0x0c))
     userkey = hashlib.sha1(crypt).digest()
     with open(outpath, 'wb') as f:
@@ -50,7 +131,7 @@ def generate_keyfile(name, ccn, outpath):
 def cli_main(argv=sys.argv):
     progname = os.path.basename(argv[0])
     if AES is None:
-        print "%s: This script requires PyCrypto, which must be installed " \
+        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
               "separately.  Read the top-of-script comment for details." % \
               (progname,)
         return 1
@@ -131,7 +212,7 @@ def gui_main():
         root.withdraw()
         tkMessageBox.showerror(
             "Ignoble EPUB Keyfile Generator",
-            "This script requires PyCrypto, which must be installed "
+            "This script requires OpenSSL or PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
     root.title('Ignoble EPUB Keyfile Generator')

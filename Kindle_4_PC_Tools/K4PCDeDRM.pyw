@@ -3,16 +3,15 @@
 
 import sys
 sys.path.append('lib')
-
 import os, os.path, urllib
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
+import subasyncio
+from subasyncio import Process
 import Tkinter
 import Tkconstants
 import tkFileDialog
 import tkMessageBox
-import subasyncio
-from subasyncio import Process
 from scrolltextwidget import ScrolledText
 
 class MainDialog(Tkinter.Frame):
@@ -21,39 +20,32 @@ class MainDialog(Tkinter.Frame):
         self.root = root
         self.interval = 2000
         self.p2 = None
-        self.status = Tkinter.Label(self, text='Extract Contents of Topaz eBook to a Directory')
+        self.status = Tkinter.Label(self, text='Remove Encryption from a K4PC eBook')
         self.status.pack(fill=Tkconstants.X, expand=1)
         body = Tkinter.Frame(self)
         body.pack(fill=Tkconstants.X, expand=1)
         sticky = Tkconstants.E + Tkconstants.W
         body.grid_columnconfigure(1, weight=2)
 
-        Tkinter.Label(body, text='Topaz eBook input file').grid(row=0, sticky=Tkconstants.E)
-        self.tpzpath = Tkinter.Entry(body, width=50)
-        self.tpzpath.grid(row=0, column=1, sticky=sticky)
+        Tkinter.Label(body, text='K4PC eBook input file').grid(row=0, sticky=Tkconstants.E)
+        self.mobipath = Tkinter.Entry(body, width=50)
+        self.mobipath.grid(row=0, column=1, sticky=sticky)
         cwd = os.getcwdu()
         cwd = cwd.encode('utf-8')
-        self.tpzpath.insert(0, cwd)
-        button = Tkinter.Button(body, text="...", command=self.get_tpzpath)
+        self.mobipath.insert(0, cwd)
+        button = Tkinter.Button(body, text="...", command=self.get_mobipath)
         button.grid(row=0, column=2)
 
-        Tkinter.Label(body, text='Output Directory').grid(row=1, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='Name for Unencrypted Output File').grid(row=1, sticky=Tkconstants.E)
         self.outpath = Tkinter.Entry(body, width=50)
         self.outpath.grid(row=1, column=1, sticky=sticky)
-        cwd = os.getcwdu()
-        cwd = cwd.encode('utf-8')
-        self.outpath.insert(0, cwd)
+        self.outpath.insert(0, '')
         button = Tkinter.Button(body, text="...", command=self.get_outpath)
         button.grid(row=1, column=2)
 
-        Tkinter.Label(body, text='First 8 characters of PID').grid(row=3, sticky=Tkconstants.E)
-        self.pidnum = Tkinter.StringVar()
-        self.ccinfo = Tkinter.Entry(body, width=10, textvariable=self.pidnum)
-        self.ccinfo.grid(row=3, column=1, sticky=sticky)
-
         msg1 = 'Conversion Log \n\n'
         self.stext = ScrolledText(body, bd=5, relief=Tkconstants.RIDGE, height=15, width=60, wrap=Tkconstants.WORD)
-        self.stext.grid(row=4, column=0, columnspan=2,sticky=sticky)
+        self.stext.grid(row=3, column=0, columnspan=2,sticky=sticky)
         self.stext.insert(Tkconstants.END,msg1)
 
         buttons = Tkinter.Frame(self)
@@ -75,9 +67,9 @@ class MainDialog(Tkinter.Frame):
         if poll != None: 
             text = self.p2.readerr()
             text += self.p2.read()
-            msg = text + '\n\n' + 'Files successfully extracted\n'
+            msg = text + '\n\n' + 'Encryption successfully removed\n'
             if poll != 0:
-                msg = text + '\n\n' + 'Error: File Extraction Failed\n'
+                msg = text + '\n\n' + 'Error: Encryption Removal Failed\n'
             self.showCmdOutput(msg)
             self.p2 = None
             self.sbotton.configure(state='normal')
@@ -98,41 +90,43 @@ class MainDialog(Tkinter.Frame):
         return
 
     # run as a subprocess via pipes and collect stdout
-    def topazrdr(self, infile, outdir, pidnum):
+    def mobirdr(self, infile, outfile):
         # os.putenv('PYTHONUNBUFFERED', '1')
-        pidoption = ' -p "' + pidnum + '" '
-        outoption = ' -o "' + outdir + '" '
-        cmdline = 'python ./lib/cmbtc_dump_nonK4PC.py -v -d ' + pidoption + outoption + '"' + infile + '"'
+        cmdline = 'python ./lib/k4pcdedrm.py "' + infile + '" "' + outfile + '"'
         if sys.platform[0:3] == 'win':
             search_path = os.environ['PATH']
             search_path = search_path.lower()
             if search_path.find('python') >= 0: 
-                cmdline = 'python lib\cmbtc_dump_nonK4PC.py -v -d ' + pidoption + outoption + '"' + infile + '"'
+                cmdline = 'python lib\k4pcdedrm.py "' + infile + '" "' + outfile + '"'
             else :
-                cmdline = 'lib\cmbtc_dump_nonK4PC.py -v -d ' + pidoption + outoption + '"' + infile + '"'
+                cmdline = 'lib\k4pcdedrm.py "' + infile + '" "' + outfile + '"'
 
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
         return p2
 
 
-    def get_tpzpath(self):
-        tpzpath = tkFileDialog.askopenfilename(
-            parent=None, title='Select Topaz File',
-            defaultextension='.prc', filetypes=[('Topaz azw1', '.azw1'), ('Topaz prc', '.prc'),
+    def get_mobipath(self):
+        mobipath = tkFileDialog.askopenfilename(
+            parent=None, title='Select K4PC eBook File',
+            defaultextension='.prc', filetypes=[('Mobi eBook File', '.prc'), ('Mobi eBook File', '.azw'),('Mobi eBook File', '.mobi'),
                                                 ('All Files', '.*')])
-        if tpzpath:
-            tpzpath = os.path.normpath(tpzpath)
-            self.tpzpath.delete(0, Tkconstants.END)
-            self.tpzpath.insert(0, tpzpath)
+        if mobipath:
+            mobipath = os.path.normpath(mobipath)
+            self.mobipath.delete(0, Tkconstants.END)
+            self.mobipath.insert(0, mobipath)
         return
 
     def get_outpath(self):
-        cwd = os.getcwdu()
-        cwd = cwd.encode('utf-8')
-        outpath = tkFileDialog.askdirectory(
-            parent=None, title='Directory to Extract Files into',
-            initialdir=cwd, initialfile=None)
+        mobipath = self.mobipath.get()
+        initname = os.path.basename(mobipath)
+        p = initname.find('.')
+        if p >= 0: initname = initname[0:p]
+        initname += '_nodrm.mobi' 
+        outpath = tkFileDialog.asksaveasfilename(
+            parent=None, title='Select Unencrypted Mobi File to produce',
+            defaultextension='.mobi', initialfile=initname,
+            filetypes=[('Mobi files', '.mobi'), ('All files', '.*')])
         if outpath:
             outpath = os.path.normpath(outpath)
             self.outpath.delete(0, Tkconstants.END)
@@ -150,33 +144,25 @@ class MainDialog(Tkinter.Frame):
     def convertit(self):
         # now disable the button to prevent multiple launches
         self.sbotton.configure(state='disabled')
-        tpzpath = self.tpzpath.get()
+        mobipath = self.mobipath.get()
         outpath = self.outpath.get()
-        if not tpzpath or not os.path.exists(tpzpath):
-            self.status['text'] = 'Specified Topaz eBook file does not exist'
+        if not mobipath or not os.path.exists(mobipath):
+            self.status['text'] = 'Specified K4PC eBook file does not exist'
             self.sbotton.configure(state='normal')
             return
         if not outpath:
-            self.status['text'] = 'No output directory specified'
-            self.sbotton.configure(state='normal')
-            return
-        if not os.path.exists(outpath):
-            os.makedirs(outpath)
-        pidnum = self.pidnum.get()
-        if not pidnum or pidnum == '':
-            self.status['text'] = 'You have not entered a PID '
+            self.status['text'] = 'No output file specified'
             self.sbotton.configure(state='normal')
             return
 
-        log = 'Command = "python cmbtc_dump_nonK4PC.py"\n'
-        log += 'Topaz Path Path = "'+ tpzpath + '"\n'
-        log += 'Output Directory = "' + outpath + '"\n'
-        log += 'First 8 chars of PID = "' + pidnum + '"\n'
+        log = 'Command = "python k4pcdedrm.py"\n'
+        log += 'K4PC Path = "'+ mobipath + '"\n'
+        log += 'Output File = "' + outpath + '"\n'
         log += '\n\n'
-        log += 'Please Wait ...\n'
+        log += 'Please Wait ...\n\n'
         log = log.encode('utf-8')
         self.stext.insert(Tkconstants.END,log)
-        self.p2 = self.topazrdr(tpzpath, outpath, pidnum)
+        self.p2 = self.mobirdr(mobipath, outpath)
 
         # python does not seem to allow you to create
         # your own eventloop which every other gui does - strange 
@@ -188,7 +174,7 @@ class MainDialog(Tkinter.Frame):
 
 def main(argv=None):
     root = Tkinter.Tk()
-    root.title('Topaz eBook File Extraction')
+    root.title('K4PC eBook Encryption Removal')
     root.resizable(True, False)
     root.minsize(300, 0)
     MainDialog(root).pack(fill=Tkconstants.X, expand=1)

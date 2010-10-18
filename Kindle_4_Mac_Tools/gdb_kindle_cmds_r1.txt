@@ -1,0 +1,13 @@
+set verbose 0
+break * 0x00b2a56a
+commands 1
+printf "PID is %s\n", $edx
+continue
+end
+break * 0x014ca2af
+commands 2
+printf "File is %s\n", $eax
+continue
+end
+condition 2 $eax != 0
+run

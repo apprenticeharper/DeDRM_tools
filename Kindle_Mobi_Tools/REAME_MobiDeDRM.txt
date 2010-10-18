@@ -1,0 +1,6 @@
+- MobiDeDRM.pyw is a simple graphical front end to the mobidedrm.py progam that actually does the DRM removal as long as you know the correct PID to use with it (which depends on the versions of Kindle software used). This is a gui program, simply double-click to launch it.
+
+PIDCHeck.py is a command line python tools to take an 8 digit PID and add the 2 checksum digits to the end to generate a 10 digit PID 
+
+All of these scripts are python programs.   Python 2.X (32 bit) is already installed in Mac OSX and Linux.  We recommend ActiveState's Active Python Version 2.X (32 bit) for Windows users.
+

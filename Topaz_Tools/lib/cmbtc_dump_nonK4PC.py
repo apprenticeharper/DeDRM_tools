@@ -360,12 +360,15 @@ def createDecryptedPayload(payload):
        if name != "dkey" :
            ext = '.dat'
            if name == 'img' : ext = '.jpg'
+           if name == 'color' : ext = '.jpg'
            for index in range (0,len(bookHeaderRecords[name])) :
                fnum = "%04d" % index
                fname = name + fnum + ext
                destdir = payload
                if name == 'img':
                    destdir =  os.path.join(payload,'img')
+               if name == 'color':
+                   destdir =  os.path.join(payload,'color_img')
                if name == 'page':
                    destdir =  os.path.join(payload,'page')
                if name == 'glyphs':
@@ -382,6 +385,10 @@ def createDecryptedBook(outdir):
         os.makedirs(outdir)
 
     destdir =  os.path.join(outdir,'img')
+    if not os.path.exists(destdir):
+        os.makedirs(destdir)
+
+    destdir =  os.path.join(outdir,'color_img')
     if not os.path.exists(destdir):
         os.makedirs(destdir)
 
