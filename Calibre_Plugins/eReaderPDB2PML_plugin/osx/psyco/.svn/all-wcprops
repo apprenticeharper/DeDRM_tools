@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 41
+/svn/!svn/ver/70200/psyco/dist/py-support
+END
+core.py
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/70200/psyco/dist/py-support/core.py
+END
+support.py
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/49315/psyco/dist/py-support/support.py
+END
+classes.py
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/35003/psyco/dist/py-support/classes.py
+END
+__init__.py
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/!svn/ver/35003/psyco/dist/py-support/__init__.py
+END
+logger.py
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/23284/psyco/dist/py-support/logger.py
+END
+kdictproxy.py
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/!svn/ver/35003/psyco/dist/py-support/kdictproxy.py
+END
+profiler.py
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/!svn/ver/70200/psyco/dist/py-support/profiler.py
+END

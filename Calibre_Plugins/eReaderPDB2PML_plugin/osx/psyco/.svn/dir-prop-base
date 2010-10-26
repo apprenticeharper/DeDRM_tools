@@ -1,0 +1,7 @@
+K 10
+svn:ignore
+V 14
+*~
+*.pyc
+*.pyo
+END
