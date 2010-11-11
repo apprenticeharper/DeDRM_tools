@@ -1,18 +1,21 @@
-K4MUnswindle
+K4Munswindle
 
 Prerequisites:
 
    - Kindle for Mac.app Version 1.0.0 Beta 1 (27214)
-     (this is the original version)
-
 	or
-
      Kindle.app Version 1.2.0 (30689)
-     (this is the current version at Amazon)
+        or
+     Kindle.app Version 1.2.1 (30781)
+     	or
+     Kindle.app Version 1.2.2 (30814)
+     (this is now the current version)
 
+   - A **recent** version of the XCode Developer Tools **must** be Installed 
+    (see your latest Mac OS X Install Disk for the installer, and then use Apple System Updates)
 
-   - XCode Developer Tools **must** be Installed 
-    (see your latest Mac OS X Install Disk for the installer)
+***PLEASE REMEMBER to UNCHECK the "auto updates" in the Kindle.app Preferences!
+***otherwise it will always update and K4MUnswindle will stop working
 
 
 The directions for use are:

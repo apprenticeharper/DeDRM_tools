@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# ignobleepub_v01_plugin.py
+# ignobleepub_plugin.py
 # Released under the terms of the GNU General Public Licence, version 3 or
 # later.  <http://www.gnu.org/licenses/>
 #
@@ -41,7 +41,9 @@
 #
 #
 # Revision history:
-#   0.1 - Initial release
+#   0.1.0 - Initial release
+#   0.1.1 - Allow Windows users to make use of openssl if they have it installed.
+#          - Incorporated SomeUpdates zipfix routine.
 
 
 """
@@ -77,7 +79,10 @@ def _load_crypto_libcrypto():
         Structure, c_ulong, create_string_buffer, cast
     from ctypes.util import find_library
 
-    libcrypto = find_library('crypto')
+    if sys.platform.startswith('win'):
+        libcrypto = find_library('libeay32')
+    else:
+        libcrypto = find_library('crypto')
     if libcrypto is None:
         raise IGNOBLEError('libcrypto not found')
     libcrypto = CDLL(libcrypto)
@@ -261,7 +266,7 @@ class IgnobleDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 0)
+    version                 = (0, 1, 1)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True
@@ -277,13 +282,12 @@ class IgnobleDeDRM(FileTypePlugin):
         # Add the included pycrypto import directory for Windows users.
         pdir = 'windows' if iswindows else 'osx' if isosx else 'linux'
         ppath = os.path.join(self.sys_insertion_path, pdir)
-        #sys.path.insert(0, ppath)
         sys.path.append(ppath)
         
         AES, AES2 = _load_crypto()
         
         if AES == None or AES2 == None:
-            # Failed to load libcrypto or PyCrypto... Adobe Epubs can\'t be decrypted.'
+            # Failed to load libcrypto or PyCrypto... Adobe Epubs can't be decrypted.'
             sys.path.remove(ppath)
             raise IGNOBLEError('IgnobleEpub - Failed to load crypto libs.')
             return
@@ -337,10 +341,19 @@ class IgnobleDeDRM(FileTypePlugin):
         # Attempt to decrypt epub with each encryption key (generated or provided).
         for userkey in userkeys:
             # Create a TemporaryPersistent file to work with.
+            # Check original epub archive for zip errors.
+            import zipfix
+            inf = self.temporary_file('.epub')
+            try:
+                fr = zipfix.fixZip(path_to_ebook, inf.name)
+                fr.fix()
+            except Exception, e:
+                raise Exception(e)
+                return
             of = self.temporary_file('.epub')
         
             # Give the user key, ebook and TemporaryPersistent file to the Stripper function.
-            result = plugin_main(userkey, path_to_ebook, of.name)
+            result = plugin_main(userkey, inf.name, of.name)
         
             # Ebook is not a B&N Adept epub... do nothing and pass it on.
             # This allows a non-encrypted epub to be imported without error messages.

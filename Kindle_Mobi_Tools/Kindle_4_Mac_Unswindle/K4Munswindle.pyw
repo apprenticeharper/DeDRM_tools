@@ -145,7 +145,7 @@ class MainDialog(Tkinter.Frame):
 
     # run as a gdb subprocess via pipes and collect stdout
     def gdbrdr(self, k4mappfile, gdbcmds):
-        cmdline = 'gdb -q -silent -readnow -batch -x ' +  gdbcmds + ' "' + k4mappfile + '"'
+        cmdline = '/usr/bin/gdb -q -silent -readnow -batch -x ' +  gdbcmds + ' "' + k4mappfile + '"'
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p3 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
         poll = p3.wait('wait')
@@ -169,8 +169,12 @@ class MainDialog(Tkinter.Frame):
             if fp >= 0:
                 tp1 = resline.find('.azw')
                 tp2 = resline.find('.prc')
+                tp3 = resline.find('.mbp')
                 if tp1 >= 0 or tp2 >= 0:
                     bookpath = resline[8:]
+                if tp3 >= 0 and topazbook == 1:
+                    bookpath = resline[8:-3]
+                    bookpath += 'azw'
         # put code here to get pid and file name
         return pidnum, bookpath, topazbook
 
@@ -194,6 +198,9 @@ class MainDialog(Tkinter.Frame):
         sha1_app_digests = {
             'e197ed2171ceb44a35c24bd30263b7253331694f' : 'gdb_kindle_cmds_r1.txt',
             '4f702436171f84acc13bdf9f94fae91525aecef5' : 'gdb_kindle_cmds_r2.txt',
+            '4981b7eb37ccf0b8f63f56e8024b5ab593e8a97c' : 'gdb_kindle_cmds_r3.txt',
+            '82909f0545688f09343e2c8fd8521eeee37d2de6' : 'gdb_kindle_cmds_r4.txt',
+            'e260e3515cd525cd085c70baa6e42e08079edbcd' : 'gdb_kindle_cmds_r4.txt',
             'no_sha1_digest_key_here_________________' : 'no_gdb_kindle_cmds.txt',
         }
         # now disable the button to prevent multiple launches
@@ -220,12 +227,16 @@ class MainDialog(Tkinter.Frame):
             self.sbotton.configure(state='normal')
             return
 
-        # now check if the K4M app bianry is known and if so which gdbcmds to use
+
+        # now check if the K4M app binary is known and if so which gdbcmds to use
         binary_app_file = k4mpath + '/Contents/MacOS/Kindle for Mac'
         if not os.path.exists(binary_app_file):
             binary_app_file = k4mpath + '/Contents/MacOS/Kindle'
 
+        k4mpath = binary_app_file
+
         digest = SHA1(file(binary_app_file, 'rb').read())
+
         # print digest
         gdbcmds = None
         if digest in sha1_app_digests:
@@ -246,6 +257,7 @@ class MainDialog(Tkinter.Frame):
             log += '\n\n'
             log = log.encode('utf-8')
             self.stext.insert(Tkconstants.END,log)
+            self.sbotton.configure(state='normal')
             return
 
         pidnum = self.checksumPid(pidnum)

@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# ineptepub_v01_plugin.py
+# ineptepub_plugin.py
 # Released under the terms of the GNU General Public Licence, version 3 or
 # later.  <http://www.gnu.org/licenses/>
 #
@@ -41,6 +41,8 @@
 #
 # Revision history:
 #   0.1 - Initial release
+#   0.1.1 - Allow Windows users to make use of openssl if they have it installed.
+#          - Incorporated SomeUpdates zipfix routine.
 
 
 """
@@ -76,7 +78,10 @@ def _load_crypto_libcrypto():
         Structure, c_ulong, create_string_buffer, cast
     from ctypes.util import find_library
 
-    libcrypto = find_library('crypto')
+    if sys.platform.startswith('win'):
+        libcrypto = find_library('libeay32')
+    else:
+        libcrypto = find_library('crypto')
     if libcrypto is None:
         raise ADEPTError('libcrypto not found')
     libcrypto = CDLL(libcrypto)
@@ -358,7 +363,7 @@ class IneptDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 0)
+    version                 = (0, 1, 1)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True
@@ -376,7 +381,6 @@ class IneptDeDRM(FileTypePlugin):
         # Add the included Carbon import directory for Mac users.
         pdir = 'windows' if iswindows else 'osx' if isosx else 'linux'
         ppath = os.path.join(self.sys_insertion_path, pdir)
-        #sys.path.insert(0, ppath)
         sys.path.append(ppath)
             
         AES, RSA = _load_crypto()
@@ -433,10 +437,19 @@ class IneptDeDRM(FileTypePlugin):
         # Attempt to decrypt epub with each encryption key found.
         for userkey in userkeys:
             # Create a TemporaryPersistent file to work with.
+            # Check original epub archive for zip errors.
+            import zipfix
+            inf = self.temporary_file('.epub')
+            try:
+                fr = zipfix.fixZip(path_to_ebook, inf.name)
+                fr.fix()
+            except Exception, e:
+                raise Exception(e)
+                return
             of = self.temporary_file('.epub')
         
             # Give the user key, ebook and TemporaryPersistent file to the plugin_main function.
-            result = plugin_main(userkey, path_to_ebook, of.name)
+            result = plugin_main(userkey, inf.name, of.name)
         
             # Ebook is not an Adobe Adept epub... do nothing and pass it on.
             # This allows a non-encrypted epub to be imported without error messages.

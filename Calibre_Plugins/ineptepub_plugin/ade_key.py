@@ -19,24 +19,86 @@ class ADEPTError(Exception):
 if iswindows:
     from ctypes import windll, c_char_p, c_wchar_p, c_uint, POINTER, byref, \
         create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
-        string_at, Structure, c_void_p, cast, c_size_t, memmove
+        string_at, Structure, c_void_p, cast, c_size_t, memmove, CDLL, c_int, \
+        c_long, c_ulong
+
     from ctypes.wintypes import LPVOID, DWORD, BOOL
     import _winreg as winreg
+
+    def _load_crypto_libcrypto():
+        from ctypes.util import find_library
+        libcrypto = find_library('libeay32')
+        if libcrypto is None:
+            raise ADEPTError('libcrypto not found')
+        libcrypto = CDLL(libcrypto)
+        AES_MAXNR = 14
+        c_char_pp = POINTER(c_char_p)
+        c_int_p = POINTER(c_int)
+        class AES_KEY(Structure):
+            _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
+                        ('rounds', c_int)]
+        AES_KEY_p = POINTER(AES_KEY)
     
-    try:
-        from Crypto.Cipher import AES as _aes
-    except ImportError:
-        _aes = None
+        def F(restype, name, argtypes):
+            func = getattr(libcrypto, name)
+            func.restype = restype
+            func.argtypes = argtypes
+            return func
     
+        AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
+                                [c_char_p, c_int, AES_KEY_p])
+        AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
+                            [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
+                             c_int])
+        class AES(object):
+            def __init__(self, userkey):
+                self._blocksize = len(userkey)
+                if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
+                    raise ADEPTError('AES improper key used')
+                key = self._key = AES_KEY()
+                rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
+                if rv < 0:
+                    raise ADEPTError('Failed to initialize AES key')
+            def decrypt(self, data):
+                out = create_string_buffer(len(data))
+                iv = ("\x00" * self._blocksize)
+                rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
+                if rv == 0:
+                    raise ADEPTError('AES decryption failed')
+                return out.raw
+        return AES
+
+    def _load_crypto_pycrypto():
+        from Crypto.Cipher import AES as _AES
+        class AES(object):
+            def __init__(self, key):
+                self._aes = _AES.new(key, _AES.MODE_CBC)
+            def decrypt(self, data):
+                return self._aes.decrypt(data)
+        return AES
+
+    def _load_crypto():
+        AES = None
+        for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+            try:
+                AES = loader()
+                break
+            except (ImportError, ADEPTError):
+                pass
+        return AES
+
+    AES = _load_crypto()
+
+
     DEVICE_KEY_PATH = r'Software\Adobe\Adept\Device'
     PRIVATE_LICENCE_KEY_PATH = r'Software\Adobe\Adept\Activation'
-    
+
     MAX_PATH = 255
-    
+
     kernel32 = windll.kernel32
     advapi32 = windll.advapi32
     crypt32 = windll.crypt32
-    
+
     def GetSystemDirectory():
         GetSystemDirectoryW = kernel32.GetSystemDirectoryW
         GetSystemDirectoryW.argtypes = [c_wchar_p, c_uint]
@@ -47,7 +109,7 @@ if iswindows:
             return buffer.value
         return GetSystemDirectory
     GetSystemDirectory = GetSystemDirectory()
-    
+
     def GetVolumeSerialNumber():
         GetVolumeInformationW = kernel32.GetVolumeInformationW
         GetVolumeInformationW.argtypes = [c_wchar_p, c_wchar_p, c_uint,
@@ -61,7 +123,7 @@ if iswindows:
             return vsn.value
         return GetVolumeSerialNumber
     GetVolumeSerialNumber = GetVolumeSerialNumber()
-    
+
     def GetUserName():
         GetUserNameW = advapi32.GetUserNameW
         GetUserNameW.argtypes = [c_wchar_p, POINTER(c_uint)]
@@ -75,11 +137,11 @@ if iswindows:
             return buffer.value.encode('utf-16-le')[::2]
         return GetUserName
     GetUserName = GetUserName()
-    
+
     PAGE_EXECUTE_READWRITE = 0x40
     MEM_COMMIT  = 0x1000
     MEM_RESERVE = 0x2000
-    
+
     def VirtualAlloc():
         _VirtualAlloc = kernel32.VirtualAlloc
         _VirtualAlloc.argtypes = [LPVOID, c_size_t, DWORD, DWORD]
@@ -89,9 +151,9 @@ if iswindows:
             return _VirtualAlloc(addr, size, alloctype, protect)
         return VirtualAlloc
     VirtualAlloc = VirtualAlloc()
-    
+
     MEM_RELEASE = 0x8000
-    
+
     def VirtualFree():
         _VirtualFree = kernel32.VirtualFree
         _VirtualFree.argtypes = [LPVOID, c_size_t, DWORD]
@@ -100,22 +162,22 @@ if iswindows:
             return _VirtualFree(addr, size, freetype)
         return VirtualFree
     VirtualFree = VirtualFree()
-    
+
     class NativeFunction(object):
         def __init__(self, restype, argtypes, insns):
             self._buf = buf = VirtualAlloc(None, len(insns))
             memmove(buf, insns, len(insns))
             ftype = CFUNCTYPE(restype, *argtypes)
             self._native = ftype(buf)
-    
+
         def __call__(self, *args):
             return self._native(*args)
-    
+
         def __del__(self):
             if self._buf is not None:
                 VirtualFree(self._buf)
                 self._buf = None
-    
+
     if struct.calcsize("P") == 4:
         CPUID0_INSNS = (
             "\x53"             # push   %ebx
@@ -157,7 +219,7 @@ if iswindows:
             "\x5b"             # pop    %rbx
             "\xc3"             # retq
         )
-    
+
     def cpuid0():
         _cpuid0 = NativeFunction(None, [c_char_p], CPUID0_INSNS)
         buf = create_string_buffer(12)
@@ -166,14 +228,14 @@ if iswindows:
             return buf.raw
         return cpuid0
     cpuid0 = cpuid0()
-    
+
     cpuid1 = NativeFunction(c_uint, [], CPUID1_INSNS)
-    
+
     class DataBlob(Structure):
         _fields_ = [('cbData', c_uint),
                     ('pbData', c_void_p)]
     DataBlob_p = POINTER(DataBlob)
-    
+
     def CryptUnprotectData():
         _CryptUnprotectData = crypt32.CryptUnprotectData
         _CryptUnprotectData.argtypes = [DataBlob_p, c_wchar_p, DataBlob_p,
@@ -191,10 +253,14 @@ if iswindows:
             return string_at(outdata.pbData, outdata.cbData)
         return CryptUnprotectData
     CryptUnprotectData = CryptUnprotectData()
-    
+
     def retrieve_key():
-        if _aes is None:
-            raise ADEPTError("Couldn\'t load PyCrypto")
+        if AES is None:
+            tkMessageBox.showerror(
+                "ADEPT Key",
+                "This script requires PyCrypto or OpenSSL which must be installed "
+                "separately.  Read the top-of-script comment for details.")
+            return False
         root = GetSystemDirectory().split('\\')[0] + '\\'
         serial = GetVolumeSerialNumber(root)
         vendor = cpuid0()
@@ -236,7 +302,8 @@ if iswindows:
         if userkey is None:
             raise ADEPTError('Could not locate privateLicenseKey')
         userkey = userkey.decode('base64')
-        userkey = _aes.new(keykey, _aes.MODE_CBC).decrypt(userkey)
+        aes = AES(keykey)
+        userkey = aes.decrypt(userkey)
         userkey = userkey[26:-ord(userkey[-1])]
         return userkey
 

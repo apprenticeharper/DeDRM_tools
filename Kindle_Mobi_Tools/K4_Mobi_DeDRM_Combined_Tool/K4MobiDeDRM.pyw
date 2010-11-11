@@ -45,11 +45,20 @@ class MainDialog(Tkinter.Frame):
         self.outpath.insert(0, outname)
         button = Tkinter.Button(body, text="...", command=self.get_outpath)
         button.grid(row=1, column=2)
+        
+        Tkinter.Label(body, text='Kindle.info file (optional)').grid(row=2, sticky=Tkconstants.E)
+        self.altinfopath = Tkinter.Entry(body, width=50)
+        self.altinfopath.grid(row=2, column=1, sticky=sticky)
+        #cwd = os.getcwdu()
+        #cwd = cwd.encode('utf-8')
+        #self.altinfopath.insert(0, cwd)
+        button = Tkinter.Button(body, text="...", command=self.get_altinfopath)
+        button.grid(row=2, column=2)
 
-        Tkinter.Label(body, text='Comma Separated List of 10 Character PIDs (no spaces)').grid(row=2, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='Comma Separated List of 10 Character PIDs (no spaces)').grid(row=3, sticky=Tkconstants.E)
         self.pidnums = Tkinter.StringVar()
         self.pidinfo = Tkinter.Entry(body, width=50, textvariable=self.pidnums)
-        self.pidinfo.grid(row=2, column=1, sticky=sticky)
+        self.pidinfo.grid(row=3, column=1, sticky=sticky)
 
         msg1 = 'Conversion Log \n\n'
         self.stext = ScrolledText(body, bd=5, relief=Tkconstants.RIDGE, height=15, width=60, wrap=Tkconstants.WORD)
@@ -100,16 +109,23 @@ class MainDialog(Tkinter.Frame):
         return
 
     # run as a subprocess via pipes and collect stdout
-    def mobirdr(self, infile, outfile, pidnums):
+    def mobirdr(self, infile, outfile, altinfopath, pidnums):
         # os.putenv('PYTHONUNBUFFERED', '1')
-        cmdline = 'python ./lib/k4mobidedrm.py "' + infile + '" "' + outfile + '" "' + pidnums + '"'
+        pidoption = ''
+        if pidnums and pidnums != '':
+            pidoption = ' -p "' + pidnums + '" '
+        infooption = ''
+        if altinfopath and altinfopath != '':
+            infooption = ' -k "' + altinfopath + '" '
+        cmdline = 'python ./lib/k4mobidedrm.py ' + pidoption + infooption + '"' + infile + '" "' + outfile + '"'
+        print cmdline
         if sys.platform.startswith('win'):
             search_path = os.environ['PATH']
             search_path = search_path.lower()
             if search_path.find('python') >= 0: 
-                cmdline = 'python lib\k4mobidedrm.py "' + infile + '" "' + outfile + '" "' + pidnums + '"'
+                cmdline = 'python lib\k4mobidedrm.py ' + pidoption + infooption + '"' + infile + '" "' + outfile + '"'
             else :
-                cmdline = 'lib\k4mobidedrm.py "' + infile + '" "' + outfile + '" "' + pidnums + '"'
+                cmdline = 'lib\k4mobidedrm.py ' + pidoption + infooption + '"' + infile + '" "' + outfile + '"'
 
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
@@ -141,6 +157,20 @@ class MainDialog(Tkinter.Frame):
             self.outpath.insert(0, outpath)
         return
 
+    def get_altinfopath(self):
+        cwd = os.getcwdu()
+        cwd = cwd.encode('utf-8')
+        altinfopath = tkFileDialog.askopenfilename(
+            parent=None, title='Select kindle.info File',
+            defaultextension='.prc', filetypes=[('Kindle Info', '.info'),
+                                                ('All Files', '.*')],
+            initialdir=cwd)
+        if altinfopath:
+            altinfopath = os.path.normpath(altinfopath)
+            self.altinfopath.delete(0, Tkconstants.END)
+            self.altinfopath.insert(0, altinfopath)
+        return
+
     def quitting(self):
         # kill any still running subprocess
         if self.p2 != None:
@@ -154,6 +184,7 @@ class MainDialog(Tkinter.Frame):
         self.sbotton.configure(state='disabled')
         mobipath = self.mobipath.get()
         outpath = self.outpath.get()
+        altinfopath = self.altinfopath.get()
         pidnums = self.pidinfo.get()
 
         if not mobipath or not os.path.exists(mobipath):
@@ -168,6 +199,10 @@ class MainDialog(Tkinter.Frame):
             self.status['text'] = 'Error specified output directory does not exist'
             self.sbotton.configure(state='normal')
             return
+        if altinfopath and not os.path.exists(altinfopath):
+            self.status['text'] = 'Specified kindle.info file does not exist'
+            self.sbotton.configure(state='normal')
+            return
         # default output file name to be input file name + '_nodrm.mobi'
         initname = os.path.splitext(os.path.basename(mobipath))[0]
         initname += '_nodrm.mobi' 
@@ -176,12 +211,13 @@ class MainDialog(Tkinter.Frame):
         log = 'Command = "python k4mobidedrm.py"\n'
         log += 'K4PC, K4M or Mobi Path = "'+ mobipath + '"\n'
         log += 'Output File = "' + outpath + '"\n'
+        log += 'Kindle.info file = "' + altinfopath + '"\n'
         log += 'PID list = "' + pidnums + '"\n'
         log += '\n\n'
         log += 'Please Wait ...\n\n'
         log = log.encode('utf-8')
         self.stext.insert(Tkconstants.END,log)
-        self.p2 = self.mobirdr(mobipath, outpath, pidnums)
+        self.p2 = self.mobirdr(mobipath, outpath, altinfopath, pidnums)
 
         # python does not seem to allow you to create
         # your own eventloop which every other gui does - strange 

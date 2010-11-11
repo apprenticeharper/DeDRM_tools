@@ -40,9 +40,9 @@
 #  0.15 - Now outputs 'hearbeat', and is also quicker for long files.
 #  0.16 - And reverts to 'done' not 'done.' at the end for unswindle compatibility.
 #  0.17 - added modifications to support its use as an imported python module
-#         both inside calibre and also in other places (ie K4DeDRM tools)
-# 0.17a - disabled the standalone plugin feature since a plugin can not import
-#         a plugin
+#         both inside calibre and also in other places (ie K4MobiDeDRM tools)
+#         and modified the plugin code so that it will not interfere with other
+#         mobi/azw plugins if installed at the same time
 
 __version__ = '0.17'
 
@@ -284,8 +284,6 @@ if __name__ == "__main__":
     sys.exit(main())
 
 #if not __name__ == "__main__":
-if False:
-
     # note a calibre plugin can not import code with another calibre plugin
     # in it as it ends up registering two different plugins 
     from calibre.customize import FileTypePlugin

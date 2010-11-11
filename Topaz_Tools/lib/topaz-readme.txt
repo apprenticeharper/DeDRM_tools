@@ -19,8 +19,7 @@ Here are the steps:
 1. Unzip the topazscripts.zip file to get the full set of python scripts.
 The files you should have after unzipping are:
 
-cmbtc_dump.py - (author: cmbtc) unencrypts and dumps sections into separate files for Kindle for PC
-cmbtc_dump_nonK4PC.py - (author - DiapDealer) for use with standalone Kindle and ipod/iphone topaz books
+cmbtc_dump.py - (author: cmbtc) unencrypts and dumps sections into separate files for Kindle for PC and Mac
 decode_meta.py - converts metadata0000.dat to make it available
 convert2xml.py - converts page*.dat, other*.dat, and glyphs*.dat files to pseudo xml descriptions
 flatxml2html.py - converts a "flattened" xml description to html using the ocrtext
@@ -29,6 +28,9 @@ getpagedim.py - reads page0000.dat to get the book height and width parameters
 genxml.py - main program to convert everything to xml
 genhtml.py - main program to generate "book.html"
 gensvg.py - (author: clarknova) main program to create an xhmtl page with embedded svg graphics
+k4mutils.py - Mac OSX support routines for cmbtc_dump.py
+k4pcutils.py - Windows support routines for cmbtc_dump.py
+
 
 
 Please note, these scripts all import code from each other so please
@@ -42,18 +44,15 @@ of its contents as files
 All Thanks go to CMBTC who broke the DRM for Topaz - without it nothing else 
 would be possible
 
-If you purchased the book for Kindle For PC, you must do the following:
+If you purchased the book for Kindle for PC or Kindle for Mac, you must do the following:
 
    cmbtc_dump.py -d -o TARGETDIR [-p pid] YOURTOPAZBOOKNAMEHERE
 
 
-However, if you purchased the book for a standalone Kindle or ipod/iphone 
+If you purchased the book for a standalone Kindle 1 or ipod/iphone/ipad 
 and you know your pid (at least the first 8 characters) then you should 
-instead do the following
-
-   cmbtc_dump_nonK4PC.py -d -o TARGETDIR -p 12345678 YOURTOPAZBOOKNAMEHERE
-
-where 12345678 should be replaced by the first 8 characters of your PID
+add that using -p 12345678 switch as indicated above, replacing the 
+12345678 with the 8 characters of your pid
 
 
 This should create a directory called "TARGETDIR" in your current directory.  
@@ -64,7 +63,8 @@ other0000.dat - information used to create a style sheet
 dict0000.dat - dictionary of words used to build page descriptions
 page - directory filled with page*.dat files
 glyphs - directory filled with glyphs*.dat files
-
+img - directory filled with images
+color_img - directory used for color images
 
 3. REQUIRED: Create xhtml page descriptions with embedded svg
 that show the exact representation of each page as an image

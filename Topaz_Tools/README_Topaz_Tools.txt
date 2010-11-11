@@ -1,4 +1,5 @@
-The Topaz Tools only work for "Kindle for PC" books, and original standalone Kindles that have never been updated to firmware 2.5 or later, Kindle for iPhone/iPad/iPodTouch (where the PID is known) and Kindle for Mac (with the PID provided by the Kindle_4_Mac_Tools).
+The Topaz Tools work for "Kindle for PC" books, "Kindle for Mac" books, original standalone Kindles that have never been updated to firmware 2.5 or later, and Kindle for iPhone/iPad/iPodTouch (where the PID is known).
+
 
 For Topaz:
 
@@ -8,19 +9,13 @@ For Topaz:
 
 3. move to tools\Topaz_Tools\
 
-4. If you have an old Kindle (never updated to 2.5 or later) or an iPod, iPhone, or iPad or Kindle for Mac and you know your PID then double-click on the following:
-
-TopazExtract_iPhone_iPad_K4M.pyw
-
-If you have Kindle for PC (and no Kindle for Mac will NOT work here) then instead double-click on the following:
-
-TopazExtract_Kindle4PC.pyw
+4. double-click on TopazExtract.pyw
 
 Hit the first “…” button to select the Topaz book with DRM that you want to convert
 
 Hit the second “…” to select an entirely new directory to extract the many book pieces into
 
-And add info for your PID (or extra PIDs) if needed (should not be needed for Kindle For PC).
+And add info for your PID (or extra PIDs) if needed (should not be needed for Kindle For PC or Kindle for Mac).  This field is useful if you have Kindle for iPad/iPhone/iPodTouch or an old Kindle V1 and know your device PID.
 
 Hit the Start button
 

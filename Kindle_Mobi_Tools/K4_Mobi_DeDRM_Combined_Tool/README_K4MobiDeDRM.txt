@@ -13,11 +13,13 @@ hit the first '...' button to locate your DRM Kindle-style ebook
 
 3. Then hit the second '...' button to select an output directory for the unlocked file
 
-4. Then add in any PIDs you need from KindleV1, Kindle for iPhone/iPad/iPodTouch, or other single PID devices to the provided box as a comma separated list of 10 digit PID numbers.
+4. If you have multiple Kindle.Info files and would like to use one specific one, please hit the third "...' button to select it.  Note, if you only have one Kindle.Info file (like most users) this can and should be left blank.
+
+5. . Then add in any PIDs you need from KindleV1, Kindle for iPhone/iPad/iPodTouch, or other single PID devices to the provided box as a comma separated list of 10 digit PID numbers.
 
 If this is a Kindle for Mac or a Kindle for PC book then you can leave this box blank
 
-5.  hit the 'Start' button
+6.  hit the 'Start' button
 
 After a short delay, you should see progress in the Conversion Log window indicating is the unlocking was a success or failure.
 

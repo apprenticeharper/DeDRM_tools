@@ -37,14 +37,17 @@
 #         in utf8 file are encrypted. (Although neither kind gets compressed.)
 #         This knowledge leads to a simplification of the test for the 
 #         trailing data byte flags - version 5 and higher AND header size >= 0xE4. 
-#  0.15 - Now outputs 'hearbeat', and is also quicker for long files.
+#  0.15 - Now outputs 'heartbeat', and is also quicker for long files.
 #  0.16 - And reverts to 'done' not 'done.' at the end for unswindle compatibility.
 #  0.17 - added modifications to support its use as an imported python module
 #         both inside calibre and also in other places (ie K4DeDRM tools)
-# 0.17a - disabled the standalone plugin feature since a plugin can not import
+#  0.17a- disabled the standalone plugin feature since a plugin can not import
 #         a plugin
+#  0.18 - It seems that multibyte entries aren't encrypted in a v7 file...
+#         Removed the disabled Calibre plug-in code
+#         Permit use of 8-digit PIDs
 
-__version__ = '0.17'
+__version__ = '0.18'
 
 import sys
 import struct
@@ -127,10 +130,11 @@ def getSizeOfTrailingDataEntries(ptr, size, flags):
         if testflags & 1:
             num += getSizeOfTrailingDataEntry(ptr, size - num)
         testflags >>= 1
-    # Multibyte data, if present, is included in the encryption, so
-    # we do not need to check the low bit.
-    # if flags & 1:
-    #    num += (ord(ptr[size - num - 1]) & 0x3) + 1
+    # Check the low bit to see if there's multibyte data present.
+    # if multibyte data is included in the encryped data, we'll
+    # have already cleared this flag.
+    if flags & 1:
+        num += (ord(ptr[size - num - 1]) & 0x3) + 1
     return num
 
 class DrmStripper:
@@ -181,9 +185,14 @@ class DrmStripper:
         return found_key
 
     def __init__(self, data_file, pid):
-        if checksumPid(pid[0:-2]) != pid:
-            raise DrmException("invalid PID checksum")
-        pid = pid[0:-2]
+        if len(pid)==10:
+            if checksumPid(pid[0:-2]) != pid:
+                raise DrmException("invalid PID checksum")
+            pid = pid[0:-2]
+        elif len(pid)==8:
+            print "PID without checksum given. With checksum PID is "+checksumPid(pid)
+        else:
+            raise DrmException("Invalid PID length")
 
         self.data_file = data_file
         header = data_file[0:72]
@@ -206,6 +215,10 @@ class DrmStripper:
         if (mobi_length >= 0xE4) and (mobi_version >= 5):
             extra_data_flags, = struct.unpack('>H', sect[0xF2:0xF4])
             print "Extra Data Flags = %d" %extra_data_flags
+        if mobi_version < 7:
+            # multibyte utf8 data is included in the encryption for mobi_version 5 (& 6?)
+            # so clear that byte so that we leave it to be decrypted.
+            extra_data_flags &= 0xFFFE
 
         crypto_type, = struct.unpack('>H', sect[0xC:0xC+2])
         if crypto_type == 0:
@@ -282,44 +295,3 @@ def main(argv=sys.argv):
 
 if __name__ == "__main__":
     sys.exit(main())
-
-#if not __name__ == "__main__":
-if False:
-
-    # note a calibre plugin can not import code with another calibre plugin
-    # in it as it ends up registering two different plugins 
-    from calibre.customize import FileTypePlugin
-
-    class MobiDeDRM(FileTypePlugin):
-        name                = 'MobiDeDRM' # Name of the plugin
-        description         = 'Removes DRM from secure Mobi files'
-        supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
-        author              = 'The Dark Reverser' # The author of this plugin
-        version             = (0, 1, 7)   # The version number of this plugin
-        file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
-        on_import           = True # Run this plugin during the import
-
-        def run(self, path_to_ebook):
-            from calibre.gui2 import is_ok_to_use_qt
-            from PyQt4.Qt import QMessageBox
-            PID = self.site_customization
-            data_file = file(path_to_ebook, 'rb').read()
-            ar = PID.split(',')
-            for i in ar:
-                try:
-                    unlocked_file = DrmStripper(data_file, i).getResult()
-                except DrmException:
-                    if is_ok_to_use_qt():
-                        d = QMessageBox(QMessageBox.Warning, "MobiDeDRM Plugin", "Error decoding: %s\n" % path_to_ebook)
-                        d.show()
-                        d.raise_()
-                        d.exec_()
-                    raise Exception("MobiDeDRM Plugin: Error decoding ebook")
-                else:
-                    of = self.temporary_file('.mobi')
-                    of.write(unlocked_file)
-                    of.close()
-                    return of.name
-
-        def customization_help(self, gui=False):
-            return 'Enter PID (separate multiple PIDs with comma)'

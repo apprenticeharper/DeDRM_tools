@@ -24,7 +24,7 @@
 #       Improve OS X support by using OpenSSL when available
 #   5.1 - Improve OpenSSL error checking
 #   5.2 - Fix ctypes error causing segfaults on some systems
-
+#   5.3 - add support for OpenSSL on Windows, fix bug with some versions of libcrypto 0.9.8 prior to path level o
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
 """
@@ -53,7 +53,11 @@ def _load_crypto_libcrypto():
         Structure, c_ulong, create_string_buffer, cast
     from ctypes.util import find_library
 
-    libcrypto = find_library('crypto')
+    if sys.platform.startswith('win'):
+        libcrypto = find_library('libeay32')
+    else:
+        libcrypto = find_library('crypto')
+
     if libcrypto is None:
         raise ADEPTError('libcrypto not found')
     libcrypto = CDLL(libcrypto)
@@ -116,6 +120,9 @@ def _load_crypto_libcrypto():
     class AES(object):
         def __init__(self, userkey):
             self._blocksize = len(userkey)
+            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
+                raise ADEPTError('AES improper key used')
+                return
             key = self._key = AES_KEY()
             rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
             if rv < 0:

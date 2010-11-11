@@ -43,6 +43,7 @@ import sys
 import os, csv, getopt
 import binascii
 import zlib
+import re
 from struct import pack, unpack, unpack_from
 
 
@@ -115,9 +116,9 @@ def decode(data,map):
 
 
 # Parse the Kindle.info file and return the records as a list of key-values
-def parseKindleInfo():
+def parseKindleInfo(kInfoFile):
     DB = {}
-    infoReader = openKindleInfo()
+    infoReader = openKindleInfo(kInfoFile)
     infoReader.read(1)
     data = infoReader.read()
     if sys.platform.startswith('win'):
@@ -279,10 +280,10 @@ class MobiPeek:
 
 # DiapDealer's stuff: Parse the EXTH header records and parse the Kindleinfo
 # file to calculate the book pid.
-def getK4Pids(exth, title):
+def getK4Pids(exth, title, kInfoFile=None):
     global kindleDatabase
     try:
-        kindleDatabase = parseKindleInfo()
+        kindleDatabase = parseKindleInfo(kInfoFile)
     except Exception as message:
         print(message)
     
@@ -353,30 +354,49 @@ def getK4Pids(exth, title):
     raise DrmException("\nCould not access K4 data - Perhaps K4 is not installed/configured?")
     return null
 
+def usage(progname):
+    print "Removes DRM protection from K4PC, K4M, and Mobi ebooks"
+    print "Usage:"
+    print "    %s [-k <kindle.info>] [-p <pidnums>] <infile> <outfile>  " % progname
+
 #
 # Main
 #   
 def main(argv=sys.argv):
     global kindleDatabase
     import mobidedrm
+    
+    progname = os.path.basename(argv[0])
+    kInfoFiles = []
+    pidnums = ""
+    
     print ('K4MobiDeDrm v%(__version__)s '
 	   'provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc .' % globals())
 
-    if len(argv)<3:
-        print "Removes DRM protection from K4PC, K4M, and Mobi ebooks"
-        print "Usage:"
-        print "    %s <infile> <outfile> [<pidnums>]" % argv[0]
-        return 1
-
-    if len(argv) == 4:
-        pidnums = argv[3]
-
-    if len(argv) == 3:
-        pidnums = "" 
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "k:p:")
+    except getopt.GetoptError, err:
+        print str(err)
+        usage(progname)
+        sys.exit(2)
+        
+    if len(args)<2:
+        usage(progname)
+        sys.exit(2)
+        
+    for o, a in opts:
+        if o == "-k":
+            if a == None :
+                raise DrmException("Invalid parameter for -k")
+            kInfoFiles.append(a)
+        if o == "-p":
+            if a == None :
+                raise DrmException("Invalid parameter for -p")
+            pidnums = a
 
     kindleDatabase = None
-    infile = argv[1]
-    outfile = argv[2]
+    infile = args[0]
+    outfile = args[1]
     try:
         # first try with K4PC/K4M
         ex = MobiPeek(infile)
@@ -394,8 +414,25 @@ def main(argv=sys.argv):
     else:
         file(outfile, 'wb').write(unlocked_file)
         return 0
-
-    # now try from the pid list
+    
+    # now try alternate kindle.info files
+    if kInfoFiles:
+        for infoFile in kInfoFiles:
+            kindleDatabase = None
+            try:
+                title = ex.getBookTitle()
+                exth = ex.getexthData()
+                pid = getK4Pids(exth, title, infoFile)
+                unlocked_file = mobidedrm.getUnencryptedBook(infile, pid)
+            except DrmException:
+                pass
+            except mobidedrm.DrmException:
+                pass
+            else:
+                file(outfile, 'wb').write(unlocked_file)
+                return 0            
+    
+    # Lastly, try from the pid list
     pids = pidnums.split(',')
     for pid in pids:
         try:
@@ -426,7 +463,7 @@ if not __name__ == "__main__" and inCalibre:
                                 Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
         supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
         author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-        version             = (0, 0, 1)   # The version number of this plugin
+        version             = (0, 1, 1)   # The version number of this plugin
         file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
         on_import           = True # Run this plugin during the import
         priority            = 200  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm
@@ -442,7 +479,27 @@ if not __name__ == "__main__" and inCalibre:
                 from k4mutils import openKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap1, charMap2, charMap3, charMap4
             import mobidedrm
 
+            # Get supplied list of PIDs to try from plugin customization.
             pidnums = self.site_customization
+            
+            # Load any kindle info files (*.info) included Calibre's config directory.
+            kInfoFiles = []
+            try:
+                # Find Calibre's configuration directory.
+                confpath = os.path.split(os.path.split(self.plugin_path)[0])[0]
+                print 'K4MobiDeDRM: Calibre configuration directory = %s' % confpath
+                files = os.listdir(confpath)
+                filefilter = re.compile("\.info$", re.IGNORECASE)
+                files = filter(filefilter.search, files)
+    
+                if files:
+                    for filename in files:
+                        fpath = os.path.join(confpath, filename)
+                        kInfoFiles.append(fpath)
+                        print 'K4MobiDeDRM: Kindle info file %s found in config folder.' % filename
+            except IOError:
+                print 'K4MobiDeDRM: Error reading kindle info files from config directory.'
+                pass
 
             # first try with book specifc pid from K4PC or K4M
             try:
@@ -463,6 +520,25 @@ if not __name__ == "__main__" and inCalibre:
                 of.write(unlocked_file)
                 of.close()
                 return of.name
+            
+            # Now try alternate kindle info files
+            if kInfoFiles:
+                for infoFile in kInfoFiles:
+                    kindleDatabase = None 
+                    try:
+                        title = ex.getBookTitle()
+                        exth = ex.getexthData()
+                        pid = getK4Pids(exth, title, infoFile)
+                        unlocked_file = mobidedrm.getUnencryptedBook(path_to_ebook,pid)
+                    except DrmException:
+                        pass
+                    except mobidedrm.DrmException:
+                        pass
+                    else:
+                        of = self.temporary_file('.mobi')
+                        of.write(unlocked_file)
+                        of.close()
+                        return of.name            
 
             # now try from the pid list
             pids = pidnums.split(',')

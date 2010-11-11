@@ -10,6 +10,7 @@
 # Revision history:
 #   1 - Initial release
 #   2 - Add OS X support by using OpenSSL when available (taken/modified from ineptepub v5)
+#   2.1 - Allow Windows versions of libcrypto to be found
 
 """
 Generate Barnes & Noble EPUB user key from name and credit card number.
@@ -40,7 +41,10 @@ def _load_crypto_libcrypto():
         Structure, c_ulong, create_string_buffer, cast
     from ctypes.util import find_library
 
-    libcrypto = find_library('crypto')
+    if sys.platform.startswith('win'):
+        libcrypto = find_library('libeay32')
+    else:
+        libcrypto = find_library('crypto')
     if libcrypto is None:
         print 'libcrypto not found'
         raise IGNOBLEError('libcrypto not found')

@@ -101,7 +101,10 @@ CryptUnprotectData = CryptUnprotectData()
 #
 # Locate and open the Kindle.info file.
 #
-def openKindleInfo():
-    regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
-    path = winreg.QueryValueEx(regkey, 'Local AppData')[0] 
-    return open(path+'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info','r')
+def openKindleInfo(kInfoFile=None):
+    if kInfoFile == None:
+        regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
+        path = winreg.QueryValueEx(regkey, 'Local AppData')[0] 
+        return open(path+'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info','r')
+    else:
+        return open(kInfoFile, 'r')

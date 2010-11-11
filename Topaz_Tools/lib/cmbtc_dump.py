@@ -1,19 +1,5 @@
-#! /usr/bin/python
-# For use in Topaz Scripts version 2.6
-
-"""
-
-Comprehensive Mazama Book DRM with Topaz Cryptography V2.0
-
------BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDdBHJ4CNc6DNFCw4MRCw4SWAK6
-M8hYfnNEI0yQmn5Ti+W8biT7EatpauE/5jgQMPBmdNrDr1hbHyHBSP7xeC2qlRWC
-B62UCxeu/fpfnvNHDN/wPWWH4jynZ2M6cdcnE5LQ+FfeKqZn7gnG2No1U9h7oOHx
-y2/pHuYme7U1TsgSjwIDAQAB
------END PUBLIC KEY-----
-
-"""
-from __future__ import with_statement
+#!/usr/bin/env python
+# For use with Topaz Scripts Version 2.6
 
 class Unbuffered:
     def __init__(self, stream):
@@ -27,155 +13,64 @@ class Unbuffered:
 import sys
 sys.stdout=Unbuffered(sys.stdout)
 
-
 import csv
 import os
 import getopt
 import zlib
 from struct import pack
 from struct import unpack
-from ctypes import windll, c_char_p, c_wchar_p, c_uint, POINTER, byref, \
-    create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
-    string_at, Structure, c_void_p, cast
-import _winreg as winreg
-import Tkinter
-import Tkconstants
-import tkMessageBox
 import traceback
 import hashlib
 
 MAX_PATH = 255
 
-kernel32 = windll.kernel32
-advapi32 = windll.advapi32
-crypt32 = windll.crypt32
-
-global kindleDatabase
 global bookFile
 global bookPayloadOffset
 global bookHeaderRecords
 global bookMetadata
 global bookKey
 global command
+global kindleDatabase
+global verbose
+global PIDs
 
-#
-# Various character maps used to decrypt books. Probably supposed to act as obfuscation
-#
+if sys.platform.startswith('win'):
+    from k4pcutils import openKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap1, charMap2, charMap3, charMap4
+if sys.platform.startswith('darwin'):
+    from k4mutils import openKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap1, charMap2, charMap3, charMap4
 
-charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
-charMap2 = "AaZzB0bYyCc1XxDdW2wEeVv3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_"
-charMap3 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-charMap4 = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
 
-#
+
 # Exceptions for all the problems that might happen during the script
-#
-
 class CMBDTCError(Exception):
     pass
     
 class CMBDTCFatal(Exception):
     pass
     
-#
-# Stolen stuff
-#
 
-class DataBlob(Structure):
-    _fields_ = [('cbData', c_uint),
-                ('pbData', c_void_p)]
-DataBlob_p = POINTER(DataBlob)
-
-def GetSystemDirectory():
-    GetSystemDirectoryW = kernel32.GetSystemDirectoryW
-    GetSystemDirectoryW.argtypes = [c_wchar_p, c_uint]
-    GetSystemDirectoryW.restype = c_uint
-    def GetSystemDirectory():
-        buffer = create_unicode_buffer(MAX_PATH + 1)
-        GetSystemDirectoryW(buffer, len(buffer))
-        return buffer.value
-    return GetSystemDirectory
-GetSystemDirectory = GetSystemDirectory()
-
-
-def GetVolumeSerialNumber():
-    GetVolumeInformationW = kernel32.GetVolumeInformationW
-    GetVolumeInformationW.argtypes = [c_wchar_p, c_wchar_p, c_uint,
-                                      POINTER(c_uint), POINTER(c_uint),
-                                      POINTER(c_uint), c_wchar_p, c_uint]
-    GetVolumeInformationW.restype = c_uint
-    def GetVolumeSerialNumber(path):
-        vsn = c_uint(0)
-        GetVolumeInformationW(path, None, 0, byref(vsn), None, None, None, 0)
-        return vsn.value
-    return GetVolumeSerialNumber
-GetVolumeSerialNumber = GetVolumeSerialNumber()
-
-
-def GetUserName():
-    GetUserNameW = advapi32.GetUserNameW
-    GetUserNameW.argtypes = [c_wchar_p, POINTER(c_uint)]
-    GetUserNameW.restype = c_uint
-    def GetUserName():
-        buffer = create_unicode_buffer(32)
-        size = c_uint(len(buffer))
-        while not GetUserNameW(buffer, byref(size)):
-            buffer = create_unicode_buffer(len(buffer) * 2)
-            size.value = len(buffer)
-        return buffer.value.encode('utf-16-le')[::2]
-    return GetUserName
-GetUserName = GetUserName()
-
-
-def CryptUnprotectData():
-    _CryptUnprotectData = crypt32.CryptUnprotectData
-    _CryptUnprotectData.argtypes = [DataBlob_p, c_wchar_p, DataBlob_p,
-                                   c_void_p, c_void_p, c_uint, DataBlob_p]
-    _CryptUnprotectData.restype = c_uint
-    def CryptUnprotectData(indata, entropy):
-        indatab = create_string_buffer(indata)
-        indata = DataBlob(len(indata), cast(indatab, c_void_p))
-        entropyb = create_string_buffer(entropy)
-        entropy = DataBlob(len(entropy), cast(entropyb, c_void_p))
-        outdata = DataBlob()
-        if not _CryptUnprotectData(byref(indata), None, byref(entropy),
-                                   None, None, 0, byref(outdata)):
-            raise CMBDTCFatal("Failed to Unprotect Data")
-        return string_at(outdata.pbData, outdata.cbData)
-    return CryptUnprotectData
-CryptUnprotectData = CryptUnprotectData()
-
-#
 # Returns the MD5 digest of "message"
-#
-
 def MD5(message):
     ctx = hashlib.md5()
     ctx.update(message)
     return ctx.digest()
 
-#
-# Returns the MD5 digest of "message"
-#
 
+# Returns the MD5 digest of "message"
 def SHA1(message):
     ctx = hashlib.sha1()
     ctx.update(message)
     return ctx.digest()
 
-#
-# Open the book file at path
-#
 
+# Open the book file at path
 def openBook(path):
     try:
         return open(path,'rb')
     except:
         raise CMBDTCFatal("Could not open book file: " + path)
-#
-# Encode the bytes in data with the characters in map
-#
 
+# Encode the bytes in data with the characters in map        
 def encode(data, map):
     result = ""
     for char in data:
@@ -186,55 +81,52 @@ def encode(data, map):
         result += map[R]
     return result
   
-#
 # Hash the bytes in data and then encode the digest with the characters in map
-#
-  
 def encodeHash(data,map):
     return encode(MD5(data),map)
 
-#
 # Decode the string in data with the characters in map. Returns the decoded bytes
-#
-   
 def decode(data,map):
     result = ""
-    for i in range (0,len(data),2):
+    for i in range (0,len(data)-1,2):
         high = map.find(data[i])
         low = map.find(data[i+1])
-        value = (((high * 0x40) ^ 0x80) & 0xFF) + low
+        if (high == -1) or (low == -1) :
+            break
+        value = (((high * len(map)) ^ 0x80) & 0xFF) + low
         result += pack("B",value)
     return result
-  
-#
-# Locate and open the Kindle.info file (Hopefully in the way it is done in the Kindle application)
-#
-  
-def openKindleInfo():
-    regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
-    path = winreg.QueryValueEx(regkey, 'Local AppData')[0] 
-    return open(path+'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info','r')
 
-#
 # Parse the Kindle.info file and return the records as a list of key-values
-#
-
-def parseKindleInfo():
+def parseKindleInfo(kInfoFile):
     DB = {}
-    infoReader = openKindleInfo()
+    infoReader = openKindleInfo(kInfoFile)
     infoReader.read(1)
     data = infoReader.read()
-    items = data.split('{')
-    
+    if sys.platform.startswith('win'):
+        items = data.split('{')
+    else :
+        items = data.split('[')
     for item in items:
         splito = item.split(':')
         DB[splito[0]] =splito[1]
     return DB
 
-#
-# Find if the original string for a hashed/encoded string is known. If so return the original string othwise return an empty string. (Totally not optimal)
-#
+# Get a record from the Kindle.info file for the key "hashedKey" (already hashed and encoded). Return the decoded and decrypted record
+def getKindleInfoValueForHash(hashedKey):
+    global kindleDatabase
+    encryptedValue = decode(kindleDatabase[hashedKey],charMap2)
+    if sys.platform.startswith('win'):
+        return CryptUnprotectData(encryptedValue,"")
+    else:
+        cleartext = CryptUnprotectData(encryptedValue)
+        return decode(cleartext, charMap1)
  
+#  Get a record from the Kindle.info file for the string in "key" (plaintext). Return the decoded and decrypted record
+def getKindleInfoValueForKey(key):
+    return getKindleInfoValueForHash(encodeHash(key,charMap2))
+
+# Find if the original string for a hashed/encoded string is known. If so return the original string othwise return an empty string.
 def findNameForHash(hash):
     names = ["kindle.account.tokens","kindle.cookie.item","eulaVersionAccepted","login_date","kindle.token.item","login","kindle.key.item","kindle.name.info","kindle.device.info", "MazamaRandomNumber"]
     result = ""
@@ -242,42 +134,81 @@ def findNameForHash(hash):
         if hash == encodeHash(name, charMap2):
            result = name
            break
-    return name
+    return result
     
-#
 # Print all the records from the kindle.info file (option -i)
-#
-    
 def printKindleInfo():
     for record in kindleDatabase:
         name = findNameForHash(record)
         if name != "" :
             print (name)
-            print ("--------------------------\n")
+            print ("--------------------------")
         else :
             print ("Unknown Record")
         print getKindleInfoValueForHash(record)
         print "\n"
-#
-# Get a record from the Kindle.info file for the key "hashedKey" (already hashed and encoded). Return the decoded and decrypted record
-#
 
-def getKindleInfoValueForHash(hashedKey):
-    global kindleDatabase
-    encryptedValue = decode(kindleDatabase[hashedKey],charMap2)
-    return CryptUnprotectData(encryptedValue,"")
- 
 #
-#  Get a record from the Kindle.info file for the string in "key" (plaintext). Return the decoded and decrypted record
+# PID generation routines
 #
-   
-def getKindleInfoValueForKey(key):
-    return getKindleInfoValueForHash(encodeHash(key,charMap2))
   
-#
-# Get a 7 bit encoded number from the book file
-#
+# Returns two bit at offset from a bit field
+def getTwoBitsFromBitField(bitField,offset):
+    byteNumber = offset // 4
+    bitPosition = 6 - 2*(offset % 4)
+    return ord(bitField[byteNumber]) >> bitPosition & 3
 
+# Returns the six bits at offset from a bit field
+def getSixBitsFromBitField(bitField,offset):
+     offset *= 3
+     value = (getTwoBitsFromBitField(bitField,offset) <<4) + (getTwoBitsFromBitField(bitField,offset+1) << 2) +getTwoBitsFromBitField(bitField,offset+2)
+     return value
+     
+# 8 bits to six bits encoding from hash to generate PID string
+def encodePID(hash):
+    global charMap3
+    PID = ""
+    for position in range (0,8):
+        PID += charMap3[getSixBitsFromBitField(hash,position)]
+    return PID
+
+# Encryption table used to generate the device PID
+def generatePidEncryptionTable() :
+    table = []
+    for counter1 in range (0,0x100):
+        value = counter1
+        for counter2 in range (0,8):
+            if (value & 1 == 0) :
+                value = value >> 1
+            else :
+                value = value >> 1
+                value = value ^ 0xEDB88320
+        table.append(value)
+    return table
+
+# Seed value used to generate the device PID
+def generatePidSeed(table,dsn) :
+    value = 0
+    for counter in range (0,4) :
+       index = (ord(dsn[counter]) ^ value) &0xFF
+       value = (value >> 8) ^ table[index]
+    return value
+
+# Generate the device PID
+def generateDevicePID(table,dsn,nbRoll):
+    seed = generatePidSeed(table,dsn)
+    pidAscii = ""
+    pid = [(seed >>24) &0xFF,(seed >> 16) &0xff,(seed >> 8) &0xFF,(seed) & 0xFF,(seed>>24) & 0xFF,(seed >> 16) &0xff,(seed >> 8) &0xFF,(seed) & 0xFF]
+    index = 0
+    for counter in range (0,nbRoll):
+        pid[index] = pid[index] ^ ord(dsn[counter])
+        index = (index+1) %8
+    for counter in range (0,8):
+        index = ((((pid[counter] >>5) & 3) ^ pid[counter]) & 0x1f) + (pid[counter] >> 7)
+        pidAscii += charMap4[index]
+    return pidAscii
+
+# Get a 7 bit encoded number from the book file
 def bookReadEncodedNumber():
     flag = False
     data = ord(bookFile.read(1))
@@ -297,14 +228,12 @@ def bookReadEncodedNumber():
        data = -data
     return data
     
-#
 # Encode a number in 7 bit format
-#
-
 def encodeNumber(number):
    result = ""
    negative = False
    flag = 0
+   print("Using encodeNumber routine")
    
    if number < 0 :
        number = -number + 1
@@ -326,26 +255,17 @@ def encodeNumber(number):
    
    return result[::-1]
   
-#
-# Get a length prefixed string from the file 
-#
 
+# Get a length prefixed string from the file 
 def bookReadString():
     stringLength = bookReadEncodedNumber()
     return unpack(str(stringLength)+"s",bookFile.read(stringLength))[0]  
     
-#
 # Returns a length prefixed string
-#
-
 def lengthPrefixString(data):
     return encodeNumber(len(data))+data
     
-
-#
 # Read and return the data of one header record at the current book file position [[offset,decompressedLength,compressedLength],...]
-#
-    
 def bookReadHeaderRecordData():
     nbValues = bookReadEncodedNumber()
     values = []
@@ -353,10 +273,7 @@ def bookReadHeaderRecordData():
         values.append([bookReadEncodedNumber(),bookReadEncodedNumber(),bookReadEncodedNumber()])
     return values
    
-#
 # Read and parse one header record at the current book file position and return the associated data [[offset,decompressedLength,compressedLength],...]
-#
-
 def parseTopazHeaderRecord():
     if ord(bookFile.read(1)) != 0x63:
         raise CMBDTCFatal("Parse Error : Invalid Header")
@@ -365,10 +282,7 @@ def parseTopazHeaderRecord():
     record = bookReadHeaderRecordData()
     return [tag,record]
 
-#
 # Parse the header of a Topaz file, get all the header records and the offset for the payload
-#
- 
 def parseTopazHeader():
     global bookHeaderRecords
     global bookPayloadOffset
@@ -382,7 +296,7 @@ def parseTopazHeader():
    
     for i in range (0,nbRecords):
         result = parseTopazHeaderRecord()
-        print result[0], result[1]
+        #print result[0], result[1]
         bookHeaderRecords[result[0]] = result[1]
     
     if ord(bookFile.read(1))  != 0x64 :
@@ -390,11 +304,8 @@ def parseTopazHeader():
     
     bookPayloadOffset = bookFile.tell()
    
-#
 # Get a record in the book payload, given its name and index. If necessary the record is decrypted. The record is not decompressed
 # Correction, the record is correctly decompressed too
-#
-
 def getBookPayloadRecord(name, index):   
     encrypted = False
     compressed = False
@@ -434,10 +345,7 @@ def getBookPayloadRecord(name, index):
     
     return record
 
-#
 # Extract, decrypt and decompress a book record indicated by name and index and print it or save it in "filename"
-#
-
 def extractBookPayloadRecord(name, index, filename):
     compressed = False
 
@@ -463,17 +371,11 @@ def extractBookPayloadRecord(name, index, filename):
     else:
         print(record)
     
-#
 # return next record [key,value] from the book metadata from the current book position
-#  
-
 def readMetadataRecord():
     return [bookReadString(),bookReadString()]
     
-#
 # Parse the metadata record from the book payload and return a list of [key,values]
-#
-
 def parseMetadata():
     global bookHeaderRecords
     global bookPayloadAddress
@@ -491,40 +393,7 @@ def parseMetadata():
         record =readMetadataRecord()
         bookMetadata[record[0]] = record[1]
 
-#
-# Returns two bit at offset from a bit field
-#
-   
-def getTwoBitsFromBitField(bitField,offset):
-    byteNumber = offset // 4
-    bitPosition = 6 - 2*(offset % 4)
-    
-    return ord(bitField[byteNumber]) >> bitPosition & 3
-
-#
-# Returns the six bits at offset from a bit field
-#    
-
-def getSixBitsFromBitField(bitField,offset):
-     offset *= 3
-     value = (getTwoBitsFromBitField(bitField,offset) <<4) + (getTwoBitsFromBitField(bitField,offset+1) << 2) +getTwoBitsFromBitField(bitField,offset+2)
-     return value
-     
-#
-# 8 bits to six bits encoding from hash to generate PID string
-#
-
-def encodePID(hash):
-    global charMap3
-    PID = ""
-    for position in range (0,8):
-        PID += charMap3[getSixBitsFromBitField(hash,position)]
-    return PID
-    
-#
 # Context initialisation for the Topaz Crypto
-#
-
 def topazCryptoInit(key):
     ctx1 = 0x0CAFFE19E
     
@@ -534,10 +403,7 @@ def topazCryptoInit(key):
         ctx1 = ((((ctx1 >>2) * (ctx1 >>7))&0xFFFFFFFF) ^ (keyByte * keyByte * 0x0F902007)& 0xFFFFFFFF )
     return [ctx1,ctx2]
     
-#
 # decrypt data with the context prepared by topazCryptoInit()
-#
-    
 def topazCryptoDecrypt(data, ctx):
     ctx1 = ctx[0]
     ctx2 = ctx[1]
@@ -553,18 +419,12 @@ def topazCryptoDecrypt(data, ctx):
         
     return plainText
 
-#
 # Decrypt a payload record with the PID
-#
-
 def decryptRecord(data,PID):
     ctx = topazCryptoInit(PID)
     return topazCryptoDecrypt(data, ctx)
 
-#
 # Try to decrypt a dkey record (contains the book PID)
-#
-
 def decryptDkeyRecord(data,PID):
     record = decryptRecord(data,PID)
     fields = unpack("3sB8sB8s3s",record)
@@ -577,11 +437,8 @@ def decryptDkeyRecord(data,PID):
         raise CMBDTCError("Record didn't contain PID")
     
     return fields[4]
-    
-#
+
 # Decrypt all the book's dkey records (contain the book PID)
-#
-  
 def decryptDkeyRecords(data,PID):
     nbKeyRecords = ord(data[0])
     records = []
@@ -597,57 +454,7 @@ def decryptDkeyRecords(data,PID):
         
     return records
     
-#
-# Encryption table used to generate the device PID
-#
-    
-def generatePidEncryptionTable() :
-    table = []
-    for counter1 in range (0,0x100):
-        value = counter1
-        for counter2 in range (0,8):
-            if (value & 1 == 0) :
-                value = value >> 1
-            else :
-                value = value >> 1
-                value = value ^ 0xEDB88320
-        table.append(value)
-    return table
- 
-#
-# Seed value used to generate the device PID
-#
-   
-def generatePidSeed(table,dsn) :
-    value = 0
-    for counter in range (0,4) :
-       index = (ord(dsn[counter]) ^ value) &0xFF
-       value = (value >> 8) ^ table[index]
-    return value
-   
-#
-# Generate the device PID
-#
-
-def generateDevicePID(table,dsn,nbRoll):
-    seed = generatePidSeed(table,dsn)
-    pidAscii = ""
-    pid = [(seed >>24) &0xFF,(seed >> 16) &0xff,(seed >> 8) &0xFF,(seed) & 0xFF,(seed>>24) & 0xFF,(seed >> 16) &0xff,(seed >> 8) &0xFF,(seed) & 0xFF]
-    index = 0
-    
-    for counter in range (0,nbRoll):
-        pid[index] = pid[index] ^ ord(dsn[counter])
-        index = (index+1) %8
- 
-    for counter in range (0,8):
-        index = ((((pid[counter] >>5) & 3) ^ pid[counter]) & 0x1f) + (pid[counter] >> 7)
-        pidAscii += charMap4[index]
-    return pidAscii
-    
-#
 # Create decrypted book payload
-#
-
 def createDecryptedPayload(payload):
     for headerRecord in bookHeaderRecords:
        name = headerRecord
@@ -670,10 +477,7 @@ def createDecryptedPayload(payload):
                outputFile = os.path.join(destdir,fname)
                file(outputFile, 'wb').write(getBookPayloadRecord(name, index))
                    
-
 # Create decrypted book
-#
-
 def createDecryptedBook(outdir):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -696,11 +500,7 @@ def createDecryptedBook(outdir):
 
     createDecryptedPayload(outdir)
 
-
-#
 # Set the command to execute by the programm according to cmdLine parameters
-#
-
 def setCommand(name) :
     global command
     if command != "" :
@@ -708,28 +508,85 @@ def setCommand(name) :
     else :
         command = name
 
-# 
 # Program usage
-#
-   
 def usage():
     print("\nUsage:")
-    print("\ncmbtc_dump.py [options] bookFileName\n")
+    print("\ncmbtc_dump_linux.py [options] bookFileName\n")
     print("-p Adds a PID to the list of PIDs that are tried to decrypt the book key (can be used several times)")
     print("-d Dumps the unencrypted book as files to outdir")
     print("-o Output directory to save book files to")
     print("-v Verbose (can be used several times)")
     print("-i Prints kindle.info database")
- 
-#
-# Main
-#   
-
-def main(argv=sys.argv):
-    global kindleDatabase
-    global bookMetadata
-    global bookKey
+    print("-k Adds the path to an alternate kindle.info file")
+    
+def prepTopazBook(bookPath):
     global bookFile
+    bookFile = openBook(bookPath)
+    parseTopazHeader()
+    parseMetadata() 
+
+# Get Pids
+def getK4Pids(kInfoFile=None):
+    global kindleDatabase
+    global PIDs
+    
+    # Read the encrypted database
+    kindleDatabase = None
+    try:
+        kindleDatabase = parseKindleInfo(kInfoFile)
+    except Exception as message:
+        #if verbose > 0:
+        #    print(message)
+        pass
+    
+    if kindleDatabase != None :
+        # Compute the DSN
+        # Get the Mazama Random number
+        MazamaRandomNumber = getKindleInfoValueForKey("MazamaRandomNumber")
+    
+        # Get the HDD serial
+        encodedSystemVolumeSerialNumber = encodeHash(GetVolumeSerialNumber(),charMap1)
+    
+        # Get the current user name
+        encodedUsername = encodeHash(GetUserName(),charMap1)
+    
+        # concat, hash and encode
+        DSN = encode(SHA1(MazamaRandomNumber+encodedSystemVolumeSerialNumber+encodedUsername),charMap1)
+       
+        if verbose > 0:
+            print("DSN: " + DSN)
+        
+        # Compute the device PID    
+        table =  generatePidEncryptionTable()
+        devicePID = generateDevicePID(table,DSN,4)
+        PIDs.append(devicePID)
+    
+        if verbose > 0:
+            print("Device PID: " + devicePID)
+        
+        # Compute book PID
+        # Get the account token
+        kindleAccountToken = getKindleInfoValueForKey("kindle.account.tokens")
+    
+        if verbose > 0:
+            print("Account Token: " + kindleAccountToken)
+
+            keysRecord = bookMetadata["keys"]
+            keysRecordRecord = bookMetadata[keysRecord]
+    
+            pidHash = SHA1(DSN+kindleAccountToken+keysRecord+keysRecordRecord)
+   
+            bookPID = encodePID(pidHash)
+            PIDs.append(bookPID)
+    
+            if verbose > 0:
+                print ("Book PID: " + bookPID )
+
+# Main
+def main(argv=sys.argv):
+    global verbose
+    global PIDs
+    global bookKey
     global command
     
     progname = os.path.basename(argv[0])
@@ -739,12 +596,12 @@ def main(argv=sys.argv):
     recordIndex = 0
     outdir = ""
     PIDs = []
-    kindleDatabase = None
     command = ""
+    kInfoFiles = []
     
-    
+  
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "vi:o:p:d")
+        opts, args = getopt.getopt(sys.argv[1:], "vi:k:o:p:d")
     except getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -760,103 +617,50 @@ def main(argv=sys.argv):
             verbose+=1
         if o == "-i":
             setCommand("printInfo")
+        if o == "-k":
+            if a == None :
+                raise CMBDTCFatal("Invalid parameter for -k")
+            kInfoFiles.append(a)
         if o =="-o":
             if a == None :
                 raise CMBDTCFatal("Invalid parameter for -o")
             outdir = a
         if o =="-p":
+            if a == None :
+                raise CMBDTCFatal("Invalid parameter for -p")
             PIDs.append(a)
         if o =="-d":
             setCommand("doit")
             
     if command == "" :
-        raise CMBDTCFatal("No action supplied on command line")
-   
-    #
-    # Read the encrypted database
-    #
-    
-    try:
-        kindleDatabase = parseKindleInfo()
-    except Exception as message:
-        if verbose>0:
-            print(message)
-    
-    if kindleDatabase != None :
-        if command == "printInfo" :
-            printKindleInfo()
-     
-    #
-    # Compute the DSN
-    #
-    
-    # Get the Mazama Random number
-        MazamaRandomNumber = getKindleInfoValueForKey("MazamaRandomNumber")
-    
-    # Get the HDD serial
-        encodedSystemVolumeSerialNumber = encodeHash(str(GetVolumeSerialNumber(GetSystemDirectory().split('\\')[0] + '\\')),charMap1)
-    
-    # Get the current user name
-        encodedUsername = encodeHash(GetUserName(),charMap1)
-    
-    # concat, hash and encode
-        DSN = encode(SHA1(MazamaRandomNumber+encodedSystemVolumeSerialNumber+encodedUsername),charMap1)
-       
-        if verbose >1:
-            print("DSN: " + DSN)
-    
-    #
-    # Compute the device PID
-    #
-     
-        table =  generatePidEncryptionTable()
-        devicePID = generateDevicePID(table,DSN,4)
-        PIDs.append(devicePID)
-    
-        if verbose > 0:
-            print("Device PID: " + devicePID)
-    
-    #
-    # Open book and parse metadata
-    #
+        raise Exception("No action supplied on command line")
         
+    # Open book and parse metadata
     if len(args) == 1:
-    
-        bookFile = openBook(args[0])
-        parseTopazHeader()
-        parseMetadata()
-    
-    #
-    # Compute book PID
-    # 
-    
-    # Get the account token
-    
-        if kindleDatabase != None:
-            kindleAccountToken = getKindleInfoValueForKey("kindle.account.tokens")
-    
-            if verbose >1:
-                print("Account Token: " + kindleAccountToken)
-
-            keysRecord = bookMetadata["keys"]
-            keysRecordRecord = bookMetadata[keysRecord]
-    
-            pidHash = SHA1(DSN+kindleAccountToken+keysRecord+keysRecordRecord)
-   
-            bookPID = encodePID(pidHash)
-            PIDs.append(bookPID)
-    
-            if verbose > 0:
-                print ("Book PID: " + bookPID )
-    
-    #
-    #  Decrypt book key
-    #
-    
-        dkey = getBookPayloadRecord('dkey', 0) 
+        # Open the ebook
+        prepTopazBook(args[0])
+        # Always try to get the default Kindle installation info.
+        getK4Pids()
+        
+        # If Alternate kindle.info files were supplied, parse them too.
+        if kInfoFiles:
+            for infoFile in kInfoFiles:
+                getK4Pids(infoFile)
+        
+        # Print the kindle info if requested.        
+        if kindleDatabase != None :        
+            if command == "printInfo" :
+                printKindleInfo()
+                
+        # Remove any duplicates that may occur from the PIDs List
+        PIDs = list(set(PIDs))
+        
+        #  Decrypt book key
+        dkey = getBookPayloadRecord('dkey', 0)
         
         bookKeys = []
         for PID in PIDs :
+            print PID
             bookKeys+=decryptDkeyRecords(dkey,PID)
             
         if len(bookKeys) == 0 :
@@ -867,7 +671,7 @@ def main(argv=sys.argv):
             bookKey = bookKeys[0]
             if verbose > 0:
                 print("Book key: " + bookKey.encode('hex'))
-                
+                  
             if command == "printRecord" :
                 extractBookPayloadRecord(recordName,int(recordIndex),outputFile)
                 if outputFile != "" and verbose>0 :
@@ -875,7 +679,7 @@ def main(argv=sys.argv):
             elif command == "doit" :
                 if outdir != "" :
                     createDecryptedBook(outdir)
-                    if verbose >0 :
+                    if verbose > 0 :
                         print ("Decrypted book saved. Don't pirate!")
                 elif verbose > 0:
                     print("Output directory name was not supplied.")

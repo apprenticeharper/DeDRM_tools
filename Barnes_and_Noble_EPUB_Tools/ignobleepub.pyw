@@ -11,6 +11,7 @@
 #   1 - Initial release
 #   2 - Added OS X support by using OpenSSL when available
 #   3 - screen out improper key lengths to prevent segfaults on Linux
+#   3.1 - Allow Windows versions of libcrypto to be found
 
 from __future__ import with_statement
 
@@ -36,7 +37,10 @@ def _load_crypto_libcrypto():
         Structure, c_ulong, create_string_buffer, cast
     from ctypes.util import find_library
 
-    libcrypto = find_library('crypto')
+    if sys.platform.startswith('win'):
+        libcrypto = find_library('libeay32')
+    else:
+        libcrypto = find_library('crypto')
     if libcrypto is None:
         raise IGNOBLEError('libcrypto not found')
     libcrypto = CDLL(libcrypto)

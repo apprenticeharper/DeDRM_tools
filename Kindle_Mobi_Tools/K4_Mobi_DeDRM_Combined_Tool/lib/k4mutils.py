@@ -298,22 +298,25 @@ def CryptUnprotectData(encryptedData):
     return cleartext
 
 # Locate and open the .kindle-info file
-def openKindleInfo():
-    home = os.getenv('HOME')
-    cmdline = 'find "' + home + '/Library/Application Support" -name ".kindle-info"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
-    poll = p1.wait('wait')
-    results = p1.read()
-    reslst = results.split('\n')
-    kinfopath = 'NONE'
-    cnt = len(reslst)
-    for j in xrange(cnt):
-        resline = reslst[j]
-        pp = resline.find('.kindle-info')
-        if pp >= 0:
-            kinfopath = resline
-            break
-    if not os.path.exists(kinfopath):
-        raise K4MDrmException('Error: .kindle-info file can not be found')
-    return open(kinfopath,'r')
+def openKindleInfo(kInfoFile=None):
+    if kInfoFile == None:
+	home = os.getenv('HOME')
+	cmdline = 'find "' + home + '/Library/Application Support" -name ".kindle-info"'
+	cmdline = cmdline.encode(sys.getfilesystemencoding())
+	p1 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
+	poll = p1.wait('wait')
+	results = p1.read()
+	reslst = results.split('\n')
+	kinfopath = 'NONE'
+	cnt = len(reslst)
+	for j in xrange(cnt):
+	    resline = reslst[j]
+	    pp = resline.find('.kindle-info')
+	    if pp >= 0:
+		kinfopath = resline
+		break
+	if not os.path.exists(kinfopath):
+	    raise K4MDrmException('Error: .kindle-info file can not be found')
+	return open(kinfopath,'r')
+    else:
+        return open(kInfoFile, 'r')
