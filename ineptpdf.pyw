@@ -1,7 +1,6 @@
 #! /usr/bin/python
 
-# ineptpdf74.pyw
-# ineptpdf, version 7.4
+# ineptpdf.pyw, version 7.5
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -12,21 +11,24 @@
 #   1 - Initial release
 #   2 - Improved determination of key-generation algorithm
 #   3 - Correctly handle PDF >=1.5 cross-reference streams
-#   4 - Removal of ciando's personal ID (anon)
-#   5 - removing small bug with V3 ebooks (anon)
-#   6 - changed to adeptkey4.der format for 1.7.2 support (anon)
+#   4 - Removal of ciando's personal ID
+#   5 - Automated decryption of a complete directory
 #   6.1 - backward compatibility for 1.7.1 and old adeptkey.der
 #   7 - Get cross reference streams and object streams working for input.
 #       Not yet supported on output but this only effects file size,
-#       not functionality. (by anon2)
+#       not functionality. (anon2)
 #   7.1 - Correct a problem when an old trailer is not followed by startxref
-#   7.2 - Correct malformed Mac OS resource forks for Stanza
+#   7.2 - Correct malformed Mac OS resource forks for Stanza (anon2)
 #       - Support for cross ref streams on output (decreases file size)
 #   7.3 - Correct bug in trailer with cross ref stream that caused the error
-#         "The root object is missing or invalid" in Adobe Reader.
+#         "The root object is missing or invalid" in Adobe Reader. (anon2)
 #   7.4 - Force all generation numbers in output file to be 0, like in v6.
 #         Fallback code for wrong xref improved (search till last trailer
-#         instead of first)
+#         instead of first) (anon2)
+#   7.5 - allow support for OpenSSL to replace pycrypto on all platforms
+#         implemented ARC4 interface to OpenSSL
+#         fixed minor typos
+
 """
 Decrypt Adobe ADEPT-encrypted PDF files.
 """
@@ -48,20 +50,232 @@ import Tkconstants
 import tkFileDialog
 import tkMessageBox
 
-try:
-    from Crypto.Cipher import ARC4
-    from Crypto.PublicKey import RSA
-except ImportError:
-    ARC4 = None
-    RSA = None
+
+class ADEPTError(Exception):
+    pass
+
+def _load_crypto_libcrypto():
+    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
+        Structure, c_ulong, create_string_buffer, cast
+    from ctypes.util import find_library
+
+    if sys.platform.startswith('win'):
+        libcrypto = find_library('libeay32')
+    else:
+        libcrypto = find_library('crypto')
+
+    if libcrypto is None:
+        raise ADEPTError('libcrypto not found')
+    libcrypto = CDLL(libcrypto)
+
+    RSA_NO_PADDING = 3
+    
+    c_char_pp = POINTER(c_char_p)
+    c_int_p = POINTER(c_int)
+
+    class RC4_KEY(Structure):
+        _fields_ = [('x', c_int), ('y', c_int), ('box', c_int * 256)]
+    RC4_KEY_p = POINTER(RC4_KEY)
+
+    class RSA(Structure):
+        pass
+    RSA_p = POINTER(RSA)
+    
+    def F(restype, name, argtypes):
+        func = getattr(libcrypto, name)
+        func.restype = restype
+        func.argtypes = argtypes
+        return func
+    
+    d2i_RSAPrivateKey = F(RSA_p, 'd2i_RSAPrivateKey',
+                          [RSA_p, c_char_pp, c_long])
+    RSA_size = F(c_int, 'RSA_size', [RSA_p])
+    RSA_private_decrypt = F(c_int, 'RSA_private_decrypt',
+                            [c_int, c_char_p, c_char_p, RSA_p, c_int])
+    RSA_free = F(None, 'RSA_free', [RSA_p])
+
+    RC4_set_key = F(None,'RC4_set_key',[RC4_KEY_p, c_int, c_char_p])
+    RC4_crypt = F(None,'RC4',[RC4_KEY_p, c_int, c_char_p, c_char_p])
+
+    class RSA(object):
+        def __init__(self, der):
+            buf = create_string_buffer(der)
+            pp = c_char_pp(cast(buf, c_char_p))
+            rsa = self._rsa = d2i_RSAPrivateKey(None, pp, len(der))
+            if rsa is None:
+                raise ADEPTError('Error parsing ADEPT user key DER')
+        
+        def decrypt(self, from_):
+            rsa = self._rsa
+            to = create_string_buffer(RSA_size(rsa))
+            dlen = RSA_private_decrypt(len(from_), from_, to, rsa,
+                                       RSA_NO_PADDING)
+            if dlen < 0:
+                raise ADEPTError('RSA decryption failed')
+            return to[1:dlen]
+    
+        def __del__(self):
+            if self._rsa is not None:
+                RSA_free(self._rsa)
+                self._rsa = None
+
+    class ARC4(object):
+        @classmethod
+        def new(cls, userkey):
+            self = ARC4()
+            self._blocksize = len(userkey)
+            key = self._key = RC4_KEY()
+            RC4_set_key(key, self._blocksize, userkey)
+            return self
+        def __init__(self):
+            self._blocksize = 0
+            self._key = None
+        def decrypt(self, data):
+            out = create_string_buffer(len(data))
+            RC4_crypt(self._key, len(data), data, out)
+            return out.raw
+
+    return (ARC4, RSA)
+
+
+def _load_crypto_pycrypto():
+    from Crypto.PublicKey import RSA as _RSA
+    from Crypto.Cipher import ARC4 as _ARC4    
+
+    # ASN.1 parsing code from tlslite
+    class ASN1Error(Exception):
+        pass
+    
+    class ASN1Parser(object):
+        class Parser(object):
+            def __init__(self, bytes):
+                self.bytes = bytes
+                self.index = 0
+    
+            def get(self, length):
+                if self.index + length > len(self.bytes):
+                    raise ASN1Error("Error decoding ASN.1")
+                x = 0
+                for count in range(length):
+                    x <<= 8
+                    x |= self.bytes[self.index]
+                    self.index += 1
+                return x
+    
+            def getFixBytes(self, lengthBytes):
+                bytes = self.bytes[self.index : self.index+lengthBytes]
+                self.index += lengthBytes
+                return bytes
+    
+            def getVarBytes(self, lengthLength):
+                lengthBytes = self.get(lengthLength)
+                return self.getFixBytes(lengthBytes)
+    
+            def getFixList(self, length, lengthList):
+                l = [0] * lengthList
+                for x in range(lengthList):
+                    l[x] = self.get(length)
+                return l
+    
+            def getVarList(self, length, lengthLength):
+                lengthList = self.get(lengthLength)
+                if lengthList % length != 0:
+                    raise ASN1Error("Error decoding ASN.1")
+                lengthList = int(lengthList/length)
+                l = [0] * lengthList
+                for x in range(lengthList):
+                    l[x] = self.get(length)
+                return l
+    
+            def startLengthCheck(self, lengthLength):
+                self.lengthCheck = self.get(lengthLength)
+                self.indexCheck = self.index
+    
+            def setLengthCheck(self, length):
+                self.lengthCheck = length
+                self.indexCheck = self.index
+    
+            def stopLengthCheck(self):
+                if (self.index - self.indexCheck) != self.lengthCheck:
+                    raise ASN1Error("Error decoding ASN.1")
+    
+            def atLengthCheck(self):
+                if (self.index - self.indexCheck) < self.lengthCheck:
+                    return False
+                elif (self.index - self.indexCheck) == self.lengthCheck:
+                    return True
+                else:
+                    raise ASN1Error("Error decoding ASN.1")
+    
+        def __init__(self, bytes):
+            p = self.Parser(bytes)
+            p.get(1)
+            self.length = self._getASN1Length(p)
+            self.value = p.getFixBytes(self.length)
+    
+        def getChild(self, which):
+            p = self.Parser(self.value)
+            for x in range(which+1):
+                markIndex = p.index
+                p.get(1)
+                length = self._getASN1Length(p)
+                p.getFixBytes(length)
+            return ASN1Parser(p.bytes[markIndex:p.index])
+    
+        def _getASN1Length(self, p):
+            firstLength = p.get(1)
+            if firstLength<=127:
+                return firstLength
+            else:
+                lengthLength = firstLength & 0x7F
+                return p.get(lengthLength)
+
+    class ARC4(object):
+        @classmethod
+        def new(cls, userkey):
+            self = ARC4()
+            self._arc4 = _ARC4.new(userkey)
+            return self
+        def __init__(self):
+            self._arc4 = None
+        def decrypt(self, data):
+            return self._arc4.decrypt(data)
+
+    class RSA(object):
+        def __init__(self, der):
+            key = ASN1Parser([ord(x) for x in der])
+            key = [key.getChild(x).value for x in xrange(1, 4)]
+            key = [self.bytesToNumber(v) for v in key]
+            self._rsa = _RSA.construct(key)
+
+        def bytesToNumber(self, bytes):
+            total = 0L
+            for byte in bytes:
+                total = (total << 8) + byte
+            return total
+    
+        def decrypt(self, data):
+            return self._rsa.decrypt(data)
+
+    return (ARC4, RSA)
+
+def _load_crypto():
+    ARC4 = RSA = None
+    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+        try:
+            ARC4, RSA = loader()
+            break
+        except (ImportError, ADEPTError):
+            pass
+    return (ARC4, RSA)
+ARC4, RSA = _load_crypto()
+
+
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
 
-
-class ADEPTError(Exception):
-    pass
 
 # Do we generate cross reference streams on output?
 # 0 = never
@@ -1208,9 +1422,7 @@ class PDFDocument(object):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         with open(password, 'rb') as f:
             keyder = f.read()
-        key = ASN1Parser([ord(x) for x in keyder])
-        key = [bytesToNumber(key.getChild(x).value) for x in xrange(1, 4)]
-        rsa = RSA.construct(key)
+        rsa = RSA(keyder)
         length = int_value(param.get('Length', 0)) / 8
         rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
         rights = zlib.decompress(rights, -15)
@@ -1339,7 +1551,7 @@ class PDFDocument(object):
             if stmid:
                 if gen_xref_stm:
                     return PDFObjStmRef(objid, stmid, index)
-# Stuff from pdfminer: extract objects from object stream
+                # Stuff from pdfminer: extract objects from object stream
                 stream = stream_value(self.getobj(stmid))
                 if stream.dic.get('Type') is not LITERAL_OBJSTM:
                     if STRICT:
@@ -1371,7 +1583,6 @@ class PDFDocument(object):
                     raise PDFSyntaxError('Invalid object number: objid=%r' % (objid))
                 if isinstance(obj, PDFStream):
                     obj.set_objid(objid, 0)
-###
             else:
                 self.parser.seek(index)
                 (_,objid1) = self.parser.nexttoken() # objid
@@ -1784,8 +1995,8 @@ class PDFSerializer(object):
 
 def cli_main(argv=sys.argv):
     progname = os.path.basename(argv[0])
-    if RSA is None:
-        print "%s: This script requires PyCrypto, which must be installed " \
+    if RSA is None or ARC4 is None:
+        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
               "separately.  Read the top-of-script comment for details." % \
               (progname,)
         return 1
@@ -1896,11 +2107,11 @@ class DecryptionDialog(Tkinter.Frame):
 
 def gui_main():
     root = Tkinter.Tk()
-    if RSA is None:
+    if RSA is None or ARC4 is None:
         root.withdraw()
         tkMessageBox.showerror(
             "INEPT PDF Decrypter",
-            "This script requires PyCrypto, which must be installed "
+            "This script requires OpenSSL or PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
     root.title('INEPT PDF Decrypter')
