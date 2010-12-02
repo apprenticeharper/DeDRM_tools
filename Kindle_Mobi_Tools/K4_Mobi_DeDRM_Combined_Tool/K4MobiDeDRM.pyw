@@ -180,6 +180,7 @@ class MainDialog(Tkinter.Frame):
 
     # actually ready to run the subprocess and get its output
     def convertit(self):
+        self.status['text'] = ''
         # now disable the button to prevent multiple launches
         self.sbotton.configure(state='disabled')
         mobipath = self.mobipath.get()
@@ -187,7 +188,7 @@ class MainDialog(Tkinter.Frame):
         altinfopath = self.altinfopath.get()
         pidnums = self.pidinfo.get()
 
-        if not mobipath or not os.path.exists(mobipath):
+        if not mobipath or not os.path.exists(mobipath) or not os.path.isfile(mobipath):
             self.status['text'] = 'Specified K4PC, K4M or Mobi eBook file does not exist'
             self.sbotton.configure(state='normal')
             return

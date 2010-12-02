@@ -790,7 +790,7 @@ def main(argv=sys.argv):
     
     try:
         kindleDatabase = parseKindleInfo()
-    except Exception as message:
+    except Exception, message:
         if verbose>0:
             print(message)
     

@@ -534,7 +534,7 @@ def getK4Pids(kInfoFile=None):
     kindleDatabase = None
     try:
         kindleDatabase = parseKindleInfo(kInfoFile)
-    except Exception as message:
+    except Exception, message:
         #if verbose > 0:
         #    print(message)
         pass

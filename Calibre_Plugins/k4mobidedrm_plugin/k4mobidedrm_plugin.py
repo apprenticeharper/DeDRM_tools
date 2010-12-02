@@ -28,7 +28,7 @@
 
 from __future__ import with_statement
 
-__version__ = '1.1'
+__version__ = '1.2'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -284,7 +284,7 @@ def getK4Pids(exth, title, kInfoFile=None):
     global kindleDatabase
     try:
         kindleDatabase = parseKindleInfo(kInfoFile)
-    except Exception as message:
+    except Exception, message:
         print(message)
     
     if kindleDatabase != None :
@@ -313,6 +313,8 @@ def getK4Pids(exth, title, kInfoFile=None):
         exth_records = {}
         nitems, = unpack('>I', exth[8:12])
         pos = 12
+        
+        exth_records[209] = None
         # Parse the exth records, storing data indexed by type
         for i in xrange(nitems):
             type, size = unpack('>II', exth[pos: pos + 8])
@@ -397,6 +399,7 @@ def main(argv=sys.argv):
     kindleDatabase = None
     infile = args[0]
     outfile = args[1]
+    DecodeErrorString = ""
     try:
         # first try with K4PC/K4M
         ex = MobiPeek(infile)
@@ -405,11 +408,15 @@ def main(argv=sys.argv):
             return 2
         title = ex.getBookTitle()
         exth = ex.getexthData()
+        if exth=='':
+            raise DrmException("Not a Kindle Mobipocket file")
         pid = getK4Pids(exth, title)
         unlocked_file = mobidedrm.getUnencryptedBook(infile, pid)
-    except DrmException:
+    except DrmException, e:
+        DecodeErrorString += "Error trying default K4 info: " + str(e) + "\n"
         pass
-    except mobidedrm.DrmException:
+    except mobidedrm.DrmException, e:
+        DecodeErrorString +=  "Error trying default K4 info: " + str(e) + "\n"
         pass
     else:
         file(outfile, 'wb').write(unlocked_file)
@@ -422,11 +429,15 @@ def main(argv=sys.argv):
             try:
                 title = ex.getBookTitle()
                 exth = ex.getexthData()
+                if exth=='':
+                    raise DrmException("Not a Kindle Mobipocket file")
                 pid = getK4Pids(exth, title, infoFile)
                 unlocked_file = mobidedrm.getUnencryptedBook(infile, pid)
-            except DrmException:
+            except DrmException, e:
+                DecodeErrorString += "Error trying " + infoFile + " K4 info: " + str(e) + "\n"
                 pass
-            except mobidedrm.DrmException:
+            except mobidedrm.DrmException, e:
+                DecodeErrorString += "Error trying " + infoFile + " K4 info: " + str(e) + "\n"
                 pass
             else:
                 file(outfile, 'wb').write(unlocked_file)
@@ -445,6 +456,7 @@ def main(argv=sys.argv):
             return 0
 
     # we could not unencrypt book
+    print DecodeErrorString
     print "Error: Could Not Unencrypt Book"
     return 1
 
@@ -463,7 +475,7 @@ if not __name__ == "__main__" and inCalibre:
                                 Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
         supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
         author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-        version             = (0, 1, 1)   # The version number of this plugin
+        version             = (0, 1, 3)   # The version number of this plugin
         file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
         on_import           = True # Run this plugin during the import
         priority            = 200  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm
@@ -509,6 +521,8 @@ if not __name__ == "__main__" and inCalibre:
                     return path_to_ebook
                 title = ex.getBookTitle()
                 exth = ex.getexthData()
+                if exth=='':
+                    raise DrmException("Not a Kindle Mobipocket file")
                 pid = getK4Pids(exth, title)
                 unlocked_file = mobidedrm.getUnencryptedBook(path_to_ebook,pid)
             except DrmException:
@@ -528,6 +542,8 @@ if not __name__ == "__main__" and inCalibre:
                     try:
                         title = ex.getBookTitle()
                         exth = ex.getexthData()
+                        if exth=='':
+                            raise DrmException("Not a Kindle Mobipocket file")
                         pid = getK4Pids(exth, title, infoFile)
                         unlocked_file = mobidedrm.getUnencryptedBook(path_to_ebook,pid)
                     except DrmException:

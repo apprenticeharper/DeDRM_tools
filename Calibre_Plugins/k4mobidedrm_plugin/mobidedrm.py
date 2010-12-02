@@ -3,14 +3,6 @@
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
 #
-# It can run standalone to convert files, or it can be installed as a
-# plugin for Calibre (http://calibre-ebook.com/about) so that
-# importing files with DRM 'Just Works'.
-#
-# To create a Calibre plugin, rename this file so that the filename
-# ends in '_plugin.py', put it into a ZIP file and import that Calibre
-# using its plugin configuration GUI.
-#
 # Changelog
 #  0.01 - Initial version
 #  0.02 - Huffdic compressed books were not properly decrypted
@@ -46,8 +38,9 @@
 #  0.18 - It seems that multibyte entries aren't encrypted in a v7 file...
 #         Removed the disabled Calibre plug-in code
 #         Permit use of 8-digit PIDs
+#  0.19 - It seems that multibyte entries aren't encrypted in a v6 file either.
 
-__version__ = '0.18'
+__version__ = '0.19'
 
 import sys
 import struct
@@ -215,8 +208,8 @@ class DrmStripper:
         if (mobi_length >= 0xE4) and (mobi_version >= 5):
             extra_data_flags, = struct.unpack('>H', sect[0xF2:0xF4])
             print "Extra Data Flags = %d" %extra_data_flags
-        if mobi_version < 7:
-            # multibyte utf8 data is included in the encryption for mobi_version 5 (& 6?)
+        if mobi_version <= 5:
+            # multibyte utf8 data is included in the encryption for mobi_version 5 and below
             # so clear that byte so that we leave it to be decrypted.
             extra_data_flags &= 0xFFFE
 

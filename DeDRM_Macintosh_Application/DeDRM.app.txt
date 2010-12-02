@@ -1,0 +1,1154 @@
+property prefsFileName : "com.apprenticealf.dedrm.plist"
+property prefsFolderName : "com.apprenticealf.dedrm"
+property handledExtensions : {"epub", "pdf", "prc", "azw", "mobi", "pdb", "der", "b64"}
+
+global eReaderTool
+global MobipocketTool
+global BNKeyGenTool
+global BNePubTool
+global AdobeKeyGenTool
+global AdobeePubTool
+global AdobePDFTool
+global ZipFixTool
+global ProgressApp
+
+global PIDs
+global bnKeys
+global KindleInfoList
+global AdeptKeyList
+
+global ErrorList
+global WarningList
+global CompletedList
+global ErrorCount
+global WarningCount
+global CompletedCount
+global totalebooks
+global completedebooks
+
+on folderexists(inputFolder)
+	try
+		do shell script "test -d " & quoted form of (POSIX path of inputFolder)
+		return true
+	end try
+	
+	return false
+end folderexists
+
+on fileexists(inputFile)
+	try
+		do shell script "test -f " & quoted form of (POSIX path of inputFile)
+		return true
+	end try
+	
+	return false
+end fileexists
+
+on GetTools()
+	set eReaderTool to POSIX path of file (path to me as text) & "Contents/Resources/erdr2pml.py"
+	set MobipocketTool to POSIX path of file (path to me as text) & "Contents/Resources/k4mobidedrm.py"
+	set BNKeyGenTool to POSIX path of file (path to me as text) & "Contents/Resources/ignoblekeygen.pyw"
+	set BNePubTool to POSIX path of file (path to me as text) & "Contents/Resources/ignobleepub.pyw"
+	set AdobeKeyGenTool to POSIX path of file (path to me as text) & "Contents/Resources/ineptkey.pyw"
+	set AdobeePubTool to POSIX path of file (path to me as text) & "Contents/Resources/ineptepub.pyw"
+	set AdobePDFTool to POSIX path of file (path to me as text) & "Contents/Resources/ineptpdf.pyw"
+	set ZipFixTool to POSIX path of file (path to me as text) & "Contents/Resources/zipfix.py"
+	set ProgressApp to POSIX path of file ((path to resource "DeDRM Progress.app") as string)
+	if not fileexists(eReaderTool) or not fileexists(MobipocketTool) or not fileexists(BNKeyGenTool) or not fileexists(BNePubTool) or not fileexists(AdobeKeyGenTool) or not fileexists(AdobeePubTool) or not folderexists(ProgressApp) then
+		display dialog "De-drm scripts or support files are missing from this package. Get a fresh copy." buttons {"Bother"} default button 1 with title "DeDRM Applescript" with icon stop
+		return false
+	end if
+	return true
+end GetTools
+
+on unlockmobifile(encryptedFile)
+	--check it's a mobi file.
+	set BOOKMOBI to "NOTAMOBI"
+	try
+		set BOOKMOBI to read file encryptedFile from 61 for 8
+	end try
+	if BOOKMOBI is not "BOOKMOBI" then
+		set TOPAZ to "NOT"
+		try
+			set TOPAZ to read file encryptedFile from 1 for 4
+		end try
+		set ErrorCount to ErrorCount + 1
+		if TOPAZ is "TPZ0" then
+			set ErrorList to ErrorList & encryptedFile & " is a TOPAZ file.
+
+"
+		else
+			set ErrorList to ErrorList & encryptedFile & " is not a Mobipocket file.
+
+"
+		end if
+		return
+	end if
+	set encryptedFilePath to POSIX path of file encryptedFile
+	tell application "Finder"
+		set parent_folder to (container of file encryptedFile) as text
+		set fileName to (name of file encryptedFile) as text
+	end tell
+	set fileExtension to ""
+	if fileName contains "." then
+		set AppleScript's text item delimiters to "."
+		set fileExtension to "." & the last text item of fileName
+		set fileName to (text items 1 through -2 of fileName) as string
+	end if
+	set unlockedFilePath to POSIX path of file (parent_folder & fileName & "_dedrmed" & fileExtension)
+	set shellcommand to "python " & (quoted form of MobipocketTool)
+	repeat with KindleInfoPath in KindleInfoList
+		set shellcommand to shellcommand & " -k " & quoted form of KindleInfoPath
+	end repeat
+	set PIDstring to GetPIDstring()
+	if PIDstring is not "" then set shellcommand to shellcommand & " -p " & PIDstring
+	set shellcommand to shellcommand & " " & (quoted form of encryptedFilePath) & " " & (quoted form of unlockedFilePath)
+	--display dialog "shellcommand: " default answer shellcommand buttons {"OK"} default button 1 giving up after 10
+	try
+		set shellresult to do shell script shellcommand
+	on error errmsg
+		set shellresult to errmsg
+	end try
+	try
+		if (offset of "Error" in shellresult) > 0 then
+			set ErrorCount to ErrorCount + 1
+			set ErrorList to (ErrorList & fileName & fileExtension & " couldn't be decoded:
+" & shellresult as text) & "
+
+"
+		else if (offset of "not encrypted" in shellresult) > 0 then
+			set WarningCount to WarningCount + 1
+			set WarningList to WarningList & fileName & fileExtension & " is not encrypted.
+
+"
+		else
+			set CompletedCount to CompletedCount + 1
+			if CompletedList is "" then
+				set CompletedList to CompletedList & fileName & fileExtension
+			else
+				set CompletedList to CompletedList & ", " & fileName & fileExtension
+			end if
+		end if
+	end try
+end unlockmobifile
+
+on unlockpdbfile(encryptedFile)
+	--check it's an eReader file.
+	set PNRdPPrs to "NOT_eREADER"
+	try
+		set PNRdPPrs to read file encryptedFile from 61 for 8
+	end try
+	if PNRdPPrs is not "PNRdPPrs" then
+		set ErrorList to ErrorList & encryptedFile & " is not an eReader file.
+
+"
+		return
+	end if
+	set encryptedFilePath to POSIX path of file encryptedFile
+	tell application "Finder"
+		set parent_folder to (container of file encryptedFile) as text
+		set fileName to (name of file encryptedFile) as text
+	end tell
+	set fileExtension to ""
+	if fileName contains "." then
+		set AppleScript's text item delimiters to "."
+		set fileExtension to "." & the last text item of fileName
+		set fileName to (text items 1 through -2 of fileName) as string
+	end if
+	set pmlFile to parent_folder & fileName & "_Source:" & fileName & ".pml"
+	set clearFile to parent_folder & fileName & "_Source:" & fileName & ".pdb"
+	set clearFileNew to parent_folder & fileName & "_Source:" & fileName & "_dedrmed.pdb"
+	set clearFileNewName to fileName & "_dedrmed.pdb"
+	set sourcePath to (POSIX path of file parent_folder) & fileName & "_Source/"
+	set pmlzFilePath to POSIX path of file parent_folder & fileName & "_dedrmed.pmlz"
+	if length of bnKeys is 0 then
+		GetKeys()
+	end if
+	set shellresult to "Error: No eReader/Barnes & Noble Name:Number keys supplied. Can't decrypt."
+	repeat with BNKey in bnKeys
+		set encryptionName to first item of BNKey
+		set encryptionNumber to second item of BNKey
+		if length of encryptionName > 0 and length of encryptionNumber > 0 then
+			set shellcommand to "python " & (quoted form of eReaderTool) & " " & (quoted form of encryptedFilePath) & " " & (quoted form of encryptionName) & " " & (quoted form of encryptionNumber)
+			--display dialog "shellcommand: " & shellcommand buttons {"OK"} default button 1 giving up after 10
+			set shellresult to "no result"
+			try
+				set shellresult to do shell script shellcommand
+			on error errmsg
+				set shellresult to errmsg
+			end try
+			--display dialog shellresult
+			if (offset of "Error" in shellresult) is 0 then
+				-- try to run dropbook and move compiled book to same folder as encrypted book
+				try
+					try
+						tell application "Finder" to set DropBook to (application file id "PPDr") as string
+					on error
+						error "Couldn't find DropBook application"
+					end try
+					-- now also compile back up into pdb file using DropBook if it's on this system
+					tell application DropBook to open file pmlFile
+					delay 1 -- probably don't need this, but just in case.
+					tell application DropBook to quit
+					try
+						tell application "Finder"
+							set name of file clearFile to clearFileNewName
+							move clearFileNew to parent_folder
+						end tell
+					on error
+						error "DropBook failed to compile the source folder into a pdb file."
+					end try
+				on error errmsg
+					set WarningCount to WarningCount + 1
+					set WarningList to (WarningList & fileName & fileExtension & " couldn't be compiled back to pdb:
+" & errmsg as text) & "
+
+"
+				end try
+				-- try to compress source folder contensts to a pmlz file for easy import into Calibre
+				try
+					set shellcommand to "cd " & quoted form of sourcePath & "; zip -r " & quoted form of pmlzFilePath & " *"
+					--display dialog shellcommand
+					set zipshellresult to do shell script shellcommand
+					--display dialog zipshellresult
+					tell application "Finder"
+						-- move source folder to the trash
+						move parent_folder & fileName & "_Source" to trash
+					end tell
+				on error errmsg
+					set WarningCount to WarningCount + 1
+					set WarningList to (WarningList & fileName & fileExtension & "source folder couldn't be compressed to pmlz:
+" & errmsg as text) & "
+
+"
+				end try
+				-- we've done the decrypting so exit the loop.
+				exit repeat
+			end if
+		end if
+	end repeat
+	try
+		if (offset of "incorrect eReader version 10" in shellresult) > 0 then
+			set WarningCount to WarningCount + 1
+			set WarningList to WarningList & fileName & fileExtension & " is not encrypted.
+
+"
+		else if (offset of "Error" in shellresult) > 0 then
+			set ErrorCount to ErrorCount + 1
+			set ErrorList to (ErrorList & fileName & fileExtension & " couldn't be decoded:
+" & shellresult as text) & "
+
+"
+		else
+			set CompletedCount to CompletedCount + 1
+			if CompletedList is "" then
+				set CompletedList to CompletedList & fileName & fileExtension
+			else
+				set CompletedList to CompletedList & ", " & fileName & fileExtension
+			end if
+		end if
+	end try
+end unlockpdbfile
+
+on unlockepubfile(encryptedFile)
+	--check it's an ePub file.
+	set ePubSig to "NOT_ePub"
+	try
+		set ePubSig to read file encryptedFile from 31 for 28
+	end try
+	--display dialog ePubSig
+	if ePubSig is not "mimetypeapplication/epub+zip" then
+		set ErrorList to ErrorList & encryptedFile & " is not an ePub file.
+
+"
+		return
+	end if
+	set encryptedFilePath to POSIX path of file encryptedFile
+	tell application "Finder"
+		set parent_folder to (container of file encryptedFile) as text
+		set fileName to (name of file encryptedFile) as text
+	end tell
+	set fileExtension to ""
+	if fileName contains "." then
+		set AppleScript's text item delimiters to "."
+		set fileExtension to "." & the last text item of fileName
+		set fileName to (text items 1 through -2 of fileName) as string
+	end if
+	
+	set decoded to "NO"
+	-- first we must fix any possible zip problems with the epub
+	set fixedFilePath to POSIX path of file (parent_folder & fileName & "_fixed" & fileExtension)
+	set shellcommand to "python " & (quoted form of ZipFixTool) & " " & (quoted form of encryptedFilePath) & " " & (quoted form of fixedFilePath)
+	set shellresult to "no result"
+	try
+		--display dialog "shellcommand: " default answer shellcommand buttons {"OK"} default button 1 giving up after 10
+		set shellresult to do shell script shellcommand
+	on error errmsg
+		set shellresult to "Error: " & errmsg
+	end try
+	
+	if (offset of "Error" in shellresult) > 0 then
+		set ErrorCount to ErrorCount + 1
+		set ErrorList to ((ErrorList & fileName & fileExtension & " had a problem with ZipFix:
+" & shellresult as text) & "
+
+")
+		return
+	end if
+	
+	set unlockedFilePath to POSIX path of file (parent_folder & fileName & "_dedrmed" & fileExtension)
+	set shellresult to "no keys"
+	
+	-- first we'll try the Barnes & Noble keys
+	repeat with BNKey in bnKeys
+		
+		set keyfilepath to third item of BNKey
+		if length of keyfilepath > 0 then
+			set shellcommand to "python " & (quoted form of BNePubTool) & " " & (quoted form of keyfilepath) & " " & (quoted form of fixedFilePath) & " " & (quoted form of unlockedFilePath)
+			--display dialog "shellcommand: " & shellcommand buttons {"OK"} default button 1 giving up after 10
+			set shellresult to "no result"
+			try
+				set shellresult to do shell script shellcommand
+			on error errmsg
+				set shellresult to "Error: " & errmsg
+			end try
+			if (offset of "Error" in shellresult) is 0 then
+				set decoded to "YES"
+				exit repeat
+			end if
+			if (offset of "improper key" in shellresult) is 0 then
+				exit repeat
+			end if
+		end if
+	end repeat
+	
+	if decoded is "NO" then
+		-- now try Adobe ePub
+		repeat with AdeptKey in AdeptKeyList
+			set shellcommand to "python " & (quoted form of AdobeePubTool) & " " & (quoted form of AdeptKey) & " " & (quoted form of fixedFilePath) & " " & (quoted form of unlockedFilePath)
+			--display dialog "shellcommand: " default answer shellcommand buttons {"OK"} default button 1 giving up after 10
+			set shellresult to "no result"
+			try
+				set shellresult to do shell script shellcommand
+			on error errmsg
+				set shellresult to "Error: " & errmsg
+			end try
+			if (offset of "Error" in shellresult) is 0 then
+				set decoded to "YES"
+				exit repeat
+			end if
+		end repeat
+	end if
+	
+	if decoded is "YES" then
+		set CompletedCount to CompletedCount + 1
+		if CompletedList is "" then
+			set CompletedList to CompletedList & fileName & fileExtension
+		else
+			set CompletedList to CompletedList & ", " & fileName & fileExtension
+		end if
+	else if shellresult is "no keys" then
+		set ErrorCount to ErrorCount + 1
+		set ErrorList to (ErrorList & fileName & fileExtension & " couldn't be decoded: no keys.
+
+")
+	else
+		set ErrorCount to ErrorCount + 1
+		set ErrorList to ((ErrorList & fileName & fileExtension & " couldn't be decoded:
+" & shellresult as text) & "
+
+")
+	end if
+	
+	tell application "Finder"
+		move alias ((POSIX file fixedFilePath) as text) to trash
+	end tell
+end unlockepubfile
+
+on unlockpdffile(encryptedFile)
+	--check it's an ePub file.
+	set PDFSig to "NOT_DF"
+	try
+		set PDFSig to read file encryptedFile from 1 for 4
+	end try
+	--display dialog PDFSig
+	if PDFSig is not "%PDF" then
+		set ErrorCount to ErrorCount + 1
+		set ErrorList to ErrorList & encryptedFile & " is not a PDF file.
+
+"
+		return
+	end if
+	set encryptedFilePath to POSIX path of file encryptedFile
+	tell application "Finder"
+		set parent_folder to (container of file encryptedFile) as text
+		set fileName to (name of file encryptedFile) as text
+	end tell
+	set fileExtension to ""
+	if fileName contains "." then
+		set AppleScript's text item delimiters to "."
+		set fileExtension to "." & the last text item of fileName
+		set fileName to (text items 1 through -2 of fileName) as string
+	end if
+	
+	set decoded to "NO"
+	-- first we must check we have a PDF script
+	if not fileexists(AdobePDFTool) then
+		set newFile to AdobePDFTool
+		try
+			tell me to activate
+			set newFile to ((choose file with prompt "Please find the ineptpdf script") as text)
+		end try
+		if not fileexists(newFile) then
+			set ErrorCount to ErrorCount + 1
+			set ErrorList to ErrorList & encryptedFile & " is a PDF file and no ineptpdf script found.
+
+"
+			return
+		end if
+		-- set AdobePDFTool to POSIX path of file CopyToPrefs(newFile)
+		set AdobePDFTool to POSIX path of file newFile
+		WritePrefs()
+	end if
+	if not fileexists(AdobePDFTool) then
+		set ErrorCount to ErrorCount + 1
+		set ErrorList to ErrorList & encryptedFile & " is a PDF file and no ineptpdf script found.
+
+"
+		return
+	end if
+	
+	set unlockedFilePath to POSIX path of file (parent_folder & fileName & "_dedrmed" & fileExtension)
+	set decoded to false
+	repeat with AdeptKey in AdeptKeyList
+		set shellcommand to "python " & (quoted form of AdobePDFTool) & " " & (quoted form of AdeptKey) & " " & (quoted form of encryptedFilePath) & " " & (quoted form of unlockedFilePath)
+		--display dialog "shellcommand: " default answer shellcommand buttons {"OK"} default button 1 giving up after 10
+		set shellresult to "no result"
+		try
+			set shellresult to do shell script shellcommand
+		on error errmsg
+			set shellresult to "Error: " & errmsg
+		end try
+		if (offset of "Error" in shellresult) is 0 then
+			set decoded to true
+			exit repeat
+		end if
+	end repeat
+	
+	if decoded then
+		set CompletedCount to CompletedCount + 1
+		if CompletedList is "" then
+			set CompletedList to CompletedList & fileName & fileExtension
+		else
+			set CompletedList to CompletedList & ", " & fileName & fileExtension
+		end if
+	else if shellresult is "no keys" then
+		set ErrorCount to ErrorCount + 1
+		set ErrorList to (ErrorList & fileName & fileExtension & " couldn't be decoded: no keys.
+
+")
+	else
+		set ErrorCount to ErrorCount + 1
+		set ErrorList to ((ErrorList & fileName & fileExtension & " couldn't be decoded:
+" & shellresult as text) & "
+
+")
+	end if
+end unlockpdffile
+
+on handlefile(droppedFile)
+	tell application "Finder"
+		set fileName to (name of file droppedFile) as text
+	end tell
+	set fileExtension to ""
+	if fileName contains "." then
+		set AppleScript's text item delimiters to "."
+		set fileExtension to the last text item of fileName
+		set fileName to (text items 1 through -2 of fileName) as string
+	end if
+	if fileExtension is "prc" or fileExtension is "mobi" or fileExtension is "azw" then
+		set completedebooks to completedebooks + 1
+		IncProgress(fileName, completedebooks)
+		unlockmobifile(droppedFile as text)
+	else if fileExtension is "pdb" then
+		set completedebooks to completedebooks + 1
+		IncProgress(fileName, completedebooks)
+		unlockpdbfile(droppedFile as text)
+	else if fileExtension is "epub" then
+		set completedebooks to completedebooks + 1
+		IncProgress(fileName, completedebooks)
+		unlockepubfile(droppedFile as text)
+	else if fileExtension is "pdf" then
+		set completedebooks to completedebooks + 1
+		IncProgress(fileName, completedebooks)
+		unlockpdffile(droppedFile as text)
+	else if fileExtension is "der" then
+		AddAdeptKey(droppedFile as text)
+	else if fileExtension is "b64" then
+		AddbnKey(droppedFile as text)
+	end if
+end handlefile
+
+on handlefolder(droppedFolder)
+	tell application "Finder" to set fileList to (every file in folder droppedFolder)
+	tell application "Finder" to set folderList to (every folder in folder droppedFolder)
+	repeat with this_item in fileList
+		if not ProgressActive() then
+			exit repeat
+		end if
+		handlefile(this_item as text)
+	end repeat
+	repeat with this_item in folderList
+		if not ProgressActive() then
+			exit repeat
+		end if
+		handlefolder(this_item as text)
+	end repeat
+end handlefolder
+
+on countfile(droppedFile)
+	tell application "Finder"
+		set fileName to (name of file droppedFile) as text
+	end tell
+	set fileExtension to ""
+	if fileName contains "." then
+		set AppleScript's text item delimiters to "."
+		set fileExtension to the last text item of fileName
+		set fileName to (text items 1 through -2 of fileName) as string
+	end if
+	if fileExtension is in handledExtensions then
+		set totalebooks to totalebooks + 1
+	end if
+end countfile
+
+on GetPIDstring()
+	set PIDstring to ""
+	repeat with PID in PIDs
+		if PIDstring is "" then
+			set PIDstring to PID
+		else
+			set PIDstring to PIDstring & "," & PID
+		end if
+	end repeat
+	return PIDstring
+end GetPIDstring
+
+on GetKindleInfostring()
+	set KInfostring to ""
+	repeat with KindleInfo in KindleInfoList
+		if KInfostring is "" then
+			set KInfostring to (KindleInfo as text)
+		else
+			set KInfostring to KInfostring & "
+" & (KindleInfo as text)
+		end if
+	end repeat
+	return KInfostring
+end GetKindleInfostring
+
+on GetAdeptstring()
+	set Adeptstring to ""
+	repeat with AdeptKeyFile in AdeptKeyList
+		set AppleTypeFile to POSIX file (AdeptKeyFile as text)
+		tell application "Finder"
+			set fileName to name of file (AppleTypeFile as text)
+		end tell
+		
+		if Adeptstring is "" then
+			set Adeptstring to fileName
+		else
+			set Adeptstring to Adeptstring & "
+" & fileName
+		end if
+	end repeat
+	return Adeptstring
+end GetAdeptstring
+
+on GetBNKeystring()
+	set BNKeystring to ""
+	repeat with BNKey in bnKeys
+		if BNKeystring is "" then
+			set BNKeystring to first item of BNKey & ":" & second item of BNKey
+		else
+			set BNKeystring to BNKeystring & "
+" & first item of BNKey & ":" & second item of BNKey
+		end if
+		if length of third item of BNKey > 0 then
+			set BNKeystring to BNKeystring & "*"
+		end if
+		if length of second item of BNKey > 0 then
+			set BNKeystring to BNKeystring & " "
+		end if
+	end repeat
+	return BNKeystring
+end GetBNKeystring
+
+
+on GetPIDs()
+	repeat
+		set PIDstring to GetPIDstring()
+		if PIDstring is "" then
+			set DialogPrompt to "Enter any Mobipocket PIDs one at a time:"
+			set FinishedButton to "None"
+		else
+			set DialogPrompt to "Current PIDs: " & PIDstring & ".
+
+Enter any additional Mobipocket PIDs for your Mobipocket books one at a time:"
+			set FinishedButton to "No More"
+		end if
+		set dialogresult to (display dialog DialogPrompt default answer "" buttons {"Delete All", "Add", FinishedButton} with title "DeDRM Applescript" default button 2)
+		if button returned of dialogresult is "Add" then
+			set PID to text returned of dialogresult
+			set PIDlength to length of PID
+			if PIDlength is 8 or PIDlength is 10 then
+				set PIDs to PIDs & PID
+			else
+				display dialog "PIDs must be 8 or 10 characters long." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+			end if
+		else if button returned of dialogresult is "Delete All" then
+			if PIDstring is not "" then
+				try
+					set dialogresult to (display dialog "Are you sure you want to delete all stored PIDs?" buttons {"Cancel", "Delete"} default button 1 with title "DeDRM Applescript")
+				end try
+				if button returned of dialogresult is "Delete" then
+					set PIDs to {}
+				end if
+			end if
+		else
+			exit repeat
+		end if
+	end repeat
+end GetPIDs
+
+on GetKindleInfoFiles()
+	repeat
+		set KInfostring to GetKindleInfostring()
+		if KInfostring is "" then
+			set DialogPrompt to "To add extra Kindle Info files, click the AddÉ button. You do not need to add the Kindle Info file for the copy of Kindle for Mac on this machine."
+			set FinishedButton to "None"
+		else
+			set DialogPrompt to "Known extra Kindle Info file:
+" & KInfostring & "
+
+To add extra Kindle Info files, click the AddÉ button. You do not need to add the Kindle Info file for the copy of Kindle for Mac on this machine."
+			set FinishedButton to "No More"
+		end if
+		set dialogresult to (display dialog DialogPrompt buttons {"Forget All", "AddÉ", FinishedButton} with title "DeDRM Applescript" default button 2)
+		if button returned of dialogresult is "AddÉ" then
+			try
+				set newFile to POSIX path of file ((choose file with prompt "Please select a Kindle Info file") as text)
+				set KindleInfoList to KindleInfoList & newFile
+			on error errmsg
+				display dialog errmsg buttons {"Bother"} default button 1
+			end try
+			
+		else if button returned of dialogresult is "Forget All" then
+			if KInfostring is not "" then
+				try
+					set dialogresult to (display dialog "Are you sure you want to forget all extra Kindel Info files?" buttons {"Cancel", "Forget"} default button 1 with title "DeDRM Applescript")
+				end try
+				if button returned of dialogresult is "Forget" then
+					set KindleInfoList to {}
+				end if
+			end if
+		else
+			exit repeat
+		end if
+	end repeat
+end GetKindleInfoFiles
+
+on GetKeys()
+	set bnKeyText to ""
+	repeat
+		set BNKeystring to GetBNKeystring()
+		if BNKeystring is "" then
+			set DialogPrompt to "Please enter any "
+			set FinishedButton to "None"
+		else
+			set DialogPrompt to "Current B&N keys*, eReader keys :
+" & BNKeystring & "
+
+Please enter any additional "
+			set FinishedButton to "No More"
+		end if
+		set DialogPrompt to DialogPrompt & "eReader/Barnes & Noble Name:Number key pairs one at a time. If you're only decoding eReader files, the last 8 digits of the Number will do. The full 16 are only needed for Barnes & Noble ePubs. Only the last eight will be stored or displayed. Please separate the name and number with a colon and click \"Add\". Or to add a an already generated .b64 file, just click \"Add\" with nothing in the text field."
+		
+		set dialogresult to (display dialog DialogPrompt default answer bnKeyText buttons {"Delete All", "Add", FinishedButton} with title "DeDRM Applescript" default button 2)
+		if button returned of dialogresult is "Add" then
+			set bnKeyText to text returned of dialogresult
+			if bnKeyText is "" then
+				try
+					set newFile to (choose file with prompt "Please select a B&N .b64 key file") as text
+					-- copy to prefs
+					AddbnKey(newFile)
+				on error message
+					if message does not contain "cancel" then
+						display dialog message
+					end if
+				end try
+			else if not (bnKeyText contains ":") then
+				display dialog "Name and Number must be separated by a colon (:)." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+			else
+				set AppleScript's text item delimiters to ":"
+				set keyNumber to the last text item of bnKeyText
+				set keyName to (text items 1 through -2 of bnKeyText) as string
+				
+				if ((length of keyNumber) = 16 or (length of keyNumber) = 8) and (length of keyName) > 0 then
+					set shellresult to ""
+					set keyfilepath to ""
+					if (length of keyNumber) = 16 then
+						-- get the B&N key from this pair
+						set shellresult to "no result"
+						set scriptError to "Key Gen Script failed."
+						set prefsFolder to (path to preferences from user domain as string) & prefsFolderName & ":"
+						set keyfileName to GetUniqueName(prefsFolder, keyName & (text -8 thru -1 of keyNumber) & ".b64")
+						set keyfilepath to POSIX path of (prefsFolder & keyfileName)
+						try
+							set shellresult to do shell script "python " & (quoted form of BNKeyGenTool) & " " & (quoted form of keyName) & " " & (quoted form of keyNumber) & " " & quoted form of keyfilepath
+						on error errmsg
+							set shellresult to "no result"
+							set scriptError to errmsg
+						end try
+					end if
+					if shellresult is not "no result" then
+						set bnKeys to bnKeys & {{keyName, (text -8 thru -1 of keyNumber), keyfilepath}}
+						set bnKeyText to ""
+					else
+						display dialog "Error generating key from this info, error message was: " & scriptError buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+					end if
+				else
+					display dialog "Key numbers must be 8 or 16 characters long (no spaces) and the key name must not be absent." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+				end if
+			end if
+		else if button returned of dialogresult is "Delete All" then
+			if BNKeystring is not "" then
+				try
+					set dialogresult to (display dialog "Are you sure you want to delete all stored Name:Number key pairs?" buttons {"Cancel", "Delete"} default button 1 with title "DeDRM Applescript")
+				end try
+				if button returned of dialogresult is "Delete" then
+					set bnKeys to {}
+				end if
+			end if
+			set bnKeyText to ""
+		else
+			set bnKeyText to text returned of dialogresult
+			if bnKeyText is not "" then
+				try
+					set dialogresult to (display dialog "You entered some text, but didn't click Add. Are you sure you want to more on to the next dialog?" buttons {"Whoops", "Yes, Move on"} default button 1 with title "DeDRM Applescript")
+				end try
+				if button returned of dialogresult is "Yes, Move on" then
+					exit repeat
+				end if
+			else
+				exit repeat
+			end if
+		end if
+	end repeat
+end GetKeys
+
+on GetAdeptKeyFiles()
+	repeat
+		set Adeptstring to GetAdeptstring()
+		if Adeptstring is "" then
+			set DialogPrompt to "To add Adobe Digital Editions (Adept) key files, click the AddÉ button. "
+			set FinishedButton to "None"
+		else
+			set DialogPrompt to "Current Adobe Digital Editions (Adept) key files:
+" & Adeptstring & "
+
+To add extra key files (.der), click the AddÉ button."
+			set FinishedButton to "No More"
+		end if
+		set dialogresult to (display dialog DialogPrompt buttons {"Forget All", "AddÉ", FinishedButton} with title "DeDRM Applescript" default button 2)
+		if button returned of dialogresult is "AddÉ" then
+			try
+				set newFile to (choose file with prompt "Please select an Adept key file") as text
+				-- copy to prefs
+				AddAdeptKey(newFile)
+			on error message
+				if message does not contain "cancel" then
+					display dialog message
+				end if
+			end try
+			
+		else if button returned of dialogresult is "Forget All" then
+			if Adeptstring is not "" then
+				try
+					set dialogresult to (display dialog "Are you sure you want to forget all extra Adobe Digital Editions Adept key files?" buttons {"Cancel", "Forget"} default button 1 with title "DeDRM Applescript")
+				end try
+				if button returned of dialogresult is "Forget" then
+					set AdeptKeyList to {}
+					GetAdeptKey(false)
+				end if
+			end if
+		else
+			exit repeat
+		end if
+	end repeat
+end GetAdeptKeyFiles
+
+on GetAdeptKey(always)
+	set userPrefsPath to path to preferences from user domain as string
+	set preferencesFolderPath to userPrefsPath & prefsFolderName & ":"
+	if not folderexists(preferencesFolderPath) then
+		tell application "Finder"
+			set preferencesFolder to make new folder at userPrefsPath with properties {name:prefsFolderName}
+		end tell
+	end if
+	set userAdeptKeyPath to POSIX path of (preferencesFolderPath & "Local Adept Key.der")
+	if ((count of AdeptKeyList) is 0) or always then
+		set shellresult to "no result"
+		set success to true
+		try
+			set scriptError to do shell script "python " & (quoted form of AdobeKeyGenTool) & " " & quoted form of userAdeptKeyPath
+		on error errmsg
+			set success to false
+			set scriptError to errmsg
+		end try
+		if success then
+			if not (AdeptKeyList contains userAdeptKeyPath) then
+				set AdeptKeyList to AdeptKeyList & userAdeptKeyPath
+			end if
+		else
+			if (always) then
+				display dialog "Error generating key for Adobe Editions: " & scriptError & "
+
+You must have Adobe Digital Editions installed for this script to work with Adobe ePubs, or add a key file manually. " buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+			end if
+		end if
+	end if
+end GetAdeptKey
+
+on encodeAsBase64(theFilePath)
+	set posixfilepath to POSIX path of file theFilePath
+	set base64path to POSIX path of file ((path to me as text) & "Contents:Resources:encodebase64.py")
+	return do shell script "python " & quoted form of base64path & " " & quoted form of posixfilepath
+end encodeAsBase64
+
+on AddAdeptKey(keyfile)
+	set fileExtension to ""
+	if keyfile contains "." then
+		set AppleScript's text item delimiters to "."
+		set fileExtension to the last text item of keyfile
+	end if
+	if fileExtension is "der" then
+		set newPrefsFile to CopyToPrefs(keyfile)
+		set AdeptKeyList to AdeptKeyList & POSIX path of newPrefsFile
+	else
+		display dialog "Adobe Adept key files generated by adeptkey.pyw must have a .der extension." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+	end if
+end AddAdeptKey
+
+on AddbnKey(keyfile)
+	set fileExtension to ""
+	if keyfile contains "." then
+		set AppleScript's text item delimiters to "."
+		set fileExtension to the last text item of keyfile
+	end if
+	if fileExtension is "b64" then
+		set newPrefsFile to CopyToPrefs(keyfile)
+		tell application "Finder"
+			set keyfileName to (name of file newPrefsFile) as text
+		end tell
+		set fileExtension to ""
+		set fileName to keyfileName
+		if keyfileName contains "." then
+			set AppleScript's text item delimiters to "."
+			set fileExtension to the last text item of keyfileName
+			set fileName to (text items 1 through -2 of keyfileName) as string
+		end if
+		set bnKeys to bnKeys & {{fileName, "", POSIX path of newPrefsFile}}
+	else
+		display dialog "Barnes & Noble key files generated by ignoblekeygen.pyw must have a .b64 extension." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+	end if
+end AddbnKey
+
+on GetUniqueName(folderPath, fileName)
+	set newFileName to fileName
+	if fileexists(folderPath & fileName) then
+		-- first find new name that's unique to folder (& temporary items folder)
+		set namecount to 2
+		set fileExtension to ""
+		set fileNameOnly to fileName
+		if fileName contains "." then
+			set AppleScript's text item delimiters to "."
+			set fileExtension to the last text item of fileName
+			set fileNameOnly to (text items 1 through -2 of fileName) as string
+		end if
+		repeat
+			set newFileName to fileNameOnly & " " & (namecount as text) & "." & fileExtension
+			if not fileexists(folderPath & newFileName) then
+				exit repeat
+			end if
+			set namecount to namecount + 1
+		end repeat
+	end if
+	return newFileName
+end GetUniqueName
+
+on CopyToPrefs(keyfilepath)
+	tell application "Finder"
+		set keyfileName to (name of file keyfilepath) as text
+	end tell
+	set keyfileApplepath to POSIX file (POSIX path of keyfilepath)
+	set userPrefsPath to path to preferences from user domain as string
+	set userTempPath to path to temporary items from user domain as string
+	set preferencesFolderPath to userPrefsPath & prefsFolderName & ":"
+	if not folderexists(preferencesFolderPath) then
+		tell application "Finder"
+			set preferencesFolder to make new folder at userPrefsPath with properties {name:prefsFolderName}
+		end tell
+	end if
+	if fileexists(preferencesFolderPath & keyfileName) then
+		-- copy to temporary items folder, rename, and then we can copy from there to the preferences folder
+		-- first find new name
+		set namecount to 2
+		set fileExtension to ""
+		set keyfileNameOnly to keyfileName
+		if keyfileName contains "." then
+			set AppleScript's text item delimiters to "."
+			set fileExtension to the last text item of keyfileName
+			set keyfileNameOnly to (text items 1 through -2 of keyfileName) as string
+		end if
+		repeat
+			set newkeyfileName to keyfileNameOnly & " " & (namecount as text) & "." & fileExtension
+			if not fileexists(preferencesFolderPath & newkeyfileName) and not fileexists(userTempPath & newkeyfileName) then
+				exit repeat
+			end if
+			set namecount to namecount + 1
+		end repeat
+		-- rename to new name
+		set newkeyfilepath to userTempPath & newkeyfileName
+		tell application "Finder"
+			set tempfilepath to duplicate file keyfileApplepath to folder userTempPath with replacing
+			set name of tempfilepath to newkeyfileName
+			move file newkeyfilepath to preferencesFolderPath
+		end tell
+		set newFile to preferencesFolderPath & newkeyfileName
+	else
+		tell application "Finder"
+			set newFile to duplicate file keyfileApplepath to folder preferencesFolderPath with replacing
+		end tell
+	end if
+	
+	return newFile as text
+end CopyToPrefs
+
+on ReadPrefs()
+	-- read any existing keys from the preferences
+	set preferencesFilePath to (path to preferences from user domain as string) & prefsFileName
+	set PIDs to {}
+	set bnKeys to {}
+	set KindleInfoList to {}
+	set AdeptKeyList to {}
+	if fileexists(POSIX path of file preferencesFilePath) then
+		tell application "System Events"
+			try
+				set PIDs to value of property list item "PIDs" of property list file preferencesFilePath
+			end try
+			try
+				set bnKeys to value of property list item "bnKeys" of property list file preferencesFilePath
+			end try
+			try
+				set AdeptKeyList to value of property list item "AdeptKeys" of property list file preferencesFilePath
+			end try
+			try
+				set AdobePDFTool to value of property list item "IneptPDF" of property list file preferencesFilePath
+			end try
+		end tell
+	end if
+	set newList to {}
+	repeat with i from 1 to count AdeptKeyList
+		if fileexists(AdeptKeyList's item i) then set newList's end to AdeptKeyList's item i
+	end repeat
+	set AdeptKeyList to newList
+	
+	set newList to {}
+	repeat with i from 1 to count bnKeys
+		if (item 3 of bnKeys's item i) is "" or fileexists(item 3 of bnKeys's item i) then set newList's end to bnKeys's item i
+	end repeat
+	set bnKeys to newList
+	
+end ReadPrefs
+
+on WritePrefs()
+	-- write keys to the preferences
+	set preferencesFilePath to (path to preferences from user domain as string) & prefsFileName
+	tell application "System Events"
+		set the base_dict to make new property list item with properties {kind:record}
+		set myPrefs to make new property list file with properties {contents:base_dict, name:preferencesFilePath}
+		make new property list item at end of property list items of contents of myPrefs with properties {kind:list, name:"PIDs", value:PIDs}
+		make new property list item at end of property list items of contents of myPrefs with properties {kind:list, name:"bnKeys", value:bnKeys}
+		make new property list item at end of property list items of contents of myPrefs with properties {kind:list, name:"AdeptKeys", value:AdeptKeyList}
+		make new property list item at end of property list items of contents of myPrefs with properties {kind:string, name:"IneptPDF", value:AdobePDFTool}
+	end tell
+end WritePrefs
+
+
+on InitProgress(maxcount)
+	try
+		if totalebooks > 1 then
+			launch application ((path to resource "DeDRM Progress.app") as string)
+			tell application ((path to resource "DeDRM Progress.app") as string)
+				activate
+				set contents of Çclass texFÈ "maintext" of window "main" to "Decrypting " & maxcount & " ebooks."
+				set contents of Çclass texFÈ "subtext" of window "main" to "Decrypting book 0: "
+				set Çclass maxVÈ of Çclass proIÈ "bar" of window "main" to maxcount
+				set Çclass conTÈ of Çclass proIÈ "bar" of window "main" to 0
+			end tell
+		end if
+	end try
+	
+end InitProgress
+
+on ProgressActive()
+	return application ((path to resource "DeDRM Progress.app") as string) is running
+	--tell application "System Events" to set progactive to count (every process whose name is "DeDRM Progress")
+	--if progactive > 0 then return true
+	--return false
+end ProgressActive
+
+on IncProgress(booktitle, doingcount)
+	try
+		if ProgressActive() then
+			tell application ((path to resource "DeDRM Progress.app") as string)
+				set contents of Çclass texFÈ "subtext" of window "main" to "Decrypting book " & doingcount & ": " & booktitle
+				set Çclass conTÈ of Çclass proIÈ "bar" of window "main" to doingcount
+			end tell
+		end if
+	end try
+end IncProgress
+
+on endProgress()
+	try
+		if ProgressActive() then tell application ((path to resource "DeDRM Progress.app") as string) to quit
+	end try
+end endProgress
+
+
+on run
+	if GetTools() then
+		display dialog "Drag&Drop encrypted ebooks onto this AppleScript's icon in the Finder to decode them after you have finished configuring it and it has quit.
+	
+Click the Continue button to enter any PIDs for Mobipocket/Kindle ebooks, to enter name/number key pairs for Barnes & Noble/eReader ebooks, and to select Barnes & Noble .b64 key files and Adobe Adept .der key files.
+
+***You do not need to enter any extra info if decoding ebooks downloaded to your installation of Kindle for Mac, or Adobe Digital Editions. If you do not have any PIDS, name/number keys or .b64 or .der files to add, just click the Cancel button.***
+
+Please only use to get access to your own books. Authors, publishers and ebook stores need to make money to produce more ebooks. Don't cheat them.
+
+This AppleScript is by Apprentice Alf and uses python scripts produced by CMBDTC, IHeartCabbages, DarkReverser, DiapDealer, some_updates, ApprenticeAlf and others.
+
+This AppleScript (but not necessarily the enclosed python scripts) is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, and by any means.
+
+For more information, please refer to
+<http://unlicense.org/>
+" with title "DeDRM Applescript" buttons {"Cancel", "Continue"} default button 2
+		ReadPrefs()
+		GetPIDs()
+		GetKeys()
+		GetAdeptKey(true)
+		GetAdeptKeyFiles()
+		--GetKindleInfoFiles()
+		WritePrefs()
+	end if
+end run
+
+on open some_items
+	if GetTools() then
+		try
+			ReadPrefs()
+			GetAdeptKey(false)
+			set ErrorList to ""
+			set WarningList to ""
+			set CompletedList to ""
+			set ErrorCount to 0
+			set WarningCount to 0
+			set CompletedCount to 0
+			set totalebooks to 0
+			set completedebooks to 0
+			repeat with this_item in some_items
+				if (folder of (info for this_item) is true) then
+					tell application "Finder" to set totalebooks to totalebooks + (count of (every file in entire contents of folder this_item whose name extension is in handledExtensions))
+				else
+					countfile(this_item as text)
+				end if
+			end repeat
+			InitProgress(totalebooks)
+			repeat with this_item in some_items
+				if totalebooks > 1 and not ProgressActive() then
+					exit repeat
+				end if
+				if (folder of (info for this_item) is true) then
+					handlefolder(this_item as text)
+				else
+					handlefile(this_item as text)
+				end if
+			end repeat
+			endProgress()
+		on error errmsg number errnum from fromobj
+			display dialog "An unexpected error occurred. Please report on Apprentice Alf's blog.
+
+Error Message: " & errmsg & "
+Error Number: " & errnum & "
+Error From: " & (fromobj as string) with title "DeDRM Applescript" buttons {"Bother"} default button 1
+		end try
+		if WarningList is not "" then
+			set WarningText to ""
+			if WarningCount is 1 then
+				set WarningText to "There was a warning with 1 ebook:"
+			else
+				set WarningText to "There were warnings with " & WarningCount & " ebooks:"
+			end if
+			set dialogresult to display dialog WarningText & " 
+
+" & WarningList buttons {"SaveÉ", "OK"} with title "DeDRM Applescript" default button 1
+			if button returned of dialogresult is "SaveÉ" then
+				try
+					set savefile to choose file name with prompt "Where would you like to save the warnings report?" default name "DeDRM Warnings Report.txt"
+					set fileRef to open for access savefile with write permission
+					set eof fileRef to 0
+					write WarningList to fileRef
+					close access fileRef
+				end try
+			end if
+		end if
+		if ErrorList is not "" then
+			set ErrorText to ""
+			if ErrorCount is 1 then
+				set ErrorText to "There was an error with 1 ebook:"
+			else
+				set ErrorText to "There were errors with " & ErrorCount & " ebooks:"
+			end if
+			set dialogresult to display dialog ErrorText & " 
+
+" & ErrorList buttons {"SaveÉ", "Bother"} with title "DeDRM Applescript" default button 1
+			if button returned of dialogresult is "SaveÉ" then
+				try
+					set savefile to choose file name with prompt "Where would you like to save the errors report?" default name "DeDRM Errors Report.txt"
+					set fileRef to open for access savefile with write permission
+					set eof fileRef to 0
+					write ErrorList to fileRef
+					close access fileRef
+				end try
+			end if
+		end if
+		if CompletedCount > 0 then
+			set CompletedText to ""
+			if CompletedCount is 1 then
+				set CompletedText to "Successfully de-drmed 1 ebook:"
+			else
+				set CompletedText to "Successfully de-drmed " & CompletedCount & " ebooks:"
+			end if
+			set dialogresult to display dialog CompletedText & " 
+
+" & CompletedList buttons {"Thanks"} with title "DeDRM Applescript" default button 1
+		end if
+		if CompletedCount is 0 and ErrorCount is 0 and WarningCount is 0 and totalebooks is 0 then
+			set dialogresult to display dialog "No ebooks found in the dropped items. DeDRM can handle Mobipocket/Kindle, eReader, Adobe ePub, Barnes & noble ePub and Adobe PDF. Please try again." buttons {"OK"} with title "DeDRM Applescript" default button 1
+		end if
+		WritePrefs()
+	end if
+end open
+

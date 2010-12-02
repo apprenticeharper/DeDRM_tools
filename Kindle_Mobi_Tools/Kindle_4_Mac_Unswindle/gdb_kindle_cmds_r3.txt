@@ -1,0 +1,18 @@
+set verbose 0
+break * 0x00d3dac4
+commands 1
+printf "PID is %s\n", $eax
+continue
+end
+break * 0x0130a384
+commands 2
+printf "File is %s\n", $eax
+continue
+end
+condition 2 $eax != 0
+break * 0x00f0f306
+commands 3
+printf "TOPAZ PID is %s\n", *(long*)($esp+12)
+continue
+end
+run

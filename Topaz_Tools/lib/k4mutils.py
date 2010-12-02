@@ -237,24 +237,36 @@ LibCrypto = _load_crypto()
 #
 
 # uses a sub process to get the Hard Drive Serial Number using ioreg
-# returns with the first found serial number in that class
+# returns with the serial number of drive whose BSD Name is "disk0"
 def GetVolumeSerialNumber():
-    cmdline = '/usr/sbin/ioreg -r -c AppleAHCIDiskDriver'
+    sernum = os.getenv('MYSERIALNUMBER')
+    if sernum != None:
+        return sernum
+    cmdline = '/usr/sbin/ioreg -l -S -w 0 -r -c AppleAHCIDiskDriver'
     cmdline = cmdline.encode(sys.getfilesystemencoding())
     p = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
     poll = p.wait('wait')
     results = p.read()
     reslst = results.split('\n')
-    sernum = '9999999999'
     cnt = len(reslst)
+    bsdname = None
+    sernum = None
+    foundIt = False
     for j in xrange(cnt):
         resline = reslst[j]
         pp = resline.find('"Serial Number" = "')
         if pp >= 0:
-            sernum = resline[pp+19:]
-            sernum = sernum[:-1]
-            sernum = sernum.lstrip()
-            break
+            sernum = resline[pp+19:-1]
+            sernum = sernum.strip()
+        bb = resline.find('"BSD Name" = "')
+        if bb >= 0:
+            bsdname = resline[bb+14:-1]
+            bsdname = bsdname.strip()
+            if (bsdname == 'disk0') and (sernum != None):
+                foundIt = True
+                break
+    if not foundIt:
+        sernum = '9999999999'
     return sernum
 
 # uses unix env to get username instead of using sysctlbyname 
