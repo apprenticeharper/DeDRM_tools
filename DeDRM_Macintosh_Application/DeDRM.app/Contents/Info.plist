@@ -24,7 +24,7 @@
 	<key>CFBundleExecutable</key>
 	<string>droplet</string>
 	<key>CFBundleGetInfoString</key>
-	<string>DeDRM 1.2, Copyright © 2010 by Apprentice Alf.</string>
+	<string>DeDRM 1.3, Copyright © 2010 by Apprentice Alf.</string>
 	<key>CFBundleIconFile</key>
 	<string>droplet</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -34,7 +34,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2</string>
+	<string>1.3</string>
 	<key>CFBundleSignature</key>
 	<string>dplt</string>
 	<key>LSMinimumSystemVersion</key>
@@ -46,9 +46,9 @@
 		<key>name</key>
 		<string>ScriptWindowState</string>
 		<key>positionOfDivider</key>
-		<real>885</real>
+		<real>739</real>
 		<key>savedFrame</key>
-		<string>1507 -64 1262 964 1440 -150 1680 1050 </string>
+		<string>1533 -24 1262 818 1440 -150 1680 1050 </string>
 		<key>selectedTabView</key>
 		<string>result</string>
 	</dict>

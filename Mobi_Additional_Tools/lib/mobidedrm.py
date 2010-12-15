@@ -39,8 +39,9 @@
 #         Removed the disabled Calibre plug-in code
 #         Permit use of 8-digit PIDs
 #  0.19 - It seems that multibyte entries aren't encrypted in a v6 file either.
+#  0.20 - Corretion: It seems that multibyte entries are encrypted in a v6 file.
 
-__version__ = '0.19'
+__version__ = '0.20'
 
 import sys
 import struct
@@ -208,8 +209,8 @@ class DrmStripper:
         if (mobi_length >= 0xE4) and (mobi_version >= 5):
             extra_data_flags, = struct.unpack('>H', sect[0xF2:0xF4])
             print "Extra Data Flags = %d" %extra_data_flags
-        if mobi_version <= 5:
-            # multibyte utf8 data is included in the encryption for mobi_version 5 and below
+        if mobi_version < 7:
+            # multibyte utf8 data is included in the encryption for mobi_version 6 and below
             # so clear that byte so that we leave it to be decrypted.
             extra_data_flags &= 0xFFFE
 

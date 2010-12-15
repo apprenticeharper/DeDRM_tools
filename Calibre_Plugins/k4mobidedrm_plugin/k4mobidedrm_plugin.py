@@ -475,7 +475,7 @@ if not __name__ == "__main__" and inCalibre:
                                 Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
         supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
         author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-        version             = (0, 1, 3)   # The version number of this plugin
+        version             = (0, 1, 4)   # The version number of this plugin
         file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
         on_import           = True # Run this plugin during the import
         priority            = 200  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm
@@ -483,6 +483,24 @@ if not __name__ == "__main__" and inCalibre:
         def run(self, path_to_ebook):
             from calibre.gui2 import is_ok_to_use_qt
             from PyQt4.Qt import QMessageBox
+            
+            # Head Topaz files off at the pass and warn the user that they will NOT
+            # be decrypted. Changes the file extension from .azw or .prc to .tpz so
+            # Calibre can at least read the metadata properly and the user can find
+            # them by sorting on 'format'.
+            with open(path_to_ebook, 'rb') as f:
+                raw = f.read()
+                if raw.startswith('TPZ'):
+                    tf = self.temporary_file('.tpz')
+                    if is_ok_to_use_qt():
+                        d = QMessageBox(QMessageBox.Warning, "K4MobiDeDRM Plugin", "%s is a Topaz book. It will NOT be decrypted!" % path_to_ebook)
+                        d.show()
+                        d.raise_()
+                        d.exec_()
+                    tf.write(raw)
+                    tf.close
+                    return tf.name
+                
             global kindleDatabase
             global openKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap1, charMap2, charMap3, charMap4
             if sys.platform.startswith('win'):

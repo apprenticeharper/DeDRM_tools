@@ -42,7 +42,9 @@
 # Revision history:
 #   0.1 - Initial release
 #   0.1.1 - Allow Windows users to make use of openssl if they have it installed.
-#          - Incorporated SomeUpdates zipfix routine.
+#         - Incorporated SomeUpdates zipfix routine.
+#   0.1.2 - Removed Carbon dependency for Mac users. Fixes an issue that was a
+#           result of Calibre changing to python 2.7.
 
 
 """
@@ -363,7 +365,7 @@ class IneptDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 1)
+    version                 = (0, 1, 2)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True
@@ -420,7 +422,7 @@ class IneptDeDRM(FileTypePlugin):
                 try:
                     keydata = retrieve_key()
                     userkeys.append(keydata)
-                    keypath = os.path.join(confpath, 'adeptkey.der')
+                    keypath = os.path.join(confpath, 'calibre-adeptkey.der')
                     with open(keypath, 'wb') as f:
                         f.write(keydata)
                     print 'IneptEpub: Created keyfile from ADE install.'    

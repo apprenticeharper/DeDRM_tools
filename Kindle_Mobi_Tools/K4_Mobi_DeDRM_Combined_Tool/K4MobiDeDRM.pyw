@@ -192,6 +192,19 @@ class MainDialog(Tkinter.Frame):
             self.status['text'] = 'Specified K4PC, K4M or Mobi eBook file does not exist'
             self.sbotton.configure(state='normal')
             return
+        # Head all Topaz ebooks off at the pass and warn user.
+        with open(mobipath, 'rb') as f:
+            raw = f.read()
+            if raw.startswith('TPZ'):
+                f.close()
+                tkMessageBox.showerror(
+                "K4MobiDeDRM",
+                "%s is a Topaz ebook. It cannot be decrypted with this tool. "
+                "You must use the Topaz Tools for this particular ebook." % mobipath)
+                self.status['text'] = 'The selected file is a Topaz ebook! Use Topaz tools.'
+                self.sbotton.configure(state='normal')
+                return
+            f.close()
         if not outpath:
             self.status['text'] = 'No output directory specified'
             self.sbotton.configure(state='normal')

@@ -162,7 +162,7 @@ on unlockpdbfile(encryptedFile)
 	set sourcePath to (POSIX path of file parent_folder) & fileName & "_Source/"
 	set pmlzFilePath to POSIX path of file parent_folder & fileName & "_dedrmed.pmlz"
 	if length of bnKeys is 0 then
-		GetKeys()
+		GetKeys(false)
 	end if
 	set shellresult to "Error: No eReader/Barnes & Noble Name:Number keys supplied. Can't decrypt."
 	repeat with BNKey in bnKeys
@@ -367,7 +367,7 @@ end unlockepubfile
 
 on unlockpdffile(encryptedFile)
 	--check it's an ePub file.
-	set PDFSig to "NOT_DF"
+	set PDFSig to "NOT_PDF"
 	try
 		set PDFSig to read file encryptedFile from 1 for 4
 	end try
@@ -393,23 +393,7 @@ on unlockpdffile(encryptedFile)
 	
 	set decoded to "NO"
 	-- first we must check we have a PDF script
-	if not fileexists(AdobePDFTool) then
-		set newFile to AdobePDFTool
-		try
-			tell me to activate
-			set newFile to ((choose file with prompt "Please find the ineptpdf script") as text)
-		end try
-		if not fileexists(newFile) then
-			set ErrorCount to ErrorCount + 1
-			set ErrorList to ErrorList & encryptedFile & " is a PDF file and no ineptpdf script found.
-
-"
-			return
-		end if
-		-- set AdobePDFTool to POSIX path of file CopyToPrefs(newFile)
-		set AdobePDFTool to POSIX path of file newFile
-		WritePrefs()
-	end if
+	GetIneptPDF(false)
 	if not fileexists(AdobePDFTool) then
 		set ErrorCount to ErrorCount + 1
 		set ErrorList to ErrorList & encryptedFile & " is a PDF file and no ineptpdf script found.
@@ -596,7 +580,7 @@ on GetPIDs()
 Enter any additional Mobipocket PIDs for your Mobipocket books one at a time:"
 			set FinishedButton to "No More"
 		end if
-		set dialogresult to (display dialog DialogPrompt default answer "" buttons {"Delete All", "Add", FinishedButton} with title "DeDRM Applescript" default button 2)
+		set dialogresult to (display dialog DialogPrompt default answer "" buttons {"Delete All", "Add", FinishedButton} with title "DeDRM Applescript 2/5" default button 2)
 		if button returned of dialogresult is "Add" then
 			set PID to text returned of dialogresult
 			set PIDlength to length of PID
@@ -657,7 +641,37 @@ To add extra Kindle Info files, click the Add… button. You do not need to add th
 	end repeat
 end GetKindleInfoFiles
 
-on GetKeys()
+on GetIneptPDF(always)
+	if always or not fileexists(AdobePDFTool) then
+		set newFile to ""
+		try
+			tell me to activate
+			if (always) then
+				set promptstring to "DeDRM Applescript 5/5
+"
+			else
+				set promptstring to "DeDRM Applescript
+"
+			end if
+			if fileexists(AdobePDFTool) then
+				set promptstring to promptstring & "Please find the new ineptpdf script or click Cancel if the path shown is correct:
+" & ((POSIX file AdobePDFTool) as text)
+			else
+				set promptstring to promptstring & "Please find the ineptpdf script to be able to dedrm PDF files."
+			end if
+			set newFile to ((choose file with prompt promptstring default location POSIX file AdobePDFTool) as text)
+			--on error errormessage
+			--	display dialog errormessage
+		end try
+		if fileexists(newFile) then
+			-- set AdobePDFTool to POSIX path of file CopyToPrefs(newFile)
+			set AdobePDFTool to POSIX path of file newFile
+			WritePrefs()
+		end if
+	end if
+end GetIneptPDF
+
+on GetKeys(running)
 	set bnKeyText to ""
 	repeat
 		set BNKeystring to GetBNKeystring()
@@ -671,9 +685,12 @@ on GetKeys()
 Please enter any additional "
 			set FinishedButton to "No More"
 		end if
-		set DialogPrompt to DialogPrompt & "eReader/Barnes & Noble Name:Number key pairs one at a time. If you're only decoding eReader files, the last 8 digits of the Number will do. The full 16 are only needed for Barnes & Noble ePubs. Only the last eight will be stored or displayed. Please separate the name and number with a colon and click \"Add\". Or to add a an already generated .b64 file, just click \"Add\" with nothing in the text field."
-		
-		set dialogresult to (display dialog DialogPrompt default answer bnKeyText buttons {"Delete All", "Add", FinishedButton} with title "DeDRM Applescript" default button 2)
+		set DialogPrompt to DialogPrompt & "eReader/Barnes & Noble Name,Number key pairs one at a time. If you're only decoding eReader files, the last 8 digits of the Number will do. The full 15 or 16 are only needed for Barnes & Noble ePubs. Only the last eight will be stored or displayed. Please separate the name and number with a comma and click \"Add\". Or to add a an already generated .b64 file, just click \"Add\" with nothing in the text field."
+		set dialogtitle to "DeDRM Applescript"
+		if (running) then
+			set dialogtitle to dialogtitle & " 3/5"
+		end if
+		set dialogresult to (display dialog DialogPrompt default answer bnKeyText buttons {"Delete All", "Add", FinishedButton} with title dialogtitle default button 2)
 		if button returned of dialogresult is "Add" then
 			set bnKeyText to text returned of dialogresult
 			if bnKeyText is "" then
@@ -686,17 +703,17 @@ Please enter any additional "
 						display dialog message
 					end if
 				end try
-			else if not (bnKeyText contains ":") then
-				display dialog "Name and Number must be separated by a colon (:)." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+			else if not (bnKeyText contains ",") then
+				display dialog "Name and Number must be separated by a comma (,)." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
 			else
-				set AppleScript's text item delimiters to ":"
+				set AppleScript's text item delimiters to ","
 				set keyNumber to the last text item of bnKeyText
 				set keyName to (text items 1 through -2 of bnKeyText) as string
 				
-				if ((length of keyNumber) = 16 or (length of keyNumber) = 8) and (length of keyName) > 0 then
+				if ((length of keyNumber) = 16 or (length of keyNumber) = 15 or (length of keyNumber) = 8) and (length of keyName) > 0 then
 					set shellresult to ""
 					set keyfilepath to ""
-					if (length of keyNumber) = 16 then
+					if (length of keyNumber) = 16 or (length of keyNumber) = 15 then
 						-- get the B&N key from this pair
 						set shellresult to "no result"
 						set scriptError to "Key Gen Script failed."
@@ -717,7 +734,7 @@ Please enter any additional "
 						display dialog "Error generating key from this info, error message was: " & scriptError buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
 					end if
 				else
-					display dialog "Key numbers must be 8 or 16 characters long (no spaces) and the key name must not be absent." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+					display dialog "Key numbers must be 8 or 15 or 16 characters long (no spaces) and the key name must not be absent." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
 				end if
 			end if
 		else if button returned of dialogresult is "Delete All" then
@@ -759,7 +776,7 @@ on GetAdeptKeyFiles()
 To add extra key files (.der), click the Add… button."
 			set FinishedButton to "No More"
 		end if
-		set dialogresult to (display dialog DialogPrompt buttons {"Forget All", "Add…", FinishedButton} with title "DeDRM Applescript" default button 2)
+		set dialogresult to (display dialog DialogPrompt buttons {"Forget All", "Add…", FinishedButton} with title "DeDRM Applescript 4/5" default button 2)
 		if button returned of dialogresult is "Add…" then
 			try
 				set newFile to (choose file with prompt "Please select an Adept key file") as text
@@ -1044,12 +1061,13 @@ Anyone is free to copy, modify, publish, use, compile, sell, or distribute this 
 
 For more information, please refer to
 <http://unlicense.org/>
-" with title "DeDRM Applescript" buttons {"Cancel", "Continue"} default button 2
+" with title "DeDRM Applescript 1/5" buttons {"Cancel", "Continue"} default button 2
 		ReadPrefs()
 		GetPIDs()
-		GetKeys()
+		GetKeys(true)
 		GetAdeptKey(true)
 		GetAdeptKeyFiles()
+		GetIneptPDF(true)
 		--GetKindleInfoFiles()
 		WritePrefs()
 	end if

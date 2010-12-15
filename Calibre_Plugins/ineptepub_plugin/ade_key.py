@@ -310,35 +310,31 @@ if iswindows:
 else:
 
     import xml.etree.ElementTree as etree
-    import Carbon.File
-    import Carbon.Folder
-    import Carbon.Folders
-    import MacOS
-    
-    ACTIVATION_PATH = 'Adobe/Digital Editions/activation.dat'
+    import subprocess
+
     NSMAP = {'adept': 'http://ns.adobe.com/adept',
              'enc': 'http://www.w3.org/2001/04/xmlenc#'}
-    
-    def find_folder(domain, dtype):
-        try:
-            fsref = Carbon.Folder.FSFindFolder(domain, dtype, False)
-            return Carbon.File.pathname(fsref)
-        except MacOS.Error:
-            return None
-    
-    def find_app_support_file(subpath):
-        dtype = Carbon.Folders.kApplicationSupportFolderType
-        for domain in Carbon.Folders.kUserDomain, Carbon.Folders.kLocalDomain:
-            path = find_folder(domain, dtype)
-            if path is None:
-                continue
-            path = os.path.join(path, subpath)
-            if os.path.isfile(path):
-                return path
+
+    def findActivationDat():
+        home = os.getenv('HOME')
+        cmdline = 'find "' + home + '/Library/Application Support/Adobe/Digital Editions" -name "activation.dat"'
+        cmdline = cmdline.encode(sys.getfilesystemencoding())
+        p2 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
+        out1, out2 = p2.communicate()
+        reslst = out1.split('\n')
+        cnt = len(reslst)
+        for j in xrange(cnt):
+            resline = reslst[j]
+            pp = resline.find('activation.dat')
+            if pp >= 0:
+                ActDatPath = resline
+                break
+        if os.path.exists(ActDatPath):
+            return ActDatPath
         return None
     
     def retrieve_key():
-        actpath = find_app_support_file(ACTIVATION_PATH)
+        actpath = findActivationDat()
         if actpath is None:
             raise ADEPTError("Could not locate ADE activation")
         tree = etree.parse(actpath)
