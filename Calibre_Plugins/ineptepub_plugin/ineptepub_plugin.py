@@ -45,6 +45,8 @@
 #         - Incorporated SomeUpdates zipfix routine.
 #   0.1.2 - Removed Carbon dependency for Mac users. Fixes an issue that was a
 #           result of Calibre changing to python 2.7.
+#   0.1.3 - bug fix for epubs with non-ascii chars in file names
+
 
 
 """
@@ -308,6 +310,7 @@ class Decryptor(object):
                                enc('CipherReference'))
         for elem in encryption.findall(expr):
             path = elem.get('URI', None)
+            path = path.encode('utf-8')
             if path is not None:
                 encrypted.add(path)
 
@@ -365,7 +368,7 @@ class IneptDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 2)
+    version                 = (0, 1, 3)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True
@@ -379,17 +382,10 @@ class IneptDeDRM(FileTypePlugin):
         from PyQt4.Qt import QMessageBox
         from calibre.constants import iswindows, isosx
         
-        # Add the included pycrypto import directory for Windows users.
-        # Add the included Carbon import directory for Mac users.
-        pdir = 'windows' if iswindows else 'osx' if isosx else 'linux'
-        ppath = os.path.join(self.sys_insertion_path, pdir)
-        sys.path.append(ppath)
-            
         AES, RSA = _load_crypto()
         
         if AES == None or RSA == None:
             # Failed to load libcrypto or PyCrypto... Adobe Epubs can\'t be decrypted.'
-            sys.path.remove(ppath)
             raise ADEPTError('IneptEpub: Failed to load crypto libs... Adobe Epubs can\'t be decrypted.')
             return
         
@@ -432,7 +428,6 @@ class IneptDeDRM(FileTypePlugin):
 
         if not userkeys:
             # No user keys found... bail out.
-            sys.path.remove(ppath)
             raise ADEPTError('IneptEpub - No keys found. Check keyfile(s)/ADE install')
             return
         
@@ -458,7 +453,6 @@ class IneptDeDRM(FileTypePlugin):
             if  result == 1:
                 print 'IneptEpub: Not an Adobe Adept Epub... punting.'
                 of.close()
-                sys.path.remove(ppath)
                 return path_to_ebook
                 break
         
@@ -467,7 +461,6 @@ class IneptDeDRM(FileTypePlugin):
             if  result == 0:
                 print 'IneptEpub: Encryption successfully removed.'
                 of.close
-                sys.path.remove(ppath)
                 return of.name
                 break
             
@@ -477,7 +470,6 @@ class IneptDeDRM(FileTypePlugin):
         # Something went wrong with decryption.
         # Import the original unmolested epub.
         of.close
-        sys.path.remove(ppath)
         raise ADEPTError('IneptEpub - Ultimately failed to decrypt')
         return
 

@@ -144,6 +144,7 @@ class Decryptor(object):
                                enc('CipherReference'))
         for elem in encryption.findall(expr):
             path = elem.get('URI', None)
+            path = path.encode('utf-8')
             if path is not None:
                 encrypted.add(path)
 

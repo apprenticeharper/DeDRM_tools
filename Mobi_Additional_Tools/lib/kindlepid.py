@@ -68,16 +68,8 @@ def main(argv=sys.argv):
       print "Usage: kindlepid.py <Kindle Serial Number>/<iPhone/iPod Touch UDID>"
       return 1
   if len(serial)==16:
-      if serial.startswith("B001"):
-          print "Kindle 1 serial number detected"
-      elif serial.startswith("B002"):
-          print "Kindle 2 serial number detected"
-      elif serial.startswith("B003"):
-          print "Kindle 2 Global serial number detected"
-      elif serial.startswith("B004"):
-          print "Kindle DX serial number detected"
-      elif serial.startswith("B005"):
-          print "Kindle DX International serial number detected"
+      if serial.startswith("B00"):
+          print "Kindle serial number detected"
       else:
           print "Warning: unrecognized serial number. Please recheck input."
           return 1

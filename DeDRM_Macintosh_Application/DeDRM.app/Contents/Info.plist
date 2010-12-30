@@ -24,7 +24,7 @@
 	<key>CFBundleExecutable</key>
 	<string>droplet</string>
 	<key>CFBundleGetInfoString</key>
-	<string>DeDRM 1.3, Copyright © 2010 by Apprentice Alf.</string>
+	<string>DeDRM 1.4, Copyright © 2010 by Apprentice Alf.</string>
 	<key>CFBundleIconFile</key>
 	<string>droplet</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -34,11 +34,11 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.3</string>
-	<key>CFBundleSignature</key>
-	<string>dplt</string>
+	<string>1.4</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.5.0</string>
+	<key>CFBundleSignature</key>
+	<string>dplt</string>
 	<key>LSRequiresCarbon</key>
 	<true/>
 	<key>WindowState</key>

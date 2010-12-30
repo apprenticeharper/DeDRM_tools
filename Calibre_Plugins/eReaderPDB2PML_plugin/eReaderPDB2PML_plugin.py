@@ -10,9 +10,7 @@
 # This plugin is meant to convert secure Ereader files (PDB) to unsecured PMLZ files.
 # Calibre can then convert it to whatever format you desire.
 # It is meant to function without having to install any dependencies...
-# other than having Calibre installed, of course. I've included the psyco libraries
-# (compiled for each platform) for speed. If your system can use them, great!
-# Otherwise, they won't be used and things will just work slower.
+# other than having Calibre installed, of course. 
 #
 # Installation:
 # Go to Calibre's Preferences page... click on the Plugins button. Use the file
@@ -32,6 +30,7 @@
 # Revision history:
 #   0.0.1 - Initial release
 #   0.0.2 - updated to distinguish it from earlier non-openssl version
+#   0.0.3 - removed added psyco code as it is not supported under Calibre's Python 2.7
 
 import sys, os
 
@@ -43,24 +42,16 @@ class eRdrDeDRM(FileTypePlugin):
                             Credit given to The Dark Reverser for the original standalone script.'
     supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
     author              = 'DiapDealer' # The author of this plugin
-    version             = (0, 0, 2)   # The version number of this plugin
+    version             = (0, 0, 3)   # The version number of this plugin
     file_types          = set(['pdb']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
 
     def run(self, path_to_ebook):
         from calibre.ptempfile import PersistentTemporaryDirectory
         from calibre.constants import iswindows, isosx
-        pdir = 'windows' if iswindows else 'osx' if isosx else 'linux'
-        ppath = os.path.join(self.sys_insertion_path, pdir)
-        sys.path.insert(0, ppath)
         
         global bookname, erdr2pml
         import erdr2pml
-        
-        if 'psyco' in sys.modules:
-            print 'Using psyco acceleration for %s.' % pdir
-        else:
-            print 'NOT using psyco acceleration for %s. Conversion may be slow.' % pdir
         
         infile = path_to_ebook
         bookname = os.path.splitext(os.path.basename(infile))[0]
@@ -74,7 +65,6 @@ class eRdrDeDRM(FileTypePlugin):
                 try:
                     name, cc = i.split(',')
                 except ValueError:
-                    sys.path.remove(ppath)
                     print '   Error parsing user supplied data.'
                     return path_to_ebook
 

@@ -1,0 +1,561 @@
+#! /usr/bin/python
+# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+import sys
+sys.stdout=Unbuffered(sys.stdout)
+
+import csv
+import os
+import getopt
+from struct import pack
+from struct import unpack
+
+
+# local support routines
+import convert2xml
+import flatxml2html
+import flatxml2svg
+import stylexml2css
+
+
+# Get a 7 bit encoded number from a file
+def readEncodedNumber(file):
+    flag = False
+    c = file.read(1)
+    if (len(c) == 0):
+        return None
+    data = ord(c)    
+    if data == 0xFF:
+       flag = True
+       c = file.read(1)
+       if (len(c) == 0):
+           return None
+       data = ord(c)       
+    if data >= 0x80:
+        datax = (data & 0x7F)
+        while data >= 0x80 :
+            c = file.read(1)
+            if (len(c) == 0): 
+                return None
+            data = ord(c)
+            datax = (datax <<7) + (data & 0x7F)
+        data = datax 
+    if flag:
+       data = -data
+    return data
+
+# Get a length prefixed string from the file 
+def lengthPrefixString(data):
+    return encodeNumber(len(data))+data
+
+def readString(file):
+    stringLength = readEncodedNumber(file)
+    if (stringLength == None):
+        return None
+    sv = file.read(stringLength)
+    if (len(sv)  != stringLength):
+        return ""
+    return unpack(str(stringLength)+"s",sv)[0]  
+
+def getMetaArray(metaFile):
+    # parse the meta file
+    result = {}
+    fo = file(metaFile,'rb')
+    size = readEncodedNumber(fo)
+    for i in xrange(size):
+        tag = readString(fo)
+        value = readString(fo)
+        result[tag] = value
+        # print tag, value
+    fo.close()
+    return result
+
+
+# dictionary of all text strings by index value
+class Dictionary(object):
+    def __init__(self, dictFile):
+        self.filename = dictFile
+        self.size = 0
+        self.fo = file(dictFile,'rb')
+        self.stable = []
+        self.size = readEncodedNumber(self.fo)
+        for i in xrange(self.size):
+            self.stable.append(self.escapestr(readString(self.fo)))
+        self.pos = 0
+    def escapestr(self, str):
+        str = str.replace('&','&amp;')
+        str = str.replace('<','&lt;')
+        str = str.replace('>','&gt;')
+        str = str.replace('=','&#61;')
+        return str
+    def lookup(self,val):
+        if ((val >= 0) and (val < self.size)) :
+            self.pos = val
+            return self.stable[self.pos]
+        else:
+            print "Error - %d outside of string table limits" % val
+            sys.exit(-1)
+    def getSize(self):
+        return self.size
+    def getPos(self):
+        return self.pos
+
+
+class PageDimParser(object):
+    def __init__(self, flatxml):
+        self.flatdoc = flatxml.split('\n')
+    # find tag if within pos to end inclusive
+    def findinDoc(self, tagpath, pos, end) :
+        result = None
+        docList = self.flatdoc
+        cnt = len(docList)
+        if end == -1 :
+            end = cnt
+        else:
+            end = min(cnt,end)
+        foundat = -1
+        for j in xrange(pos, end):
+            item = docList[j]
+            if item.find('=') >= 0:
+                (name, argres) = item.split('=')
+            else : 
+                name = item
+                argres = ''
+            if name.endswith(tagpath) : 
+                result = argres
+                foundat = j
+                break
+        return foundat, result
+    def process(self):
+        (pos, sph) = self.findinDoc('page.h',0,-1)
+        (pos, spw) = self.findinDoc('page.w',0,-1)
+        if (sph == None): sph = '-1'
+        if (spw == None): spw = '-1'
+        return sph, spw
+
+def getPageDim(flatxml):
+    # create a document parser
+    dp = PageDimParser(flatxml)
+    (ph, pw) = dp.process()
+    return ph, pw
+
+class GParser(object):
+    def __init__(self, flatxml):
+        self.flatdoc = flatxml.split('\n')
+        self.dpi = 1440
+        self.gh = self.getData('info.glyph.h')
+        self.gw = self.getData('info.glyph.w')
+        self.guse = self.getData('info.glyph.use')
+        if self.guse :
+            self.count = len(self.guse)
+        else :
+            self.count = 0
+        self.gvtx = self.getData('info.glyph.vtx')
+        self.glen = self.getData('info.glyph.len')
+        self.gdpi = self.getData('info.glyph.dpi')
+        self.vx = self.getData('info.vtx.x')
+        self.vy = self.getData('info.vtx.y')
+        self.vlen = self.getData('info.len.n')
+        if self.vlen :
+            self.glen.append(len(self.vlen))
+        elif self.glen:
+            self.glen.append(0)
+        if self.vx :
+            self.gvtx.append(len(self.vx))
+        elif self.gvtx :
+            self.gvtx.append(0)
+    def getData(self, path):
+        result = None
+        cnt = len(self.flatdoc)
+        for j in xrange(cnt):
+            item = self.flatdoc[j]
+            if item.find('=') >= 0:
+                (name, argt) = item.split('=')
+                argres = argt.split('|')
+            else:
+                name = item
+                argres = []
+            if (name == path):
+                result = argres
+                break
+        if (len(argres) > 0) :
+            for j in xrange(0,len(argres)):
+                argres[j] = int(argres[j])
+        return result
+    def getGlyphDim(self, gly):
+        maxh = (self.gh[gly] * self.dpi) / self.gdpi[gly]
+        maxw = (self.gw[gly] * self.dpi) / self.gdpi[gly]
+        return maxh, maxw
+    def getPath(self, gly):
+        path = ''
+        if (gly < 0) or (gly >= self.count):
+            return path
+        tx = self.vx[self.gvtx[gly]:self.gvtx[gly+1]]
+        ty = self.vy[self.gvtx[gly]:self.gvtx[gly+1]]
+        p = 0
+        for k in xrange(self.glen[gly], self.glen[gly+1]):
+            if (p == 0):
+                zx = tx[0:self.vlen[k]+1]
+                zy = ty[0:self.vlen[k]+1]
+            else:
+                zx = tx[self.vlen[k-1]+1:self.vlen[k]+1]
+                zy = ty[self.vlen[k-1]+1:self.vlen[k]+1]
+            p += 1
+            j = 0
+            while ( j  < len(zx) ):
+                if (j == 0):
+                    # Start Position.
+                    path += 'M %d %d ' % (zx[j] * self.dpi / self.gdpi[gly], zy[j] * self.dpi / self.gdpi[gly])
+                elif (j <= len(zx)-3):
+                    # Cubic Bezier Curve
+                    path += 'C %d %d %d %d %d %d ' % (zx[j] * self.dpi / self.gdpi[gly], zy[j] * self.dpi / self.gdpi[gly], zx[j+1] * self.dpi / self.gdpi[gly], zy[j+1] * self.dpi / self.gdpi[gly], zx[j+2] * self.dpi / self.gdpi[gly], zy[j+2] * self.dpi / self.gdpi[gly])
+                    j += 2
+                elif (j == len(zx)-2):
+                    # Cubic Bezier Curve to Start Position
+                    path += 'C %d %d %d %d %d %d ' % (zx[j] * self.dpi / self.gdpi[gly], zy[j] * self.dpi / self.gdpi[gly], zx[j+1] * self.dpi / self.gdpi[gly], zy[j+1] * self.dpi / self.gdpi[gly], zx[0] * self.dpi / self.gdpi[gly], zy[0] * self.dpi / self.gdpi[gly])
+                    j += 1
+                elif (j == len(zx)-1):
+                    # Quadratic Bezier Curve to Start Position
+                    path += 'Q %d %d %d %d ' % (zx[j] * self.dpi / self.gdpi[gly], zy[j] * self.dpi / self.gdpi[gly], zx[0] * self.dpi / self.gdpi[gly], zy[0] * self.dpi / self.gdpi[gly])
+
+                j += 1
+        path += 'z'
+        return path
+
+
+
+# dictionary of all text strings by index value
+class GlyphDict(object):
+    def __init__(self):
+        self.gdict = {}
+    def lookup(self, id):
+        # id='id="gl%d"' % val
+        if id in self.gdict:
+            return self.gdict[id]
+        return None
+    def addGlyph(self, val, path):
+        id='id="gl%d"' % val
+        self.gdict[id] = path
+
+
+def generateBook(bookDir, raw, fixedimage):
+    # sanity check Topaz file extraction
+    if not os.path.exists(bookDir) :
+        print "Can not find directory with unencrypted book"
+        return 1
+
+    dictFile = os.path.join(bookDir,'dict0000.dat')
+    if not os.path.exists(dictFile) :
+        print "Can not find dict0000.dat file"
+        return 1
+
+    pageDir = os.path.join(bookDir,'page')
+    if not os.path.exists(pageDir) :
+        print "Can not find page directory in unencrypted book"
+        return 1
+
+    imgDir = os.path.join(bookDir,'img')
+    if not os.path.exists(imgDir) :
+        print "Can not find image directory in unencrypted book"
+        return 1
+
+    glyphsDir = os.path.join(bookDir,'glyphs')
+    if not os.path.exists(glyphsDir) :
+        print "Can not find glyphs directory in unencrypted book"
+        return 1
+
+    metaFile = os.path.join(bookDir,'metadata0000.dat')
+    if not os.path.exists(metaFile) :
+        print "Can not find metadata0000.dat in unencrypted book"
+        return 1
+
+    svgDir = os.path.join(bookDir,'svg')
+    if not os.path.exists(svgDir) :
+        os.makedirs(svgDir)
+
+    xmlDir = os.path.join(bookDir,'xml')
+    if not os.path.exists(xmlDir) :
+        os.makedirs(xmlDir)
+
+    otherFile = os.path.join(bookDir,'other0000.dat')
+    if not os.path.exists(otherFile) :
+        print "Can not find other0000.dat in unencrypted book"
+        return 1
+
+    print "Updating to color images if available"
+    spath = os.path.join(bookDir,'color_img')
+    dpath = os.path.join(bookDir,'img')
+    filenames = os.listdir(spath)
+    filenames = sorted(filenames)
+    for filename in filenames:
+        imgname = filename.replace('color','img')
+        sfile = os.path.join(spath,filename)
+        dfile = os.path.join(dpath,imgname)
+        imgdata = file(sfile,'rb').read()
+        file(dfile,'wb').write(imgdata)
+
+    print "Creating cover.jpg"
+    isCover = False
+    cpath = os.path.join(bookDir,'img')
+    cpath = os.path.join(cpath,'img0000.jpg')
+    if os.path.isfile(cpath):
+        cover = file(cpath, 'rb').read()
+        cpath = os.path.join(bookDir,'cover.jpg')
+        file(cpath, 'wb').write(cover)
+        isCover = True
+
+
+    print 'Processing Dictionary'
+    dict = Dictionary(dictFile)
+
+    print 'Processing Meta Data and creating OPF'
+    meta_array = getMetaArray(metaFile)
+
+    xname = os.path.join(xmlDir, 'metadata.xml')
+    metastr = ''
+    for key in meta_array:
+        metastr += '<meta name="' + key + '" content="' + meta_array[key] + '" />\n'
+    file(xname, 'wb').write(metastr)
+
+    print 'Processing StyleSheet'
+    # get some scaling info from metadata to use while processing styles
+    fontsize = '135'
+    if 'fontSize' in meta_array:
+        fontsize = meta_array['fontSize']
+
+    # also get the size of a normal text page
+    spage = '1'
+    if 'firstTextPage' in meta_array:
+        spage = meta_array['firstTextPage']
+    pnum = int(spage)
+
+    # get page height and width from first text page for use in stylesheet scaling
+    pname = 'page%04d.dat' % (pnum + 1)
+    fname = os.path.join(pageDir,pname)
+    flat_xml = convert2xml.fromData(dict, fname)
+
+    (ph, pw) = getPageDim(flat_xml)
+    if (ph == '-1') or (ph == '0') : ph = '11000'
+    if (pw == '-1') or (pw == '0') : pw = '8500'
+
+    # print '     ', 'other0000.dat'
+    xname = os.path.join(bookDir, 'style.css')
+    flat_xml = convert2xml.fromData(dict, otherFile)
+    cssstr , classlst = stylexml2css.convert2CSS(flat_xml, fontsize, ph, pw)
+    file(xname, 'wb').write(cssstr)
+    xname = os.path.join(xmlDir, 'other0000.xml')
+    file(xname, 'wb').write(convert2xml.getXML(dict, otherFile))
+
+    print 'Processing Glyphs'
+    gd = GlyphDict()
+    filenames = os.listdir(glyphsDir)
+    filenames = sorted(filenames)
+    glyfname = os.path.join(svgDir,'glyphs.svg')
+    glyfile = open(glyfname, 'w')
+    glyfile.write('<?xml version="1.0" standalone="no"?>\n')
+    glyfile.write('<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n')
+    glyfile.write('<svg width="512" height="512" viewBox="0 0 511 511" xmlns="http://www.w3.org/2000/svg" version="1.1">\n')
+    glyfile.write('<title>Glyphs for %s</title>\n' % meta_array['Title'])
+    glyfile.write('<defs>\n')
+    counter = 0
+    for filename in filenames:
+        # print '     ', filename
+        print '.',
+        fname = os.path.join(glyphsDir,filename)
+        flat_xml = convert2xml.fromData(dict, fname)
+
+        xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
+        file(xname, 'wb').write(convert2xml.getXML(dict, fname))
+
+        gp = GParser(flat_xml)
+        for i in xrange(0, gp.count):
+            path = gp.getPath(i)
+            maxh, maxw = gp.getGlyphDim(i)
+            fullpath = '<path id="gl%d" d="%s" fill="black" /><!-- width=%d height=%d -->\n' % (counter * 256 + i, path, maxw, maxh)
+            glyfile.write(fullpath)
+            gd.addGlyph(counter * 256 + i, fullpath)
+        counter += 1
+    glyfile.write('</defs>\n')
+    glyfile.write('</svg>\n')
+    glyfile.close()
+    print " "
+
+    # start up the html
+    htmlFileName = "book.html"
+    htmlstr = '<?xml version="1.0" encoding="utf-8"?>\n'
+    htmlstr += '<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.1 Strict//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11-strict.dtd">\n'
+    htmlstr += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">\n'
+    htmlstr += '<head>\n'
+    htmlstr += '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>\n'
+    htmlstr += '<title>' + meta_array['Title'] + ' by ' + meta_array['Authors'] + '</title>\n' 
+    htmlstr += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
+    htmlstr += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
+    htmlstr += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
+    htmlstr += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
+    htmlstr += '<link href="style.css" rel="stylesheet" type="text/css" />\n'
+    htmlstr += '</head>\n<body>\n'
+
+    print 'Processing Pages'
+    # Books are at 1440 DPI.  This is rendering at twice that size for
+    # readability when rendering to the screen.  
+    scaledpi = 1440.0
+
+    svgindex = '<?xml version="1.0" encoding="utf-8"?>\n'
+    svgindex += '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+    svgindex += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >'
+    svgindex += '<head>\n'
+    svgindex += '<title>' + meta_array['Title'] + '</title>\n'
+    svgindex += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
+    svgindex += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
+    svgindex += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
+    svgindex += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
+    svgindex += '</head>\n'
+    svgindex += '<body>\n'
+
+    filenames = os.listdir(pageDir)
+    filenames = sorted(filenames)
+    numfiles = len(filenames)
+    counter = 0
+
+    for filename in filenames:
+        # print '     ', filename
+        print ".",
+
+        fname = os.path.join(pageDir,filename)
+        flat_xml = convert2xml.fromData(dict, fname)
+
+        xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
+        file(xname, 'wb').write(convert2xml.getXML(dict, fname))
+
+        # first get the html
+        htmlstr += flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir, gd, fixedimage)
+
+        # now get the svg image of the page
+        svgxml = flatxml2svg.convert2SVG(gd, flat_xml, counter, numfiles, svgDir, raw, meta_array, scaledpi)
+
+        if (raw) :
+            pfile = open(os.path.join(svgDir,filename.replace('.dat','.svg')), 'w')
+            svgindex += '<a href="svg/page%04d.svg">Page %d</a>\n' % (counter, counter)
+        else :
+            pfile = open(os.path.join(svgDir,'page%04d.xhtml' % counter), 'w')
+            svgindex += '<a href="svg/page%04d.xhtml">Page %d</a>\n' % (counter, counter)
+
+
+        pfile.write(svgxml)
+        pfile.close()
+
+        counter += 1
+
+    print " "
+
+    # finish up the html string and output it
+    htmlstr += '</body>\n</html>\n'
+    file(os.path.join(bookDir, htmlFileName), 'wb').write(htmlstr)
+
+    # finish up the svg index string and output it
+    svgindex += '</body>\n</html>\n'
+    file(os.path.join(bookDir, 'index_svg.xhtml'), 'wb').write(svgindex)
+
+    # build the opf file
+    opfname = os.path.join(bookDir, 'book.opf')
+    opfstr = '<?xml version="1.0" encoding="utf-8"?>\n'
+    opfstr += '<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="guid_id">\n'
+    # adding metadata
+    opfstr += '   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">\n'
+    opfstr += '      <dc:identifier opf:scheme="GUID" id="guid_id">' + meta_array['GUID'] + '</dc:identifier>\n'
+    opfstr += '      <dc:identifier opf:scheme="ASIN">' + meta_array['ASIN'] + '</dc:identifier>\n'
+    opfstr += '      <dc:identifier opf:scheme="oASIN">' + meta_array['oASIN'] + '</dc:identifier>\n'
+    opfstr += '      <dc:title>' + meta_array['Title'] + '</dc:title>\n'
+    opfstr += '      <dc:creator opf:role="aut">' + meta_array['Authors'] + '</dc:creator>\n'
+    opfstr += '      <dc:language>en</dc:language>\n'
+    opfstr += '      <dc:date>' + meta_array['UpdateTime'] + '</dc:date>\n'
+    if isCover:
+        opfstr += '      <meta name="cover" content="bookcover"/>\n'
+    opfstr += '   </metadata>\n'
+    opfstr += '<manifest>\n'
+    opfstr += '   <item id="book" href="book.html" media-type="application/xhtml+xml"/>\n'
+    opfstr += '   <item id="stylesheet" href="style.css" media-type="text.css"/>\n'
+    # adding image files to manifest
+    filenames = os.listdir(imgDir)
+    filenames = sorted(filenames)
+    for filename in filenames:
+        imgname, imgext = os.path.splitext(filename)
+        if imgext == '.jpg':
+            imgext = 'jpeg'
+        if imgext == '.svg':
+            imgext = 'svg+xml'
+        opfstr += '   <item id="' + imgname + '" href="img/' + filename + '" media-type="image/' + imgext + '"/>\n'
+    if isCover:
+        opfstr += '   <item id="bookcover" href="cover.jpg" media-type="image/jpeg" />\n'
+    opfstr += '</manifest>\n'
+    # adding spine
+    opfstr += '<spine>\n   <itemref idref="book" />\n</spine>\n'
+    if isCover:
+        opfstr += '   <guide>\n'
+        opfstr += '      <reference href="cover.jpg" type="cover" title="Cover"/>\n'
+        opfstr += '   </guide>\n'
+    opfstr += '</package>\n'
+    file(opfname, 'wb').write(opfstr)
+
+    print 'Processing Complete'
+
+    return 0
+
+def usage():
+    print "genbook.py generates a book from the extract Topaz Files"
+    print "Usage:"
+    print "    genbook.py [-r] [-h [--fixed-image] <bookDir>  "
+    print "  "
+    print "Options:"
+    print "  -h            :  help - print this usage message"
+    print "  -r            :  generate raw svg files (not wrapped in xhtml)"
+    print "  --fixed-image :  genearate any Fixed Area as an svg image in the html"
+    print "  "
+
+
+def main(argv):
+    bookDir = ''
+
+    if len(argv) == 0:
+        argv = sys.argv
+
+    try:
+        opts, args = getopt.getopt(argv[1:], "rh:",["fixed-image"])
+
+    except getopt.GetoptError, err:
+        print str(err)
+        usage()
+        return 1
+
+    if len(opts) == 0 and len(args) == 0 :
+        usage()
+        return 1 
+
+    raw = 0
+    fixedimage = False
+    for o, a in opts:
+        if o =="-h":
+            usage()
+            return 0
+        if o =="-r":
+            raw = 1
+        if o =="--fixed-image":
+            fixedimage = True
+
+    bookDir = args[0]
+
+    rv = generateBook(bookDir, raw, fixedimage)
+    return rv
+
+
+if __name__ == '__main__':
+    sys.exit(main(''))

@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-# ineptepub.pyw, version 5.2
+# ineptepub.pyw, version 5.4
 # Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3 or
@@ -25,6 +25,8 @@
 #   5.1 - Improve OpenSSL error checking
 #   5.2 - Fix ctypes error causing segfaults on some systems
 #   5.3 - add support for OpenSSL on Windows, fix bug with some versions of libcrypto 0.9.8 prior to path level o
+#   5.4 - add support for encoding to 'utf-8' when building up list of files to decrypt from encryption.xml
+
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
 """
@@ -288,6 +290,7 @@ class Decryptor(object):
         for elem in encryption.findall(expr):
             path = elem.get('URI', None)
             if path is not None:
+                path = path.encode('utf-8')
                 encrypted.add(path)
 
     def decompress(self, bytes):

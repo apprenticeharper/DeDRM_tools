@@ -1,6 +1,6 @@
 property prefsFileName : "com.apprenticealf.dedrm.plist"
 property prefsFolderName : "com.apprenticealf.dedrm"
-property handledExtensions : {"epub", "pdf", "prc", "azw", "mobi", "pdb", "der", "b64"}
+property handledExtensions : {"epub", "pdf", "prc", "azw", "azw1", "mobi", "pdb", "der", "b64"}
 
 global eReaderTool
 global MobipocketTool
@@ -15,6 +15,7 @@ global ProgressApp
 global PIDs
 global bnKeys
 global KindleInfoList
+global KindleSerialList
 global AdeptKeyList
 
 global ErrorList
@@ -73,16 +74,12 @@ on unlockmobifile(encryptedFile)
 			set TOPAZ to read file encryptedFile from 1 for 4
 		end try
 		set ErrorCount to ErrorCount + 1
-		if TOPAZ is "TPZ0" then
-			set ErrorList to ErrorList & encryptedFile & " is a TOPAZ file.
+		if TOPAZ is not "TPZ0" then
+			set ErrorList to ErrorList & encryptedFile & " is neither a Mobipocket nor a TOPAZ file.
 
 "
-		else
-			set ErrorList to ErrorList & encryptedFile & " is not a Mobipocket file.
-
-"
+			return
 		end if
-		return
 	end if
 	set encryptedFilePath to POSIX path of file encryptedFile
 	tell application "Finder"
@@ -95,14 +92,16 @@ on unlockmobifile(encryptedFile)
 		set fileExtension to "." & the last text item of fileName
 		set fileName to (text items 1 through -2 of fileName) as string
 	end if
-	set unlockedFilePath to POSIX path of file (parent_folder & fileName & "_dedrmed" & fileExtension)
+	set unlockedFileParentFolderPath to POSIX path of file parent_folder
 	set shellcommand to "python " & (quoted form of MobipocketTool)
 	repeat with KindleInfoPath in KindleInfoList
 		set shellcommand to shellcommand & " -k " & quoted form of KindleInfoPath
 	end repeat
+	set Serialstring to GetSerialstring()
+	if Serialstring is not "" then set shellcommand to shellcommand & " -s " & Serialstring
 	set PIDstring to GetPIDstring()
 	if PIDstring is not "" then set shellcommand to shellcommand & " -p " & PIDstring
-	set shellcommand to shellcommand & " " & (quoted form of encryptedFilePath) & " " & (quoted form of unlockedFilePath)
+	set shellcommand to shellcommand & " " & (quoted form of encryptedFilePath) & " " & (quoted form of unlockedFileParentFolderPath)
 	--display dialog "shellcommand: " default answer shellcommand buttons {"OK"} default button 1 giving up after 10
 	try
 		set shellresult to do shell script shellcommand
@@ -450,7 +449,7 @@ on handlefile(droppedFile)
 		set fileExtension to the last text item of fileName
 		set fileName to (text items 1 through -2 of fileName) as string
 	end if
-	if fileExtension is "prc" or fileExtension is "mobi" or fileExtension is "azw" then
+	if fileExtension is "prc" or fileExtension is "mobi" or fileExtension is "azw" or fileExtension is "azw1" then
 		set completedebooks to completedebooks + 1
 		IncProgress(fileName, completedebooks)
 		unlockmobifile(droppedFile as text)
@@ -504,6 +503,18 @@ on countfile(droppedFile)
 		set totalebooks to totalebooks + 1
 	end if
 end countfile
+
+on GetSerialstring()
+	set Serialstring to ""
+	repeat with Serial in KindleSerialList
+		if Serialstring is "" then
+			set Serialstring to Serial
+		else
+			set Serialstring to Serialstring & "," & Serial
+		end if
+	end repeat
+	return Serialstring
+end GetSerialstring
 
 on GetPIDstring()
 	set PIDstring to ""
@@ -580,7 +591,7 @@ on GetPIDs()
 Enter any additional Mobipocket PIDs for your Mobipocket books one at a time:"
 			set FinishedButton to "No More"
 		end if
-		set dialogresult to (display dialog DialogPrompt default answer "" buttons {"Delete All", "Add", FinishedButton} with title "DeDRM Applescript 2/5" default button 2)
+		set dialogresult to (display dialog DialogPrompt default answer "" buttons {"Delete All", "Add", FinishedButton} with title "DeDRM Applescript 2/6" default button 2)
 		if button returned of dialogresult is "Add" then
 			set PID to text returned of dialogresult
 			set PIDlength to length of PID
@@ -603,6 +614,42 @@ Enter any additional Mobipocket PIDs for your Mobipocket books one at a time:"
 		end if
 	end repeat
 end GetPIDs
+
+on GetSerials()
+	repeat
+		set Serialstring to GetSerialstring()
+		if Serialstring is "" then
+			set DialogPrompt to "Enter any Kindle Serial Numbers one at a time:"
+			set FinishedButton to "None"
+		else
+			set DialogPrompt to "Current Kindle Serial Numbers: " & Serialstring & ".
+
+Enter any additional Kindle Serial Numbers one at a time:"
+			set FinishedButton to "No More"
+		end if
+		set dialogresult to (display dialog DialogPrompt default answer "" buttons {"Delete All", "Add", FinishedButton} with title "DeDRM Applescript 3/6" default button 2)
+		if button returned of dialogresult is "Add" then
+			set Serial to text returned of dialogresult
+			set Seriallength to length of Serial
+			if Seriallength is 16 and (first character of Serial) is "B" then
+				set KindleSerialList to KindleSerialList & Serial
+			else
+				display dialog "Kindle Serial Numbers are 16 characters long and start with B." buttons {"OK"} default button 1 with title "DeDRM Applescript" with icon caution
+			end if
+		else if button returned of dialogresult is "Delete All" then
+			if Serialstring is not "" then
+				try
+					set dialogresult to (display dialog "Are you sure you want to delete all stored Kindle Serial Numbers?" buttons {"Cancel", "Delete"} default button 1 with title "DeDRM Applescript")
+				end try
+				if button returned of dialogresult is "Delete" then
+					set Serialstring to {}
+				end if
+			end if
+		else
+			exit repeat
+		end if
+	end repeat
+end GetSerials
 
 on GetKindleInfoFiles()
 	repeat
@@ -647,7 +694,7 @@ on GetIneptPDF(always)
 		try
 			tell me to activate
 			if (always) then
-				set promptstring to "DeDRM Applescript 5/5
+				set promptstring to "DeDRM Applescript 6/6
 "
 			else
 				set promptstring to "DeDRM Applescript
@@ -688,7 +735,7 @@ Please enter any additional "
 		set DialogPrompt to DialogPrompt & "eReader/Barnes & Noble Name,Number key pairs one at a time. If you're only decoding eReader files, the last 8 digits of the Number will do. The full 15 or 16 are only needed for Barnes & Noble ePubs. Only the last eight will be stored or displayed. Please separate the name and number with a comma and click \"Add\". Or to add a an already generated .b64 file, just click \"Add\" with nothing in the text field."
 		set dialogtitle to "DeDRM Applescript"
 		if (running) then
-			set dialogtitle to dialogtitle & " 3/5"
+			set dialogtitle to dialogtitle & " 4/6"
 		end if
 		set dialogresult to (display dialog DialogPrompt default answer bnKeyText buttons {"Delete All", "Add", FinishedButton} with title dialogtitle default button 2)
 		if button returned of dialogresult is "Add" then
@@ -776,7 +823,7 @@ on GetAdeptKeyFiles()
 To add extra key files (.der), click the Add… button."
 			set FinishedButton to "No More"
 		end if
-		set dialogresult to (display dialog DialogPrompt buttons {"Forget All", "Add…", FinishedButton} with title "DeDRM Applescript 4/5" default button 2)
+		set dialogresult to (display dialog DialogPrompt buttons {"Forget All", "Add…", FinishedButton} with title "DeDRM Applescript 5/6" default button 2)
 		if button returned of dialogresult is "Add…" then
 			try
 				set newFile to (choose file with prompt "Please select an Adept key file") as text
@@ -957,11 +1004,18 @@ on ReadPrefs()
 	set PIDs to {}
 	set bnKeys to {}
 	set KindleInfoList to {}
+	set KindleSerialList to {}
 	set AdeptKeyList to {}
 	if fileexists(POSIX path of file preferencesFilePath) then
 		tell application "System Events"
 			try
 				set PIDs to value of property list item "PIDs" of property list file preferencesFilePath
+			end try
+			try
+				set KindleSerialList to value of property list item "KindleSerials" of property list file preferencesFilePath
+			end try
+			try
+				set KindleInfoList to value of property list item "KindleInfoFiles" of property list file preferencesFilePath
 			end try
 			try
 				set bnKeys to value of property list item "bnKeys" of property list file preferencesFilePath
@@ -995,6 +1049,8 @@ on WritePrefs()
 		set the base_dict to make new property list item with properties {kind:record}
 		set myPrefs to make new property list file with properties {contents:base_dict, name:preferencesFilePath}
 		make new property list item at end of property list items of contents of myPrefs with properties {kind:list, name:"PIDs", value:PIDs}
+		make new property list item at end of property list items of contents of myPrefs with properties {kind:list, name:"KindleSerials", value:KindleSerialList}
+		make new property list item at end of property list items of contents of myPrefs with properties {kind:list, name:"KindleInfoFiles", value:KindleInfoList}
 		make new property list item at end of property list items of contents of myPrefs with properties {kind:list, name:"bnKeys", value:bnKeys}
 		make new property list item at end of property list items of contents of myPrefs with properties {kind:list, name:"AdeptKeys", value:AdeptKeyList}
 		make new property list item at end of property list items of contents of myPrefs with properties {kind:string, name:"IneptPDF", value:AdobePDFTool}
@@ -1047,13 +1103,13 @@ on run
 	if GetTools() then
 		display dialog "Drag&Drop encrypted ebooks onto this AppleScript's icon in the Finder to decode them after you have finished configuring it and it has quit.
 	
-Click the Continue button to enter any PIDs for Mobipocket/Kindle ebooks, to enter name/number key pairs for Barnes & Noble/eReader ebooks, and to select Barnes & Noble .b64 key files and Adobe Adept .der key files.
+Click the Continue button to enter any PIDs for Mobipocket ebooks; serial numbers for Kindle ebooks; name,number key pairs for Barnes & Noble/eReader ebooks; to select extra Barnes & Noble .b64 key files; to select extra Adobe Adept .der key files; and to find th optional ineptpdf.pyw script.
 
-***You do not need to enter any extra info if decoding ebooks downloaded to your installation of Kindle for Mac, or Adobe Digital Editions. If you do not have any PIDS, name/number keys or .b64 or .der files to add, just click the Cancel button.***
+***You do not need to enter any extra info if decoding ebooks downloaded to your installation of Kindle for Mac, or Adobe Digital Editions. If you do not have any PIDS; serial numbers; name,number keys, .b64 or .der files to add or want to decode PDF files, just click the Cancel button.***
 
 Please only use to get access to your own books. Authors, publishers and ebook stores need to make money to produce more ebooks. Don't cheat them.
 
-This AppleScript is by Apprentice Alf and uses python scripts produced by CMBDTC, IHeartCabbages, DarkReverser, DiapDealer, some_updates, ApprenticeAlf and others.
+This AppleScript is by Apprentice Alf and uses python scripts produced by CMBDTC, IHeartCabbages, DarkReverser, DiapDealer, some_updates, Apprentice Alf and others.
 
 This AppleScript (but not necessarily the enclosed python scripts) is free and unencumbered software released into the public domain.
 
@@ -1061,11 +1117,13 @@ Anyone is free to copy, modify, publish, use, compile, sell, or distribute this 
 
 For more information, please refer to
 <http://unlicense.org/>
-" with title "DeDRM Applescript 1/5" buttons {"Cancel", "Continue"} default button 2
+" with title "DeDRM Applescript 1/6" buttons {"Cancel", "Continue"} default button 2
 		ReadPrefs()
-		GetPIDs()
-		GetKeys(true)
 		GetAdeptKey(true)
+		
+		GetPIDs()
+		GetSerials()
+		GetKeys(true)
 		GetAdeptKeyFiles()
 		GetIneptPDF(true)
 		--GetKindleInfoFiles()

@@ -55,11 +55,17 @@
 #  0.14 - contributed enhancement to support --make-pmlz switch
 #  0.15 - enabled high-ascii to pml character encoding. DropBook now works on Mac.
 #  0.16 - convert to use openssl DES (very very fast) or pure python DES if openssl's libcrypto is not available
+#  0.17 - added support for pycrypto's DES as well
 
 Des = None
 
 import openssl_des
 Des = openssl_des.load_libcrypto()
+
+# if that did not work then try pycrypto version of DES
+if Des == None:
+    import pycrypto_des
+    Des = pycrypto_des.load_pycrypto()
 
 # if that did not work then use pure python implementation
 # of DES and try to speed it up with Psycho
@@ -68,16 +74,14 @@ if Des == None:
     Des = python_des.Des
     # Import Psyco if available
     try:
-        # Dumb speed hack 1
         # http://psyco.sourceforge.net
         import psyco
         psyco.full()
-        pass
     except ImportError:
         pass
 
 
-__version__='0.16'
+__version__='0.17'
 
 class Unbuffered:
     def __init__(self, stream):

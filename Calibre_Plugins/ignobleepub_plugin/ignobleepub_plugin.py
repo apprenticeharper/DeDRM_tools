@@ -44,7 +44,7 @@
 #   0.1.0 - Initial release
 #   0.1.1 - Allow Windows users to make use of openssl if they have it installed.
 #          - Incorporated SomeUpdates zipfix routine.
-
+#   0.1.2 - bug fix for non-ascii file names in encryption.xml
 
 """
 Decrypt Barnes & Noble ADEPT encrypted EPUB books.
@@ -209,6 +209,7 @@ class Decryptor(object):
                                enc('CipherReference'))
         for elem in encryption.findall(expr):
             path = elem.get('URI', None)
+            path = path.encode('utf-8')
             if path is not None:
                 encrypted.add(path)
 
@@ -266,7 +267,7 @@ class IgnobleDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 1)
+    version                 = (0, 1, 2)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True
@@ -279,16 +280,10 @@ class IgnobleDeDRM(FileTypePlugin):
         from PyQt4.Qt import QMessageBox
         from calibre.constants import iswindows, isosx
         
-        # Add the included pycrypto import directory for Windows users.
-        pdir = 'windows' if iswindows else 'osx' if isosx else 'linux'
-        ppath = os.path.join(self.sys_insertion_path, pdir)
-        sys.path.append(ppath)
-        
         AES, AES2 = _load_crypto()
         
         if AES == None or AES2 == None:
             # Failed to load libcrypto or PyCrypto... Adobe Epubs can't be decrypted.'
-            sys.path.remove(ppath)
             raise IGNOBLEError('IgnobleEpub - Failed to load crypto libs.')
             return
 
@@ -317,7 +312,6 @@ class IgnobleDeDRM(FileTypePlugin):
         # Get name and credit card number from Plugin Customization
         if not userkeys and not self.site_customization:
             # Plugin hasn't been configured... do nothing.
-            sys.path.remove(ppath)
             raise IGNOBLEError('IgnobleEpub - No keys found. Plugin not configured.')
             return
         
@@ -330,7 +324,6 @@ class IgnobleDeDRM(FileTypePlugin):
                     name, ccn = i.split(',')
                     keycount += 1
                 except ValueError:
-                    sys.path.remove(ppath)
                     raise IGNOBLEError('IgnobleEpub - Error parsing user supplied data.')
                     return
         
@@ -360,7 +353,6 @@ class IgnobleDeDRM(FileTypePlugin):
             if  result == 1:
                 print 'IgnobleEpub: Not a B&N Adept Epub... punting.'
                 of.close()
-                sys.path.remove(ppath)
                 return path_to_ebook
                 break
         
@@ -369,7 +361,6 @@ class IgnobleDeDRM(FileTypePlugin):
             if  result == 0:
                 print 'IgnobleEpub: Encryption successfully removed.'
                 of.close()
-                sys.path.remove(ppath)
                 return of.name
                 break
             
@@ -379,7 +370,6 @@ class IgnobleDeDRM(FileTypePlugin):
         # Something went wrong with decryption.
         # Import the original unmolested epub.
         of.close
-        sys.path.remove(ppath)
         raise IGNOBLEError('IgnobleEpub - Ultimately failed to decrypt.')
         return
         
