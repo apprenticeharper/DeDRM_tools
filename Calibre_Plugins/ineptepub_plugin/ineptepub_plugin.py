@@ -46,7 +46,7 @@
 #   0.1.2 - Removed Carbon dependency for Mac users. Fixes an issue that was a
 #           result of Calibre changing to python 2.7.
 #   0.1.3 - bug fix for epubs with non-ascii chars in file names
-
+#   0.1.4 - default to try PyCrypto first on Windows
 
 
 """
@@ -285,7 +285,10 @@ def _load_crypto_pycrypto():
 
 def _load_crypto():
     _aes = _rsa = None
-    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
+    if sys.platform.startswith('win'):
+        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
+    for loader in cryptolist:
         try:
             _aes, _rsa = loader()
             break
@@ -368,7 +371,7 @@ class IneptDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 3)
+    version                 = (0, 1, 4)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True

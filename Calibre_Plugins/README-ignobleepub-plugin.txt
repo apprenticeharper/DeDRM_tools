@@ -12,6 +12,8 @@ Installation:
 Go to Calibre's Preferences page... click on the Plugins button. Use the file dialog button to select the plugin's zip file  (ignobleepub_vXX_plugin.zip) and
 click the 'Add' button. you're done.
 
+Please note:  Calibre does not provide any immediate feedback to indicate that adding the plugin was a success. You can always click on the File-Type plugins to see if the plugin was added.
+
 Configuration:
 
 1) The easiest way to configure the plugin is to enter your name (Barnes & Noble account name) and credit card number (the one used to purchase the books) into the plugin's customization window. It's the same info you would enter into the ignoblekeygen script. Highlight the plugin (Ignoble Epub DeDRM) and click the "Customize Plugin" button on

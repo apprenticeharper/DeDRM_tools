@@ -79,7 +79,7 @@ if iswindows:
 
     def _load_crypto():
         AES = None
-        for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+        for loader in (_load_crypto_pycrypto, _load_crypto_libcrypto):
             try:
                 AES = loader()
                 break

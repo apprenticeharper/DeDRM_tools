@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-# ineptkey.pyw, version 5
+# ineptkey.pyw, version 5.3
 # Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3 or
@@ -32,6 +32,7 @@
 #       Clean up and merge OS X support by unknown
 #   5.1 - add support for using OpenSSL on Windows in place of PyCrypto
 #   5.2 - added support for output of key to a particular file
+#   5.3 - On Windows try PyCrypto first, OpenSSL next
 
 """
 Retrieve Adobe ADEPT user key.
@@ -115,7 +116,7 @@ if sys.platform.startswith('win'):
 
     def _load_crypto():
         AES = None
-        for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+        for loader in (_load_crypto_pycrypto, _load_crypto_libcrypto):
             try:
                 AES = loader()
                 break

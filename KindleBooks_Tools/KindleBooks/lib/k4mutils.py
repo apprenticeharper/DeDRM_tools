@@ -6,7 +6,7 @@ import os
 import subprocess
 
 
-class K4MDrmException(Exception):
+class DrmException(Exception):
     pass
 
 
@@ -18,7 +18,7 @@ def _load_crypto_libcrypto():
 
     libcrypto = find_library('crypto')
     if libcrypto is None:
-        raise K4MDrmException('libcrypto not found')
+        raise DrmException('libcrypto not found')
     libcrypto = CDLL(libcrypto)
 
     AES_MAXNR = 14
@@ -51,19 +51,19 @@ def _load_crypto_libcrypto():
         def set_decrypt_key(self, userkey, iv):
             self._blocksize = len(userkey)
             if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                raise K4MDrmException('AES improper key used')
+                raise DrmException('AES improper key used')
                 return
             keyctx = self._keyctx = AES_KEY()
             self.iv = iv
             rv = AES_set_decrypt_key(userkey, len(userkey) * 8, keyctx)
             if rv < 0:
-                raise K4MDrmException('Failed to initialize AES key')
+                raise DrmException('Failed to initialize AES key')
 
         def decrypt(self, data):
             out = create_string_buffer(len(data))
             rv = AES_cbc_encrypt(data, out, len(data), self._keyctx, self.iv, 0)
             if rv == 0:
-                raise K4MDrmException('AES decryption failed')
+                raise DrmException('AES decryption failed')
             return out.raw
 
         def keyivgen(self, passwd):
@@ -81,7 +81,7 @@ def _load_crypto():
     LibCrypto = None
     try:
         LibCrypto = _load_crypto_libcrypto()
-    except (ImportError, K4MDrmException):
+    except (ImportError, DrmException):
         pass
     return LibCrypto
 
@@ -185,8 +185,10 @@ def openKindleInfo(kInfoFile=None):
 	    if pp >= 0:
 		kinfopath = resline
 		break
-	if not os.path.exists(kinfopath):
-	    raise K4MDrmException('Error: .kindle-info file can not be found')
+	if not os.path.isfile(kinfopath):
+	    raise DrmException('Error: .kindle-info file can not be found')
 	return open(kinfopath,'r')
     else:
+	if not os.path.isfile(kinfoFile):
+	    raise DrmException('Error: kindle-info file can not be found')
         return open(kInfoFile, 'r')

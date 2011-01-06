@@ -10,6 +10,9 @@ Installation:
 
 Go to Calibre's Preferences page... click on the Plugins button. Use the file dialog button to select the plugin's zip file (ineptepub_vXX_plugin.zip) and click the 'Add' button. you're done.
 
+Please note:  Calibre does not provide any immediate feedback to indicate that adding the plugin was a success. You can always click on the File-Type plugins to see if the plugin was added.
+
+
 Configuration:
 
 When first run, the plugin will attempt to find your Adobe Digital Editions installation (on Windows and Mac OS's). If successful, it will create an 'adeptkey.der' file and save it in Calibre's configuration directory. It will use that file on subsequent runs. If there are already '*.der' files in the directory, the plugin won't attempt to

@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-# ineptepub.pyw, version 5.4
+# ineptepub.pyw, version 5.5
 # Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3 or
@@ -26,6 +26,7 @@
 #   5.2 - Fix ctypes error causing segfaults on some systems
 #   5.3 - add support for OpenSSL on Windows, fix bug with some versions of libcrypto 0.9.8 prior to path level o
 #   5.4 - add support for encoding to 'utf-8' when building up list of files to decrypt from encryption.xml
+#   5.5 - On Windows try PyCrypto first, OpenSSL next
 
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
@@ -259,7 +260,10 @@ def _load_crypto_pycrypto():
 
 def _load_crypto():
     AES = RSA = None
-    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
+    if sys.platform.startswith('win'):
+        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
+    for loader in cryptolist:
         try:
             AES, RSA = loader()
             break

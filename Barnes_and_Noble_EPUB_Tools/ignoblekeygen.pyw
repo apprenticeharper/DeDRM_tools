@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# ignoblekeygen.pyw, version 2
+# ignoblekeygen.pyw, version 2.2
 
 # To run this program install Python 2.6 from <http://www.python.org/download/>
 # and OpenSSL or PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -11,7 +11,7 @@
 #   1 - Initial release
 #   2 - Add OS X support by using OpenSSL when available (taken/modified from ineptepub v5)
 #   2.1 - Allow Windows versions of libcrypto to be found
-
+#   2.2 - On Windows try PyCrypto first and then OpenSSL next
 """
 Generate Barnes & Noble EPUB user key from name and credit card number.
 """
@@ -102,11 +102,12 @@ def _load_crypto_pycrypto():
 
     return AES
 
-
-
 def _load_crypto():
     AES = None
-    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
+    if sys.platform.startswith('win'):
+        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
+    for loader in cryptolist:
         try:
             AES = loader()
             break

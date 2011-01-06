@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-# ignobleepub.pyw, version 3
+# ignobleepub.pyw, version 3.3
 
 # To run this program install Python 2.6 from <http://www.python.org/download/>
 # and OpenSSL or PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -12,6 +12,9 @@
 #   2 - Added OS X support by using OpenSSL when available
 #   3 - screen out improper key lengths to prevent segfaults on Linux
 #   3.1 - Allow Windows versions of libcrypto to be found
+#   3.2 - add support for encoding to 'utf-8' when building up list of files to cecrypt from encryption.xml 
+#   3.3 - On Windows try PyCrypto first and OpenSSL next
+
 
 from __future__ import with_statement
 
@@ -105,15 +108,18 @@ def _load_crypto_pycrypto():
 
 def _load_crypto():
     AES = None
-    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
+    if sys.platform.startswith('win'):
+        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
+    for loader in cryptolist:
         try:
             AES = loader()
             break
         except (ImportError, IGNOBLEError):
             pass
     return AES
-AES = _load_crypto()
 
+AES = _load_crypto()
 
  
 

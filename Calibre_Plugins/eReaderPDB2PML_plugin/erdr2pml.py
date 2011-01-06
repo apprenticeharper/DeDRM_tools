@@ -56,32 +56,9 @@
 #  0.15 - enabled high-ascii to pml character encoding. DropBook now works on Mac.
 #  0.16 - convert to use openssl DES (very very fast) or pure python DES if openssl's libcrypto is not available
 #  0.17 - added support for pycrypto's DES as well
+#  0.18 - on Windows try PyCrypto first and OpenSSL next
 
-Des = None
-
-import openssl_des
-Des = openssl_des.load_libcrypto()
-
-# if that did not work then try pycrypto version of DES
-if Des == None:
-    import pycrypto_des
-    Des = pycrypto_des.load_pycrypto()
-
-# if that did not work then use pure python implementation
-# of DES and try to speed it up with Psycho
-if Des == None:
-    import python_des
-    Des = python_des.Des
-    # Import Psyco if available
-    try:
-        # http://psyco.sourceforge.net
-        import psyco
-        psyco.full()
-    except ImportError:
-        pass
-
-
-__version__='0.17'
+__version__='0.18'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -96,6 +73,37 @@ import sys
 sys.stdout=Unbuffered(sys.stdout)
 
 import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile
+
+Des = None
+if sys.platform.startswith('win'):
+    # first try with pycrypto
+    import pycrypto_des
+    Des = pycrypto_des.load_pycrypto()
+    if Des == None:
+        # they try with openssl
+        import openssl_des
+        Des = openssl_des.load_libcrypto()
+else:
+    # first try with openssl
+    import openssl_des
+    Des = openssl_des.load_libcrypto()
+    if Des == None:
+        # then try with pycrypto
+        import pycrypto_des
+        Des = pycrypto_des.load_pycrypto()
+
+# if that did not work then use pure python implementation
+# of DES and try to speed it up with Psycho
+if Des == None:
+    import python_des
+    Des = python_des.Des
+    # Import Psyco if available
+    try:
+        # http://psyco.sourceforge.net
+        import psyco
+        psyco.full()
+    except ImportError:
+        pass
 
 try:
     from hashlib import sha1
@@ -460,7 +468,7 @@ def main(argv=None):
                                 myZipFile.write(imagePath, localname)
                 myZipFile.close()
                 # remove temporary directory
-                shutil.rmtree(outdir)
+                shutil.rmtree(outdir, True)
 
             end_time = time.time()
             search_time = end_time - start_time

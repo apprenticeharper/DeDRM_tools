@@ -76,7 +76,6 @@ class eRdrDeDRM(FileTypePlugin):
                     
                     if pmlfilepath and pmlfilepath != 1:
                         import zipfile
-                        import shutil
                         print "   Creating PMLZ file"
                         myZipFile = zipfile.ZipFile(pmlzfile.name,'w',zipfile.ZIP_STORED, False)
                         list = os.listdir(outdir)

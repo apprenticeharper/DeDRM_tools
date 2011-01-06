@@ -28,7 +28,7 @@
 
 from __future__ import with_statement
 
-__version__ = '1.4'
+__version__ = '1.9'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -163,6 +163,7 @@ def main(argv=sys.argv):
         myzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
         zipUpDir(myzip, tempdir, '')
         myzip.close()
+        shutil.rmtree(tempdir, True)
         return 1
 
     if mobi:
@@ -198,7 +199,7 @@ def main(argv=sys.argv):
     zipUpDir(myzip3, tempdir, 'img')
     myzip3.close()
 
-    shutil.rmtree(tempdir)
+    shutil.rmtree(tempdir, True)
     return 0
 
 if __name__ == '__main__':
@@ -214,7 +215,7 @@ if not __name__ == "__main__" and inCalibre:
                                 Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
         supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
         author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-        version             = (0, 1, 7)   # The version number of this plugin
+        version             = (0, 1, 9)   # The version number of this plugin
         file_types          = set(['prc','mobi','azw','azw1','tpz']) # The file types that this plugin will be applied to
         on_import           = True # Run this plugin during the import
         priority            = 210  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm

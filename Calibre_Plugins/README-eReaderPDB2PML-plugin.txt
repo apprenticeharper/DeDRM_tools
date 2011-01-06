@@ -7,6 +7,8 @@ This plugin is meant to convert secure Ereader files (PDB) to unsecured PMLZ fil
 Installation:
 Go to Calibre's Preferences page... click on the Plugins button. Use the file dialog button to select the plugin's zip file  (eReaderPDB2PML_vXX_plugin.zip) and click the 'Add' button. You're done.
 
+Please note:  Calibre does not provide any immediate feedback to indicate that adding the plugin was a success. You can always click on the File-Type plugins to see if the plugin was added.
+
 Configuration:
 Highlight the plugin (eReader PDB 2 PML under the "File type plugins" category) and click the "Customize Plugin" button on Calibre's Preferences->Plugins page. Enter your name and last 8 digits of the credit card number separated by a comma: Your Name,12341234
 

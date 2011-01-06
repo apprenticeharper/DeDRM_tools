@@ -42,8 +42,10 @@
 #  0.20 - Correction: It seems that multibyte entries are encrypted in a v6 file.
 #  0.21 - Added support for multiple pids
 #  0.22 - revised structure to hold MobiBook as a class to allow an extended interface
+#  0.23 - fixed problem with older files with no EXTH section 
+#  0.24 - add support for type 1 encryption and 'TEXtREAd' books as well
 
-__version__ = '0.22'
+__version__ = '0.24'
 
 import sys
 
@@ -57,6 +59,7 @@ class Unbuffered:
         return getattr(self.stream, attr)
 sys.stdout=Unbuffered(sys.stdout)
 
+import os
 import struct
 import binascii
 
@@ -154,8 +157,10 @@ class MobiBook:
         # initial sanity check on file
         self.data_file = file(infile, 'rb').read()
         self.header = self.data_file[0:78]
-        if self.header[0x3C:0x3C+8] != 'BOOKMOBI':
+        if self.header[0x3C:0x3C+8] != 'BOOKMOBI' and self.header[0x3C:0x3C+8] != 'TEXtREAd':
             raise DrmException("invalid file format")
+        self.magic = self.header[0x3C:0x3C+8]
+        self.crypto_type = -1
 
         # build up section offset and flag info
         self.num_sections, = struct.unpack('>H', self.header[76:78])
@@ -168,6 +173,14 @@ class MobiBook:
         # parse information from section 0
         self.sect = self.loadSection(0)
         self.records, = struct.unpack('>H', self.sect[0x8:0x8+2])
+
+        if self.magic == 'TEXtREAd':
+            print "Book has format: ", self.magic
+            self.extra_data_flags = 0
+            self.mobi_length = 0
+            self.mobi_version = -1
+            self.meta_array = {}
+            return
         self.mobi_length, = struct.unpack('>L',self.sect[0x14:0x18])
         self.mobi_version, = struct.unpack('>L',self.sect[0x68:0x6C])
         print "MOBI header version = %d, length = %d" %(self.mobi_version, self.mobi_length)
@@ -182,18 +195,23 @@ class MobiBook:
 
         # if exth region exists parse it for metadata array
         self.meta_array = {}
-        exth_flag, = struct.unpack('>L', self.sect[0x80:0x84])
-        exth = ''
-        if exth_flag & 0x40:
-            exth = self.sect[16 + self.mobi_length:]
-        nitems, = struct.unpack('>I', exth[8:12])
-        pos = 12
-        for i in xrange(nitems):
-            type, size = struct.unpack('>II', exth[pos: pos + 8])
-            content = exth[pos + 8: pos + size]
-            self.meta_array[type] = content
-            pos += size
-
+        try:
+            exth_flag, = struct.unpack('>L', self.sect[0x80:0x84])
+            exth = 'NONE'
+            if exth_flag & 0x40:
+                exth = self.sect[16 + self.mobi_length:]
+            if (len(exth) >= 4) and (exth[:4] == 'EXTH'):
+                nitems, = struct.unpack('>I', exth[8:12])
+                pos = 12
+                for i in xrange(nitems):
+                    type, size = struct.unpack('>II', exth[pos: pos + 8])
+                    content = exth[pos + 8: pos + size]
+                    self.meta_array[type] = content
+                    pos += size
+        except:
+            self.meta_array = {}
+            pass
+            
     def getBookTitle(self):
         title = ''
         if 503 in self.meta_array:
@@ -269,12 +287,12 @@ class MobiBook:
 
     def processBook(self, pidlist):
         crypto_type, = struct.unpack('>H', self.sect[0xC:0xC+2])
+        print 'Crypto Type is: ', crypto_type
+        self.crypto_type = crypto_type
         if crypto_type == 0:
             print "This book is not encrypted."
             return self.data_file
-        if crypto_type == 1:
-            raise DrmException("Cannot decode Mobipocket encryption type 1")
-        if crypto_type != 2:
+        if crypto_type != 2 and crypto_type != 1:
             raise DrmException("Cannot decode unknown Mobipocket encryption type %d" % crypto_type)
 
         goodpids = []
@@ -286,23 +304,32 @@ class MobiBook:
             elif len(pid)==8:
                 goodpids.append(pid)
 
-        # calculate the keys
-        drm_ptr, drm_count, drm_size, drm_flags = struct.unpack('>LLLL', self.sect[0xA8:0xA8+16])
-        if drm_count == 0:
-            raise DrmException("Not yet initialised with PID. Must be opened with Mobipocket Reader first.")
-        found_key, pid = self.parseDRM(self.sect[drm_ptr:drm_ptr+drm_size], drm_count, goodpids)
-        if not found_key:
-            raise DrmException("No key found. Most likely the correct PID has not been given.")
+        if self.crypto_type == 1:
+            t1_keyvec = "QDCVEPMU675RUBSZ"
+            if self.magic == 'TEXtREAd':
+                bookkey_data = self.sect[0x0E:0x0E+16]
+            else:
+                bookkey_data = self.sect[0x90:0x90+16] 
+            pid = "00000000"
+            found_key = PC1(t1_keyvec, bookkey_data)
+        else :
+            # calculate the keys
+            drm_ptr, drm_count, drm_size, drm_flags = struct.unpack('>LLLL', self.sect[0xA8:0xA8+16])
+            if drm_count == 0:
+                raise DrmException("Not yet initialised with PID. Must be opened with Mobipocket Reader first.")
+            found_key, pid = self.parseDRM(self.sect[drm_ptr:drm_ptr+drm_size], drm_count, goodpids)
+            if not found_key:
+                raise DrmException("No key found. Most likely the correct PID has not been given.")
+            # kill the drm keys
+            self.patchSection(0, "\0" * drm_size, drm_ptr)
+            # kill the drm pointers
+            self.patchSection(0, "\xff" * 4 + "\0" * 12, 0xA8)
             
         if pid=="00000000":
             print "File has default encryption, no specific PID."
         else:
             print "File is encoded with PID "+checksumPid(pid)+"."
 
-        # kill the drm keys
-        self.patchSection(0, "\0" * drm_size, drm_ptr)
-        # kill the drm pointers
-        self.patchSection(0, "\xff" * 4 + "\0" * 12, 0xA8)
         # clear the crypto type
         self.patchSection(0, "\0" * 2, 0xC)
 

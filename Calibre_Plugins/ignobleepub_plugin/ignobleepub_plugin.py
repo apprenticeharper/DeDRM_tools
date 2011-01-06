@@ -45,6 +45,7 @@
 #   0.1.1 - Allow Windows users to make use of openssl if they have it installed.
 #          - Incorporated SomeUpdates zipfix routine.
 #   0.1.2 - bug fix for non-ascii file names in encryption.xml
+#   0.1.3 - Try PyCrypto on Windows first
 
 """
 Decrypt Barnes & Noble ADEPT encrypted EPUB books.
@@ -169,7 +170,10 @@ def _load_crypto_pycrypto():
     
 def _load_crypto():
     _aes = _aes2 = None
-    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
+    if sys.platform.startswith('win'):
+        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
+    for loader in cryptolist:
         try:
             _aes, _aes2 = loader()
             break
@@ -267,7 +271,7 @@ class IgnobleDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 2)
+    version                 = (0, 1, 3)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True

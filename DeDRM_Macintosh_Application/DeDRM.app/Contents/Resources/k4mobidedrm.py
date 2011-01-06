@@ -163,6 +163,7 @@ def main(argv=sys.argv):
         myzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
         zipUpDir(myzip, tempdir, '')
         myzip.close()
+        shutil.rmtree(tempdir, True)
         return 1
 
     if mobi:
@@ -198,7 +199,7 @@ def main(argv=sys.argv):
     zipUpDir(myzip3, tempdir, 'img')
     myzip3.close()
 
-    shutil.rmtree(tempdir)
+    shutil.rmtree(tempdir, True)
     return 0
 
 if __name__ == '__main__':

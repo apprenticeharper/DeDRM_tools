@@ -336,7 +336,10 @@ def _load_crypto_pycrypto():
 
 def _load_crypto():
     ARC4 = RSA = AES = None
-    for loader in (_load_crypto_libcrypto, _load_crypto_pycrypto):
+    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
+    if sys.platform.startswith('win'):
+        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
+    for loader in cryptolist:
         try:
             ARC4, RSA, AES = loader()
             break
@@ -2113,7 +2116,7 @@ class IneptPDFDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 1)
+    version                 = (0, 1, 2)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['pdf'])
     on_import               = True

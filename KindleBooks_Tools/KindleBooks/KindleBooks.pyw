@@ -110,6 +110,8 @@ class MainDialog(Tkinter.Frame):
     def showCmdOutput(self, msg):
         if msg and msg !='':
             msg = msg.encode('utf-8')
+            if sys.platform.startswith('win'):
+                msg = msg.replace('\r\n','\n')
             self.stext.insert(Tkconstants.END,msg)
             self.stext.yview_pickplace(Tkconstants.END)
         return

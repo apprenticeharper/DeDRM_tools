@@ -164,9 +164,10 @@ class TopazBook:
 
     def getPIDMetaInfo(self):
         keysRecord = None
-        KeysRecordRecord = None
+        keysRecordRecord = None
         if 'keys' in self.bookMetadata:
             keysRecord = self.bookMetadata['keys']
+        if keysRecord in self.bookMetadata:
             keysRecordRecord = self.bookMetadata[keysRecord]
         return keysRecord, keysRecordRecord
 
@@ -395,6 +396,7 @@ def main(argv=sys.argv):
         myzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
         zipUpDir(myzip, tempdir, '')
         myzip.close()
+        shutil.rmtree(tempdir, True)
         return 1
 
     print "   Creating HTML ZIP Archive"
@@ -424,7 +426,7 @@ def main(argv=sys.argv):
     zipUpDir(myzip3, tempdir, 'img')
     myzip3.close()
 
-    shutil.rmtree(tempdir)
+    shutil.rmtree(tempdir, True)
 
     return 0
                 

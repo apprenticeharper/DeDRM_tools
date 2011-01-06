@@ -19,17 +19,12 @@ advapi32 = windll.advapi32
 crypt32 = windll.crypt32
 
 
-#
 # Various character maps used to decrypt books. Probably supposed to act as obfuscation
-#
 charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
 charMap2 = "AaZzB0bYyCc1XxDdW2wEeVv3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_"
 charMap3 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 charMap4 = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
 
-#
-# Exceptions for all the problems that might happen during the script
-#
 class DrmException(Exception):
     pass
     
@@ -104,7 +99,12 @@ CryptUnprotectData = CryptUnprotectData()
 def openKindleInfo(kInfoFile=None):
     if kInfoFile == None:
         regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
-        path = winreg.QueryValueEx(regkey, 'Local AppData')[0] 
-        return open(path+'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info','r')
+        path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
+        kinfopath = path +'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info'
+        if not os.path.isfile(kinfopath):
+            raise DrmException('Error: kindle.info file can not be found')
+        return open(kinfopath,'r')
     else:
+        if not os.path.isfile(kInfoFile):
+            raise DrmException('Error: kindle.info file can not be found')
         return open(kInfoFile, 'r')

@@ -83,7 +83,8 @@ def parseKindleInfo(kInfoFile):
         DB[splito[0]] =splito[1]
     return DB
 
-# Get a record from the Kindle.info file for the key "hashedKey" (already hashed and encoded). Return the decoded and decrypted record
+# Get a record from the Kindle.info file for the key "hashedKey" (already hashed and encoded). 
+# Return the decoded and decrypted record
 def getKindleInfoValueForHash(hashedKey):
     global kindleDatabase
     global charMap1
@@ -95,12 +96,14 @@ def getKindleInfoValueForHash(hashedKey):
         cleartext = CryptUnprotectData(encryptedValue)
         return decode(cleartext, charMap1)
  
-#  Get a record from the Kindle.info file for the string in "key" (plaintext). Return the decoded and decrypted record
+# Get a record from the Kindle.info file for the string in "key" (plaintext). 
+# Return the decoded and decrypted record
 def getKindleInfoValueForKey(key):
     global charMap2
     return getKindleInfoValueForHash(encodeHash(key,charMap2))
 
-# Find if the original string for a hashed/encoded string is known. If so return the original string othwise return an empty string.
+# Find if the original string for a hashed/encoded string is known. 
+# If so return the original string othwise return an empty string.
 def findNameForHash(hash):
     global charMap2
     names = ["kindle.account.tokens","kindle.cookie.item","eulaVersionAccepted","login_date","kindle.token.item","login","kindle.key.item","kindle.name.info","kindle.device.info", "MazamaRandomNumber"]
@@ -222,7 +225,7 @@ def pidFromSerial(s, l):
 # Parse the EXTH header records and use the Kindle serial number to calculate the book pid.
 def getKindlePid(pidlst, rec209, token, serialnum):
 
-    if rec209 != None:
+    if rec209 != None and token != None:
         # Compute book PID
         pidHash = SHA1(serialnum+rec209+token)
         bookPID = encodePID(pidHash)
@@ -248,6 +251,7 @@ def getK4Pids(pidlst, rec209, token, kInfoFile=None):
         kindleDatabase = parseKindleInfo(kInfoFile)
     except Exception, message:
         print(message)
+        kindleDatabase = None
         pass
     
     if kindleDatabase == None :
@@ -272,8 +276,8 @@ def getK4Pids(pidlst, rec209, token, kInfoFile=None):
     pidlst.append(devicePID)
 
     # Compute book PID
-    if rec209 == None:
-        print "\nNo EXTH record type 209 - Perhaps not a K4 file?"
+    if rec209 == None or token == None:
+        print "\nNo EXTH record type 209 or token - Perhaps not a K4 file?"
         return pidlst
 
     # Get the kindle account token
