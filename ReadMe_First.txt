@@ -22,12 +22,24 @@ Mac OS X Users (Mac OS X 10.5 and 10.6)
 --------------
 Drag the DeDRM X.X.app droplet to your Desktop.  Double-click on it once and it will guide you through collecting the data it needs to remove the DRM.
 
-To use it simply drag a book onto the droplet, and a DeDRM version will appear.  This tools supports dragging and dropping of folders of ebooks as well.
+To use it simply drag a book onto the droplet and it will process the book.  This tools supports dragging and dropping of folders of ebooks as well.
 
 
 
-Not a Calibre or a Mac OS X DeDRM User?
-----------------------------------------
+Windows Users (Xp through Windows 7)
+--------------
+Fully extract the DeDRM_WinApp_vX.X.zip.  Drag the resulting DeDRM_WinApp_vx.x folder to someplace out of the way on your machine.  Open the folder and make a short-cut to DeDRM_Drop_Target and move that short-cut to your Desktop.  Double-click on the short-cut and DeDRM will launch it will guide you through collecting the data it needs to remove the DRM.  This progeam requires that Python and PyCrypto be properly installed.  See below for details.
+
+To use it simply drag ebooks or folders onto the DeDRM_Drop_Target short-cut, and it will remove process the ebooks.
+
+
+Linux Users
+-----------
+A version of the DeDRM drag and drop tool is coming for Linux.  In the meantime, you should have no problems runnign the gui tools (or their command line equivalents) described next.
+
+
+Not a Calibre or a DeDRM User?
+------------------------------
 There are a number of python based tools that have graphical user interfaces to make them easy to use.  To use any of these tools, you need to have Python 2.5, 2.6, or 2.7  for 32 bits installed on your machine as well as a matching PyCrypto or OpenSSL for some tools.
 
 On Mac OS X (10.5 and 10.6) and Linux (recent versions), your systems already have the proper Python and OpenSSL installed.  So nothing need be done, you can already run these tools by double-clicking on the .pyw python scripts.  

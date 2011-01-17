@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import with_statement
+
 # engine to remove drm from Kindle for Mac and Kindle for PC books
 # for personal use for archiving and converting your ebooks
 
@@ -26,9 +28,8 @@
 # ends in '_plugin.py', put it into a ZIP file with all its supporting python routines
 # and import that ZIP into Calibre using its plugin configuration GUI.
 
-from __future__ import with_statement
 
-__version__ = '1.4'
+__version__ = '2.1'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -41,6 +42,7 @@ class Unbuffered:
 
 import sys
 import os, csv, getopt
+import string
 import binascii
 import zlib
 import re
@@ -69,6 +71,116 @@ def zipUpDir(myzip, tempdir,localname):
         elif os.path.isdir(realfilePath):
             zipUpDir(myzip, tempdir, localfilePath)
 
+# cleanup bytestring filenames
+# borrowed from calibre from calibre/src/calibre/__init__.py
+# added in removal of non-printing chars
+# and removal of . at start
+def cleanup_name(name):
+  _filename_sanitize = re.compile(r'[\xae\0\\|\?\*<":>\+/]')
+  substitute='_'
+  one = ''.join(char for char in name if char in string.printable)
+  one = _filename_sanitize.sub(substitute, one)
+  one = re.sub(r'\s', ' ', one).strip()
+  one = re.sub(r'^\.+$', '_', one)
+  one = one.replace('..', substitute)
+  # Windows doesn't like path components that end with a period
+  if one.endswith('.'):
+      one = one[:-1]+substitute
+  # Mac and Unix don't like file names that begin with a full stop
+  if len(one) > 0 and one[0] == '.':
+      one = substitute+one[1:]
+  return one
+
+def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
+    import mobidedrm
+    import topazextract
+    import kgenpids
+
+    # handle the obvious cases at the beginning
+    if not os.path.isfile(infile):
+        print "Error: Input file does not exist"
+        return 1
+
+    mobi = True
+    magic3 = file(infile,'rb').read(3)
+    if magic3 == 'TPZ':
+        mobi = False
+
+    bookname = os.path.splitext(os.path.basename(infile))[0]
+
+    if mobi:
+        mb = mobidedrm.MobiBook(infile)
+    else:
+        tempdir = tempfile.mkdtemp()
+        mb = topazextract.TopazBook(infile, tempdir)
+
+    title = mb.getBookTitle()
+    print "Processing Book: ", title
+    filenametitle = cleanup_name(title)
+    outfilename = bookname
+    if len(bookname)>4 and len(filenametitle)>4 and bookname[:4] != filenametitle[:4]:
+        outfilename = outfilename + "_"+filenametitle
+
+    # build pid list
+    md1, md2 = mb.getPIDMetaInfo()
+    pidlst = kgenpids.getPidList(md1, md2, k4, pids, serials, kInfoFiles) 
+
+    try:
+        if mobi:
+            unlocked_file = mb.processBook(pidlst)
+        else:
+            mb.processBook(pidlst)
+
+    except mobidedrm.DrmException, e:
+        print "Error: " + str(e) + "\nDRM Removal Failed.\n"
+        return 1
+    except topazextract.TpzDRMError, e:
+        print str(e)
+        print "   Creating DeBug Full Zip Archive of Book"
+        zipname = os.path.join(outdir, bookname + '_debug' + '.zip')
+        myzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
+        zipUpDir(myzip, tempdir, '')
+        myzip.close()
+        shutil.rmtree(tempdir, True)
+        return 1
+
+    if mobi:
+        outfile = os.path.join(outdir,outfilename + '_nodrm' + '.mobi')
+        file(outfile, 'wb').write(unlocked_file)
+        return 0            
+
+    # topaz:  build up zip archives of results
+    print "   Creating HTML ZIP Archive"
+    zipname = os.path.join(outdir, outfilename + '_nodrm' + '.zip')
+    myzip1 = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
+    myzip1.write(os.path.join(tempdir,'book.html'),'book.html')
+    myzip1.write(os.path.join(tempdir,'book.opf'),'book.opf')
+    if os.path.isfile(os.path.join(tempdir,'cover.jpg')):
+        myzip1.write(os.path.join(tempdir,'cover.jpg'),'cover.jpg')
+    myzip1.write(os.path.join(tempdir,'style.css'),'style.css')
+    zipUpDir(myzip1, tempdir, 'img')
+    myzip1.close()
+
+    print "   Creating SVG ZIP Archive"
+    zipname = os.path.join(outdir, outfilename + '_SVG' + '.zip')
+    myzip2 = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
+    myzip2.write(os.path.join(tempdir,'index_svg.xhtml'),'index_svg.xhtml')
+    zipUpDir(myzip2, tempdir, 'svg')
+    zipUpDir(myzip2, tempdir, 'img')
+    myzip2.close()
+
+    print "   Creating XML ZIP Archive"
+    zipname = os.path.join(outdir, outfilename + '_XML' + '.zip')
+    myzip3 = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
+    targetdir = os.path.join(tempdir,'xml')
+    zipUpDir(myzip3, targetdir, '')
+    zipUpDir(myzip3, tempdir, 'img')
+    myzip3.close()
+
+    shutil.rmtree(tempdir, True)
+    return 0
+
+
 def usage(progname):
     print "Removes DRM protection from K4PC/M, Kindle, Mobi and Topaz ebooks"
     print "Usage:"
@@ -78,9 +190,6 @@ def usage(progname):
 # Main
 #   
 def main(argv=sys.argv):
-    import mobidedrm
-    import topazextract
-    import kgenpids
     progname = os.path.basename(argv[0])
 
     k4 = False
@@ -89,7 +198,7 @@ def main(argv=sys.argv):
     pids = []
     
     print ('K4MobiDeDrm v%(__version__)s '
-	   'provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc .' % globals())
+        'provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc .' % globals())
 
     print ' '
     try:
@@ -118,89 +227,11 @@ def main(argv=sys.argv):
 
     # try with built in Kindle Info files
     k4 = True
-
     infile = args[0]
     outdir = args[1]
 
-    # handle the obvious cases at the beginning
-    if not os.path.isfile(infile):
-        print "Error: Input file does not exist"
-        return 1
+    return decryptBook(infile, outdir, k4, kInfoFiles, serials, pids)
 
-    mobi = True
-    magic3 = file(infile,'rb').read(3)
-    if magic3 == 'TPZ':
-        mobi = False
-
-    bookname = os.path.splitext(os.path.basename(infile))[0]
-
-    if mobi:
-        mb = mobidedrm.MobiBook(infile)
-    else:
-        tempdir = tempfile.mkdtemp()
-        mb = topazextract.TopazBook(infile, tempdir)
-
-    title = mb.getBookTitle()
-    print "Processing Book: ", title
-
-    # build pid list
-    md1, md2 = mb.getPIDMetaInfo()
-    pidlst = kgenpids.getPidList(md1, md2, k4, pids, serials, kInfoFiles) 
-
-    try:
-        if mobi:
-            unlocked_file = mb.processBook(pidlst)
-        else:
-            mb.processBook(pidlst)
-
-    except mobidedrm.DrmException, e:
-        print "    ... not suceessful " + str(e) + "\n"
-        return 1
-    except topazextract.TpzDRMError, e:
-        print str(e)
-        print "   Creating DeBug Full Zip Archive of Book"
-        zipname = os.path.join(outdir, bookname + '_debug' + '.zip')
-        myzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-        zipUpDir(myzip, tempdir, '')
-        myzip.close()
-        shutil.rmtree(tempdir, True)
-        return 1
-
-    if mobi:
-        outfile = os.path.join(outdir,bookname + '_nodrm' + '.azw')
-        file(outfile, 'wb').write(unlocked_file)
-        return 0            
-
-    # topaz:  build up zip archives of results
-    print "   Creating HTML ZIP Archive"
-    zipname = os.path.join(outdir, bookname + '_nodrm' + '.zip')
-    myzip1 = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-    myzip1.write(os.path.join(tempdir,'book.html'),'book.html')
-    myzip1.write(os.path.join(tempdir,'book.opf'),'book.opf')
-    if os.path.isfile(os.path.join(tempdir,'cover.jpg')):
-        myzip1.write(os.path.join(tempdir,'cover.jpg'),'cover.jpg')
-    myzip1.write(os.path.join(tempdir,'style.css'),'style.css')
-    zipUpDir(myzip1, tempdir, 'img')
-    myzip1.close()
-
-    print "   Creating SVG ZIP Archive"
-    zipname = os.path.join(outdir, bookname + '_SVG' + '.zip')
-    myzip2 = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-    myzip2.write(os.path.join(tempdir,'index_svg.xhtml'),'index_svg.xhtml')
-    zipUpDir(myzip2, tempdir, 'svg')
-    zipUpDir(myzip2, tempdir, 'img')
-    myzip2.close()
-
-    print "   Creating XML ZIP Archive"
-    zipname = os.path.join(outdir, bookname + '_XML' + '.zip')
-    myzip3 = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-    targetdir = os.path.join(tempdir,'xml')
-    zipUpDir(myzip3, targetdir, '')
-    zipUpDir(myzip3, tempdir, 'img')
-    myzip3.close()
-
-    shutil.rmtree(tempdir, True)
-    return 0
 
 if __name__ == '__main__':
     sys.stdout=Unbuffered(sys.stdout)
@@ -215,7 +246,7 @@ if not __name__ == "__main__" and inCalibre:
                                 Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
         supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
         author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-        version             = (0, 1, 7)   # The version number of this plugin
+        version             = (0, 2, 1)   # The version number of this plugin
         file_types          = set(['prc','mobi','azw','azw1','tpz']) # The file types that this plugin will be applied to
         on_import           = True # Run this plugin during the import
         priority            = 210  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm
@@ -241,15 +272,15 @@ if not __name__ == "__main__" and inCalibre:
             for customvalue in customvalues:
                 customvalue = str(customvalue)
                 customvalue = customvalue.strip()
-            	if len(customvalue) == 10 or len(customvalue) == 8:
+                if len(customvalue) == 10 or len(customvalue) == 8:
                     pids.append(customvalue)
-            	else :
+                else :
                     if len(customvalue) == 16 and customvalue[0] == 'B':
                         serials.append(customvalue)
                     else:
                         print "%s is not a valid Kindle serial number or PID." % str(customvalue)
-            		
-            # Load any kindle info files (*.info) included Calibre's config directory.
+
+           # Load any kindle info files (*.info) included Calibre's config directory.
             try:
                 # Find Calibre's configuration directory.
                 confpath = os.path.split(os.path.split(self.plugin_path)[0])[0]
@@ -257,7 +288,7 @@ if not __name__ == "__main__" and inCalibre:
                 files = os.listdir(confpath)
                 filefilter = re.compile("\.info$", re.IGNORECASE)
                 files = filter(filefilter.search, files)
-    
+
                 if files:
                     for filename in files:
                         fpath = os.path.join(confpath, filename)

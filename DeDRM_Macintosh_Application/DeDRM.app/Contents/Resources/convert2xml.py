@@ -235,6 +235,7 @@ class PageParser(object):
 
         'group'           : (1, 'snippets', 1, 0),
         'group.type'      : (1, 'scalar_text', 0, 0),
+        'group._tag'      : (1, 'scalar_text', 0, 0),
 
         'region'           : (1, 'snippets', 1, 0),
         'region.type'      : (1, 'scalar_text', 0, 0),

@@ -81,22 +81,44 @@ class fixZip:
         # get the zipinfo for each member of the input archive
         # and copy member over to output archive
         # if problems exist with local vs central filename, fix them
-
+        # also fix bad epub compression
+        
+        # write mimetype file first, if present, and with no compression
         for zinfo in self.inzip.infolist():
-            data = None
-            nzinfo = zinfo
-            try: 
-                data = self.inzip.read(zinfo.filename)
-            except zipfile.BadZipfile or zipfile.error:
-                local_name = self.getlocalname(zinfo)
-                data = self.getfiledata(zinfo)
-                nzinfo.filename = local_name
+            if zinfo.filename == "mimetype":
+                nzinfo = zinfo
+                try: 
+                    data = self.inzip.read(zinfo.filename)
+                except zipfile.BadZipfile or zipfile.error:
+                    local_name = self.getlocalname(zinfo)
+                    data = self.getfiledata(zinfo)
+                    nzinfo.filename = local_name
 
-            nzinfo.date_time = zinfo.date_time
-            nzinfo.compress_type = zinfo.compress_type
-            nzinfo.flag_bits = 0
-            nzinfo.internal_attr = 0
-            self.outzip.writestr(nzinfo,data)
+                nzinfo.date_time = zinfo.date_time
+                nzinfo.compress_type = zipfile.ZIP_STORED
+                nzinfo.flag_bits = 0
+                nzinfo.internal_attr = 0
+                nzinfo.extra = ""
+                self.outzip.writestr(nzinfo,data)
+                break
+
+        # write the rest of the files
+        for zinfo in self.inzip.infolist():
+            if zinfo.filename != "mimetype":
+                data = None
+                nzinfo = zinfo
+                try: 
+                    data = self.inzip.read(zinfo.filename)
+                except zipfile.BadZipfile or zipfile.error:
+                    local_name = self.getlocalname(zinfo)
+                    data = self.getfiledata(zinfo)
+                    nzinfo.filename = local_name
+
+                nzinfo.date_time = zinfo.date_time
+                nzinfo.compress_type = zinfo.compress_type
+                nzinfo.flag_bits = 0
+                nzinfo.internal_attr = 0
+                self.outzip.writestr(nzinfo,data)
 
         self.bzf.close()
         self.inzip.close()
@@ -110,14 +132,7 @@ def usage():
     """
     
 
-def main(argv=sys.argv):
-    if len(argv)!=3:
-        usage()
-        return 1
-    infile = None
-    outfile = None
-    infile = argv[1]
-    outfile = argv[2]
+def repairBook(infile, outfile):
     if not os.path.exists(infile):
         print "Error: Input Zip File does not exist"
         return 1
@@ -128,6 +143,16 @@ def main(argv=sys.argv):
     except Exception, e:
         print "Error Occurred ", e
         return 2
+
+
+def main(argv=sys.argv):
+    if len(argv)!=3:
+        usage()
+        return 1
+    infile = argv[1]
+    outfile = argv[2]
+    return repairBook(infile, outfile)
+
 
 if __name__ == '__main__' :
     sys.exit(main())

@@ -44,8 +44,10 @@
 #  0.22 - revised structure to hold MobiBook as a class to allow an extended interface
 #  0.23 - fixed problem with older files with no EXTH section 
 #  0.24 - add support for type 1 encryption and 'TEXtREAd' books as well
+#  0.25 - Fixed support for 'BOOKMOBI' type 1 encryption
+#  0.26 - Now enables Text-To-Speech flag and sets clipping limit to 100%
 
-__version__ = '0.24'
+__version__ = '0.26'
 
 import sys
 
@@ -205,7 +207,18 @@ class MobiBook:
                 pos = 12
                 for i in xrange(nitems):
                     type, size = struct.unpack('>II', exth[pos: pos + 8])
-                    content = exth[pos + 8: pos + size]
+                    # reset the text to speech flag and clipping limit, if present
+                    if type == 401 and size == 9:
+                        # set clipping limit to 100%
+                        self.patchSection(0, "\144", 16 + self.mobi_length + pos + 8)
+                        content = "\144"
+                    elif type == 404 and size == 9:
+                        # make sure text to speech is enabled
+                        self.patchSection(0, "\0", 16 + self.mobi_length + pos + 8)
+                        content = "\0"
+                    else:
+                        content = exth[pos + 8: pos + size]
+                    #print type, size, content
                     self.meta_array[type] = content
                     pos += size
         except:
@@ -308,8 +321,10 @@ class MobiBook:
             t1_keyvec = "QDCVEPMU675RUBSZ"
             if self.magic == 'TEXtREAd':
                 bookkey_data = self.sect[0x0E:0x0E+16]
-            else:
+            elif self.mobi_version < 0:
                 bookkey_data = self.sect[0x90:0x90+16] 
+            else:
+                bookkey_data = self.sect[self.mobi_length+16:self.mobi_length+32] 
             pid = "00000000"
             found_key = PC1(t1_keyvec, bookkey_data)
         else :
@@ -366,15 +381,18 @@ def getUnencryptedBookWithList(infile,pidlist):
 def main(argv=sys.argv):
     print ('MobiDeDrm v%(__version__)s. '
 	   'Copyright 2008-2010 The Dark Reverser.' % globals())
-    if len(argv)<4:
+    if len(argv)<3 or len(argv)>4:
         print "Removes protection from Mobipocket books"
         print "Usage:"
-        print "    %s <infile> <outfile> <Comma separated list of PIDs to try>" % sys.argv[0]
+        print "    %s <infile> <outfile> [<Comma separated list of PIDs to try>]" % sys.argv[0]
         return 1
     else:
         infile = argv[1]
         outfile = argv[2]
-        pidlist = argv[3].split(',')
+        if len(argv) is 4:
+        	pidlist = argv[3].split(',')
+        else:
+        	pidlist = {}
         try:
             stripped_file = getUnencryptedBookWithList(infile, pidlist)
             file(outfile, 'wb').write(stripped_file)

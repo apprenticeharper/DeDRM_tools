@@ -1,7 +1,9 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-# ineptkey.pyw, version 5.3
+from __future__ import with_statement
+
+# ineptkey.pyw, version 5.4
 # Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3 or
@@ -33,12 +35,11 @@
 #   5.1 - add support for using OpenSSL on Windows in place of PyCrypto
 #   5.2 - added support for output of key to a particular file
 #   5.3 - On Windows try PyCrypto first, OpenSSL next
+#   5.4 - Modify interface to allow use of import
 
 """
 Retrieve Adobe ADEPT user key.
 """
-
-from __future__ import with_statement
 
 __license__ = 'GPL v3'
 
@@ -415,10 +416,11 @@ class ExceptionDialog(Tkinter.Frame):
         label.pack(fill=Tkconstants.X, expand=0)
         self.text = Tkinter.Text(self)
         self.text.pack(fill=Tkconstants.BOTH, expand=1)
+
         self.text.insert(Tkconstants.END, text)
 
-def cli_main(argv=sys.argv):
-    keypath = argv[1]
+
+def extractKeyfile(keypath):
     try:
         success = retrieve_key(keypath)
     except ADEPTError, e:
@@ -430,6 +432,12 @@ def cli_main(argv=sys.argv):
     if not success:
         return 1
     return 0
+
+
+def cli_main(argv=sys.argv):
+    keypath = argv[1]
+    return extractKeyfile(keypath)
+
 
 def main(argv=sys.argv):
     root = Tkinter.Tk()

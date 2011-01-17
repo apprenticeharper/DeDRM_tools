@@ -57,8 +57,9 @@
 #  0.16 - convert to use openssl DES (very very fast) or pure python DES if openssl's libcrypto is not available
 #  0.17 - added support for pycrypto's DES as well
 #  0.18 - on Windows try PyCrypto first and OpenSSL next
+#  0.19 - Modify the interface to allow use of import
 
-__version__='0.18'
+__version__='0.19'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -111,11 +112,13 @@ except ImportError:
     # older Python release
     import sha
     sha1 = lambda s: sha.new(s)
+
 import cgi
 import logging
 
 logging.basicConfig()
 #logging.basicConfig(level=logging.DEBUG)
+
 
 class Sectionizer(object):
     def __init__(self, filename, ident):
@@ -364,7 +367,7 @@ def cleanPML(pml):
 def convertEreaderToPml(infile, name, cc, outdir):
     if not os.path.exists(outdir):
         os.makedirs(outdir)
-
+    bookname = os.path.splitext(os.path.basename(infile))[0]
     print "   Decoding File"
     sect = Sectionizer(infile, 'PNRdPPrs')
     er = EreaderProcessor(sect.loadSection, name, cc)
@@ -390,6 +393,47 @@ def convertEreaderToPml(infile, name, cc, outdir):
     #     file(os.path.join(outdir, 'bookinfo.txt'),'wb').write(bkinfo)
 
 
+                
+def decryptBook(infile, outdir, name, cc, make_pmlz):
+    if make_pmlz :
+        # ignore specified outdir, use tempdir instead
+        outdir = tempfile.mkdtemp()
+    try:
+        print "Processing..."
+        convertEreaderToPml(infile, name, cc, outdir)
+        if make_pmlz :
+            import zipfile
+            import shutil
+            print "   Creating PMLZ file"
+            zipname = infile[:-4] + '.pmlz'
+            myZipFile = zipfile.ZipFile(zipname,'w',zipfile.ZIP_STORED, False)
+            list = os.listdir(outdir)
+            for file in list:
+                localname = file
+                filePath = os.path.join(outdir,file)
+                if os.path.isfile(filePath):
+                    myZipFile.write(filePath, localname)
+                elif os.path.isdir(filePath):
+                    imageList = os.listdir(filePath)
+                    localimgdir = os.path.basename(filePath)
+                    for image in imageList:
+                        localname = os.path.join(localimgdir,image)
+                        imagePath = os.path.join(filePath,image)
+                        if os.path.isfile(imagePath):
+                            myZipFile.write(imagePath, localname)
+            myZipFile.close()
+            # remove temporary directory
+            shutil.rmtree(outdir, True)
+            print 'output is %s' % zipname
+        else :
+            print 'output in %s' % outdir 
+        print "done"
+    except ValueError, e:
+        print "Error: %s" % e
+        return 1
+    return 0
+
+
 def usage():
     print "Converts DRMed eReader books to PML Source"
     print "Usage:"
@@ -404,8 +448,8 @@ def usage():
     print "  It's enough to enter the last 8 digits of the credit card number"
     return
 
+
 def main(argv=None):
-    global bookname
     try:
         opts, args = getopt.getopt(sys.argv[1:], "h", ["make-pmlz"])
     except getopt.GetoptError, err:
@@ -413,75 +457,27 @@ def main(argv=None):
         usage()
         return 1
     make_pmlz = False
-    zipname = None
     for o, a in opts:
         if o == "-h":
             usage()
             return 0
         elif o == "--make-pmlz":
             make_pmlz = True
-            zipname = ''
     
     print "eRdr2Pml v%s. Copyright (c) 2009 The Dark Reverser" % __version__
 
     if len(args)!=3 and len(args)!=4:
         usage()
         return 1
-    else:
-        if len(args)==3:
-            infile, name, cc = args[0], args[1], args[2]
-            outdir = infile[:-4] + '_Source'
-        elif len(args)==4:
-            infile, outdir, name, cc = args[0], args[1], args[2], args[3]
 
-        if make_pmlz :
-            # ignore specified outdir, use tempdir instead
-            outdir = tempfile.mkdtemp()
-                
-        bookname = os.path.splitext(os.path.basename(infile))[0]
+    if len(args)==3:
+        infile, name, cc = args[0], args[1], args[2]
+        outdir = infile[:-4] + '_Source'
+    elif len(args)==4:
+        infile, outdir, name, cc = args[0], args[1], args[2], args[3]
 
-        try:
-            print "Processing..."
-            import time
-            start_time = time.time()
-            convertEreaderToPml(infile, name, cc, outdir)
+    return decryptBook(infile, outdir, name, cc, make_pmlz)
 
-            if make_pmlz :
-                import zipfile
-                import shutil
-                print "   Creating PMLZ file"
-                zipname = infile[:-4] + '.pmlz'
-                myZipFile = zipfile.ZipFile(zipname,'w',zipfile.ZIP_STORED, False)
-                list = os.listdir(outdir)
-                for file in list:
-                    localname = file
-                    filePath = os.path.join(outdir,file)
-                    if os.path.isfile(filePath):
-                        myZipFile.write(filePath, localname)
-                    elif os.path.isdir(filePath):
-                        imageList = os.listdir(filePath)
-                        localimgdir = os.path.basename(filePath)
-                        for image in imageList:
-                            localname = os.path.join(localimgdir,image)
-                            imagePath = os.path.join(filePath,image)
-                            if os.path.isfile(imagePath):
-                                myZipFile.write(imagePath, localname)
-                myZipFile.close()
-                # remove temporary directory
-                shutil.rmtree(outdir, True)
-
-            end_time = time.time()
-            search_time = end_time - start_time
-            print 'elapsed time: %.2f seconds' % (search_time, ) 
-            if make_pmlz :
-                print 'output is %s' % zipname
-            else :
-                print 'output in %s' % outdir 
-            print "done"
-        except ValueError, e:
-            print "Error: %s" % e
-            return 1
-    return 0
 
 if __name__ == "__main__":
     sys.exit(main())
