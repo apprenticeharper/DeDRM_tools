@@ -1,7 +1,9 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-# ineptepub.pyw, version 5.5
+from __future__ import with_statement
+
+# ineptepub.pyw, version 5.6
 # Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3 or
@@ -27,12 +29,10 @@
 #   5.3 - add support for OpenSSL on Windows, fix bug with some versions of libcrypto 0.9.8 prior to path level o
 #   5.4 - add support for encoding to 'utf-8' when building up list of files to decrypt from encryption.xml
 #   5.5 - On Windows try PyCrypto first, OpenSSL next
-
+#   5.6 - Modify interface to allow use with import
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
 """
-
-from __future__ import with_statement
 
 __license__ = 'GPL v3'
 
@@ -312,45 +312,6 @@ class Decryptor(object):
             data = self.decompress(data)
         return data
 
-def cli_main(argv=sys.argv):
-    progname = os.path.basename(argv[0])
-    if AES is None:
-        print "%s: This script requires OpenSSL or PyCrypto, which must be" \
-              " installed separately.  Read the top-of-script comment for" \
-              " details." % (progname,)
-        return 1
-    if len(argv) != 4:
-        print "usage: %s KEYFILE INBOOK OUTBOOK" % (progname,)
-        return 1
-    keypath, inpath, outpath = argv[1:]
-    with open(keypath, 'rb') as f:
-        keyder = f.read()
-    rsa = RSA(keyder)
-    with closing(ZipFile(open(inpath, 'rb'))) as inf:
-        namelist = set(inf.namelist())
-        if 'META-INF/rights.xml' not in namelist or \
-           'META-INF/encryption.xml' not in namelist:
-            raise ADEPTError('%s: not an ADEPT EPUB' % (inpath,))
-        for name in META_NAMES:
-            namelist.remove(name)
-        rights = etree.fromstring(inf.read('META-INF/rights.xml'))
-        adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
-        expr = './/%s' % (adept('encryptedKey'),)
-        bookkey = ''.join(rights.findtext(expr))
-        bookkey = rsa.decrypt(bookkey.decode('base64'))
-        # Padded as per RSAES-PKCS1-v1_5
-        if bookkey[-17] != '\x00':
-            raise ADEPTError('problem decrypting session key')
-        encryption = inf.read('META-INF/encryption.xml')
-        decryptor = Decryptor(bookkey[-16:], encryption)
-        kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
-        with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
-            zi = ZipInfo('mimetype', compress_type=ZIP_STORED)
-            outf.writestr(zi, inf.read('mimetype'))
-            for path in namelist:
-                data = inf.read(path)
-                outf.writestr(path, decryptor.decrypt(path, data))
-    return 0
 
 class DecryptionDialog(Tkinter.Frame):
     def __init__(self, root):
@@ -445,6 +406,52 @@ class DecryptionDialog(Tkinter.Frame):
             self.status['text'] = 'Error: ' + str(e)
             return
         self.status['text'] = 'File successfully decrypted'
+
+
+def decryptBook(keypath, inpath, outpath):
+    with open(keypath, 'rb') as f:
+        keyder = f.read()
+    rsa = RSA(keyder)
+    with closing(ZipFile(open(inpath, 'rb'))) as inf:
+        namelist = set(inf.namelist())
+        if 'META-INF/rights.xml' not in namelist or \
+           'META-INF/encryption.xml' not in namelist:
+            raise ADEPTError('%s: not an ADEPT EPUB' % (inpath,))
+        for name in META_NAMES:
+            namelist.remove(name)
+        rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+        adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+        expr = './/%s' % (adept('encryptedKey'),)
+        bookkey = ''.join(rights.findtext(expr))
+        bookkey = rsa.decrypt(bookkey.decode('base64'))
+        # Padded as per RSAES-PKCS1-v1_5
+        if bookkey[-17] != '\x00':
+            raise ADEPTError('problem decrypting session key')
+        encryption = inf.read('META-INF/encryption.xml')
+        decryptor = Decryptor(bookkey[-16:], encryption)
+        kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
+        with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
+            zi = ZipInfo('mimetype', compress_type=ZIP_STORED)
+            outf.writestr(zi, inf.read('mimetype'))
+            for path in namelist:
+                data = inf.read(path)
+                outf.writestr(path, decryptor.decrypt(path, data))
+    return 0
+
+
+def cli_main(argv=sys.argv):
+    progname = os.path.basename(argv[0])
+    if AES is None:
+        print "%s: This script requires OpenSSL or PyCrypto, which must be" \
+              " installed separately.  Read the top-of-script comment for" \
+              " details." % (progname,)
+        return 1
+    if len(argv) != 4:
+        print "usage: %s KEYFILE INBOOK OUTBOOK" % (progname,)
+        return 1
+    keypath, inpath, outpath = argv[1:]
+    return decryptBook(keypath, inpath, outpath)
+
 
 def gui_main():
     root = Tkinter.Tk()

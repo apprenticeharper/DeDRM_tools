@@ -1,8 +1,8 @@
 ePub_Fixer
 
-ePubs are specially crafted zip archives.  Unfortunately, many of the DRM encoded Adobe Adept and Barnes & Noble ePubs are not "proper" zip archives in that the names of some files in the zip central directory do NOT match the local name given in archive itself.  This type of zip archive is technically incorrect/corrupted and can not be read by many other programs.
+ePubs are specially crafted zip archives whose first file is an uncompresssed "mimetype" file.  Unfortunately, many of the DRM encoded Adobe Adept and Barnes & Noble ePubs are not "proper" zip archives in that the names of some files in the zip central directory do NOT match the local name given in archive itself, or they do not have an uncompressed mimetype file as the first file in the archive.  These types of epubs are technically incorrect/corrupted and can not be read by many other programs.
 
-ePub_Fixer was designed to fix improperly created zip archives of this type.
+ePub_Fixer was designed to fix improperly created zip archives of these types.
 
 1. Simply double-click to launch ePub_Fixer.pyw.
 

@@ -42,7 +42,7 @@ class eRdrDeDRM(FileTypePlugin):
                             Credit given to The Dark Reverser for the original standalone script.'
     supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
     author              = 'DiapDealer' # The author of this plugin
-    version             = (0, 0, 3)   # The version number of this plugin
+    version             = (0, 0, 4)   # The version number of this plugin
     file_types          = set(['pdb']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
 

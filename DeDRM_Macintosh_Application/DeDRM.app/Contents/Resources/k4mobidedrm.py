@@ -29,7 +29,7 @@ from __future__ import with_statement
 # and import that ZIP into Calibre using its plugin configuration GUI.
 
 
-__version__ = '2.1'
+__version__ = '2.2'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -75,21 +75,23 @@ def zipUpDir(myzip, tempdir,localname):
 # borrowed from calibre from calibre/src/calibre/__init__.py
 # added in removal of non-printing chars
 # and removal of . at start
+# convert spaces to underscores
 def cleanup_name(name):
-  _filename_sanitize = re.compile(r'[\xae\0\\|\?\*<":>\+/]')
-  substitute='_'
-  one = ''.join(char for char in name if char in string.printable)
-  one = _filename_sanitize.sub(substitute, one)
-  one = re.sub(r'\s', ' ', one).strip()
-  one = re.sub(r'^\.+$', '_', one)
-  one = one.replace('..', substitute)
-  # Windows doesn't like path components that end with a period
-  if one.endswith('.'):
-      one = one[:-1]+substitute
-  # Mac and Unix don't like file names that begin with a full stop
-  if len(one) > 0 and one[0] == '.':
-      one = substitute+one[1:]
-  return one
+    _filename_sanitize = re.compile(r'[\xae\0\\|\?\*<":>\+/]')
+    substitute='_'
+    one = ''.join(char for char in name if char in string.printable)
+    one = _filename_sanitize.sub(substitute, one)
+    one = re.sub(r'\s', ' ', one).strip()
+    one = re.sub(r'^\.+$', '_', one)
+    one = one.replace('..', substitute)
+    # Windows doesn't like path components that end with a period
+    if one.endswith('.'):
+        one = one[:-1]+substitute
+    # Mac and Unix don't like file names that begin with a full stop
+    if len(one) > 0 and one[0] == '.':
+        one = substitute+one[1:]
+    one = one.replace(' ','_')
+    return one
 
 def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     import mobidedrm
@@ -119,7 +121,7 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     filenametitle = cleanup_name(title)
     outfilename = bookname
     if len(bookname)>4 and len(filenametitle)>4 and bookname[:4] != filenametitle[:4]:
-        outfilename = outfilename + "_"+filenametitle
+        outfilename = outfilename + "_" + filenametitle
 
     # build pid list
     md1, md2 = mb.getPIDMetaInfo()
@@ -134,15 +136,17 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     except mobidedrm.DrmException, e:
         print "Error: " + str(e) + "\nDRM Removal Failed.\n"
         return 1
-    except topazextract.TpzDRMError, e:
-        print str(e)
-        print "   Creating DeBug Full Zip Archive of Book"
-        zipname = os.path.join(outdir, bookname + '_debug' + '.zip')
-        myzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-        zipUpDir(myzip, tempdir, '')
-        myzip.close()
-        shutil.rmtree(tempdir, True)
-        return 1
+    except Exception, e:
+        if not mobi:
+            print "Error: " + str(e) + "\nDRM Removal Failed.\n"
+            print "   Creating DeBug Full Zip Archive of Book"
+            zipname = os.path.join(outdir, bookname + '_debug' + '.zip')
+            myzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
+            zipUpDir(myzip, tempdir, '')
+            myzip.close()
+            shutil.rmtree(tempdir, True)
+            return 1
+        pass
 
     if mobi:
         outfile = os.path.join(outdir,outfilename + '_nodrm' + '.mobi')
@@ -198,7 +202,7 @@ def main(argv=sys.argv):
     pids = []
     
     print ('K4MobiDeDrm v%(__version__)s '
-        'provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc .' % globals())
+	   'provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc .' % globals())
 
     print ' '
     try:
@@ -246,7 +250,7 @@ if not __name__ == "__main__" and inCalibre:
                                 Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
         supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
         author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-        version             = (0, 2, 1)   # The version number of this plugin
+        version             = (0, 2, 2)   # The version number of this plugin
         file_types          = set(['prc','mobi','azw','azw1','tpz']) # The file types that this plugin will be applied to
         on_import           = True # Run this plugin during the import
         priority            = 210  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm
@@ -272,15 +276,15 @@ if not __name__ == "__main__" and inCalibre:
             for customvalue in customvalues:
                 customvalue = str(customvalue)
                 customvalue = customvalue.strip()
-                if len(customvalue) == 10 or len(customvalue) == 8:
+            	if len(customvalue) == 10 or len(customvalue) == 8:
                     pids.append(customvalue)
-                else :
+            	else :
                     if len(customvalue) == 16 and customvalue[0] == 'B':
                         serials.append(customvalue)
                     else:
                         print "%s is not a valid Kindle serial number or PID." % str(customvalue)
-
-           # Load any kindle info files (*.info) included Calibre's config directory.
+            		
+            # Load any kindle info files (*.info) included Calibre's config directory.
             try:
                 # Find Calibre's configuration directory.
                 confpath = os.path.split(os.path.split(self.plugin_path)[0])[0]
@@ -288,7 +292,7 @@ if not __name__ == "__main__" and inCalibre:
                 files = os.listdir(confpath)
                 filefilter = re.compile("\.info$", re.IGNORECASE)
                 files = filter(filefilter.search, files)
-
+    
                 if files:
                     for filename in files:
                         fpath = os.path.join(confpath, filename)

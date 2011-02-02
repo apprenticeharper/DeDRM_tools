@@ -1,6 +1,8 @@
 #! /usr/bin/python
 
-# ignoblekeygen.pyw, version 2.2
+from __future__ import with_statement
+
+# ignoblekeygen.pyw, version 2.3
 
 # To run this program install Python 2.6 from <http://www.python.org/download/>
 # and OpenSSL or PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -12,11 +14,11 @@
 #   2 - Add OS X support by using OpenSSL when available (taken/modified from ineptepub v5)
 #   2.1 - Allow Windows versions of libcrypto to be found
 #   2.2 - On Windows try PyCrypto first and then OpenSSL next
+#   2.3 - Modify interface to allow use of import
+
 """
 Generate Barnes & Noble EPUB user key from name and credit card number.
 """
-
-from __future__ import with_statement
 
 __license__ = 'GPL v3'
 
@@ -120,6 +122,7 @@ AES = _load_crypto()
 def normalize_name(name):
     return ''.join(x for x in name.lower() if x != ' ')
 
+
 def generate_keyfile(name, ccn, outpath):
     name = normalize_name(name) + '\x00'
     ccn = ccn + '\x00'
@@ -133,19 +136,6 @@ def generate_keyfile(name, ccn, outpath):
         f.write(userkey.encode('base64'))
     return userkey
 
-def cli_main(argv=sys.argv):
-    progname = os.path.basename(argv[0])
-    if AES is None:
-        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
-              "separately.  Read the top-of-script comment for details." % \
-              (progname,)
-        return 1
-    if len(argv) != 4:
-        print "usage: %s NAME CC# OUTFILE" % (progname,)
-        return 1
-    name, ccn, outpath = argv[1:]
-    generate_keyfile(name, ccn, outpath)
-    return 0
 
 class DecryptionDialog(Tkinter.Frame):
     def __init__(self, root):
@@ -210,6 +200,22 @@ class DecryptionDialog(Tkinter.Frame):
             self.status['text'] = 'Error: ' + str(e)
             return
         self.status['text'] = 'Keyfile successfully generated'
+
+
+def cli_main(argv=sys.argv):
+    progname = os.path.basename(argv[0])
+    if AES is None:
+        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
+              "separately.  Read the top-of-script comment for details." % \
+              (progname,)
+        return 1
+    if len(argv) != 4:
+        print "usage: %s NAME CC# OUTFILE" % (progname,)
+        return 1
+    name, ccn, outpath = argv[1:]
+    generate_keyfile(name, ccn, outpath)
+    return 0
+
 
 def gui_main():
     root = Tkinter.Tk()

@@ -189,6 +189,6 @@ def openKindleInfo(kInfoFile=None):
 	    raise DrmException('Error: .kindle-info file can not be found')
 	return open(kinfopath,'r')
     else:
-	if not os.path.isfile(kinfoFile):
+	if not os.path.isfile(kInfoFile):
 	    raise DrmException('Error: kindle-info file can not be found')
         return open(kInfoFile, 'r')

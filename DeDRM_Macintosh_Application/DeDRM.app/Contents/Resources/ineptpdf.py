@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 # ineptpdf.pyw, version 7.7
 
+from __future__ import with_statement
+
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and OpenSSL (already installed on Mac OS X and Linux) OR 
 # PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -30,12 +32,11 @@
 #         fixed minor typos
 #   7.6 - backported AES and other fixes from version 8.4.48
 #   7.7 - On Windows try PyCrypto first and OpenSSL next
+#   7.8 - Modify interface to allow use of import
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
-
-from __future__ import with_statement
 
 __license__ = 'GPL v3'
 
@@ -2076,25 +2077,6 @@ class PDFSerializer(object):
             self.write('\n')
         self.write('endobj\n')
 
-def cli_main(argv=sys.argv):
-    progname = os.path.basename(argv[0])
-    if RSA is None:
-        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
-              "separately.  Read the top-of-script comment for details." % \
-              (progname,)
-        return 1
-    if len(argv) != 4:
-        print "usage: %s KEYFILE INBOOK OUTBOOK" % (progname,)
-        return 1
-    keypath, inpath, outpath = argv[1:]
-    with open(inpath, 'rb') as inf:
-        serializer = PDFSerializer(inf, keypath)
-        # hope this will fix the 'bad file descriptor' problem
-        with open(outpath, 'wb') as outf:
-        # help construct to make sure the method runs to the end
-            serializer.dump(outf)
-    return 0
-
 
 class DecryptionDialog(Tkinter.Frame):
     def __init__(self, root):
@@ -2197,6 +2179,31 @@ class DecryptionDialog(Tkinter.Frame):
         self.status['text'] = 'File successfully decrypted.\n'+\
                               'Close this window or decrypt another pdf file.'
         return
+
+
+def decryptBook(keypath, inpath, outpath):
+    with open(inpath, 'rb') as inf:
+        serializer = PDFSerializer(inf, keypath)
+        # hope this will fix the 'bad file descriptor' problem
+        with open(outpath, 'wb') as outf:
+        # help construct to make sure the method runs to the end
+            serializer.dump(outf)
+    return 0
+
+
+def cli_main(argv=sys.argv):
+    progname = os.path.basename(argv[0])
+    if RSA is None:
+        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
+              "separately.  Read the top-of-script comment for details." % \
+              (progname,)
+        return 1
+    if len(argv) != 4:
+        print "usage: %s KEYFILE INBOOK OUTBOOK" % (progname,)
+        return 1
+    keypath, inpath, outpath = argv[1:]
+    return decryptBook(keypath, inpath, outpath)
+
 
 def gui_main():
     root = Tkinter.Tk()

@@ -68,7 +68,7 @@ class DocParser(object):
         ys = []
         gdefs = []
 
-        # get path defintions, positions, dimensions for ecah glyph 
+        # get path defintions, positions, dimensions for each glyph 
         # that makes up the image, and find min x and min y to reposition origin
         minx = -1
         miny = -1
@@ -305,6 +305,15 @@ class DocParser(object):
                 lastGlyph = firstglyphList[last]
             else :
                 lastGlyph = len(gidList)
+
+            # handle case of white sapce paragraphs with no actual glyphs in them
+            # by reverting to text based paragraph
+            if firstGlyph >= lastGlyph:
+                # revert to standard text based paragraph
+                for wordnum in xrange(first, last):
+                    result.append(('ocr', wordnum))
+                return pclass, result
+
             for glyphnum in xrange(firstGlyph, lastGlyph):
                 glyphList.append(glyphnum)
             # include any extratokens if they exist

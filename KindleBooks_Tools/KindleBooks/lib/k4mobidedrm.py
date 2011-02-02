@@ -29,7 +29,7 @@ from __future__ import with_statement
 # and import that ZIP into Calibre using its plugin configuration GUI.
 
 
-__version__ = '2.1'
+__version__ = '2.2'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -75,6 +75,7 @@ def zipUpDir(myzip, tempdir,localname):
 # borrowed from calibre from calibre/src/calibre/__init__.py
 # added in removal of non-printing chars
 # and removal of . at start
+# convert spaces to underscores
 def cleanup_name(name):
     _filename_sanitize = re.compile(r'[\xae\0\\|\?\*<":>\+/]')
     substitute='_'
@@ -89,6 +90,7 @@ def cleanup_name(name):
     # Mac and Unix don't like file names that begin with a full stop
     if len(one) > 0 and one[0] == '.':
         one = substitute+one[1:]
+    one = one.replace(' ','_')
     return one
 
 def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
@@ -248,7 +250,7 @@ if not __name__ == "__main__" and inCalibre:
                                 Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
         supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
         author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-        version             = (0, 2, 1)   # The version number of this plugin
+        version             = (0, 2, 2)   # The version number of this plugin
         file_types          = set(['prc','mobi','azw','azw1','tpz']) # The file types that this plugin will be applied to
         on_import           = True # Run this plugin during the import
         priority            = 210  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm

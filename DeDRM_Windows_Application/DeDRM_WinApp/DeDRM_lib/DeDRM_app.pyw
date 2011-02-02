@@ -2,8 +2,8 @@
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
 import sys
-sys.path.append('lib')
 import os, os.path
+sys.path.append(sys.path[0]+os.sep+'lib')
 import shutil
 import Tkinter
 from Tkinter import *
@@ -22,10 +22,11 @@ class DrmException(Exception):
     pass
 
 class MainApp(Tk):
-    def __init__(self, dnd=False, filenames=[]):
+    def __init__(self, apphome, dnd=False, filenames=[]):
         Tk.__init__(self)
         self.withdraw()
         self.dnd = dnd
+        self.apphome = apphome
         # preference settings
         # [dictionary key, file in preferences directory where info is stored]
         description = [ ['pids'   , 'pidlist.txt'   ], 
@@ -312,6 +313,7 @@ class ConvDialog(Toplevel):
         self.protocol("WM_DELETE_WINDOW", self.withdraw)
         self.title("DeDRM Processing")
         self.master = master
+        self.apphome = self.master.apphome
         self.prefs_array = prefs_array
         self.filenames = filenames
         self.interval = 50
@@ -328,11 +330,11 @@ class ConvDialog(Toplevel):
         body.grid_columnconfigure(1, weight=2)
 
         Tkinter.Label(body, text='Activity Bar').grid(row=0, sticky=Tkconstants.E)
-        self.bar = ActivityBar(body, length=50, height=15, barwidth=5)
+        self.bar = ActivityBar(body, length=80, height=15, barwidth=5)
         self.bar.grid(row=0, column=1, sticky=sticky)
 
         msg1 = ''
-        self.stext = ScrolledText(body, bd=5, relief=Tkconstants.RIDGE, height=4, width=50, wrap=Tkconstants.WORD)
+        self.stext = ScrolledText(body, bd=5, relief=Tkconstants.RIDGE, height=4, width=80, wrap=Tkconstants.WORD)
         self.stext.grid(row=2, column=0, columnspan=2,sticky=sticky)
         self.stext.insert(Tkconstants.END,msg1)
 
@@ -435,7 +437,6 @@ class ConvDialog(Toplevel):
             if poll != 0:
                 msg = 'Failed\n'
                 text = self.p2.read()
-                text = self.p2.read()
                 text += self.p2.readerr()
                 msg += text
                 msg += '\n'
@@ -451,42 +452,43 @@ class ConvDialog(Toplevel):
         return
 
     def decrypt_ebook(self, infile, outdir, rscpath):
+        apphome = self.apphome
         rv = 1
         name, ext = os.path.splitext(os.path.basename(infile))
         ext = ext.lower()
         if ext == '.epub':
             outfile = os.path.join(outdir, name + '_nodrm.epub')
-            self.p2 = processEPUB(infile, outfile, rscpath)
+            self.p2 = processEPUB(apphome, infile, outfile, rscpath)
             return 0
         if ext == '.pdb':
-            self.p2 = processPDB(infile, outdir, rscpath)
+            self.p2 = processPDB(apphome, infile, outdir, rscpath)
             return 0
         if ext in ['.azw', '.azw1', '.prc', '.mobi', '.tpz']:
-            self.p2 = processK4MOBI(infile, outdir, rscpath)
+            self.p2 = processK4MOBI(apphome, infile, outdir, rscpath)
             return 0
         if ext == '.pdf':
             outfile = os.path.join(outdir, name + '_nodrm.pdf')
-            self.p2 = processPDF(infile, outfile, rscpath)
+            self.p2 = processPDF(apphome, infile, outfile, rscpath)
             return 0
         return rv
 
 
 # run as a subprocess via pipes and collect stdout, stderr, and return value
-def runit(ncmd, nparms):
-    cmdline = 'python ' + ncmd
+def runit(apphome, ncmd, nparms):
+    cmdline = 'python ' + '"' + os.path.join(apphome, ncmd) + '" '
     if sys.platform.startswith('win'):
         search_path = os.environ['PATH']
         search_path = search_path.lower()
         if search_path.find('python') < 0: 
             # if no python hope that win registry finds what is associated with py extension
-            cmdline = ncmd
+            cmdline = '"' + os.path.join(apphome, ncmd) + '" '
     cmdline += nparms
     cmdline = cmdline.encode(sys.getfilesystemencoding())
     p2 = subasyncio.Process(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
     return p2
 
-def processK4MOBI(infile, outdir, rscpath):
-    cmd = '"' + os.path.join('lib','k4mobidedrm.py') +  '" '
+def processK4MOBI(apphome, infile, outdir, rscpath):
+    cmd = os.path.join('lib','k4mobidedrm.py')
     parms = ''
     pidnums = ''
     pidspath = os.path.join(rscpath,'pidlist.txt')
@@ -511,30 +513,33 @@ def processK4MOBI(infile, outdir, rscpath):
             dpath = os.path.join(rscpath,filename)
             parms += '-k "' + dpath + '" '
     parms += '"' + infile +'" "' + outdir + '"'
-    p2 = runit(cmd, parms)
+    p2 = runit(apphome, cmd, parms)
     return p2
 
-def processPDF(infile, outfile, rscpath):
-    cmd = '"' + os.path.join('lib','decryptpdf.py') + '" '
+def processPDF(apphome, infile, outfile, rscpath):
+    cmd = os.path.join('lib','decryptpdf.py')
     parms =  '"' + infile + '" "' + outfile + '" "' + rscpath + '"'
-    p2 = runit(cmd, parms)
+    p2 = runit(apphome, cmd, parms)
     return p2
 
-def processEPUB(infile, outfile, rscpath):
+def processEPUB(apphome, infile, outfile, rscpath):
     # invoke routine to check both Adept and Barnes and Noble
-    cmd = '"' + os.path.join('lib','decryptepub.py') + '" '
+    cmd = os.path.join('lib','decryptepub.py')
     parms = '"' + infile + '" "' + outfile + '" "' + rscpath + '"'
-    p2 = runit(cmd, parms)
+    p2 = runit(apphome, cmd, parms)
     return p2
 
-def processPDB(infile, outdir, rscpath):
-    cmd = '"' + os.path.join('lib','decryptpdb.py') + '" '
+def processPDB(apphome, infile, outdir, rscpath):
+    cmd = os.path.join('lib','decryptpdb.py')
     parms = '"' + infile + '" "' + outdir + '" "' + rscpath + '"'
-    p2 = runit(cmd, parms)
+    p2 = runit(apphome, cmd, parms)
     return p2
 
 
 def main(argv=sys.argv):
+    apphome = os.path.dirname(sys.argv[0])
+    apphome = os.path.abspath(apphome)
+
     # windows may pass a spurious quoted null string as argv[1] from bat file
     # simply work around this until we can figure out a better way to handle things
     if len(argv) == 2:
@@ -571,7 +576,7 @@ def main(argv=sys.argv):
                         filenames.append(infile)
 
     # start up gui app
-    app = MainApp(dnd, filenames)
+    app = MainApp(apphome, dnd, filenames)
     app.mainloop()
     return 0
 

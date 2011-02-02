@@ -207,11 +207,11 @@ class MainDialog(Tkinter.Frame):
 
         tpz = False
         # Identify any Topaz Files
-        with open(mobipath, 'rb') as f:
-            raw = f.read(3)
-            if raw.startswith('TPZ'):
-                tpz = True
-            f.close()
+        f = file(mobipath, 'rb')
+        raw = f.read(3)
+        if raw.startswith('TPZ'):
+            tpz = True
+        f.close()
         if not outpath:
             self.status['text'] = 'No output directory specified'
             self.sbotton.configure(state='normal')
