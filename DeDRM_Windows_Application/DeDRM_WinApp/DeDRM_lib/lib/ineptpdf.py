@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# ineptpdf.pyw, version 7.7
+# ineptpdf.pyw, version 7.9
 
 from __future__ import with_statement
 
@@ -33,6 +33,7 @@ from __future__ import with_statement
 #   7.6 - backported AES and other fixes from version 8.4.48
 #   7.7 - On Windows try PyCrypto first and OpenSSL next
 #   7.8 - Modify interface to allow use of import
+#   7.9 - Bug fix for some session key errors when len(bookkey) > length required
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
@@ -1531,16 +1532,30 @@ class PDFDocument(object):
         bookkey = bookkey[index:]
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
-        # added because of the booktype / decryption book session key error
-        if ebx_V == 3:
-            V = 3        
-        elif ebx_V < 4 or ebx_type < 6:
-            V = ord(bookkey[0])
-            bookkey = bookkey[1:]
+        # added because of improper booktype / decryption book session key errors
+        if length > 0:
+            if len(bookkey) == length:
+                if ebx_V == 3:
+                    V = 3        
+                else:
+                    V = 2
+            elif len(bookkey) == length + 1:  
+                V = ord(bookkey[0])
+                bookkey = bookkey[1:]
+            else:
+                print "ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type)
+                print "length is %d and len(bookkey) is %d" % (length, len(bookkey))
+                print "bookkey[0] is %d" % ord(bookkey[0])
+                raise ADEPTError('error decrypting book session key - mismatched length')
         else:
-            V = 2
-        if length and len(bookkey) != length:
-            raise ADEPTError('error decrypting book session key')
+            # proper length unknown try with whatever you have
+            print "ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type)
+            print "length is %d and len(bookkey) is %d" % (length, len(bookkey))
+            print "bookkey[0] is %d" % ord(bookkey[0])
+            if ebx_V == 3:
+                V = 3        
+            else:
+                V = 2
         self.decrypt_key = bookkey
         self.genkey = self.genkey_v3 if V == 3 else self.genkey_v2
         self.decipher = self.decrypt_rc4

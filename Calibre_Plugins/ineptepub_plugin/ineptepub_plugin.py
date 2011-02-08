@@ -47,7 +47,8 @@
 #           result of Calibre changing to python 2.7.
 #   0.1.3 - bug fix for epubs with non-ascii chars in file names
 #   0.1.4 - default to try PyCrypto first on Windows
-
+#   0.1.5 - update zipfix to handle out of position mimetypes
+#   0.1.6 - update zipfix to handle completely missing mimetype files
 
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
@@ -371,7 +372,7 @@ class IneptDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 5)
+    version                 = (0, 1, 6)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True

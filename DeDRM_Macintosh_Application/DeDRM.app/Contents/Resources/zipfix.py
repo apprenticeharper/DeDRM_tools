@@ -13,9 +13,20 @@ _FILENAME_LEN_OFFSET = 26
 _EXTRA_LEN_OFFSET = 28
 _FILENAME_OFFSET = 30
 _MAX_SIZE = 64 * 1024
+_MIMETYPE = 'application/epub+zip'
+
+class ZipInfo(zipfile.ZipInfo):
+    def __init__(self, *args, **kwargs):
+        if 'compress_type' in kwargs:
+            compress_type = kwargs.pop('compress_type')
+        super(ZipInfo, self).__init__(*args, **kwargs)
+        self.compress_type = compress_type
 
 class fixZip:
     def __init__(self, zinput, zoutput):
+        self.ztype = 'zip'
+        if zinput.lower().find('.epub') >= 0 :
+            self.ztype = 'epub'
         self.inzip = zipfile.ZipFile(zinput,'r')
         self.outzip = zipfile.ZipFile(zoutput,'w')
         # open the input zip for reading only as a raw file
@@ -81,30 +92,15 @@ class fixZip:
         # get the zipinfo for each member of the input archive
         # and copy member over to output archive
         # if problems exist with local vs central filename, fix them
-        # also fix bad epub compression
-        
-        # write mimetype file first, if present, and with no compression
-        for zinfo in self.inzip.infolist():
-            if zinfo.filename == "mimetype":
-                nzinfo = zinfo
-                try: 
-                    data = self.inzip.read(zinfo.filename)
-                except zipfile.BadZipfile or zipfile.error:
-                    local_name = self.getlocalname(zinfo)
-                    data = self.getfiledata(zinfo)
-                    nzinfo.filename = local_name
 
-                nzinfo.date_time = zinfo.date_time
-                nzinfo.compress_type = zipfile.ZIP_STORED
-                nzinfo.flag_bits = 0
-                nzinfo.internal_attr = 0
-                nzinfo.extra = ""
-                self.outzip.writestr(nzinfo,data)
-                break
+        # if epub write mimetype file first, with no compression
+        if self.ztype == 'epub':
+            nzinfo = ZipInfo('mimetype', compress_type=zipfile.ZIP_STORED)
+            self.outzip.writestr(nzinfo, _MIMETYPE)
 
         # write the rest of the files
         for zinfo in self.inzip.infolist():
-            if zinfo.filename != "mimetype":
+            if zinfo.filename != "mimetype" or self.ztype == '.zip':
                 data = None
                 nzinfo = zinfo
                 try: 

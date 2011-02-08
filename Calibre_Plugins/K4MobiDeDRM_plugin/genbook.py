@@ -192,6 +192,8 @@ class GParser(object):
                 argres[j] = int(argres[j])
         return result
     def getGlyphDim(self, gly):
+        if self.gdpi[gly] == 0:
+            return 0, 0
         maxh = (self.gh[gly] * self.dpi) / self.gdpi[gly]
         maxw = (self.gw[gly] * self.dpi) / self.gdpi[gly]
         return maxh, maxw
@@ -319,6 +321,18 @@ def generateBook(bookDir, raw, fixedimage):
 
     print 'Processing Meta Data and creating OPF'
     meta_array = getMetaArray(metaFile)
+
+    # replace special chars in title and authors like & < > 
+    title = meta_array['Title']
+    title = title.replace('&','&amp;')
+    title = title.replace('<','&lt;')
+    title = title.replace('>','&gt;')
+    meta_array['Title'] = title
+    authors = meta_array['Authors']
+    authors = authors.replace('&','&amp;')
+    authors = authors.replace('<','&lt;')
+    authors = authors.replace('>','&gt;')
+    meta_array['Authors'] = authors
 
     xname = os.path.join(xmlDir, 'metadata.xml')
     metastr = ''

@@ -47,7 +47,10 @@
 # ** NOTE ** There is no plugin customization data for the Inept PDF DeDRM plugin.
 #
 # Revision history:
-#   0.1 - Initial release
+#   0.1   - Initial release
+#   0.1.1 - back port ineptpdf 8.4.X support for increased number of encryption methods
+#   0.1.2 - back port ineptpdf 8.4.X bug fixes
+#   0.1.3 - add in fix for improper rejection of session bookkeys with len(bookkey) = length + 1 
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
@@ -1544,16 +1547,30 @@ class PDFDocument(object):
         bookkey = bookkey[index:]
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
-        # added because of the booktype / decryption book session key error
-        if ebx_V == 3:
-            V = 3        
-        elif ebx_V < 4 or ebx_type < 6:
-            V = ord(bookkey[0])
-            bookkey = bookkey[1:]
+        # added because of improper booktype / decryption book session key errors
+        if length > 0:
+            if len(bookkey) == length:
+                if ebx_V == 3:
+                    V = 3
+                else:
+                    V = 2
+            elif len(bookkey) == length + 1:
+                V = ord(bookkey[0])
+                bookkey = bookkey[1:]
+            else:
+                print "ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type)
+                print "length is %d and len(bookkey) is %d" % (length, len(bookkey))
+                print "bookkey[0] is %d" % ord(bookkey[0])
+                raise ADEPTError('error decrypting book session key - mismatched length')
         else:
-            V = 2
-        if length and len(bookkey) != length:
-            raise ADEPTError('error decrypting book session key')
+            # proper length unknown try with whatever you have
+            print "ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type)
+            print "length is %d and len(bookkey) is %d" % (length, len(bookkey))
+            print "bookkey[0] is %d" % ord(bookkey[0])
+            if ebx_V == 3:
+                V = 3
+            else:
+                V = 2
         self.decrypt_key = bookkey
         self.genkey = self.genkey_v3 if V == 3 else self.genkey_v2
         self.decipher = self.decrypt_rc4
@@ -2116,7 +2133,7 @@ class IneptPDFDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 2)
+    version                 = (0, 1, 3)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['pdf'])
     on_import               = True

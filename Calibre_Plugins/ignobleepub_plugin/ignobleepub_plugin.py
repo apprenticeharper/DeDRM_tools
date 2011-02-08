@@ -46,6 +46,8 @@
 #          - Incorporated SomeUpdates zipfix routine.
 #   0.1.2 - bug fix for non-ascii file names in encryption.xml
 #   0.1.3 - Try PyCrypto on Windows first
+#   0.1.4 - update zipfix to deal with mimetype not in correct place
+#   0.1.5 - update zipfix to deal with completely missing mimetype files
 
 """
 Decrypt Barnes & Noble ADEPT encrypted EPUB books.
@@ -271,7 +273,7 @@ class IgnobleDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 4)
+    version                 = (0, 1, 5)
     minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True
