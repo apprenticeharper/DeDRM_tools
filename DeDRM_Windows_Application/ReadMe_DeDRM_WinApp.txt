@@ -1,4 +1,4 @@
-ReadMe_DeDRM_WinApp_v1.2
+ReadMe_DeDRM_WinApp_v1.5
 -----------------------
 
 DeDRM_WinApp is a pure python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto theDeDRM_Drop_Target to have the DRM removed.  It repackages the"tools" python software in one easy to use program.

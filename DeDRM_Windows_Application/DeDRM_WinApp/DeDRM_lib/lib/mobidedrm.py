@@ -46,8 +46,9 @@
 #  0.24 - add support for type 1 encryption and 'TEXtREAd' books as well
 #  0.25 - Fixed support for 'BOOKMOBI' type 1 encryption
 #  0.26 - Now enables Text-To-Speech flag and sets clipping limit to 100%
+#  0.27 - Correct pid metadata token generation to match that used by skindle (Thank You Bart!)
 
-__version__ = '0.26'
+__version__ = '0.27'
 
 import sys
 
@@ -207,19 +208,16 @@ class MobiBook:
                 pos = 12
                 for i in xrange(nitems):
                     type, size = struct.unpack('>II', exth[pos: pos + 8])
+                    content = exth[pos + 8: pos + size]
+                    self.meta_array[type] = content
                     # reset the text to speech flag and clipping limit, if present
                     if type == 401 and size == 9:
                         # set clipping limit to 100%
                         self.patchSection(0, "\144", 16 + self.mobi_length + pos + 8)
-                        content = "\144"
                     elif type == 404 and size == 9:
                         # make sure text to speech is enabled
                         self.patchSection(0, "\0", 16 + self.mobi_length + pos + 8)
-                        content = "\0"
-                    else:
-                        content = exth[pos + 8: pos + size]
-                    #print type, size, content
-                    self.meta_array[type] = content
+                    # print type, size, content, content.encode('hex')
                     pos += size
         except:
             self.meta_array = {}
@@ -244,13 +242,14 @@ class MobiBook:
         if 209 in self.meta_array:
             rec209 = self.meta_array[209]
             data = rec209
-            # Parse the 209 data to find the the exth record with the token data.
-            # The last character of the 209 data points to the record with the token.
-            # Always 208 from my experience, but I'll leave the logic in case that changes.
-            for i in xrange(len(data)):
-                if ord(data[i]) != 0:
-                    if self.meta_array[ord(data[i])] != None:
-                        token = self.meta_array[ord(data[i])]
+            token = ''
+            # The 209 data comes in five byte groups. Interpret the last four bytes
+            # of each group as a big endian unsigned integer to get a key value
+            # if that key exists in the meta_array, append its contents to the token
+            for i in xrange(0,len(data),5):
+                val,  = struct.unpack('>I',data[i+1:i+5])
+                sval = self.meta_array.get(val,'')
+                token += sval
         return rec209, token
 
     def patch(self, off, new):
