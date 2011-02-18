@@ -47,8 +47,9 @@
 #  0.25 - Fixed support for 'BOOKMOBI' type 1 encryption
 #  0.26 - Now enables Text-To-Speech flag and sets clipping limit to 100%
 #  0.27 - Correct pid metadata token generation to match that used by skindle (Thank You Bart!)
+#  0.28 - slight additional changes to metadata token generation (None -> '')
 
-__version__ = '0.27'
+__version__ = '0.28'
 
 import sys
 
@@ -237,12 +238,11 @@ class MobiBook:
         return title
 
     def getPIDMetaInfo(self):
-        rec209 = None
-        token = None
+        rec209 = ''
+        token = ''
         if 209 in self.meta_array:
             rec209 = self.meta_array[209]
             data = rec209
-            token = ''
             # The 209 data comes in five byte groups. Interpret the last four bytes
             # of each group as a big endian unsigned integer to get a key value
             # if that key exists in the meta_array, append its contents to the token
