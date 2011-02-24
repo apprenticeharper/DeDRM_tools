@@ -224,13 +224,11 @@ def pidFromSerial(s, l):
 
 # Parse the EXTH header records and use the Kindle serial number to calculate the book pid.
 def getKindlePid(pidlst, rec209, token, serialnum):
-
-    if rec209 != None and token != None:
-        # Compute book PID
-        pidHash = SHA1(serialnum+rec209+token)
-        bookPID = encodePID(pidHash)
-        bookPID = checksumPid(bookPID)
-        pidlst.append(bookPID)
+    # Compute book PID
+    pidHash = SHA1(serialnum+rec209+token)
+    bookPID = encodePID(pidHash)
+    bookPID = checksumPid(bookPID)
+    pidlst.append(bookPID)
 
     # compute fixed pid for old pre 2.5 firmware update pid as well
     bookPID = pidFromSerial(serialnum, 7) + "*"
@@ -276,9 +274,6 @@ def getK4Pids(pidlst, rec209, token, kInfoFile=None):
     pidlst.append(devicePID)
 
     # Compute book PID
-    if rec209 == None or token == None:
-        print "\nNo EXTH record type 209 or token - Perhaps not a K4 file?"
-        return pidlst
 
     # Get the kindle account token
     kindleAccountToken = getKindleInfoValueForKey("kindle.account.tokens")

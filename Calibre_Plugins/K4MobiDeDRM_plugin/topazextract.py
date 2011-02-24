@@ -157,18 +157,22 @@ class TopazBook:
             raise TpzDRMError("Parse Error : Record Names Don't Match")
         flags = ord(self.fo.read(1))
         nbRecords = ord(self.fo.read(1))
+        # print nbRecords
         for i in range (0,nbRecords) :
-            record = [bookReadString(self.fo), bookReadString(self.fo)]
-            self.bookMetadata[record[0]] = record[1]
+            keyval = bookReadString(self.fo)
+            content = bookReadString(self.fo)
+            # print keyval
+            # print content
+            self.bookMetadata[keyval] = content
         return self.bookMetadata
 
     def getPIDMetaInfo(self):
-        keysRecord = None
-        keysRecordRecord = None
-        if 'keys' in self.bookMetadata:
-            keysRecord = self.bookMetadata['keys']
-        if keysRecord in self.bookMetadata:
-            keysRecordRecord = self.bookMetadata[keysRecord]
+        keysRecord = self.bookMetadata.get('keys','')
+        keysRecordRecord = ''
+        if keysRecord != '':
+            keylst = keysRecord.split(',')
+            for keyval in keylst:
+                keysRecordRecord += self.bookMetadata.get(keyval,'')
         return keysRecord, keysRecordRecord
 
     def getBookTitle(self):

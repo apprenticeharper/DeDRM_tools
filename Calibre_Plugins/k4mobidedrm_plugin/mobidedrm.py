@@ -47,8 +47,12 @@
 #  0.25 - Fixed support for 'BOOKMOBI' type 1 encryption
 #  0.26 - Now enables Text-To-Speech flag and sets clipping limit to 100%
 #  0.27 - Correct pid metadata token generation to match that used by skindle (Thank You Bart!)
+#  0.28 - slight additional changes to metadata token generation (None -> '')
+#  0.29 - It seems that the ideas about when multibyte trailing characters were
+#         included in the encryption were wrong. They aren't for DOC compressed
+#         files, but they are for HUFF/CDIC compress files!
 
-__version__ = '0.27'
+__version__ = '0.29'
 
 import sys
 
@@ -176,6 +180,7 @@ class MobiBook:
         # parse information from section 0
         self.sect = self.loadSection(0)
         self.records, = struct.unpack('>H', self.sect[0x8:0x8+2])
+        self.compression, = struct.unpack('>H', self.sect[0x0:0x0+2])
 
         if self.magic == 'TEXtREAd':
             print "Book has format: ", self.magic
@@ -191,7 +196,7 @@ class MobiBook:
         if (self.mobi_length >= 0xE4) and (self.mobi_version >= 5):
             self.extra_data_flags, = struct.unpack('>H', self.sect[0xF2:0xF4])
             print "Extra Data Flags = %d" % self.extra_data_flags
-        if self.mobi_version < 7:
+        if (self.mobi_version < 7) and (self.compression != 17480):
             # multibyte utf8 data is included in the encryption for mobi_version 6 and below
             # so clear that byte so that we leave it to be decrypted.
             self.extra_data_flags &= 0xFFFE
@@ -237,12 +242,11 @@ class MobiBook:
         return title
 
     def getPIDMetaInfo(self):
-        rec209 = None
-        token = None
+        rec209 = ''
+        token = ''
         if 209 in self.meta_array:
             rec209 = self.meta_array[209]
             data = rec209
-            token = ''
             # The 209 data comes in five byte groups. Interpret the last four bytes
             # of each group as a big endian unsigned integer to get a key value
             # if that key exists in the meta_array, append its contents to the token
