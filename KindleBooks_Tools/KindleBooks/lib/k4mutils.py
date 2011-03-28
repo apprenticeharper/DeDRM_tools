@@ -168,27 +168,33 @@ def CryptUnprotectData(encryptedData):
     return cleartext
 
 
-# Locate and open the .kindle-info file
-def openKindleInfo(kInfoFile=None):
-    if kInfoFile == None:
-	home = os.getenv('HOME')
-	cmdline = 'find "' + home + '/Library/Application Support" -name ".kindle-info"'
-	cmdline = cmdline.encode(sys.getfilesystemencoding())
-	p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-        out1, out2 = p1.communicate()
-	reslst = out1.split('\n')
-	kinfopath = 'NONE'
-	cnt = len(reslst)
-	for j in xrange(cnt):
-	    resline = reslst[j]
-	    pp = resline.find('.kindle-info')
-	    if pp >= 0:
-		kinfopath = resline
-		break
-	if not os.path.isfile(kinfopath):
-	    raise DrmException('Error: .kindle-info file can not be found')
-	return open(kinfopath,'r')
-    else:
-	if not os.path.isfile(kInfoFile):
-	    raise DrmException('Error: kindle-info file can not be found')
-        return open(kInfoFile, 'r')
+# Locate the .kindle-info files
+def getKindleInfoFiles(kInfoFiles):
+    home = os.getenv('HOME')
+    cmdline = 'find "' + home + '/Library/Application Support" -name ".kindle-info"'
+    cmdline = cmdline.encode(sys.getfilesystemencoding())
+    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
+    out1, out2 = p1.communicate()
+    reslst = out1.split('\n')
+    kinfopath = 'NONE'
+    found = False
+    cnt = len(reslst)
+    for resline in reslst:
+        if os.path.isfile(resline):
+            kInfoFiles.append(resline)
+            found = True
+    if not found:
+        print('No .kindle-info files have been found.')
+    return kInfoFiles
+
+# Parse the Kindle.info file and return the records as a list of key-values
+def parseKindleInfo(kInfoFile):
+    DB = {}
+    infoReader = open(kInfoFile, 'r')
+    infoReader.read(1)
+    data = infoReader.read()
+    items = data.split('[')
+    for item in items:
+        splito = item.split(':')
+        DB[splito[0]] =splito[1]
+    return DB

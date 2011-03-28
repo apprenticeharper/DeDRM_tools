@@ -18,9 +18,9 @@ global charMap3
 global charMap4
 
 if sys.platform.startswith('win'):
-    from k4pcutils import openKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap2
+    from k4pcutils import getKindleInfoFiles, parseKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap2
 if sys.platform.startswith('darwin'):
-    from k4mutils import openKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap2
+    from k4mutils import getKindleInfoFiles, parseKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap2
 
 charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
 charMap3 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -66,22 +66,6 @@ def decode(data,map):
         value = (((high * len(map)) ^ 0x80) & 0xFF) + low
         result += pack("B",value)
     return result
-
-
-# Parse the Kindle.info file and return the records as a list of key-values
-def parseKindleInfo(kInfoFile):
-    DB = {}
-    infoReader = openKindleInfo(kInfoFile)
-    infoReader.read(1)
-    data = infoReader.read()
-    if sys.platform.startswith('win'):
-        items = data.split('{')
-    else :
-        items = data.split('[')
-    for item in items:
-        splito = item.split(':')
-        DB[splito[0]] =splito[1]
-    return DB
 
 # Get a record from the Kindle.info file for the key "hashedKey" (already hashed and encoded). 
 # Return the decoded and decrypted record
@@ -241,7 +225,7 @@ def getKindlePid(pidlst, rec209, token, serialnum):
 # Parse the EXTH header records and parse the Kindleinfo
 # file to calculate the book pid.
 
-def getK4Pids(pidlst, rec209, token, kInfoFile=None):
+def getK4Pids(pidlst, rec209, token, kInfoFile):
     global kindleDatabase
     global charMap1
     kindleDatabase = None
@@ -254,10 +238,17 @@ def getK4Pids(pidlst, rec209, token, kInfoFile=None):
     
     if kindleDatabase == None :
         return pidlst
+        
+    try:
+        # Get the Mazama Random number
+        MazamaRandomNumber = getKindleInfoValueForKey("MazamaRandomNumber")
 
-    # Get the Mazama Random number
-    MazamaRandomNumber = getKindleInfoValueForKey("MazamaRandomNumber")
-
+        # Get the kindle account token
+        kindleAccountToken = getKindleInfoValueForKey("kindle.account.tokens")
+    except KeyError:
+        print "Keys not found in " + kInfoFile
+        return pidlst
+        
     # Get the HDD serial
     encodedSystemVolumeSerialNumber = encodeHash(GetVolumeSerialNumber(),charMap1)
 
@@ -273,10 +264,7 @@ def getK4Pids(pidlst, rec209, token, kInfoFile=None):
     devicePID = checksumPid(devicePID)
     pidlst.append(devicePID)
 
-    # Compute book PID
-
-    # Get the kindle account token
-    kindleAccountToken = getKindleInfoValueForKey("kindle.account.tokens")
+    # Compute book PIDs
 
     # book pid
     pidHash = SHA1(DSN+kindleAccountToken+rec209+token)
@@ -300,8 +288,10 @@ def getK4Pids(pidlst, rec209, token, kInfoFile=None):
 
 def getPidList(md1, md2, k4, pids, serials, kInfoFiles):
     pidlst = []
+    if kInfoFiles is None:
+    	kInfoFiles = []
     if k4:
-        pidlst = getK4Pids(pidlst, md1, md2)
+        kInfoFiles = getKindleInfoFiles(kInfoFiles)
     for infoFile in kInfoFiles:
         pidlst = getK4Pids(pidlst, md1, md2, infoFile)
     for serialnum in serials:

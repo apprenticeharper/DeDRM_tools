@@ -323,12 +323,12 @@ def generateBook(bookDir, raw, fixedimage):
     meta_array = getMetaArray(metaFile)
 
     # replace special chars in title and authors like & < > 
-    title = meta_array['Title']
+    title = meta_array.get('Title','No Title Provided')
     title = title.replace('&','&amp;')
     title = title.replace('<','&lt;')
     title = title.replace('>','&gt;')
     meta_array['Title'] = title
-    authors = meta_array['Authors']
+    authors = meta_array.get('Authors','No Authors Provided')
     authors = authors.replace('&','&amp;')
     authors = authors.replace('<','&lt;')
     authors = authors.replace('>','&gt;')
@@ -413,8 +413,10 @@ def generateBook(bookDir, raw, fixedimage):
     htmlstr += '<title>' + meta_array['Title'] + ' by ' + meta_array['Authors'] + '</title>\n' 
     htmlstr += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
     htmlstr += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
-    htmlstr += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
-    htmlstr += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
+    if 'ASIN' in meta_array:
+        htmlstr += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
+    if 'GUID' in meta_array:
+        htmlstr += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
     htmlstr += '<link href="style.css" rel="stylesheet" type="text/css" />\n'
     htmlstr += '</head>\n<body>\n'
 
@@ -430,8 +432,10 @@ def generateBook(bookDir, raw, fixedimage):
     svgindex += '<title>' + meta_array['Title'] + '</title>\n'
     svgindex += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
     svgindex += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
-    svgindex += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
-    svgindex += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
+    if 'ASIN' in meta_array:
+        svgindex += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
+    if 'GUID' in meta_array:
+        svgindex += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
     svgindex += '</head>\n'
     svgindex += '<body>\n'
 
@@ -485,9 +489,12 @@ def generateBook(bookDir, raw, fixedimage):
     opfstr += '<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="guid_id">\n'
     # adding metadata
     opfstr += '   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">\n'
-    opfstr += '      <dc:identifier opf:scheme="GUID" id="guid_id">' + meta_array['GUID'] + '</dc:identifier>\n'
-    opfstr += '      <dc:identifier opf:scheme="ASIN">' + meta_array['ASIN'] + '</dc:identifier>\n'
-    opfstr += '      <dc:identifier opf:scheme="oASIN">' + meta_array['oASIN'] + '</dc:identifier>\n'
+    if 'GUID' in meta_array:
+        opfstr += '      <dc:identifier opf:scheme="GUID" id="guid_id">' + meta_array['GUID'] + '</dc:identifier>\n'
+    if 'ASIN' in meta_array:
+        opfstr += '      <dc:identifier opf:scheme="ASIN">' + meta_array['ASIN'] + '</dc:identifier>\n'
+    if 'oASIN' in meta_array:
+        opfstr += '      <dc:identifier opf:scheme="oASIN">' + meta_array['oASIN'] + '</dc:identifier>\n'
     opfstr += '      <dc:title>' + meta_array['Title'] + '</dc:title>\n'
     opfstr += '      <dc:creator opf:role="aut">' + meta_array['Authors'] + '</dc:creator>\n'
     opfstr += '      <dc:language>en</dc:language>\n'

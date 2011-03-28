@@ -93,18 +93,25 @@ def CryptUnprotectData():
     return CryptUnprotectData
 CryptUnprotectData = CryptUnprotectData()
 
-#
-# Locate and open the Kindle.info file.
-#
-def openKindleInfo(kInfoFile=None):
-    if kInfoFile == None:
-        regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
-        path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
-        kinfopath = path +'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info'
-        if not os.path.isfile(kinfopath):
-            raise DrmException('Error: kindle.info file can not be found')
-        return open(kinfopath,'r')
+# Locate the .kindle-info files
+def getKindleInfoFiles(kInfoFiles):
+    regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
+    path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
+    kinfopath = path +'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info'
+    if not os.path.isfile(kinfopath):
+        print('The kindle.info files has not been found.')
     else:
-        if not os.path.isfile(kInfoFile):
-            raise DrmException('Error: kindle.info file can not be found')
-        return open(kInfoFile, 'r')
+        kInfoFiles.append(kinfopath)
+    return kInfoFiles
+
+# Parse the Kindle.info file and return the records as a list of key-values
+def parseKindleInfo(kInfoFile):
+    DB = {}
+    infoReader = open(kInfoFile, 'r')
+    infoReader.read(1)
+    data = infoReader.read()
+    items = data.split('{')
+    for item in items:
+        splito = item.split(':')
+        DB[splito[0]] =splito[1]
+    return DB
