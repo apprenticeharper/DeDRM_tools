@@ -231,6 +231,9 @@ def main(argv=sys.argv):
 
     # try with built in Kindle Info files
     k4 = True
+    if sys.platform.startswith('linux'):
+	k4 = False
+	kInfoFiles = None
     infile = args[0]
     outdir = args[1]
 
@@ -267,6 +270,8 @@ if not __name__ == "__main__" and inCalibre:
             import mobidedrm
 
             k4 = True
+	    if sys.platform.startswith('linux'):
+		k4 = False
             pids = []
             serials = []
             kInfoFiles = []
