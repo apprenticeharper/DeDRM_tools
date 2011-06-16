@@ -51,8 +51,9 @@
 #  0.29 - It seems that the ideas about when multibyte trailing characters were
 #         included in the encryption were wrong. They aren't for DOC compressed
 #         files, but they are for HUFF/CDIC compress files!
+#  0.30 - Modified interface slightly to work better with new calibre plugin style
 
-__version__ = '0.29'
+__version__ = '0.30'
 
 import sys
 
@@ -163,6 +164,7 @@ class MobiBook:
     def __init__(self, infile):
         # initial sanity check on file
         self.data_file = file(infile, 'rb').read()
+        self.mobi_data = ''
         self.header = self.data_file[0:78]
         if self.header[0x3C:0x3C+8] != 'BOOKMOBI' and self.header[0x3C:0x3C+8] != 'TEXtREAd':
             raise DrmException("invalid file format")
@@ -301,13 +303,17 @@ class MobiBook:
                         break
         return [found_key,pid]
 
+    def getMobiFile(self, outpath):
+        file(outpath,'wb').write(self.mobi_data)
+
     def processBook(self, pidlist):
         crypto_type, = struct.unpack('>H', self.sect[0xC:0xC+2])
         print 'Crypto Type is: ', crypto_type
         self.crypto_type = crypto_type
         if crypto_type == 0:
             print "This book is not encrypted."
-            return self.data_file
+            self.mobi_data = self.data_file
+            return
         if crypto_type != 2 and crypto_type != 1:
             raise DrmException("Cannot decode unknown Mobipocket encryption type %d" % crypto_type)
 
@@ -353,33 +359,35 @@ class MobiBook:
 
         # decrypt sections
         print "Decrypting. Please wait . . .",
-        new_data = self.data_file[:self.sections[1][0]]
+        self.mobi_data = self.data_file[:self.sections[1][0]]
         for i in xrange(1, self.records+1):
             data = self.loadSection(i)
             extra_size = getSizeOfTrailingDataEntries(data, len(data), self.extra_data_flags)
             if i%100 == 0:
                 print ".",
             # print "record %d, extra_size %d" %(i,extra_size)
-            new_data += PC1(found_key, data[0:len(data) - extra_size])
+            self.mobi_data += PC1(found_key, data[0:len(data) - extra_size])
             if extra_size > 0:
-                new_data += data[-extra_size:]
+                self.mobi_data += data[-extra_size:]
         if self.num_sections > self.records+1:
-            new_data += self.data_file[self.sections[self.records+1][0]:]
-        self.data_file = new_data
+            self.mobi_data += self.data_file[self.sections[self.records+1][0]:]
         print "done"
-        return self.data_file
+        return
 
 def getUnencryptedBook(infile,pid):
     if not os.path.isfile(infile):
         raise DrmException('Input File Not Found')
     book = MobiBook(infile)
-    return book.processBook([pid])
+    book.processBook([pid])
+    return book.mobi_data
 
 def getUnencryptedBookWithList(infile,pidlist):
     if not os.path.isfile(infile):
         raise DrmException('Input File Not Found')
     book = MobiBook(infile)
-    return book.processBook(pidlist)
+    book.processBook(pidlist)
+    return book.mobi_data
+
 
 def main(argv=sys.argv):
     print ('MobiDeDrm v%(__version__)s. '

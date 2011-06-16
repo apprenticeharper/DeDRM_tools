@@ -4,7 +4,7 @@
 # Released under the terms of the GNU General Public Licence, version 3 or
 # later.  <http://www.gnu.org/licenses/>
 #
-# Requires Calibre version 0.6.44 or higher.
+# Requires Calibre version 0.7.55 or higher.
 #
 # All credit given to I <3 Cabbages for the original standalone scripts.
 # I had the much easier job of converting them to a Calibre plugin.
@@ -49,6 +49,7 @@
 #   0.1.4 - default to try PyCrypto first on Windows
 #   0.1.5 - update zipfix to handle out of position mimetypes
 #   0.1.6 - update zipfix to handle completely missing mimetype files
+#   0.1.7 - update to new calibre plugin interface
 
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
@@ -365,6 +366,7 @@ def plugin_main(userkey, inpath, outpath):
     return 0
 
 from calibre.customize import FileTypePlugin
+from calibre.constants import iswindows, isosx
 
 class IneptDeDRM(FileTypePlugin):
     name                    = 'Inept Epub DeDRM'
@@ -372,8 +374,8 @@ class IneptDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 6)
-    minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
+    version                 = (0, 1, 7)
+    minimum_calibre_version = (0, 7, 55)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True
     priority                = 100
@@ -381,10 +383,6 @@ class IneptDeDRM(FileTypePlugin):
     def run(self, path_to_ebook):
         global AES
         global RSA
-        
-        from calibre.gui2 import is_ok_to_use_qt
-        from PyQt4.Qt import QMessageBox
-        from calibre.constants import iswindows, isosx
         
         AES, RSA = _load_crypto()
         
@@ -418,7 +416,7 @@ class IneptDeDRM(FileTypePlugin):
             # Calibre's configuration directory for future use.
             if iswindows or isosx:
                 # ADE key retrieval script included in respective OS folder.
-                from ade_key import retrieve_key
+                from calibre_plugins.ineptepub.ade_key import retrieve_key
                 try:
                     keydata = retrieve_key()
                     userkeys.append(keydata)
@@ -439,7 +437,7 @@ class IneptDeDRM(FileTypePlugin):
         for userkey in userkeys:
             # Create a TemporaryPersistent file to work with.
             # Check original epub archive for zip errors.
-            import zipfix
+            from calibre_plugins.ineptepub import zipfix
             inf = self.temporary_file('.epub')
             try:
                 fr = zipfix.fixZip(path_to_ebook, inf.name)

@@ -124,14 +124,17 @@ class PrefsDialog(Toplevel):
         button = Tkinter.Button(body, text="...", command=self.get_bnkpath)
         button.grid(row=1, column=2)
         
-        Tkinter.Label(body, text='Additional kindle.info file').grid(row=2, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='Additional kindle.info or .kinf file').grid(row=2, sticky=Tkconstants.E)
         self.altinfopath = Tkinter.Entry(body, width=50)
         self.altinfopath.grid(row=2, column=1, sticky=sticky)
         prefdir = self.prefs_array['dir']
-        infofile = os.path.join(prefdir,'kindle.info')
         path = ''
+        infofile = os.path.join(prefdir,'kindle.info')
+        ainfofile = os.path.join(prefdir,'.kinf')
         if os.path.isfile(infofile):
             path = infofile
+        elif os.path.isfile(ainfofile):
+            path = ainfofile
         path = path.encode('utf-8')
         self.altinfopath.insert(0, path)
         button = Tkinter.Button(body, text="...", command=self.get_altinfopath)
@@ -245,8 +248,8 @@ class PrefsDialog(Toplevel):
 
     def get_altinfopath(self):
         cpath = self.altinfopath.get()
-        altinfopath = tkFileDialog.askopenfilename(parent=None, title='Select Alternative kindle.info File',
-            defaultextension='.info', filetypes=[('Kindle Info', '.info'),('All Files', '.*')],
+        altinfopath = tkFileDialog.askopenfilename(parent=None, title='Select Alternative kindle.info or .kinf File',
+            defaultextension='.info', filetypes=[('Kindle Info', '.info'),('Kindle KInf','.kinf')('All Files', '.*')],
             initialdir=cpath)
         if altinfopath:
             altinfopath = os.path.normpath(altinfopath)
@@ -457,8 +460,7 @@ class ConvDialog(Toplevel):
         name, ext = os.path.splitext(os.path.basename(infile))
         ext = ext.lower()
         if ext == '.epub':
-            outfile = os.path.join(outdir, name + '_nodrm.epub')
-            self.p2 = processEPUB(apphome, infile, outfile, rscpath)
+            self.p2 = processEPUB(apphome, infile, outdir, rscpath)
             return 0
         if ext == '.pdb':
             self.p2 = processPDB(apphome, infile, outdir, rscpath)
@@ -467,8 +469,7 @@ class ConvDialog(Toplevel):
             self.p2 = processK4MOBI(apphome, infile, outdir, rscpath)
             return 0
         if ext == '.pdf':
-            outfile = os.path.join(outdir, name + '_nodrm.pdf')
-            self.p2 = processPDF(apphome, infile, outfile, rscpath)
+            self.p2 = processPDF(apphome, infile, outdir, rscpath)
             return 0
         return rv
 
@@ -506,7 +507,7 @@ def processK4MOBI(apphome, infile, outdir, rscpath):
         parms += '-s "' + serialnums + '" '
 
     files = os.listdir(rscpath)
-    filefilter = re.compile("\.info$", re.IGNORECASE)
+    filefilter = re.compile("\.info$|\.kinf$", re.IGNORECASE)
     files = filter(filefilter.search, files)
     if files:
         for filename in files:
@@ -516,16 +517,16 @@ def processK4MOBI(apphome, infile, outdir, rscpath):
     p2 = runit(apphome, cmd, parms)
     return p2
 
-def processPDF(apphome, infile, outfile, rscpath):
+def processPDF(apphome, infile, outdir, rscpath):
     cmd = os.path.join('lib','decryptpdf.py')
-    parms =  '"' + infile + '" "' + outfile + '" "' + rscpath + '"'
+    parms =  '"' + infile + '" "' + outdir + '" "' + rscpath + '"'
     p2 = runit(apphome, cmd, parms)
     return p2
 
-def processEPUB(apphome, infile, outfile, rscpath):
+def processEPUB(apphome, infile, outdir, rscpath):
     # invoke routine to check both Adept and Barnes and Noble
     cmd = os.path.join('lib','decryptepub.py')
-    parms = '"' + infile + '" "' + outfile + '" "' + rscpath + '"'
+    parms = '"' + infile + '" "' + outdir + '" "' + rscpath + '"'
     p2 = runit(apphome, cmd, parms)
     return p2
 

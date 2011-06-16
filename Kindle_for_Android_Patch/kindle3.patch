@@ -1,0 +1,100 @@
+diff -ru kindle3_orig/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali kindle3/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali
+--- kindle3_orig/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali
++++ kindle3/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali
+@@ -11,6 +11,8 @@
+ 
+ .field private security:Lcom/mobipocket/android/library/reader/AndroidSecurity;
+ 
++.field private pidList:Ljava/lang/String;
++
+ 
+ # direct methods
+ .method public constructor <init>(Lcom/mobipocket/android/library/reader/AndroidSecurity;Lcom/amazon/kcp/application/AndroidDeviceType;)V
+@@ -28,6 +30,10 @@
+     .line 26
+     iput-object p2, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->deviceType:Lcom/amazon/kcp/application/AndroidDeviceType;
+ 
++    const-string v0, "Open DRMed book to show PID list."
++
++    iput-object v0, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->pidList:Ljava/lang/String;
++
+     .line 27
+     new-instance v0, Ljava/lang/StringBuilder;
+ 
+@@ -175,4 +181,26 @@
+     move-result-object v0
+ 
+     return-object v0
++.end method
++
++.method public getPidList()Ljava/lang/String;
++    .locals 1
++
++    .prologue
++    .line 15
++    iget-object v0, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->pidList:Ljava/lang/String;
++
++    return-object v0
++.end method
++
++.method public setPidList(Ljava/lang/String;)V
++    .locals 0
++    .parameter "value"
++
++    .prologue
++    .line 11
++    iput-object p1, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->pidList:Ljava/lang/String;
++
++    .line 12
++    return-void
+ .end method
+diff -ru kindle3_orig/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali kindle3/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali
+--- kindle3_orig/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali
++++ kindle3/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali
+@@ -27,3 +27,9 @@
+ 
+ .method public abstract getPid()Ljava/lang/String;
+ .end method
++
++.method public abstract getPidList()Ljava/lang/String;
++.end method
++
++.method public abstract setPidList(Ljava/lang/String;)V
++.end method
+\ No newline at end of file
+diff -ru kindle3_orig/smali/com/amazon/kcp/info/AboutActivity.smali kindle3/smali/com/amazon/kcp/info/AboutActivity.smali
+--- kindle3_orig/smali/com/amazon/kcp/info/AboutActivity.smali
++++ kindle3/smali/com/amazon/kcp/info/AboutActivity.smali
+@@ -32,9 +32,11 @@
+     invoke-direct {v6, v1}, Ljava/util/ArrayList;-><init>(I)V
+ 
+     .line 36
+-    const v1, 0x7f0b0005
++    invoke-static {}, Lcom/amazon/kcp/application/DeviceInformationProviderFactory;->getProvider()Lcom/amazon/kcp/application/IDeviceInformationProvider;
+ 
+-    invoke-virtual {p0, v1}, Lcom/amazon/kcp/info/AboutActivity;->getString(I)Ljava/lang/String;
++    move-result-object v0
++
++    invoke-interface {v0}, Lcom/amazon/kcp/application/IDeviceInformationProvider;->getPidList()Ljava/lang/String;
+ 
+     move-result-object v1
+ 
+diff -ru kindle3_orig/smali/com/amazon/system/security/Security.smali kindle3/smali/com/amazon/system/security/Security.smali
+--- kindle3_orig/smali/com/amazon/system/security/Security.smali
++++ kindle3/smali/com/amazon/system/security/Security.smali
+@@ -884,6 +884,15 @@
+ 
+     .line 332
+     :cond_1
++
++    const-string v1, "PID list"
++    invoke-static {}, Lcom/amazon/kcp/application/DeviceInformationProviderFactory;->getProvider()Lcom/amazon/kcp/application/IDeviceInformationProvider;
++    move-result-object v0
++    invoke-static {v7}, Ljava/util/Arrays;->toString([Ljava/lang/Object;)Ljava/lang/String;
++    move-result-object v2
++    invoke-interface {v0, v2}, Lcom/amazon/kcp/application/IDeviceInformationProvider;->setPidList(Ljava/lang/String;)V
++    invoke-static {v1, v2}, Landroid/util/Log;->e(Ljava/lang/String;Ljava/lang/String;)I
++
+     return-object v7
+ 
+     :cond_2

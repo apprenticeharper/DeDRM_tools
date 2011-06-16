@@ -4,7 +4,7 @@
 # Released under the terms of the GNU General Public Licence, version 3 or
 # later.  <http://www.gnu.org/licenses/>
 #
-# Requires Calibre version 0.6.44 or higher.
+# Requires Calibre version 0.7.55 or higher.
 #
 # All credit given to I <3 Cabbages for the original standalone scripts.
 # I had the much easier job of converting them to Calibre a plugin.
@@ -48,6 +48,7 @@
 #   0.1.3 - Try PyCrypto on Windows first
 #   0.1.4 - update zipfix to deal with mimetype not in correct place
 #   0.1.5 - update zipfix to deal with completely missing mimetype files
+#   0.1.6 - update ot the new calibre plugin interface 
 
 """
 Decrypt Barnes & Noble ADEPT encrypted EPUB books.
@@ -266,6 +267,7 @@ def plugin_main(userkey, inpath, outpath):
     return 0
 
 from calibre.customize import FileTypePlugin
+from calibre.constants import iswindows, isosx
 
 class IgnobleDeDRM(FileTypePlugin):
     name                    = 'Ignoble Epub DeDRM'
@@ -273,18 +275,14 @@ class IgnobleDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 5)
-    minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
+    version                 = (0, 1, 6)
+    minimum_calibre_version = (0, 7, 55)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True
 
     def run(self, path_to_ebook):
         global AES
         global AES2
-        
-        from calibre.gui2 import is_ok_to_use_qt
-        from PyQt4.Qt import QMessageBox
-        from calibre.constants import iswindows, isosx
         
         AES, AES2 = _load_crypto()
         
@@ -341,7 +339,7 @@ class IgnobleDeDRM(FileTypePlugin):
         for userkey in userkeys:
             # Create a TemporaryPersistent file to work with.
             # Check original epub archive for zip errors.
-            import zipfix
+            from calibre_plugins.ignobleepub import zipfix
             inf = self.temporary_file('.epub')
             try:
                 fr = zipfix.fixZip(path_to_ebook, inf.name)

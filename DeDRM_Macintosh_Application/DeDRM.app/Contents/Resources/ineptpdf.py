@@ -157,6 +157,7 @@ def _load_crypto_libcrypto():
             return out.raw
 
     class AES(object):
+        MODE_CBC = 0
         @classmethod
         def new(cls, userkey, mode, iv):
             self = AES()

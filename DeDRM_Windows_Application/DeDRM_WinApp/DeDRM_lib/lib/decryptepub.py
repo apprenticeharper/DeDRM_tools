@@ -24,7 +24,7 @@ def main(argv=sys.argv):
     if len(args) != 3:
         return -1
     infile = args[0]
-    outfile = args[1]
+    outdir = args[1]
     rscpath = args[2]
     errlog = ''
 
@@ -36,6 +36,9 @@ def main(argv=sys.argv):
     if rv != 0:
         print "Error while trying to fix epub"
         return rv
+
+    # determine a good name for the output file
+    outfile = os.path.join(outdir, name + '_nodrm.epub')
 
     rv = 1
     # first try with the Adobe adept epub

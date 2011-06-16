@@ -21,10 +21,21 @@ from struct import unpack
 
 
 # local support routines
-import convert2xml
-import flatxml2html
-import flatxml2svg
-import stylexml2css
+if 'calibre' in sys.modules:
+    inCalibre = True
+else:
+    inCalibre = False
+
+if inCalibre :
+    from calibre_plugins.k4mobidedrm import convert2xml
+    from calibre_plugins.k4mobidedrm import flatxml2html
+    from calibre_plugins.k4mobidedrm import flatxml2svg
+    from calibre_plugins.k4mobidedrm import stylexml2css
+else :
+    import convert2xml
+    import flatxml2html
+    import flatxml2svg
+    import stylexml2css
 
 
 # Get a 7 bit encoded number from a file
@@ -504,7 +515,7 @@ def generateBook(bookDir, raw, fixedimage):
     opfstr += '   </metadata>\n'
     opfstr += '<manifest>\n'
     opfstr += '   <item id="book" href="book.html" media-type="application/xhtml+xml"/>\n'
-    opfstr += '   <item id="stylesheet" href="style.css" media-type="text.css"/>\n'
+    opfstr += '   <item id="stylesheet" href="style.css" media-type="text/css"/>\n'
     # adding image files to manifest
     filenames = os.listdir(imgDir)
     filenames = sorted(filenames)

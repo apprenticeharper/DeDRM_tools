@@ -11,16 +11,28 @@ from struct import pack, unpack, unpack_from
 class DrmException(Exception):
     pass
 
-global kindleDatabase
 global charMap1
-global charMap2
 global charMap3
 global charMap4
 
-if sys.platform.startswith('win'):
-    from k4pcutils import getKindleInfoFiles, parseKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap2
-if sys.platform.startswith('darwin'):
-    from k4mutils import getKindleInfoFiles, parseKindleInfo, CryptUnprotectData, GetUserName, GetVolumeSerialNumber, charMap2
+if 'calibre' in sys.modules:
+    inCalibre = True
+else:
+    inCalibre = False
+
+if inCalibre:
+    if sys.platform.startswith('win'):
+        from calibre_plugins.k4mobidedrm.k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetVolumeSerialNumber
+
+    if sys.platform.startswith('darwin'):
+        from calibre_plugins.k4mobidedrm.k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetVolumeSerialNumber
+else:
+    if sys.platform.startswith('win'):
+        from k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetVolumeSerialNumber
+
+    if sys.platform.startswith('darwin'):
+        from k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetVolumeSerialNumber
+
 
 charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
 charMap3 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -66,50 +78,7 @@ def decode(data,map):
         value = (((high * len(map)) ^ 0x80) & 0xFF) + low
         result += pack("B",value)
     return result
-
-# Get a record from the Kindle.info file for the key "hashedKey" (already hashed and encoded). 
-# Return the decoded and decrypted record
-def getKindleInfoValueForHash(hashedKey):
-    global kindleDatabase
-    global charMap1
-    global charMap2
-    encryptedValue = decode(kindleDatabase[hashedKey],charMap2)
-    if sys.platform.startswith('win'):
-        return CryptUnprotectData(encryptedValue,"")
-    else:
-        cleartext = CryptUnprotectData(encryptedValue)
-        return decode(cleartext, charMap1)
- 
-# Get a record from the Kindle.info file for the string in "key" (plaintext). 
-# Return the decoded and decrypted record
-def getKindleInfoValueForKey(key):
-    global charMap2
-    return getKindleInfoValueForHash(encodeHash(key,charMap2))
-
-# Find if the original string for a hashed/encoded string is known. 
-# If so return the original string othwise return an empty string.
-def findNameForHash(hash):
-    global charMap2
-    names = ["kindle.account.tokens","kindle.cookie.item","eulaVersionAccepted","login_date","kindle.token.item","login","kindle.key.item","kindle.name.info","kindle.device.info", "MazamaRandomNumber"]
-    result = ""
-    for name in names:
-        if hash == encodeHash(name, charMap2):
-           result = name
-           break
-    return result
     
-# Print all the records from the kindle.info file (option -i)
-def printKindleInfo():
-    for record in kindleDatabase:
-        name = findNameForHash(record)
-        if name != "" :
-            print (name)
-            print ("--------------------------")
-        else :
-            print ("Unknown Record")
-        print getKindleInfoValueForHash(record)
-        print "\n"
-
 #
 # PID generation routines
 #
@@ -222,15 +191,15 @@ def getKindlePid(pidlst, rec209, token, serialnum):
     return pidlst
 
 
-# Parse the EXTH header records and parse the Kindleinfo
-# file to calculate the book pid.
+# parse the Kindleinfo file to calculate the book pid.
+
+keynames = ["kindle.account.tokens","kindle.cookie.item","eulaVersionAccepted","login_date","kindle.token.item","login","kindle.key.item","kindle.name.info","kindle.device.info", "MazamaRandomNumber"]
 
 def getK4Pids(pidlst, rec209, token, kInfoFile):
-    global kindleDatabase
     global charMap1
     kindleDatabase = None
     try:
-        kindleDatabase = parseKindleInfo(kInfoFile)
+        kindleDatabase = getDBfromFile(kInfoFile)
     except Exception, message:
         print(message)
         kindleDatabase = None
@@ -241,10 +210,10 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
         
     try:
         # Get the Mazama Random number
-        MazamaRandomNumber = getKindleInfoValueForKey("MazamaRandomNumber")
+        MazamaRandomNumber = kindleDatabase["MazamaRandomNumber"]
 
         # Get the kindle account token
-        kindleAccountToken = getKindleInfoValueForKey("kindle.account.tokens")
+        kindleAccountToken = kindleDatabase["kindle.account.tokens"]
     except KeyError:
         print "Keys not found in " + kInfoFile
         return pidlst

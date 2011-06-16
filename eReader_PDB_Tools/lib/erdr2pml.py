@@ -58,8 +58,9 @@
 #  0.17 - added support for pycrypto's DES as well
 #  0.18 - on Windows try PyCrypto first and OpenSSL next
 #  0.19 - Modify the interface to allow use of import
+#  0.20 - modify to allow use inside new interface for calibre plugins
 
-__version__='0.19'
+__version__='0.20'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -71,32 +72,50 @@ class Unbuffered:
         return getattr(self.stream, attr)
 
 import sys
-sys.stdout=Unbuffered(sys.stdout)
-
 import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile
+
+if 'calibre' in sys.modules:
+    inCalibre = True
+else:
+    inCalibre = False
 
 Des = None
 if sys.platform.startswith('win'):
     # first try with pycrypto
-    import pycrypto_des
+    if inCalibre:
+        from calibre_plugins.erdrpdb2pml import pycrypto_des
+    else:
+        import pycrypto_des
     Des = pycrypto_des.load_pycrypto()
     if Des == None:
         # they try with openssl
-        import openssl_des
+        if inCalibre:
+            from calibre_plugins.erdrpdb2pml import openssl_des
+        else:
+            import openssl_des
         Des = openssl_des.load_libcrypto()
 else:
     # first try with openssl
-    import openssl_des
+    if inCalibre:
+        from calibre_plugins.erdrpdb2pml import openssl_des
+    else:
+        import openssl_des
     Des = openssl_des.load_libcrypto()
     if Des == None:
         # then try with pycrypto
-        import pycrypto_des
+        if inCalibre:
+            from calibre_plugins.erdrpdb2pml import pycrypto_des
+        else:
+            import pycrypto_des
         Des = pycrypto_des.load_pycrypto()
 
 # if that did not work then use pure python implementation
 # of DES and try to speed it up with Psycho
 if Des == None:
-    import python_des
+    if inCalibre:
+        from calibre_plugins.erdrpdb2pml import python_des
+    else:
+        import python_des
     Des = python_des.Des
     # Import Psyco if available
     try:
@@ -480,5 +499,6 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    sys.stdout=Unbuffered(sys.stdout)
     sys.exit(main())
 

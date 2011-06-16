@@ -5,12 +5,11 @@ This plugin supersedes MobiDeDRM, K4DeDRM, and K4PCDeDRM and K4X plugins.  If yo
 This plugin is meant to remove the DRM from .prc, .azw, .azw1, and .tpz ebooks.   Calibre can then convert them to whatever format you desire. It is meant to function without having to install any  dependencies except for Calibre being on your same machine and in the same account as your "Kindle for PC" or "Kindle for Mac" application if you are going to remove the DRM from those types of books.
 
 Installation:
-Go to Calibre's Preferences page... click on the Plugins button. Use the file dialog button to select the plugin's zip file  (K4MobiDeDRM_vXX_plugin.zip) and click the 'Add' button. You're done.
+Go to Calibre's Preferences page... click on the Plugins button. Click on the "Add a new plugin" button at the bottom of the screen.  Use the file dialog button to select the plugin's zip file  (K4MobiDeDRM_vXX_plugin.zip) and click the "Add" (or it may say "Open" button.  Then click on the "Yes" button in the warning dialog that appears.  A Confirmation dialog appears that says the plugin has been installed.
 
-Please note:  Calibre does not provide any immediate feedback to indicate that adding the plugin was a success. You can always click on the File-Type plugins to see if the plugin was added.
-
+
 Configuration:
-Highlight the plugin (K4MobiDeDRM under the "File type plugins" category) and click the "Customize Plugin" button on Calibre's Preferences->Plugins page. Enter a comma separated list of your 10 digit PIDs.  Include in this list (again separated by commas) any 16 digit serial numbers the standalone Kindles you may have (these typically begin "B0...")  This is not needed if you only want to decode "Kindle for PC" or "Kindle for Mac" books. 
+Highlight the plugin (K4MobiDeDRM under the "File type plugins" category) and click the "Customize Plugin" button on Calibre's Preferences->Plugins page. Enter your 10 digit PID.  If you have more than one PID separate them with a comma (no spaces).  If you have a standalone Kindle include the 16 digit serial number (these typically begin "B0...") in this list (again separated from the PIDs or other serial numbers with a comma (no spaces).   This configuration  is not needed if you only want to decode "Kindle for PC" or "Kindle for Mac" books. 
 
 
 Troubleshooting:

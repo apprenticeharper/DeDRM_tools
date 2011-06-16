@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-# ineptpdf_plugin.py
+# ineptpdf plugin  __init__.py
 # Released under the terms of the GNU General Public Licence, version 3 or
 # later.  <http://www.gnu.org/licenses/>
 
@@ -11,7 +11,7 @@
 # be able to read OUR books on whatever device we want and to keep 
 # readable for a long, long time
 
-# Requires Calibre version 0.6.44 or higher.
+# Requires Calibre version 0.7.55 or higher.
 #
 # All credit given to I <3 Cabbages for the original standalone scripts.
 # I had the much easier job of converting them to a Calibre plugin.
@@ -51,6 +51,7 @@
 #   0.1.1 - back port ineptpdf 8.4.X support for increased number of encryption methods
 #   0.1.2 - back port ineptpdf 8.4.X bug fixes
 #   0.1.3 - add in fix for improper rejection of session bookkeys with len(bookkey) = length + 1 
+#   0.1.4 - update to the new calibre plugin interface
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
@@ -174,6 +175,7 @@ def _load_crypto_libcrypto():
             return out.raw
 
     class AES(object):
+        MODE_CBC = 0
         @classmethod
         def new(cls, userkey, mode, iv):
             self = AES()
@@ -2126,6 +2128,7 @@ def plugin_main(keypath, inpath, outpath):
 
 
 from calibre.customize import FileTypePlugin
+from calibre.constants import iswindows, isosx
 
 class IneptPDFDeDRM(FileTypePlugin):
     name                    = 'Inept PDF DeDRM'
@@ -2133,17 +2136,14 @@ class IneptPDFDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 3)
-    minimum_calibre_version = (0, 6, 44)  # Compiled python libraries cannot be imported in earlier versions.
+    version                 = (0, 1, 4)
+    minimum_calibre_version = (0, 7, 55)  # for the new plugin interface
     file_types              = set(['pdf'])
     on_import               = True
     
     def run(self, path_to_ebook):
         global ARC4, RSA, AES
         
-        from calibre.gui2 import is_ok_to_use_qt
-        from PyQt4.Qt import QMessageBox
-        from calibre.constants import iswindows, isosx
         
         ARC4, RSA, AES = _load_crypto()
         
@@ -2177,7 +2177,7 @@ class IneptPDFDeDRM(FileTypePlugin):
             # Calibre's configuration directory for future use.
             if iswindows or isosx:
                 # ADE key retrieval script.
-                from ade_key import retrieve_key
+                from calibre_plugins.ineptpdf.ade_key import retrieve_key
                 try:
                     keydata = retrieve_key()
                     userkeys.append(keydata)

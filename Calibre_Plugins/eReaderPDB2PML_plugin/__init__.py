@@ -31,10 +31,15 @@
 #   0.0.1 - Initial release
 #   0.0.2 - updated to distinguish it from earlier non-openssl version
 #   0.0.3 - removed added psyco code as it is not supported under Calibre's Python 2.7
+#   0.0.4 - minor typos fixed
+#   0.0.5 - updated to the new calibre plugin interface
 
 import sys, os
 
 from calibre.customize import FileTypePlugin
+from calibre.ptempfile import PersistentTemporaryDirectory
+from calibre.constants import iswindows, isosx
+from calibre_plugins.erdrpdb2pml import erdr2pml
 
 class eRdrDeDRM(FileTypePlugin):
     name                = 'eReader PDB 2 PML' # Name of the plugin
@@ -42,16 +47,14 @@ class eRdrDeDRM(FileTypePlugin):
                             Credit given to The Dark Reverser for the original standalone script.'
     supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
     author              = 'DiapDealer' # The author of this plugin
-    version             = (0, 0, 4)   # The version number of this plugin
+    version             = (0, 0, 5)   # The version number of this plugin
     file_types          = set(['pdb']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
+    minimum_calibre_version = (0, 7, 55)
 
     def run(self, path_to_ebook):
-        from calibre.ptempfile import PersistentTemporaryDirectory
-        from calibre.constants import iswindows, isosx
         
         global bookname, erdr2pml
-        import erdr2pml
         
         infile = path_to_ebook
         bookname = os.path.splitext(os.path.basename(infile))[0]

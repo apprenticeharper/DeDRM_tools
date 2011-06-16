@@ -10,7 +10,12 @@ class Unbuffered:
         return getattr(self.stream, attr)
 
 import sys
-sys.stdout=Unbuffered(sys.stdout)
+
+if 'calibre' in sys.modules:
+    inCalibre = True
+else:
+    inCalibre = False
+
 import os, csv, getopt
 import zlib, zipfile, tempfile, shutil
 from struct import pack
@@ -18,10 +23,32 @@ from struct import unpack
 
 class TpzDRMError(Exception):
     pass
+
     
 # local support routines
-import kgenpids
-import genbook
+if inCalibre:
+    from calibre_plugins.k4mobidedrm import kgenpids
+    from calibre_plugins.k4mobidedrm import genbook
+else:
+    import kgenpids
+    import genbook
+
+
+# recursive zip creation support routine
+def zipUpDir(myzip, tdir, localname):
+    currentdir = tdir
+    if localname != "":
+        currentdir = os.path.join(currentdir,localname)
+    list = os.listdir(currentdir)
+    for file in list:
+        afilename = file
+        localfilePath = os.path.join(localname, afilename)
+        realfilePath = os.path.join(currentdir,file)
+        if os.path.isfile(realfilePath):
+            myzip.write(realfilePath, localfilePath)
+        elif os.path.isdir(realfilePath):
+            zipUpDir(myzip, tdir, localfilePath)
+
 #
 # Utility routines
 #
@@ -110,9 +137,9 @@ def decryptDkeyRecords(data,PID):
 
 
 class TopazBook:
-    def __init__(self, filename, outdir):
+    def __init__(self, filename):
         self.fo = file(filename, 'rb')
-        self.outdir = outdir
+        self.outdir = tempfile.mkdtemp()
         self.bookPayloadOffset = 0
         self.bookHeaderRecords = {}
         self.bookMetadata = {}
@@ -317,21 +344,33 @@ class TopazBook:
                         file(outputFile, 'wb').write(record)
         print " "
 
+    def getHTMLZip(self, zipname):
+        htmlzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
+        htmlzip.write(os.path.join(self.outdir,'book.html'),'book.html')
+        htmlzip.write(os.path.join(self.outdir,'book.opf'),'book.opf')
+        if os.path.isfile(os.path.join(self.outdir,'cover.jpg')):
+            htmlzip.write(os.path.join(self.outdir,'cover.jpg'),'cover.jpg')
+        htmlzip.write(os.path.join(self.outdir,'style.css'),'style.css')
+        zipUpDir(htmlzip, self.outdir, 'img')
+        htmlzip.close()
 
-def zipUpDir(myzip, tempdir,localname):
-    currentdir = tempdir
-    if localname != "":
-        currentdir = os.path.join(currentdir,localname)
-    list = os.listdir(currentdir)
-    for file in list:
-        afilename = file
-        localfilePath = os.path.join(localname, afilename)
-        realfilePath = os.path.join(currentdir,file)
-        if os.path.isfile(realfilePath):
-            myzip.write(realfilePath, localfilePath)
-        elif os.path.isdir(realfilePath):
-            zipUpDir(myzip, tempdir, localfilePath)
+    def getSVGZip(self, zipname):
+        svgzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
+        svgzip.write(os.path.join(self.outdir,'index_svg.xhtml'),'index_svg.xhtml')
+        zipUpDir(svgzip, self.outdir, 'svg')
+        zipUpDir(svgzip, self.outdir, 'img')
+        svgzip.close()
 
+    def getXMLZip(self, zipname):
+        xmlzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
+        targetdir = os.path.join(self.outdir,'xml')
+        zipUpDir(xmlzip, targetdir, '')
+        zipUpDir(xmlzip, self.outdir, 'img')
+        xmlzip.close()
+
+    def cleanup(self):
+        if os.path.isdir(self.outdir):
+            shutil.rmtree(self.outdir, True)
 
 def usage(progname):
     print "Removes DRM protection from Topaz ebooks and extract the contents"
@@ -383,58 +422,46 @@ def main(argv=sys.argv):
         return 1
 
     bookname = os.path.splitext(os.path.basename(infile))[0]
-    tempdir = tempfile.mkdtemp()
 
-    tb = TopazBook(infile, tempdir)
+    tb = TopazBook(infile)
     title = tb.getBookTitle()
     print "Processing Book: ", title
     keysRecord, keysRecordRecord = tb.getPIDMetaInfo()
     pidlst = kgenpids.getPidList(keysRecord, keysRecordRecord, k4, pids, serials, kInfoFiles) 
 
     try:
+        print "Decrypting Book"
         tb.processBook(pidlst)
+
+        print "   Creating HTML ZIP Archive"
+        zipname = os.path.join(outdir, bookname + '_nodrm' + '.htmlz')
+        tb.getHTMLZip(zipname)
+
+        print "   Creating SVG ZIP Archive"
+        zipname = os.path.join(outdir, bookname + '_SVG' + '.htmlz')
+        tb.getSVGZip(zipname)
+
+        print "   Creating XML ZIP Archive"
+        zipname = os.path.join(outdir, bookname + '_XML' + '.zip')
+        tb.getXMLZip(zipname)
+
+        # removing internal temporary directory of pieces
+        tb.cleanup()
+
     except TpzDRMError, e:
         print str(e)
-        print "   Creating DeBug Full Zip Archive of Book"
-        zipname = os.path.join(outdir, bookname + '_debug' + '.zip')
-        myzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-        zipUpDir(myzip, tempdir, '')
-        myzip.close()
-        shutil.rmtree(tempdir, True)
+        tb.cleanup()
         return 1
 
-    print "   Creating HTML ZIP Archive"
-    zipname = os.path.join(outdir, bookname + '_nodrm' + '.zip')
-    myzip1 = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-    myzip1.write(os.path.join(tempdir,'book.html'),'book.html')
-    myzip1.write(os.path.join(tempdir,'book.opf'),'book.opf')
-    if os.path.isfile(os.path.join(tempdir,'cover.jpg')):
-        myzip1.write(os.path.join(tempdir,'cover.jpg'),'cover.jpg')
-    myzip1.write(os.path.join(tempdir,'style.css'),'style.css')
-    zipUpDir(myzip1, tempdir, 'img')
-    myzip1.close()
-
-    print "   Creating SVG ZIP Archive"
-    zipname = os.path.join(outdir, bookname + '_SVG' + '.zip')
-    myzip2 = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-    myzip2.write(os.path.join(tempdir,'index_svg.xhtml'),'index_svg.xhtml')
-    zipUpDir(myzip2, tempdir, 'svg')
-    zipUpDir(myzip2, tempdir, 'img')
-    myzip2.close()
-
-    print "   Creating XML ZIP Archive"
-    zipname = os.path.join(outdir, bookname + '_XML' + '.zip')
-    myzip3 = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-    targetdir = os.path.join(tempdir,'xml')
-    zipUpDir(myzip3, targetdir, '')
-    zipUpDir(myzip3, tempdir, 'img')
-    myzip3.close()
-
-    shutil.rmtree(tempdir, True)
+    except Exception, e:
+        print str(e)
+        tb.cleanup
+        return 1
 
     return 0
                 
 
 if __name__ == '__main__':
+    sys.stdout=Unbuffered(sys.stdout)
     sys.exit(main())
 
