@@ -25,7 +25,7 @@ adb pull /data/app/com.amazon.kindle-1.apk kindle3.apk
 adb uninstall com.amazon.kindle
 apktool d kindle3.apk kindle3
 cd kindle3
-patch -p1 < ..\kindle3.patch
+patch -p1 < ../kindle3.patch
 cd ..
 apktool b kindle3 kindle3_patched.apk
 jarsigner -verbose -keystore kindle.keystore kindle3_patched.apk kindle

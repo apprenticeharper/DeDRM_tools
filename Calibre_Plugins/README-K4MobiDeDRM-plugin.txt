@@ -5,7 +5,7 @@ This plugin supersedes MobiDeDRM, K4DeDRM, and K4PCDeDRM and K4X plugins.  If yo
 This plugin is meant to remove the DRM from .prc, .azw, .azw1, and .tpz ebooks.   Calibre can then convert them to whatever format you desire. It is meant to function without having to install any  dependencies except for Calibre being on your same machine and in the same account as your "Kindle for PC" or "Kindle for Mac" application if you are going to remove the DRM from those types of books.
 
 Installation:
-Go to Calibre's Preferences page... click on the Plugins button. Click on the "Add a new plugin" button at the bottom of the screen.  Use the file dialog button to select the plugin's zip file  (K4MobiDeDRM_vXX_plugin.zip) and click the "Add" (or it may say "Open" button.  Then click on the "Yes" button in the warning dialog that appears.  A Confirmation dialog appears that says the plugin has been installed.
+Go to Calibre's Preferences page.  Do **NOT** select "Get Plugins to enhance calibre" as this is reserved for official calibre plugins", instead select "Change calibre behavior". Under "Advanced" click on the on the Plugins button. Click on the "Load plugin from file" button at the bottom of the screen.  Use the file dialog button to select the plugin's zip file  (K4MobiDeDRM_vXX_plugin.zip) and click the "Add" (or it may say "Open" button.  Then click on the "Yes" button in the warning dialog that appears.  A Confirmation dialog appears that says the plugin has been installed.
 
 
 Configuration:

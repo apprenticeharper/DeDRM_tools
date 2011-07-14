@@ -5,7 +5,7 @@ All credit given to The Dark Reverser for the original standalone script. I had 
 This plugin is meant to convert secure Ereader files (PDB) to unsecured PMLZ files. Calibre can then convert it to whatever format you desire. It is meant to function without having to install any  dependencies... other than having Calibre installed, of course. I've included the psyco libraries (compiled for each platform) for speed. If your system can use them, great! Otherwise, they won't be used and things will just work slower.
 
 Installation:
-Go to Calibre's Preferences page... click on the Plugins button. Use the file dialog button to select the plugin's zip file  (eReaderPDB2PML_vXX_plugin.zip) and click the 'Add' button. You're done.
+Go to Calibre's Preferences page. Do **NOT** select "Get Plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior". Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file  (eReaderPDB2PML_vXX_plugin.zip) and click the 'Add' button. You're done.
 
 Please note:  Calibre does not provide any immediate feedback to indicate that adding the plugin was a success. You can always click on the File-Type plugins to see if the plugin was added.
 

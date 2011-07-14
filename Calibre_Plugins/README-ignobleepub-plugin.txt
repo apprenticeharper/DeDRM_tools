@@ -9,7 +9,7 @@ with Adobe's Adept encryption. It is meant to function without having to install
 
 Installation:
 
-Go to Calibre's Preferences page... click on the Plugins button. Use the file dialog button to select the plugin's zip file  (ignobleepub_vXX_plugin.zip) and
+Go to Calibre's Preferences page.  Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior". Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file  (ignobleepub_vXX_plugin.zip) and
 click the 'Add' button. you're done.
 
 Please note:  Calibre does not provide any immediate feedback to indicate that adding the plugin was a success. You can always click on the File-Type plugins to see if the plugin was added.

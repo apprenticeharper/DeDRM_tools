@@ -8,7 +8,7 @@ This plugin is meant to decrypt Adobe Digital Edition PDFs that are protected wi
 
 Installation:
 
-Go to Calibre's Preferences page... click on the Plugins button. Use the file dialog button to select the plugin's zip file (ineptpdf_vXX_plugin.zip) and click the 'Add' button. you're done.
+Go to Calibre's Preferences page.  Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" plugins, instead select "Change calibre behavior". Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (ineptpdf_vXX_plugin.zip) and click the 'Add' button. you're done.
 
 Please note:  Calibre does not provide any immediate feedback to indicate that adding the plugin was a success. You can always click on the File-Type plugins to see if the plugin was added.
 

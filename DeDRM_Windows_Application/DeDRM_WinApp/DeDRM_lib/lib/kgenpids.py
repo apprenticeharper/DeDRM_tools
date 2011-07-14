@@ -22,16 +22,16 @@ else:
 
 if inCalibre:
     if sys.platform.startswith('win'):
-        from calibre_plugins.k4mobidedrm.k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetVolumeSerialNumber
+        from calibre_plugins.k4mobidedrm.k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
 
     if sys.platform.startswith('darwin'):
-        from calibre_plugins.k4mobidedrm.k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetVolumeSerialNumber
+        from calibre_plugins.k4mobidedrm.k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
 else:
     if sys.platform.startswith('win'):
-        from k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetVolumeSerialNumber
+        from k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
 
     if sys.platform.startswith('darwin'):
-        from k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetVolumeSerialNumber
+        from k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
 
 
 charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
@@ -218,14 +218,14 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
         print "Keys not found in " + kInfoFile
         return pidlst
         
-    # Get the HDD serial
-    encodedSystemVolumeSerialNumber = encodeHash(GetVolumeSerialNumber(),charMap1)
+    # Get the ID string used
+    encodedIDString = encodeHash(GetIDString(),charMap1)
 
     # Get the current user name
     encodedUsername = encodeHash(GetUserName(),charMap1)
 
     # concat, hash and encode to calculate the DSN
-    DSN = encode(SHA1(MazamaRandomNumber+encodedSystemVolumeSerialNumber+encodedUsername),charMap1)
+    DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
        
     # Compute the device PID (for which I can tell, is used for nothing).
     table =  generatePidEncryptionTable()

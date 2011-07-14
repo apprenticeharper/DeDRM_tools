@@ -122,6 +122,9 @@ def GetVolumeSerialNumber():
     return GetVolumeSerialNumber
 GetVolumeSerialNumber = GetVolumeSerialNumber()
 
+def GetIDString():
+    return GetVolumeSerialNumber()
+
 def getLastError():
     GetLastError = kernel32.GetLastError
     GetLastError.argtypes = None
@@ -181,18 +184,27 @@ def getKindleInfoFiles(kInfoFiles):
         kInfoFiles.append(kinfopath)
 
     # now look for newer (K4PC 1.5.0 and later rainier.2.1.1.kinf file
+
     kinfopath = path +'\\Amazon\\Kindle For PC\\storage\\rainier.2.1.1.kinf'
     if not os.path.isfile(kinfopath):
-        print('No .kinf files have not been found.')
+        print('No K4PC 1.5.X .kinf files have not been found.')
     else:
         kInfoFiles.append(kinfopath)
+
+    # now look for even newer (K4PC 1.6.0 and later) rainier.2.1.1.kinf file
+    kinfopath = path +'\\Amazon\\Kindle\\storage\\rainier.2.1.1.kinf'
+    if not os.path.isfile(kinfopath):
+        print('No K4PC 1.6.X .kinf files have not been found.')
+    else:
+        kInfoFiles.append(kinfopath)
+
     return kInfoFiles
 
 
 # determine type of kindle info provided and return a 
 # database of keynames and values
 def getDBfromFile(kInfoFile):
-    names = ["kindle.account.tokens","kindle.cookie.item","eulaVersionAccepted","login_date","kindle.token.item","login","kindle.key.item","kindle.name.info","kindle.device.info", "MazamaRandomNumber"]
+    names = ["kindle.account.tokens","kindle.cookie.item","eulaVersionAccepted","login_date","kindle.token.item","login","kindle.key.item","kindle.name.info","kindle.device.info", "MazamaRandomNumber", "max_date", "SIGVERIF"]
     DB = {}
     cnt = 0
     infoReader = open(kInfoFile, 'r')
