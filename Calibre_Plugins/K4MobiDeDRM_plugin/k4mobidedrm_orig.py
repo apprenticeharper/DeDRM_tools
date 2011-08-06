@@ -17,7 +17,7 @@ from __future__ import with_statement
 #    and many many others
 
 
-__version__ = '3.5'
+__version__ = '3.6'
 
 class Unbuffered:
     def __init__(self, stream):

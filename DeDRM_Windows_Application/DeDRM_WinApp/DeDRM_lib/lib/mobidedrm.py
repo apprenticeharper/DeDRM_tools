@@ -49,11 +49,12 @@
 #  0.27 - Correct pid metadata token generation to match that used by skindle (Thank You Bart!)
 #  0.28 - slight additional changes to metadata token generation (None -> '')
 #  0.29 - It seems that the ideas about when multibyte trailing characters were
-#         included in the encryption were wrong. They aren't for DOC compressed
-#         files, but they are for HUFF/CDIC compress files!
+#         included in the encryption were wrong. They are for DOC compressed
+#         files, but they are not for HUFF/CDIC compress files!
 #  0.30 - Modified interface slightly to work better with new calibre plugin style
+#  0.31 - The multibyte encrytion info is true for version 7 files too.
 
-__version__ = '0.30'
+__version__ = '0.31'
 
 import sys
 
@@ -198,8 +199,8 @@ class MobiBook:
         if (self.mobi_length >= 0xE4) and (self.mobi_version >= 5):
             self.extra_data_flags, = struct.unpack('>H', self.sect[0xF2:0xF4])
             print "Extra Data Flags = %d" % self.extra_data_flags
-        if (self.mobi_version < 7) and (self.compression != 17480):
-            # multibyte utf8 data is included in the encryption for mobi_version 6 and below
+        if (self.compression != 17480):
+            # multibyte utf8 data is included in the encryption for PalmDoc compression
             # so clear that byte so that we leave it to be decrypted.
             self.extra_data_flags &= 0xFFFE
 
