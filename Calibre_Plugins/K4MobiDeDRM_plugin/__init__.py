@@ -16,24 +16,23 @@ import re
 
 class K4DeDRM(FileTypePlugin):
     name                = 'K4PC, K4Mac, Kindle Mobi and Topaz DeDRM' # Name of the plugin
-    description         = 'Removes DRM from K4PC and Mac, Kindle Mobi and Topaz files.  Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
+    description         = 'Removes DRM from Mobipocket, Kindle/Mobi, Kindle/Topaz and Kindle/Print Replica files. Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
     supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
     author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-    version             = (0, 3, 6)   # The version number of this plugin
-    file_types          = set(['prc','mobi','azw','azw1','tpz']) # The file types that this plugin will be applied to
+    version             = (0, 3, 7)   # The version number of this plugin
+    file_types          = set(['prc','mobi','azw','azw1','azw4','tpz']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
     priority            = 210  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm
     minimum_calibre_version = (0, 7, 55)
 
     def run(self, path_to_ebook):
-
+        plug_ver = '.'.join(str(self.version).strip('()').replace(' ', '').split(','))
         k4 = True
         if sys.platform.startswith('linux'):
             k4 = False
         pids = []
         serials = []
         kInfoFiles = []
-
         # Get supplied list of PIDs to try from plugin customization.
         customvalues = self.site_customization.split(',')
         for customvalue in customvalues:
@@ -46,12 +45,12 @@ class K4DeDRM(FileTypePlugin):
                     serials.append(customvalue)
                 else:
                     print "%s is not a valid Kindle serial number or PID." % str(customvalue)
-            		
+                        
         # Load any kindle info files (*.info) included Calibre's config directory.
         try:
             # Find Calibre's configuration directory.
             confpath = os.path.split(os.path.split(self.plugin_path)[0])[0]
-            print 'K4MobiDeDRM: Calibre configuration directory = %s' % confpath
+            print 'K4MobiDeDRM v%s: Calibre configuration directory = %s' % (plug_ver, confpath)
             files = os.listdir(confpath)
             filefilter = re.compile("\.info$|\.kinf$", re.IGNORECASE)
             files = filter(filefilter.search, files)
@@ -59,9 +58,9 @@ class K4DeDRM(FileTypePlugin):
                 for filename in files:
                     fpath = os.path.join(confpath, filename)
                     kInfoFiles.append(fpath)
-                print 'K4MobiDeDRM: Kindle info/kinf file %s found in config folder.' % filename
+                print 'K4MobiDeDRM v%s: Kindle info/kinf file %s found in config folder.' % (plug_ver, filename)
         except IOError:
-            print 'K4MobiDeDRM: Error reading kindle info/kinf files from config directory.'
+            print 'K4MobiDeDRM v%s: Error reading kindle info/kinf files from config directory.' % plug_ver
             pass
 
         mobi = True
@@ -83,30 +82,34 @@ class K4DeDRM(FileTypePlugin):
         try:
             mb.processBook(pidlst)
 
-        except mobidedrm.DrmException:
+        except mobidedrm.DrmException, e:
             #if you reached here then no luck raise and exception
             if is_ok_to_use_qt():
                 from PyQt4.Qt import QMessageBox
-                d = QMessageBox(QMessageBox.Warning, "K4MobiDeDRM Plugin", "Error decoding: %s\n" % path_to_ebook)
+                d = QMessageBox(QMessageBox.Warning, "K4MobiDeDRM v%s Plugin" % plug_ver, "Error: " + str(e) + "... %s\n" %  path_to_ebook)
                 d.show()
                 d.raise_()
                 d.exec_()
-            raise Exception("K4MobiDeDRM plugin could not decode the file")
-        except topazextract.TpzDRMError:
+            raise Exception("K4MobiDeDRM plugin v%s Error: %s" % (plug_ver, str(e)))
+        except topazextract.TpzDRMError, e:
             #if you reached here then no luck raise and exception
             if is_ok_to_use_qt():
                     from PyQt4.Qt import QMessageBox
-                    d = QMessageBox(QMessageBox.Warning, "K4MobiDeDRM Plugin", "Error decoding: %s\n" % path_to_ebook)
+                    d = QMessageBox(QMessageBox.Warning, "K4MobiDeDRM v%s Plugin" % plug_ver, "Error: " + str(e) + "... %s\n" % path_to_ebook)
                     d.show()
                     d.raise_()
                     d.exec_()
-            raise Exception("K4MobiDeDRM plugin could not decode the file")
+            raise Exception("K4MobiDeDRM plugin v%s Error: %s" % (plug_ver, str(e)))
 
         print "Success!"
         if mobi:
-            of = self.temporary_file(bookname+'.mobi')
+            if mb.getPrintReplica():
+                of = self.temporary_file(bookname+'.azw4')
+                print 'K4MobiDeDRM v%s: Print Replica format detected.' % plug_ver
+            else:
+                of = self.temporary_file(bookname+'.mobi')
             mb.getMobiFile(of.name)
-        else :
+        else:
             of = self.temporary_file(bookname+'.htmlz')
             mb.getHTMLZip(of.name)
             mb.cleanup()

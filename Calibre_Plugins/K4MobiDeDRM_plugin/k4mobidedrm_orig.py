@@ -17,7 +17,7 @@ from __future__ import with_statement
 #    and many many others
 
 
-__version__ = '3.6'
+__version__ = '3.7'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -76,7 +76,7 @@ def cleanup_name(name):
 def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     # handle the obvious cases at the beginning
     if not os.path.isfile(infile):
-        print "Error: Input file does not exist"
+        print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: Input file does not exist"
         return 1
 
     mobi = True
@@ -106,17 +106,20 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
         mb.processBook(pidlst)
 
     except mobidedrm.DrmException, e:
-        print "Error: " + str(e) + "\nDRM Removal Failed.\n"
+        print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: " + str(e) + "\nDRM Removal Failed.\n"
         return 1
     except topazextract.TpzDRMError, e:
-        print "Error: " + str(e) + "\nDRM Removal Failed.\n"
+        print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: " + str(e) + "\nDRM Removal Failed.\n"
         return 1
     except Exception, e:
-        print "Error: " + str(e) + "\nDRM Removal Failed.\n"
+        print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: " + str(e) + "\nDRM Removal Failed.\n"
         return 1
 
     if mobi:
-        outfile = os.path.join(outdir, outfilename + '_nodrm' + '.mobi')
+        if mb.getPrintReplica():
+            outfile = os.path.join(outdir, outfilename + '_nodrm' + '.azw4')
+        else:
+            outfile = os.path.join(outdir, outfilename + '_nodrm' + '.mobi')
         mb.getMobiFile(outfile)
         return 0            
 
@@ -158,7 +161,6 @@ def main(argv=sys.argv):
     print ('K4MobiDeDrm v%(__version__)s '
 	   'provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc .' % globals())
 
-    print ' '
     try:
         opts, args = getopt.getopt(sys.argv[1:], "k:p:s:")
     except getopt.GetoptError, err:

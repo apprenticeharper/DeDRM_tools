@@ -263,6 +263,7 @@ class PrefsDialog(Toplevel):
             filetypes=[('ePub Files','.epub'),
                        ('Kindle','.azw'),
                        ('Kindle','.azw1'),
+                       ('Kindle','.azw4'),
                        ('Kindle','.tpz'),
                        ('Kindle','.mobi'),
                        ('Kindle','.prc'),
@@ -465,7 +466,7 @@ class ConvDialog(Toplevel):
         if ext == '.pdb':
             self.p2 = processPDB(apphome, infile, outdir, rscpath)
             return 0
-        if ext in ['.azw', '.azw1', '.prc', '.mobi', '.tpz']:
+        if ext in ['.azw', '.azw1', '.azw4', '.prc', '.mobi', '.tpz']:
             self.p2 = processK4MOBI(apphome, infile, outdir, rscpath)
             return 0
         if ext == '.pdf':

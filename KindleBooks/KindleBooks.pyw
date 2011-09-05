@@ -109,7 +109,7 @@ class MainDialog(Tkinter.Frame):
     # post output from subprocess in scrolled text widget
     def showCmdOutput(self, msg):
         if msg and msg !='':
-            msg = msg.encode('utf-8')
+            # msg = msg.encode('utf-8')
             if sys.platform.startswith('win'):
                 msg = msg.replace('\r\n','\n')
             self.stext.insert(Tkconstants.END,msg)
@@ -149,7 +149,7 @@ class MainDialog(Tkinter.Frame):
         mobipath = tkFileDialog.askopenfilename(
             initialdir = cpath,
             parent=None, title='Select Kindle/Mobi/Topaz  eBook File',
-            defaultextension='.prc', filetypes=[('Mobi eBook File', '.prc'), ('Mobi eBook File', '.azw'),('Mobi eBook File', '.mobi'),('Mobi eBook File', '.tpz'),('Mobi eBook File', '.azw1'),('All Files', '.*')])
+            defaultextension='.prc', filetypes=[('Mobi eBook File', '.prc'), ('Mobi eBook File', '.azw'),('Mobi eBook File', '.mobi'),('Mobi eBook File', '.tpz'),('Mobi eBook File', '.azw1'),('Mobi azw4 eBook File', '.azw4'),('All Files', '.*')])
         if mobipath:
             mobipath = os.path.normpath(mobipath)
             self.mobipath.delete(0, Tkconstants.END)

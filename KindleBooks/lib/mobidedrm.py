@@ -53,8 +53,9 @@
 #         files, but they are not for HUFF/CDIC compress files!
 #  0.30 - Modified interface slightly to work better with new calibre plugin style
 #  0.31 - The multibyte encrytion info is true for version 7 files too.
+#  0.32 - Added support for "Print Replica" Kindle ebooks
 
-__version__ = '0.31'
+__version__ = '0.32'
 
 import sys
 
@@ -163,6 +164,9 @@ class MobiBook:
         return self.data_file[off:endoff]
 
     def __init__(self, infile):
+        print ('MobiDeDrm v%(__version__)s. '
+           'Copyright 2008-2011 The Dark Reverser et al.' % globals())
+
         # initial sanity check on file
         self.data_file = file(infile, 'rb').read()
         self.mobi_data = ''
@@ -193,6 +197,7 @@ class MobiBook:
             self.meta_array = {}
             return
         self.mobi_length, = struct.unpack('>L',self.sect[0x14:0x18])
+        self.mobi_codepage, = struct.unpack('>L',self.sect[0x1c:0x20])
         self.mobi_version, = struct.unpack('>L',self.sect[0x68:0x6C])
         print "MOBI header version = %d, length = %d" %(self.mobi_version, self.mobi_length)
         self.extra_data_flags = 0
@@ -230,8 +235,13 @@ class MobiBook:
         except:
             self.meta_array = {}
             pass
+        self.print_replica = False
             
     def getBookTitle(self):
+        codec_map = {
+            1252 : 'windows-1252',
+            65001 : 'utf-8',
+        }
         title = ''
         if 503 in self.meta_array:
             title = self.meta_array[503]
@@ -242,7 +252,10 @@ class MobiBook:
         if title == '':
             title = self.header[:32]
             title = title.split("\0")[0]
-        return title
+        codec = 'windows-1252'
+        if self.mobi_codepage in codec_map.keys():
+            codec = codec_map[self.mobi_codepage]
+        return unicode(title, codec).encode('utf-8')
 
     def getPIDMetaInfo(self):
         rec209 = ''
@@ -306,6 +319,9 @@ class MobiBook:
 
     def getMobiFile(self, outpath):
         file(outpath,'wb').write(self.mobi_data)
+        
+    def getPrintReplica(self):
+        return self.print_replica
 
     def processBook(self, pidlist):
         crypto_type, = struct.unpack('>H', self.sect[0xC:0xC+2])
@@ -313,10 +329,17 @@ class MobiBook:
         self.crypto_type = crypto_type
         if crypto_type == 0:
             print "This book is not encrypted."
+            # we must still check for Print Replica
+            self.print_replica = (self.loadSection(1)[0:4] == '%MOP')
             self.mobi_data = self.data_file
             return
         if crypto_type != 2 and crypto_type != 1:
             raise DrmException("Cannot decode unknown Mobipocket encryption type %d" % crypto_type)
+        if 406 in self.meta_array:
+            data406 = self.meta_array[406]
+            val406, = struct.unpack('>Q',data406)
+            if val406 != 0:
+                raise DrmException("Cannot decode library or rented ebooks.")
 
         goodpids = []
         for pid in pidlist:
@@ -367,7 +390,10 @@ class MobiBook:
             if i%100 == 0:
                 print ".",
             # print "record %d, extra_size %d" %(i,extra_size)
-            self.mobi_data += PC1(found_key, data[0:len(data) - extra_size])
+            decoded_data = PC1(found_key, data[0:len(data) - extra_size])
+            if i==1:
+                self.print_replica = (decoded_data[0:4] == '%MOP')
+            self.mobi_data += decoded_data
             if extra_size > 0:
                 self.mobi_data += data[-extra_size:]
         if self.num_sections > self.records+1:
@@ -392,9 +418,9 @@ def getUnencryptedBookWithList(infile,pidlist):
 
 def main(argv=sys.argv):
     print ('MobiDeDrm v%(__version__)s. '
-	   'Copyright 2008-2010 The Dark Reverser.' % globals())
+        'Copyright 2008-2011 The Dark Reverser et al.' % globals())
     if len(argv)<3 or len(argv)>4:
-        print "Removes protection from Mobipocket books"
+        print "Removes protection from Kindle/Mobipocket and Kindle/Print Replica ebooks"
         print "Usage:"
         print "    %s <infile> <outfile> [<Comma separated list of PIDs to try>]" % sys.argv[0]
         return 1
@@ -402,9 +428,9 @@ def main(argv=sys.argv):
         infile = argv[1]
         outfile = argv[2]
         if len(argv) is 4:
-        	pidlist = argv[3].split(',')
+            pidlist = argv[3].split(',')
         else:
-        	pidlist = {}
+            pidlist = {}
         try:
             stripped_file = getUnencryptedBookWithList(infile, pidlist)
             file(outfile, 'wb').write(stripped_file)
