@@ -47,7 +47,7 @@ class eRdrDeDRM(FileTypePlugin):
                             Credit given to The Dark Reverser for the original standalone script.'
     supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
     author              = 'DiapDealer' # The author of this plugin
-    version             = (0, 0, 5)   # The version number of this plugin
+    version             = (0, 0, 6)   # The version number of this plugin
     file_types          = set(['pdb']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
     minimum_calibre_version = (0, 7, 55)
@@ -114,7 +114,7 @@ class eRdrDeDRM(FileTypePlugin):
 
         print "   Decoding File"
         sect = erdr2pml.Sectionizer(infile, 'PNRdPPrs')
-        er = erdr2pml.EreaderProcessor(sect.loadSection, name, cc)
+        er = erdr2pml.EreaderProcessor(sect, name, cc)
 
         if er.getNumImages() > 0:
             print "   Extracting images"

@@ -59,8 +59,11 @@
 #  0.18 - on Windows try PyCrypto first and OpenSSL next
 #  0.19 - Modify the interface to allow use of import
 #  0.20 - modify to allow use inside new interface for calibre plugins
+#  0.21 - Support eReader (drm) version 11. 
+#       - Don't reject dictionary format. 
+#       - Ignore sidebars for dictionaries (different format?)
 
-__version__='0.20'
+__version__='0.21'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -140,12 +143,18 @@ logging.basicConfig()
 
 
 class Sectionizer(object):
+    bkType = "Book"
+
     def __init__(self, filename, ident):
         self.contents = file(filename, 'rb').read()
         self.header = self.contents[0:72]
         self.num_sections, = struct.unpack('>H', self.contents[76:78])
+        # Dictionary or normal content (TODO: Not hard-coded)
         if self.header[0x3C:0x3C+8] != ident:
-            raise ValueError('Invalid file format')
+            if self.header[0x3C:0x3C+8] == "PDctPPrs":
+                self.bkType = "Dict"
+            else:
+                raise ValueError('Invalid file format')
         self.sections = []
         for i in xrange(self.num_sections):
             offset, a1,a2,a3,a4 = struct.unpack('>LBBBB', self.contents[78+i*8:78+i*8+8])
@@ -182,15 +191,15 @@ def deXOR(text, sp, table):
     return r
 
 class EreaderProcessor(object):
-    def __init__(self, section_reader, username, creditcard):
-        self.section_reader = section_reader
-        data = section_reader(0)
+    def __init__(self, sect, username, creditcard):
+        self.section_reader = sect.loadSection
+        data = self.section_reader(0)
         version,  = struct.unpack('>H', data[0:2])
         self.version = version
         logging.info('eReader file format version %s', version)
         if version != 272 and version != 260 and version != 259:
             raise ValueError('incorrect eReader version %d (error 1)' % version)
-        data = section_reader(1)
+        data = self.section_reader(1)
         self.data = data
         des = Des(fixKey(data[0:8]))
         cookie_shuf, cookie_size = struct.unpack('>LL', des.decrypt(data[-8:]))
@@ -219,11 +228,17 @@ class EreaderProcessor(object):
         self.num_text_pages = struct.unpack('>H', r[2:4])[0] - 1
         self.num_image_pages = struct.unpack('>H', r[26:26+2])[0]
         self.first_image_page = struct.unpack('>H', r[24:24+2])[0]
+        # Default values
+        self.num_footnote_pages = 0
+        self.num_sidebar_pages = 0
+        self.first_footnote_page = -1
+        self.first_sidebar_page = -1
         if self.version == 272:
             self.num_footnote_pages = struct.unpack('>H', r[46:46+2])[0]
             self.first_footnote_page = struct.unpack('>H', r[44:44+2])[0]
-            self.num_sidebar_pages = struct.unpack('>H', r[38:38+2])[0]
-            self.first_sidebar_page = struct.unpack('>H', r[36:36+2])[0]
+            if (sect.bkType == "Book"):
+                self.num_sidebar_pages = struct.unpack('>H', r[38:38+2])[0]
+                self.first_sidebar_page = struct.unpack('>H', r[36:36+2])[0]
             # self.num_bookinfo_pages = struct.unpack('>H', r[34:34+2])[0]
             # self.first_bookinfo_page = struct.unpack('>H', r[32:32+2])[0]
             # self.num_chapter_pages = struct.unpack('>H', r[22:22+2])[0]
@@ -239,10 +254,8 @@ class EreaderProcessor(object):
             self.xortable_size = struct.unpack('>H', r[42:42+2])[0]
             self.xortable = self.data[self.xortable_offset:self.xortable_offset + self.xortable_size]
         else:
-            self.num_footnote_pages = 0
-            self.num_sidebar_pages = 0
-            self.first_footnote_page = -1
-            self.first_sidebar_page = -1
+            # Nothing needs to be done
+            pass
             # self.num_bookinfo_pages = 0
             # self.num_chapter_pages = 0
             # self.num_link_pages = 0
@@ -267,10 +280,14 @@ class EreaderProcessor(object):
             encrypted_key_sha = r[44:44+20]
             encrypted_key = r[64:64+8]
         elif version == 260:
-            if drm_sub_version != 13:
+            if drm_sub_version != 13 and drm_sub_version != 11:
                 raise ValueError('incorrect eReader version %d (error 3)' % drm_sub_version)
-            encrypted_key = r[44:44+8]
-            encrypted_key_sha = r[52:52+20]
+            if drm_sub_version == 13:
+                encrypted_key = r[44:44+8]
+                encrypted_key_sha = r[52:52+20]
+            else:
+                encrypted_key = r[64:64+8]
+                encrypted_key_sha = r[44:44+20]
         elif version == 272:
             encrypted_key = r[172:172+8]
             encrypted_key_sha = r[56:56+20]
@@ -356,6 +373,12 @@ class EreaderProcessor(object):
                 r += fmarker
                 fnote_ids = fnote_ids[id_len+4:]
 
+        # TODO: Handle dictionary index (?) pages - which are also marked as
+        # sidebar_pages (?). For now dictionary sidebars are ignored
+        # For dictionaries - record 0 is null terminated strings, followed by
+        # blocks of around 62000 bytes and a final block. Not sure of the
+        # encoding
+
         # now handle sidebar pages
         if self.num_sidebar_pages > 0:
             r += '\n'
@@ -368,7 +391,7 @@ class EreaderProcessor(object):
                 id_len = ord(sbar_ids[2])
                 id = sbar_ids[3:3+id_len]
                 smarker = '<sidebar id="%s">\n' % id
-                smarker += zlib.decompress(des.decrypt(self.section_reader(self.first_footnote_page + i)))
+                smarker += zlib.decompress(des.decrypt(self.section_reader(self.first_sidebar_page + i)))
                 smarker += '\n</sidebar>\n'
                 r += smarker
                 sbar_ids = sbar_ids[id_len+4:]
@@ -389,7 +412,7 @@ def convertEreaderToPml(infile, name, cc, outdir):
     bookname = os.path.splitext(os.path.basename(infile))[0]
     print "   Decoding File"
     sect = Sectionizer(infile, 'PNRdPPrs')
-    er = EreaderProcessor(sect.loadSection, name, cc)
+    er = EreaderProcessor(sect, name, cc)
 
     if er.getNumImages() > 0:
         print "   Extracting images"

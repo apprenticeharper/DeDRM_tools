@@ -271,6 +271,9 @@ class DocParser(object):
 
         pclass = self.getClass(pclass)
 
+        # if paragraph uses extratokens (extra glyphs) then make it fixed
+        (pos, extraglyphs) = self.findinDoc('paragraph.extratokens',start,end)
+
         # build up a description of the paragraph in result and return it
         # first check for the  basic - all words paragraph
         (pos, sfirst) = self.findinDoc('paragraph.firstWord',start,end)
@@ -280,6 +283,7 @@ class DocParser(object):
             last = int(slast)
             
             makeImage = (regtype == 'vertical') or (regtype == 'table')
+            makeImage = makeImage or (extraglyphs != None) 
             if self.fixedimage:
                 makeImage = makeImage or (regtype == 'fixed')
 
@@ -352,6 +356,8 @@ class DocParser(object):
         ws_last = -1
 
         word_class = ''
+
+        word_semantic_type = ''
 
         while (line < end) :
 
@@ -512,6 +518,72 @@ class DocParser(object):
         return parares
 
 
+    def buildTOCEntry(self, pdesc) :
+        parares = ''
+        sep =''
+        tocentry = ''
+        handle_links = len(self.link_id) > 0
+
+        lstart = 0
+
+        cnt = len(pdesc)
+        for j in xrange( 0, cnt) :
+
+            (wtype, num) = pdesc[j]
+
+            if wtype == 'ocr' :
+                word = self.ocrtext[num]
+                sep = ' '
+
+                if handle_links:
+                    link = self.link_id[num]
+                    if (link > 0):
+                        linktype = self.link_type[link-1]
+                        title = self.link_title[link-1]
+                        title = title.rstrip('. ')
+                        alt_title = parares[lstart:]
+                        alt_title = alt_title.strip()
+                        # now strip off the actual printed page number
+                        alt_title = alt_title.rstrip('01234567890ivxldIVXLD-.')
+                        alt_title = alt_title.rstrip('. ')
+                        # skip over any external links - can't have them in a books toc
+                        if linktype == 'external' :
+                            title = ''
+                            alt_title = ''
+                            linkpage = ''
+                        else : 
+                            if len(self.link_page) >= link :
+                                ptarget = self.link_page[link-1] - 1
+                                linkpage = '%04d' % ptarget
+                            else :
+                                # just link to the current page
+                                linkpage = self.id[4:]
+                        if len(alt_title) >= len(title):
+                            title = alt_title
+                        if title != '' and linkpage != '':
+                            tocentry += title + '|' + linkpage + '\n'
+                        lstart = len(parares)
+                        if word == '_link_' : word = ''
+                    elif (link < 0) :
+                        if word == '_link_' : word = ''
+
+                if word == '_lb_':
+                    word = ''
+                    sep = ''
+
+                if num in self.dehyphen_rootid :
+                    word = word[0:-1]
+                    sep = ''
+
+                parares += word + sep
+
+            else :
+                continue
+
+        return tocentry
+
+
+
     
     # walk the document tree collecting the information needed
     # to build an html page using the ocrText
@@ -519,6 +591,7 @@ class DocParser(object):
     def process(self):
 
         htmlpage = ''
+        tocinfo = ''
 
         # get the ocr text
         (pos, argres) = self.findinDoc('info.word.ocrText',0,-1)
@@ -644,8 +717,8 @@ class DocParser(object):
                         ptype = 'end'
                         first_para_continued = False
                     (pclass, pdesc) = self.getParaDescription(start,end, regtype)
+                    tocinfo += self.buildTOCEntry(pdesc)
                     htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
-
 
                 elif (regtype == 'vertical') or (regtype == 'table') :
                     ptype = 'full'
@@ -704,12 +777,11 @@ class DocParser(object):
                 htmlpage = htmlpage[0:-4]
             last_para_continued = False
 
-        return htmlpage
-
+        return htmlpage, tocinfo
 
 
 def convert2HTML(flatxml, classlst, fileid, bookDir, gdict, fixedimage):
     # create a document parser
     dp = DocParser(flatxml, classlst, fileid, bookDir, gdict, fixedimage)
-    htmlpage = dp.process()
-    return htmlpage
+    htmlpage, tocinfo = dp.process()
+    return htmlpage, tocinfo

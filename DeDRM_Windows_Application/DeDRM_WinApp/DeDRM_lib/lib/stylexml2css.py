@@ -81,6 +81,14 @@ class DocParser(object):
             pos = foundpos + 1
         return startpos
 
+    # returns a vector of integers for the tagpath
+    def getData(self, tagpath, pos, end):
+        argres=[]
+        (foundat, argt) = self.findinDoc(tagpath, pos, end)
+        if (argt != None) and (len(argt) > 0) :
+            argList = argt.split('|')
+            argres = [ int(strval) for strval in argList]
+        return argres
 
     def process(self):
 
@@ -237,7 +245,11 @@ def convert2CSS(flatxml, fontsize, ph, pw):
 
     # create a document parser
     dp = DocParser(flatxml, fontsize, ph, pw)
-
     csspage = dp.process()
-
     return csspage
+
+
+def getpageIDMap(flatxml):
+    dp = DocParser(flatxml, 0, 0, 0)
+    pageidnumbers = dp.getData('info.original.pid', 0, -1)
+    return pageidnumbers

@@ -140,6 +140,7 @@ class TopazBook:
     def __init__(self, filename):
         self.fo = file(filename, 'rb')
         self.outdir = tempfile.mkdtemp()
+        # self.outdir = 'rawdat'
         self.bookPayloadOffset = 0
         self.bookHeaderRecords = {}
         self.bookMetadata = {}
@@ -370,7 +371,8 @@ class TopazBook:
 
     def cleanup(self):
         if os.path.isdir(self.outdir):
-            shutil.rmtree(self.outdir, True)
+            pass
+            # shutil.rmtree(self.outdir, True)
 
 def usage(progname):
     print "Removes DRM protection from Topaz ebooks and extract the contents"
@@ -438,7 +440,7 @@ def main(argv=sys.argv):
         tb.getHTMLZip(zipname)
 
         print "   Creating SVG ZIP Archive"
-        zipname = os.path.join(outdir, bookname + '_SVG' + '.htmlz')
+        zipname = os.path.join(outdir, bookname + '_SVG' + '.zip')
         tb.getSVGZip(zipname)
 
         print "   Creating XML ZIP Archive"
@@ -450,12 +452,12 @@ def main(argv=sys.argv):
 
     except TpzDRMError, e:
         print str(e)
-        tb.cleanup()
+        # tb.cleanup()
         return 1
 
     except Exception, e:
         print str(e)
-        tb.cleanup
+        # tb.cleanup
         return 1
 
     return 0

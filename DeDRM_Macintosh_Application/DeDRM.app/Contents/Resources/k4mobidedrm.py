@@ -17,7 +17,7 @@ from __future__ import with_statement
 #    and many many others
 
 
-__version__ = '3.7'
+__version__ = '3.9'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -32,6 +32,7 @@ import sys
 import os, csv, getopt
 import string
 import re
+import traceback
 
 class DrmException(Exception):
     pass
@@ -95,8 +96,14 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     print "Processing Book: ", title
     filenametitle = cleanup_name(title)
     outfilename = bookname
-    if len(bookname)>4 and len(filenametitle)>4 and bookname[:4] != filenametitle[:4]:
+    if len(outfilename)<=8 or len(filenametitle)<=8:
         outfilename = outfilename + "_" + filenametitle
+    elif outfilename[:8] != filenametitle[:8]:
+        outfilename = outfilename[:8] + "_" + filenametitle
+        
+    # avoid excessively long file names
+    if len(outfilename)>150:
+        outfilename = outfilename[:150]
 
     # build pid list
     md1, md2 = mb.getPIDMetaInfo()
@@ -128,8 +135,8 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     zipname = os.path.join(outdir, outfilename + '_nodrm' + '.htmlz')
     mb.getHTMLZip(zipname)
 
-    print "   Creating SVG HTMLZ Archive"
-    zipname = os.path.join(outdir, outfilename + '_SVG' + '.htmlz')
+    print "   Creating SVG ZIP Archive"
+    zipname = os.path.join(outdir, outfilename + '_SVG' + '.zip')
     mb.getSVGZip(zipname)
 
     print "   Creating XML ZIP Archive"

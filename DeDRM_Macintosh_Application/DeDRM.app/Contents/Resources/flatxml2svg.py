@@ -10,17 +10,94 @@ from struct import unpack
 
 
 class PParser(object):
-    def __init__(self, gd, flatxml):
+    def __init__(self, gd, flatxml, meta_array):
         self.gd = gd
         self.flatdoc = flatxml.split('\n')
+        self.docSize = len(self.flatdoc)
         self.temp = []
-        foo = self.getData('page.h') or self.getData('book.h')
-        self.ph = foo[0]
-        foo = self.getData('page.w') or self.getData('book.w')
-        self.pw = foo[0]
-        self.gx = self.getData('info.glyph.x')
-        self.gy = self.getData('info.glyph.y')
-        self.gid = self.getData('info.glyph.glyphID')
+        
+        self.ph = -1
+        self.pw = -1
+        startpos = self.posinDoc('page.h') or self.posinDoc('book.h')
+        for p in startpos:
+            (name, argres) = self.lineinDoc(p)
+            self.ph = max(self.ph, int(argres))
+        startpos = self.posinDoc('page.w') or self.posinDoc('book.w')
+        for p in startpos:
+            (name, argres) = self.lineinDoc(p)
+            self.pw = max(self.pw, int(argres))
+        
+        if self.ph <= 0:
+            self.ph = int(meta_array.get('pageHeight', '11000'))
+        if self.pw <= 0:
+            self.pw = int(meta_array.get('pageWidth', '8500'))
+
+        res = []
+        startpos = self.posinDoc('info.glyph.x')
+        for p in startpos:
+            argres = self.getDataatPos('info.glyph.x', p)
+            res.extend(argres)
+        self.gx = res
+
+        res = []
+        startpos = self.posinDoc('info.glyph.y')
+        for p in startpos:
+            argres = self.getDataatPos('info.glyph.y', p)
+            res.extend(argres)
+        self.gy = res
+
+        res = []
+        startpos = self.posinDoc('info.glyph.glyphID')
+        for p in startpos:
+            argres = self.getDataatPos('info.glyph.glyphID', p)
+            res.extend(argres)
+        self.gid = res
+
+
+    # return tag at line pos in document
+    def lineinDoc(self, pos) :
+        if (pos >= 0) and (pos < self.docSize) :
+            item = self.flatdoc[pos]
+            if item.find('=') >= 0:
+                (name, argres) = item.split('=',1)
+            else :
+                name = item
+                argres = ''
+        return name, argres
+
+    # find tag in doc if within pos to end inclusive
+    def findinDoc(self, tagpath, pos, end) :
+        result = None
+        if end == -1 :
+            end = self.docSize
+        else:
+            end = min(self.docSize, end)
+        foundat = -1
+        for j in xrange(pos, end):
+            item = self.flatdoc[j]
+            if item.find('=') >= 0:
+                (name, argres) = item.split('=',1)
+            else :
+                name = item
+                argres = ''
+            if name.endswith(tagpath) :
+                result = argres
+                foundat = j
+                break
+        return foundat, result
+
+    # return list of start positions for the tagpath
+    def posinDoc(self, tagpath):
+        startpos = []
+        pos = 0
+        res = ""
+        while res != None :
+            (foundpos, res) = self.findinDoc(tagpath, pos, -1)
+            if res != None :
+                startpos.append(foundpos)
+            pos = foundpos + 1
+        return startpos
+
     def getData(self, path):
         result = None
         cnt = len(self.flatdoc)
@@ -39,6 +116,23 @@ class PParser(object):
             for j in xrange(0,len(argres)):
                 argres[j] = int(argres[j])
         return result
+
+    def getDataatPos(self, path, pos):
+        result = None
+        item = self.flatdoc[pos]
+        if item.find('=') >= 0:
+            (name, argt) = item.split('=')
+            argres = argt.split('|')
+        else:
+            name = item
+            argres = []
+        if (len(argres) > 0) :
+            for j in xrange(0,len(argres)):
+                argres[j] = int(argres[j])
+        if (name.endswith(path)):
+            result = argres
+        return result
+
     def getDataTemp(self, path):
         result = None
         cnt = len(self.temp)
@@ -58,6 +152,7 @@ class PParser(object):
             for j in xrange(0,len(argres)):
                 argres[j] = int(argres[j])
         return result
+
     def getImages(self):
         result = []
         self.temp = self.flatdoc
@@ -69,6 +164,7 @@ class PParser(object):
             src = self.getDataTemp('img.src')[0]
             result.append('<image xlink:href="../img/img%04d.jpg" x="%d" y="%d" width="%d" height="%d" />\n' % (src, x, y, w, h))
         return result
+
     def getGlyphs(self):
         result = []
         if (self.gid != None) and (len(self.gid) > 0):
@@ -84,25 +180,25 @@ class PParser(object):
         return result
 
 
-def convert2SVG(gdict, flat_xml, counter, numfiles, svgDir, raw, meta_array, scaledpi):
+def convert2SVG(gdict, flat_xml, pageid, previd, nextid, svgDir, raw, meta_array, scaledpi):
     ml = ''
-    pp = PParser(gdict, flat_xml)
+    pp = PParser(gdict, flat_xml, meta_array)
     ml += '<?xml version="1.0" standalone="no"?>\n'
     if (raw):
         ml += '<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n'
         ml += '<svg width="%fin" height="%fin" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">\n' % (pp.pw / scaledpi, pp.ph / scaledpi, pp.pw -1, pp.ph -1)
-        ml += '<title>Page %d - %s by %s</title>\n' % (counter, meta_array['Title'],meta_array['Authors'])
+        ml += '<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors'])
     else:
         ml += '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
         ml += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" ><head>\n'
-        ml += '<title>Page %d - %s by %s</title>\n' % (counter, meta_array['Title'],meta_array['Authors'])
+        ml += '<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors'])
         ml += '<script><![CDATA[\n'
         ml += 'function gd(){var p=window.location.href.replace(/^.*\?dpi=(\d+).*$/i,"$1");return p;}\n'
         ml += 'var dpi=%d;\n' % scaledpi
-        if (counter) :
-            ml += 'var prevpage="page%04d.xhtml";\n' % (counter - 1)
-        if (counter < numfiles-1) :
-            ml += 'var nextpage="page%04d.xhtml";\n' % (counter + 1)
+        if (previd) :
+            ml += 'var prevpage="page%04d.xhtml";\n' % (previd)
+        if (nextid) :
+            ml += 'var nextpage="page%04d.xhtml";\n' % (nextid)
         ml += 'var pw=%d;var ph=%d;' % (pp.pw, pp.ph)
         ml += 'function zoomin(){dpi=dpi*(0.8);setsize();}\n'
         ml += 'function zoomout(){dpi=dpi*1.25;setsize();}\n'
@@ -115,10 +211,11 @@ def convert2SVG(gdict, flat_xml, counter, numfiles, svgDir, raw, meta_array, sca
         ml += '</head>\n'
         ml += '<body onLoad="setsize();" style="background-color:#777;text-align:center;">\n'
         ml += '<div style="white-space:nowrap;">\n'
-        if (counter == 0) :
+        if previd == None:
             ml += '<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n'
         else:
             ml += '<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,150,95,5,95,295" fill="#AAAAAA" /></svg></a>\n'
+        
         ml += '<a href="javascript:npage();"><svg id="svgimg" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="background-color:#FFF;border:1px solid black;">' % (pp.pw, pp.ph)
     if (pp.gid != None): 
         ml += '<defs>\n'
@@ -134,12 +231,14 @@ def convert2SVG(gdict, flat_xml, counter, numfiles, svgDir, raw, meta_array, sca
         for j in xrange(0,len(pp.gid)):
             ml += '<use xlink:href="#gl%d" x="%d" y="%d" />\n' % (pp.gid[j], pp.gx[j], pp.gy[j])
     if (img == None or len(img) == 0) and (pp.gid == None or len(pp.gid) == 0):
-        ml += '<text x="10" y="10" font-family="Helvetica" font-size="100" stroke="black">This page intentionally left blank.</text>\n<text x="10" y="110" font-family="Helvetica" font-size="50" stroke="black">Until this notice unintentionally gave it content.  (gensvg.py)</text>\n'
+        xpos = "%d" % (pp.pw // 3)
+        ypos = "%d" % (pp.ph // 3)
+        ml += '<text x="' + xpos + '" y="' + ypos + '" font-size="' + meta_array['fontSize'] + '" font-family="Helvetica" stroke="black">This page intentionally left blank.</text>\n'
     if (raw) :
         ml += '</svg>'
     else :
         ml += '</svg></a>\n'
-        if (counter == numfiles - 1) :
+        if nextid == None:
             ml += '<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n'
         else :
             ml += '<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,5,5,295,95,150" fill="#AAAAAA" /></svg></a>\n'

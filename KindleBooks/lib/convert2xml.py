@@ -20,6 +20,8 @@ import getopt
 from struct import pack
 from struct import unpack
 
+class TpzDRMError(Exception):
+    pass
 
 # Get a 7 bit encoded number from string. The most 
 # significant byte comes first and has the high bit (8th) set
@@ -138,7 +140,8 @@ class Dictionary(object):
             return self.stable[self.pos]
         else:
             print "Error - %d outside of string table limits" % val
-            sys.exit(-1)
+            raise TpzDRMError('outside of string table limits')
+            # sys.exit(-1)
 
     def getSize(self):
         return self.size
@@ -258,6 +261,11 @@ class PageParser(object):
         'paragraph.class'     : (1, 'scalar_text', 0, 0),
         'paragraph.firstWord' : (1, 'scalar_number', 0, 0),
         'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
+        'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
+        'paragraph.gridSize'  : (1, 'scalar_number', 0, 0),
+        'paragraph.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        'paragraph.gridTopCenter' : (1, 'scalar_number', 0, 0),
+
 
         'word_semantic'           : (1, 'snippets', 1, 1),
         'word_semantic.type'      : (1, 'scalar_text', 0, 0),
@@ -272,11 +280,17 @@ class PageParser(object):
 
         '_span'           : (1, 'snippets', 1, 0),
         '_span.firstWord' : (1, 'scalar_number', 0, 0),
-        '-span.lastWord'  : (1, 'scalar_number', 0, 0),
+        '_span.lastWord'  : (1, 'scalar_number', 0, 0),
+        '_span.gridSize'  : (1, 'scalar_number', 0, 0),
+        '_span.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        '_span.gridTopCenter' : (1, 'scalar_number', 0, 0),
 
         'span'           : (1, 'snippets', 1, 0),
         'span.firstWord' : (1, 'scalar_number', 0, 0),
         'span.lastWord'  : (1, 'scalar_number', 0, 0),
+        'span.gridSize'  : (1, 'scalar_number', 0, 0),
+        'span.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        'span.gridTopCenter' : (1, 'scalar_number', 0, 0),
 
         'extratokens'            : (1, 'snippets', 1, 0),
         'extratokens.type'       : (1, 'scalar_text', 0, 0),

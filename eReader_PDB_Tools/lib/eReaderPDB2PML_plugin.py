@@ -111,7 +111,7 @@ class eRdrDeDRM(FileTypePlugin):
 
         print "   Decoding File"
         sect = erdr2pml.Sectionizer(infile, 'PNRdPPrs')
-        er = erdr2pml.EreaderProcessor(sect.loadSection, name, cc)
+        er = erdr2pml.EreaderProcessor(sect, name, cc)
 
         if er.getNumImages() > 0:
             print "   Extracting images"

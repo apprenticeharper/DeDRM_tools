@@ -19,6 +19,8 @@ import getopt
 from struct import pack
 from struct import unpack
 
+class TpzDRMError(Exception):
+    pass
 
 # local support routines
 if 'calibre' in sys.modules:
@@ -114,7 +116,8 @@ class Dictionary(object):
             return self.stable[self.pos]
         else:
             print "Error - %d outside of string table limits" % val
-            sys.exit(-1)
+            raise TpzDRMError('outside or string table limits')
+            # sys.exit(-1)
     def getSize(self):
         return self.size
     def getPos(self):
@@ -371,10 +374,34 @@ def generateBook(bookDir, raw, fixedimage):
     (ph, pw) = getPageDim(flat_xml)
     if (ph == '-1') or (ph == '0') : ph = '11000'
     if (pw == '-1') or (pw == '0') : pw = '8500'
+    meta_array['pageHeight'] = ph
+    meta_array['pageWidth'] = pw
+    if 'fontSize' not in meta_array.keys():
+        meta_array['fontSize'] = fontsize
 
-    # print '     ', 'other0000.dat'
+    # process other.dat for css info and for map of page files to svg images
+    # this map is needed because some pages actually are made up of multiple
+    # pageXXXX.xml files
     xname = os.path.join(bookDir, 'style.css')
     flat_xml = convert2xml.fromData(dict, otherFile)
+
+    # extract info.original.pid to get original page information
+    pageIDMap = {}
+    pageidnums = stylexml2css.getpageIDMap(flat_xml)
+    if len(pageidnums) == 0:
+        filenames = os.listdir(pageDir)
+        numfiles = len(filenames)
+        for k in range(numfiles):
+            pageidnums.append(k)
+    # create a map from page ids to list of page file nums to process for that page
+    for i in range(len(pageidnums)):
+        id = pageidnums[i]
+        if id in pageIDMap.keys():
+            pageIDMap[id].append(i)
+        else:
+            pageIDMap[id] = [i]
+
+    # now get the css info
     cssstr , classlst = stylexml2css.convert2CSS(flat_xml, fontsize, ph, pw)
     file(xname, 'wb').write(cssstr)
     xname = os.path.join(xmlDir, 'other0000.xml')
@@ -414,6 +441,9 @@ def generateBook(bookDir, raw, fixedimage):
     glyfile.close()
     print " "
 
+    # build up tocentries while processing html
+    tocentries = ''
+
     # start up the html
     htmlFileName = "book.html"
     htmlstr = '<?xml version="1.0" encoding="utf-8"?>\n'
@@ -436,6 +466,77 @@ def generateBook(bookDir, raw, fixedimage):
     # readability when rendering to the screen.  
     scaledpi = 1440.0
 
+    filenames = os.listdir(pageDir)
+    filenames = sorted(filenames)
+    numfiles = len(filenames)
+
+    xmllst = []
+
+    for filename in filenames:
+        # print '     ', filename
+        print ".",
+        fname = os.path.join(pageDir,filename)
+        flat_xml = convert2xml.fromData(dict, fname)
+
+        # keep flat_xml for later svg processing
+        xmllst.append(flat_xml)
+
+        xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
+        file(xname, 'wb').write(convert2xml.getXML(dict, fname))
+
+        # first get the html
+        pagehtml, tocinfo = flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir, gd, fixedimage)
+        tocentries += tocinfo 
+        htmlstr += pagehtml
+
+    # finish up the html string and output it
+    htmlstr += '</body>\n</html>\n'
+    file(os.path.join(bookDir, htmlFileName), 'wb').write(htmlstr)
+    
+    print " "
+    print 'Extracting Table of Contents from Amazon OCR'
+
+    # first create a table of contents file for the svg images
+    tochtml = '<?xml version="1.0" encoding="utf-8"?>\n'
+    tochtml += '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
+    tochtml += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >'
+    tochtml += '<head>\n'
+    tochtml += '<title>' + meta_array['Title'] + '</title>\n'
+    tochtml += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
+    tochtml += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
+    if 'ASIN' in meta_array:
+        tochtml += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
+    if 'GUID' in meta_array:
+        tochtml += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
+    tochtml += '</head>\n'
+    tochtml += '<body>\n'
+
+    tochtml += '<h2>Table of Contents</h2>\n'
+    start = pageidnums[0]
+    if (raw):
+        startname = 'page%04d.svg' % start
+    else:
+        startname = 'page%04d.xhtml' % start
+
+    tochtml += '<h3><a href="' + startname + '">Start of Book</a></h3>\n'
+    # build up a table of contents for the svg xhtml output
+    toclst = tocentries.split('\n')
+    toclst.pop()
+    for entry in toclst:
+        print entry
+        title, pagenum = entry.split('|')
+        id = pageidnums[int(pagenum)]
+        if (raw):
+            fname = 'page%04d.svg' % id
+        else:
+            fname = 'page%04d.xhtml' % id
+        tochtml += '<h3><a href="'+ fname + '">' + title + '</a></h3>\n'
+    tochtml += '</body>\n'
+    tochtml += '</html>\n'
+    file(os.path.join(svgDir, 'toc.xhtml'), 'wb').write(tochtml)
+
+
+    # now create index_svg.xhtml that points to all required files
     svgindex = '<?xml version="1.0" encoding="utf-8"?>\n'
     svgindex += '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
     svgindex += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >'
@@ -450,49 +551,41 @@ def generateBook(bookDir, raw, fixedimage):
     svgindex += '</head>\n'
     svgindex += '<body>\n'
 
-    filenames = os.listdir(pageDir)
-    filenames = sorted(filenames)
-    numfiles = len(filenames)
-    counter = 0
-
-    for filename in filenames:
-        # print '     ', filename
-        print ".",
-
-        fname = os.path.join(pageDir,filename)
-        flat_xml = convert2xml.fromData(dict, fname)
-
-        xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
-        file(xname, 'wb').write(convert2xml.getXML(dict, fname))
-
-        # first get the html
-        htmlstr += flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir, gd, fixedimage)
-
-        # now get the svg image of the page
-        svgxml = flatxml2svg.convert2SVG(gd, flat_xml, counter, numfiles, svgDir, raw, meta_array, scaledpi)
-
+    print "Building svg images of each book page"
+    svgindex += '<h2>List of Pages</h2>\n'
+    svgindex += '<div>\n'
+    idlst = sorted(pageIDMap.keys())
+    numids = len(idlst)
+    cnt = len(idlst)
+    previd = None
+    for j in range(cnt):
+        pageid = idlst[j]
+        if j < cnt - 1:
+            nextid = idlst[j+1]
+        else:
+            nextid = None
+        print '.',
+        pagelst = pageIDMap[pageid]
+        flat_svg = ''
+        for page in pagelst:
+            flat_svg += xmllst[page]
+        svgxml = flatxml2svg.convert2SVG(gd, flat_svg, pageid, previd, nextid, svgDir, raw, meta_array, scaledpi)
         if (raw) :
-            pfile = open(os.path.join(svgDir,filename.replace('.dat','.svg')), 'w')
-            svgindex += '<a href="svg/page%04d.svg">Page %d</a>\n' % (counter, counter)
+            pfile = open(os.path.join(svgDir,'page%04d.svg' % pageid),'w')
+            svgindex += '<a href="svg/page%04d.svg">Page %d</a>\n' % (pageid, pageid)
         else :
-            pfile = open(os.path.join(svgDir,'page%04d.xhtml' % counter), 'w')
-            svgindex += '<a href="svg/page%04d.xhtml">Page %d</a>\n' % (counter, counter)
-
-
+            pfile = open(os.path.join(svgDir,'page%04d.xhtml' % pageid), 'w')
+            svgindex += '<a href="svg/page%04d.xhtml">Page %d</a>\n' % (pageid, pageid)
+        previd = pageid
         pfile.write(svgxml)
         pfile.close()
-
         counter += 1
-
-    print " "
-
-    # finish up the html string and output it
-    htmlstr += '</body>\n</html>\n'
-    file(os.path.join(bookDir, htmlFileName), 'wb').write(htmlstr)
-
-    # finish up the svg index string and output it
+    svgindex += '</div>\n'
+    svgindex += '<h2><a href="svg/toc.xhtml">Table of Contents</a></h2>\n'
     svgindex += '</body>\n</html>\n'
     file(os.path.join(bookDir, 'index_svg.xhtml'), 'wb').write(svgindex)
+
+    print " "
 
     # build the opf file
     opfname = os.path.join(bookDir, 'book.opf')
@@ -573,7 +666,7 @@ def main(argv):
         return 1 
 
     raw = 0
-    fixedimage = False
+    fixedimage = True
     for o, a in opts:
         if o =="-h":
             usage()
