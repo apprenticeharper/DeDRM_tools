@@ -43,7 +43,7 @@ class SimplePrefs(object):
                 key = self.file2key[filename]
                 filepath = os.path.join(self.prefdir,filename)
                 if os.path.isfile(filepath):
-                    try : 
+                    try :
                         data = file(filepath,'rb').read()
                         self.prefs[key] = data
                     except Exception, e:
@@ -75,4 +75,3 @@ class SimplePrefs(object):
                             pass
         self.prefs = newprefs
         return
-

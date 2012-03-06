@@ -15,7 +15,7 @@ class PParser(object):
         self.flatdoc = flatxml.split('\n')
         self.docSize = len(self.flatdoc)
         self.temp = []
-        
+
         self.ph = -1
         self.pw = -1
         startpos = self.posinDoc('page.h') or self.posinDoc('book.h')
@@ -26,7 +26,7 @@ class PParser(object):
         for p in startpos:
             (name, argres) = self.lineinDoc(p)
             self.pw = max(self.pw, int(argres))
-        
+
         if self.ph <= 0:
             self.ph = int(meta_array.get('pageHeight', '11000'))
         if self.pw <= 0:
@@ -181,70 +181,69 @@ class PParser(object):
 
 
 def convert2SVG(gdict, flat_xml, pageid, previd, nextid, svgDir, raw, meta_array, scaledpi):
-    ml = ''
+    mlst = []
     pp = PParser(gdict, flat_xml, meta_array)
-    ml += '<?xml version="1.0" standalone="no"?>\n'
+    mlst.append('<?xml version="1.0" standalone="no"?>\n')
     if (raw):
-        ml += '<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n'
-        ml += '<svg width="%fin" height="%fin" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">\n' % (pp.pw / scaledpi, pp.ph / scaledpi, pp.pw -1, pp.ph -1)
-        ml += '<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors'])
+        mlst.append('<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n')
+        mlst.append('<svg width="%fin" height="%fin" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">\n' % (pp.pw / scaledpi, pp.ph / scaledpi, pp.pw -1, pp.ph -1))
+        mlst.append('<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors']))
     else:
-        ml += '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
-        ml += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" ><head>\n'
-        ml += '<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors'])
-        ml += '<script><![CDATA[\n'
-        ml += 'function gd(){var p=window.location.href.replace(/^.*\?dpi=(\d+).*$/i,"$1");return p;}\n'
-        ml += 'var dpi=%d;\n' % scaledpi
+        mlst.append('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n')
+        mlst.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" ><head>\n')
+        mlst.append('<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors']))
+        mlst.append('<script><![CDATA[\n')
+        mlst.append('function gd(){var p=window.location.href.replace(/^.*\?dpi=(\d+).*$/i,"$1");return p;}\n')
+        mlst.append('var dpi=%d;\n' % scaledpi)
         if (previd) :
-            ml += 'var prevpage="page%04d.xhtml";\n' % (previd)
+            mlst.append('var prevpage="page%04d.xhtml";\n' % (previd))
         if (nextid) :
-            ml += 'var nextpage="page%04d.xhtml";\n' % (nextid)
-        ml += 'var pw=%d;var ph=%d;' % (pp.pw, pp.ph)
-        ml += 'function zoomin(){dpi=dpi*(0.8);setsize();}\n'
-        ml += 'function zoomout(){dpi=dpi*1.25;setsize();}\n'
-        ml += 'function setsize(){var svg=document.getElementById("svgimg");var prev=document.getElementById("prevsvg");var next=document.getElementById("nextsvg");var width=(pw/dpi)+"in";var height=(ph/dpi)+"in";svg.setAttribute("width",width);svg.setAttribute("height",height);prev.setAttribute("height",height);prev.setAttribute("width","50px");next.setAttribute("height",height);next.setAttribute("width","50px");}\n'
-        ml += 'function ppage(){window.location.href=prevpage+"?dpi="+Math.round(dpi);}\n'
-        ml += 'function npage(){window.location.href=nextpage+"?dpi="+Math.round(dpi);}\n'
-        ml += 'var gt=gd();if(gt>0){dpi=gt;}\n'
-        ml += 'window.onload=setsize;\n'
-        ml += ']]></script>\n'
-        ml += '</head>\n'
-        ml += '<body onLoad="setsize();" style="background-color:#777;text-align:center;">\n'
-        ml += '<div style="white-space:nowrap;">\n'
+            mlst.append('var nextpage="page%04d.xhtml";\n' % (nextid))
+        mlst.append('var pw=%d;var ph=%d;' % (pp.pw, pp.ph))
+        mlst.append('function zoomin(){dpi=dpi*(0.8);setsize();}\n')
+        mlst.append('function zoomout(){dpi=dpi*1.25;setsize();}\n')
+        mlst.append('function setsize(){var svg=document.getElementById("svgimg");var prev=document.getElementById("prevsvg");var next=document.getElementById("nextsvg");var width=(pw/dpi)+"in";var height=(ph/dpi)+"in";svg.setAttribute("width",width);svg.setAttribute("height",height);prev.setAttribute("height",height);prev.setAttribute("width","50px");next.setAttribute("height",height);next.setAttribute("width","50px");}\n')
+        mlst.append('function ppage(){window.location.href=prevpage+"?dpi="+Math.round(dpi);}\n')
+        mlst.append('function npage(){window.location.href=nextpage+"?dpi="+Math.round(dpi);}\n')
+        mlst.append('var gt=gd();if(gt>0){dpi=gt;}\n')
+        mlst.append('window.onload=setsize;\n')
+        mlst.append(']]></script>\n')
+        mlst.append('</head>\n')
+        mlst.append('<body onLoad="setsize();" style="background-color:#777;text-align:center;">\n')
+        mlst.append('<div style="white-space:nowrap;">\n')
         if previd == None:
-            ml += '<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n'
+            mlst.append('<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n')
         else:
-            ml += '<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,150,95,5,95,295" fill="#AAAAAA" /></svg></a>\n'
-        
-        ml += '<a href="javascript:npage();"><svg id="svgimg" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="background-color:#FFF;border:1px solid black;">' % (pp.pw, pp.ph)
-    if (pp.gid != None): 
-        ml += '<defs>\n'
+            mlst.append('<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,150,95,5,95,295" fill="#AAAAAA" /></svg></a>\n')
+
+        mlst.append('<a href="javascript:npage();"><svg id="svgimg" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="background-color:#FFF;border:1px solid black;">' % (pp.pw, pp.ph))
+    if (pp.gid != None):
+        mlst.append('<defs>\n')
         gdefs = pp.getGlyphs()
         for j in xrange(0,len(gdefs)):
-            ml += gdefs[j]
-        ml += '</defs>\n'
+            mlst.append(gdefs[j])
+        mlst.append('</defs>\n')
     img = pp.getImages()
     if (img != None):
         for j in xrange(0,len(img)):
-            ml += img[j]
-    if (pp.gid != None): 
+            mlst.append(img[j])
+    if (pp.gid != None):
         for j in xrange(0,len(pp.gid)):
-            ml += '<use xlink:href="#gl%d" x="%d" y="%d" />\n' % (pp.gid[j], pp.gx[j], pp.gy[j])
+            mlst.append('<use xlink:href="#gl%d" x="%d" y="%d" />\n' % (pp.gid[j], pp.gx[j], pp.gy[j]))
     if (img == None or len(img) == 0) and (pp.gid == None or len(pp.gid) == 0):
         xpos = "%d" % (pp.pw // 3)
         ypos = "%d" % (pp.ph // 3)
-        ml += '<text x="' + xpos + '" y="' + ypos + '" font-size="' + meta_array['fontSize'] + '" font-family="Helvetica" stroke="black">This page intentionally left blank.</text>\n'
+        mlst.append('<text x="' + xpos + '" y="' + ypos + '" font-size="' + meta_array['fontSize'] + '" font-family="Helvetica" stroke="black">This page intentionally left blank.</text>\n')
     if (raw) :
-        ml += '</svg>'
+        mlst.append('</svg>')
     else :
-        ml += '</svg></a>\n'
+        mlst.append('</svg></a>\n')
         if nextid == None:
-            ml += '<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n'
+            mlst.append('<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n')
         else :
-            ml += '<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,5,5,295,95,150" fill="#AAAAAA" /></svg></a>\n'
-        ml += '</div>\n'
-        ml += '<div><a href="javascript:zoomin();">zoom in</a> - <a href="javascript:zoomout();">zoom out</a></div>\n'
-        ml += '</body>\n'
-        ml += '</html>\n'
-    return ml
-
+            mlst.append('<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,5,5,295,95,150" fill="#AAAAAA" /></svg></a>\n')
+        mlst.append('</div>\n')
+        mlst.append('<div><a href="javascript:zoomin();">zoom in</a> - <a href="javascript:zoomout();">zoom out</a></div>\n')
+        mlst.append('</body>\n')
+        mlst.append('</html>\n')
+    return "".join(mlst)

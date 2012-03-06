@@ -16,7 +16,7 @@
 # Custom version 0.03 - no change to eReader support, only usability changes
 #   - start of pep-8 indentation (spaces not tab), fix trailing blanks
 #   - version variable, only one place to change
-#   - added main routine, now callable as a library/module, 
+#   - added main routine, now callable as a library/module,
 #     means tools can add optional support for ereader2html
 #   - outdir is no longer a mandatory parameter (defaults based on input name if missing)
 #   - time taken output to stdout
@@ -59,8 +59,8 @@
 #  0.18 - on Windows try PyCrypto first and OpenSSL next
 #  0.19 - Modify the interface to allow use of import
 #  0.20 - modify to allow use inside new interface for calibre plugins
-#  0.21 - Support eReader (drm) version 11. 
-#       - Don't reject dictionary format. 
+#  0.21 - Support eReader (drm) version 11.
+#       - Don't reject dictionary format.
 #       - Ignore sidebars for dictionaries (different format?)
 
 __version__='0.21'
@@ -178,7 +178,7 @@ def sanitizeFileName(s):
 def fixKey(key):
     def fixByte(b):
         return b ^ ((b ^ (b<<1) ^ (b<<2) ^ (b<<3) ^ (b<<4) ^ (b<<5) ^ (b<<6) ^ (b<<7) ^ 0x80) & 0x80)
-    return 	"".join([chr(fixByte(ord(a))) for a in key])
+    return      "".join([chr(fixByte(ord(a))) for a in key])
 
 def deXOR(text, sp, table):
     r=''
@@ -212,7 +212,7 @@ class EreaderProcessor(object):
             for i in xrange(len(data)):
                 j = (j + shuf) % len(data)
                 r[j] = data[i]
-            assert	len("".join(r)) == len(data)
+            assert      len("".join(r)) == len(data)
             return "".join(r)
         r = unshuff(input[0:-8], cookie_shuf)
 
@@ -314,7 +314,7 @@ class EreaderProcessor(object):
     #             offname = deXOR(chaps, j, self.xortable)
     #             offset = struct.unpack('>L', offname[0:4])[0]
     #             name = offname[4:].strip('\0')
-    #             cv += '%d|%s\n' % (offset, name) 
+    #             cv += '%d|%s\n' % (offset, name)
     #     return cv
 
     # def getLinkNamePMLOffsetData(self):
@@ -326,7 +326,7 @@ class EreaderProcessor(object):
     #             offname = deXOR(links, j, self.xortable)
     #             offset = struct.unpack('>L', offname[0:4])[0]
     #             name = offname[4:].strip('\0')
-    #             lv += '%d|%s\n' % (offset, name) 
+    #             lv += '%d|%s\n' % (offset, name)
     #     return lv
 
     # def getExpandedTextSizesData(self):
@@ -354,7 +354,7 @@ class EreaderProcessor(object):
         for i in xrange(self.num_text_pages):
             logging.debug('get page %d', i)
             r += zlib.decompress(des.decrypt(self.section_reader(1 + i)))
-             
+
         # now handle footnotes pages
         if self.num_footnote_pages > 0:
             r += '\n'
@@ -399,12 +399,12 @@ class EreaderProcessor(object):
         return r
 
 def cleanPML(pml):
-	# Convert special characters to proper PML code.  High ASCII start at (\x80, \a128) and go up to (\xff, \a255)
-	pml2 = pml
-	for k in xrange(128,256):
-		badChar = chr(k)
-		pml2 = pml2.replace(badChar, '\\a%03d' % k)
-	return pml2
+        # Convert special characters to proper PML code.  High ASCII start at (\x80, \a128) and go up to (\xff, \a255)
+    pml2 = pml
+    for k in xrange(128,256):
+        badChar = chr(k)
+        pml2 = pml2.replace(badChar, '\\a%03d' % k)
+    return pml2
 
 def convertEreaderToPml(infile, name, cc, outdir):
     if not os.path.exists(outdir):
@@ -435,7 +435,7 @@ def convertEreaderToPml(infile, name, cc, outdir):
     #     file(os.path.join(outdir, 'bookinfo.txt'),'wb').write(bkinfo)
 
 
-                
+
 def decryptBook(infile, outdir, name, cc, make_pmlz):
     if make_pmlz :
         # ignore specified outdir, use tempdir instead
@@ -468,7 +468,7 @@ def decryptBook(infile, outdir, name, cc, make_pmlz):
             shutil.rmtree(outdir, True)
             print 'output is %s' % zipname
         else :
-            print 'output in %s' % outdir 
+            print 'output in %s' % outdir
         print "done"
     except ValueError, e:
         print "Error: %s" % e
@@ -505,7 +505,7 @@ def main(argv=None):
             return 0
         elif o == "--make-pmlz":
             make_pmlz = True
-    
+
     print "eRdr2Pml v%s. Copyright (c) 2009 The Dark Reverser" % __version__
 
     if len(args)!=3 and len(args)!=4:
@@ -524,4 +524,3 @@ def main(argv=None):
 if __name__ == "__main__":
     sys.stdout=Unbuffered(sys.stdout)
     sys.exit(main())
-

@@ -14,7 +14,7 @@ from __future__ import with_statement
 #   2 - Added OS X support by using OpenSSL when available
 #   3 - screen out improper key lengths to prevent segfaults on Linux
 #   3.1 - Allow Windows versions of libcrypto to be found
-#   3.2 - add support for encoding to 'utf-8' when building up list of files to cecrypt from encryption.xml 
+#   3.2 - add support for encoding to 'utf-8' when building up list of files to cecrypt from encryption.xml
 #   3.3 - On Windows try PyCrypto first and OpenSSL next
 #   3.4 - Modify interace to allow use with import
 
@@ -50,7 +50,7 @@ def _load_crypto_libcrypto():
     libcrypto = CDLL(libcrypto)
 
     AES_MAXNR = 14
-    
+
     c_char_pp = POINTER(c_char_p)
     c_int_p = POINTER(c_int)
 
@@ -58,13 +58,13 @@ def _load_crypto_libcrypto():
         _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
                     ('rounds', c_int)]
     AES_KEY_p = POINTER(AES_KEY)
-    
+
     def F(restype, name, argtypes):
         func = getattr(libcrypto, name)
         func.restype = restype
         func.argtypes = argtypes
         return func
-    
+
     AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
                         [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
                          c_int])
@@ -73,7 +73,7 @@ def _load_crypto_libcrypto():
     AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
                         [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
                          c_int])
-    
+
     class AES(object):
         def __init__(self, userkey):
             self._blocksize = len(userkey)
@@ -84,7 +84,7 @@ def _load_crypto_libcrypto():
             rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
             if rv < 0:
                 raise IGNOBLEError('Failed to initialize AES key')
-    
+
         def decrypt(self, data):
             out = create_string_buffer(len(data))
             iv = ("\x00" * self._blocksize)
@@ -122,7 +122,7 @@ def _load_crypto():
 
 AES = _load_crypto()
 
- 
+
 
 """
 Decrypt Barnes & Noble ADEPT encrypted EPUB books.

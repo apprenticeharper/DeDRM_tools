@@ -15,7 +15,7 @@ class PParser(object):
         self.flatdoc = flatxml.split('\n')
         self.docSize = len(self.flatdoc)
         self.temp = []
-        
+
         self.ph = -1
         self.pw = -1
         startpos = self.posinDoc('page.h') or self.posinDoc('book.h')
@@ -26,7 +26,7 @@ class PParser(object):
         for p in startpos:
             (name, argres) = self.lineinDoc(p)
             self.pw = max(self.pw, int(argres))
-        
+
         if self.ph <= 0:
             self.ph = int(meta_array.get('pageHeight', '11000'))
         if self.pw <= 0:
@@ -215,9 +215,9 @@ def convert2SVG(gdict, flat_xml, pageid, previd, nextid, svgDir, raw, meta_array
             ml += '<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n'
         else:
             ml += '<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,150,95,5,95,295" fill="#AAAAAA" /></svg></a>\n'
-        
+
         ml += '<a href="javascript:npage();"><svg id="svgimg" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="background-color:#FFF;border:1px solid black;">' % (pp.pw, pp.ph)
-    if (pp.gid != None): 
+    if (pp.gid != None):
         ml += '<defs>\n'
         gdefs = pp.getGlyphs()
         for j in xrange(0,len(gdefs)):
@@ -227,7 +227,7 @@ def convert2SVG(gdict, flat_xml, pageid, previd, nextid, svgDir, raw, meta_array
     if (img != None):
         for j in xrange(0,len(img)):
             ml += img[j]
-    if (pp.gid != None): 
+    if (pp.gid != None):
         for j in xrange(0,len(pp.gid)):
             ml += '<use xlink:href="#gl%d" x="%d" y="%d" />\n' % (pp.gid[j], pp.gx[j], pp.gy[j])
     if (img == None or len(img) == 0) and (pp.gid == None or len(pp.gid) == 0):
@@ -247,4 +247,3 @@ def convert2SVG(gdict, flat_xml, pageid, previd, nextid, svgDir, raw, meta_array
         ml += '</body>\n'
         ml += '</html>\n'
     return ml
-

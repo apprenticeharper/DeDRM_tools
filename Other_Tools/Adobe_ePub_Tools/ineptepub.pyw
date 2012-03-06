@@ -67,25 +67,25 @@ def _load_crypto_libcrypto():
 
     RSA_NO_PADDING = 3
     AES_MAXNR = 14
-    
+
     c_char_pp = POINTER(c_char_p)
     c_int_p = POINTER(c_int)
 
     class RSA(Structure):
         pass
     RSA_p = POINTER(RSA)
-    
+
     class AES_KEY(Structure):
         _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
                     ('rounds', c_int)]
     AES_KEY_p = POINTER(AES_KEY)
-    
+
     def F(restype, name, argtypes):
         func = getattr(libcrypto, name)
         func.restype = restype
         func.argtypes = argtypes
         return func
-    
+
     d2i_RSAPrivateKey = F(RSA_p, 'd2i_RSAPrivateKey',
                           [RSA_p, c_char_pp, c_long])
     RSA_size = F(c_int, 'RSA_size', [RSA_p])
@@ -97,7 +97,7 @@ def _load_crypto_libcrypto():
     AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
                         [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
                          c_int])
-    
+
     class RSA(object):
         def __init__(self, der):
             buf = create_string_buffer(der)
@@ -105,7 +105,7 @@ def _load_crypto_libcrypto():
             rsa = self._rsa = d2i_RSAPrivateKey(None, pp, len(der))
             if rsa is None:
                 raise ADEPTError('Error parsing ADEPT user key DER')
-        
+
         def decrypt(self, from_):
             rsa = self._rsa
             to = create_string_buffer(RSA_size(rsa))
@@ -114,7 +114,7 @@ def _load_crypto_libcrypto():
             if dlen < 0:
                 raise ADEPTError('RSA decryption failed')
             return to[:dlen]
-    
+
         def __del__(self):
             if self._rsa is not None:
                 RSA_free(self._rsa)
@@ -130,7 +130,7 @@ def _load_crypto_libcrypto():
             rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
             if rv < 0:
                 raise ADEPTError('Failed to initialize AES key')
-    
+
         def decrypt(self, data):
             out = create_string_buffer(len(data))
             iv = ("\x00" * self._blocksize)
@@ -148,13 +148,13 @@ def _load_crypto_pycrypto():
     # ASN.1 parsing code from tlslite
     class ASN1Error(Exception):
         pass
-    
+
     class ASN1Parser(object):
         class Parser(object):
             def __init__(self, bytes):
                 self.bytes = bytes
                 self.index = 0
-    
+
             def get(self, length):
                 if self.index + length > len(self.bytes):
                     raise ASN1Error("Error decoding ASN.1")
@@ -164,22 +164,22 @@ def _load_crypto_pycrypto():
                     x |= self.bytes[self.index]
                     self.index += 1
                 return x
-    
+
             def getFixBytes(self, lengthBytes):
                 bytes = self.bytes[self.index : self.index+lengthBytes]
                 self.index += lengthBytes
                 return bytes
-    
+
             def getVarBytes(self, lengthLength):
                 lengthBytes = self.get(lengthLength)
                 return self.getFixBytes(lengthBytes)
-    
+
             def getFixList(self, length, lengthList):
                 l = [0] * lengthList
                 for x in range(lengthList):
                     l[x] = self.get(length)
                 return l
-    
+
             def getVarList(self, length, lengthLength):
                 lengthList = self.get(lengthLength)
                 if lengthList % length != 0:
@@ -189,19 +189,19 @@ def _load_crypto_pycrypto():
                 for x in range(lengthList):
                     l[x] = self.get(length)
                 return l
-    
+
             def startLengthCheck(self, lengthLength):
                 self.lengthCheck = self.get(lengthLength)
                 self.indexCheck = self.index
-    
+
             def setLengthCheck(self, length):
                 self.lengthCheck = length
                 self.indexCheck = self.index
-    
+
             def stopLengthCheck(self):
                 if (self.index - self.indexCheck) != self.lengthCheck:
                     raise ASN1Error("Error decoding ASN.1")
-    
+
             def atLengthCheck(self):
                 if (self.index - self.indexCheck) < self.lengthCheck:
                     return False
@@ -209,13 +209,13 @@ def _load_crypto_pycrypto():
                     return True
                 else:
                     raise ASN1Error("Error decoding ASN.1")
-    
+
         def __init__(self, bytes):
             p = self.Parser(bytes)
             p.get(1)
             self.length = self._getASN1Length(p)
             self.value = p.getFixBytes(self.length)
-    
+
         def getChild(self, which):
             p = self.Parser(self.value)
             for x in range(which+1):
@@ -224,7 +224,7 @@ def _load_crypto_pycrypto():
                 length = self._getASN1Length(p)
                 p.getFixBytes(length)
             return ASN1Parser(p.bytes[markIndex:p.index])
-    
+
         def _getASN1Length(self, p):
             firstLength = p.get(1)
             if firstLength<=127:
@@ -252,7 +252,7 @@ def _load_crypto_pycrypto():
             for byte in bytes:
                 total = (total << 8) + byte
             return total
-    
+
         def decrypt(self, data):
             return self._rsa.decrypt(data)
 

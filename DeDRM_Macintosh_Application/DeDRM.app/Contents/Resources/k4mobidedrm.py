@@ -5,19 +5,19 @@ from __future__ import with_statement
 # engine to remove drm from Kindle for Mac and Kindle for PC books
 # for personal use for archiving and converting your ebooks
 
-# PLEASE DO NOT PIRATE EBOOKS! 
+# PLEASE DO NOT PIRATE EBOOKS!
 
 # We want all authors and publishers, and eBook stores to live
-# long and prosperous lives but at the same time  we just want to 
-# be able to read OUR books on whatever device we want and to keep 
+# long and prosperous lives but at the same time  we just want to
+# be able to read OUR books on whatever device we want and to keep
 # readable for a long, long time
 
-#  This borrows very heavily from works by CMBDTC, IHeartCabbages, skindle, 
-#    unswindle, DarkReverser, ApprenticeAlf, DiapDealer, some_updates 
+#  This borrows very heavily from works by CMBDTC, IHeartCabbages, skindle,
+#    unswindle, DarkReverser, ApprenticeAlf, DiapDealer, some_updates
 #    and many many others
 
 
-__version__ = '3.9'
+__version__ = '4.0'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -50,7 +50,7 @@ else:
     import mobidedrm
     import topazextract
     import kgenpids
-        
+
 
 # cleanup bytestring filenames
 # borrowed from calibre from calibre/src/calibre/__init__.py
@@ -100,14 +100,14 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
         outfilename = outfilename + "_" + filenametitle
     elif outfilename[:8] != filenametitle[:8]:
         outfilename = outfilename[:8] + "_" + filenametitle
-        
+
     # avoid excessively long file names
     if len(outfilename)>150:
         outfilename = outfilename[:150]
 
     # build pid list
     md1, md2 = mb.getPIDMetaInfo()
-    pidlst = kgenpids.getPidList(md1, md2, k4, pids, serials, kInfoFiles) 
+    pidlst = kgenpids.getPidList(md1, md2, k4, pids, serials, kInfoFiles)
 
     try:
         mb.processBook(pidlst)
@@ -128,9 +128,9 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
         else:
             outfile = os.path.join(outdir, outfilename + '_nodrm' + '.mobi')
         mb.getMobiFile(outfile)
-        return 0            
+        return 0
 
-    # topaz: 
+    # topaz:
     print "   Creating NoDRM HTMLZ Archive"
     zipname = os.path.join(outdir, outfilename + '_nodrm' + '.htmlz')
     mb.getHTMLZip(zipname)
@@ -156,7 +156,7 @@ def usage(progname):
 
 #
 # Main
-#   
+#
 def main(argv=sys.argv):
     progname = os.path.basename(argv[0])
 
@@ -164,9 +164,9 @@ def main(argv=sys.argv):
     kInfoFiles = []
     serials = []
     pids = []
-    
+
     print ('K4MobiDeDrm v%(__version__)s '
-	   'provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc .' % globals())
+           'provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc .' % globals())
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "k:p:s:")
@@ -177,7 +177,7 @@ def main(argv=sys.argv):
     if len(args)<2:
         usage(progname)
         sys.exit(2)
-        
+
     for o, a in opts:
         if o == "-k":
             if a == None :
@@ -195,8 +195,8 @@ def main(argv=sys.argv):
     # try with built in Kindle Info files
     k4 = True
     if sys.platform.startswith('linux'):
-	k4 = False
-	kInfoFiles = None
+        k4 = False
+        kInfoFiles = None
     infile = args[0]
     outdir = args[1]
     return decryptBook(infile, outdir, k4, kInfoFiles, serials, pids)
@@ -205,4 +205,3 @@ def main(argv=sys.argv):
 if __name__ == '__main__':
     sys.stdout=Unbuffered(sys.stdout)
     sys.exit(main())
-

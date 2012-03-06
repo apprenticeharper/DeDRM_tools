@@ -5,7 +5,8 @@ from __future__ import with_statement
 import sys
 import os
 import os.path
-
+import re
+import copy
 import subprocess
 from struct import pack, unpack, unpack_from
 
@@ -24,6 +25,25 @@ def _load_crypto_libcrypto():
         raise DrmException('libcrypto not found')
     libcrypto = CDLL(libcrypto)
 
+    # From OpenSSL's crypto aes header
+    #
+    # AES_ENCRYPT     1
+    # AES_DECRYPT     0
+    # AES_MAXNR 14 (in bytes)
+    # AES_BLOCK_SIZE 16 (in bytes)
+    # 
+    # struct aes_key_st {
+    #    unsigned long rd_key[4 *(AES_MAXNR + 1)];
+    #    int rounds;
+    # };
+    # typedef struct aes_key_st AES_KEY;
+    #
+    # int AES_set_decrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key);
+    #
+    # note:  the ivec string, and output buffer are mutable
+    # void AES_cbc_encrypt(const unsigned char *in, unsigned char *out,
+    #     const unsigned long length, const AES_KEY *key, unsigned char *ivec, const int enc);
+
     AES_MAXNR = 14
     c_char_pp = POINTER(c_char_p)
     c_int_p = POINTER(c_int)
@@ -31,25 +51,31 @@ def _load_crypto_libcrypto():
     class AES_KEY(Structure):
         _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))), ('rounds', c_int)]
     AES_KEY_p = POINTER(AES_KEY)
-    
+
     def F(restype, name, argtypes):
         func = getattr(libcrypto, name)
         func.restype = restype
         func.argtypes = argtypes
         return func
-    
+
     AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',[c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,c_int])
 
     AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',[c_char_p, c_int, AES_KEY_p])
 
-    PKCS5_PBKDF2_HMAC_SHA1 = F(c_int, 'PKCS5_PBKDF2_HMAC_SHA1', 
+    # From OpenSSL's Crypto evp/p5_crpt2.c
+    #
+    # int PKCS5_PBKDF2_HMAC_SHA1(const char *pass, int passlen,
+    #                        const unsigned char *salt, int saltlen, int iter,
+    #                        int keylen, unsigned char *out);
+
+    PKCS5_PBKDF2_HMAC_SHA1 = F(c_int, 'PKCS5_PBKDF2_HMAC_SHA1',
                                 [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
-    
+
     class LibCrypto(object):
         def __init__(self):
             self._blocksize = 0
             self._keyctx = None
-            self.iv = 0
+            self._iv = 0
 
         def set_decrypt_key(self, userkey, iv):
             self._blocksize = len(userkey)
@@ -57,14 +83,17 @@ def _load_crypto_libcrypto():
                 raise DrmException('AES improper key used')
                 return
             keyctx = self._keyctx = AES_KEY()
-            self.iv = iv
+            self._iv = iv
+            self._userkey = userkey
             rv = AES_set_decrypt_key(userkey, len(userkey) * 8, keyctx)
             if rv < 0:
                 raise DrmException('Failed to initialize AES key')
 
         def decrypt(self, data):
             out = create_string_buffer(len(data))
-            rv = AES_cbc_encrypt(data, out, len(data), self._keyctx, self.iv, 0)
+            mutable_iv = create_string_buffer(self._iv, len(self._iv))
+            keyctx = self._keyctx
+            rv = AES_cbc_encrypt(data, out, len(data), keyctx, mutable_iv, 0)
             if rv == 0:
                 raise DrmException('AES decryption failed')
             return out.raw
@@ -111,12 +140,16 @@ def SHA256(message):
 
 # Various character maps used to decrypt books. Probably supposed to act as obfuscation
 charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
-charMap2 = "ZB0bYyc1xDdW2wEV3Ff7KkPpL8UuGA4gz-Tme9Nn_tHh5SvXCsIiR6rJjQaqlOoM" 
+charMap2 = "ZB0bYyc1xDdW2wEV3Ff7KkPpL8UuGA4gz-Tme9Nn_tHh5SvXCsIiR6rJjQaqlOoM"
 
-# For kinf approach of K4PC/K4Mac
+# For kinf approach of K4Mac 1.6.X or later
 # On K4PC charMap5 = "AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
 # For Mac they seem to re-use charMap2 here
 charMap5 = charMap2
+
+# new in K4M 1.9.X
+testMap8 = "YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD"
+
 
 def encode(data, map):
     result = ""
@@ -144,7 +177,7 @@ def decode(data,map):
         result += pack("B",value)
     return result
 
-# For .kinf approach of K4PC and now K4Mac
+# For K4M 1.6.X and later
 # generate table of prime number less than or equal to int n
 def primes(n):
     if n==2: return [2]
@@ -271,7 +304,7 @@ def GetDiskPartitionUUID(diskpart):
     if not foundIt:
         uuidnum = ''
     return uuidnum
-    
+
 def GetMACAddressMunged():
     macnum = os.getenv('MYMACNUM')
     if macnum != None:
@@ -315,32 +348,10 @@ def GetMACAddressMunged():
     return macnum
 
 
-# uses unix env to get username instead of using sysctlbyname 
+# uses unix env to get username instead of using sysctlbyname
 def GetUserName():
     username = os.getenv('USER')
     return username
-
-
-# implements an Pseudo Mac Version of Windows built-in Crypto routine
-# used by Kindle for Mac versions < 1.6.0
-def CryptUnprotectData(encryptedData):
-    sernum = GetVolumeSerialNumber()
-    if sernum == '':
-        sernum = '9999999999'
-    sp = sernum + '!@#' + GetUserName()
-    passwdData = encode(SHA256(sp),charMap1)
-    salt = '16743'
-    iter = 0x3e8
-    keylen = 0x80
-    crp = LibCrypto()
-    key_iv = crp.keyivgen(passwdData, salt, iter, keylen)
-    key = key_iv[0:32]
-    iv = key_iv[32:48]
-    crp.set_decrypt_key(key,iv)
-    cleartext = crp.decrypt(encryptedData)
-    cleartext = decode(cleartext,charMap1)
-    return cleartext
-
 
 def isNewInstall():
     home = os.getenv('HOME')
@@ -350,7 +361,7 @@ def isNewInstall():
     if os.path.exists(dpath):
         return True
     return False
-    
+
 
 def GetIDString():
     # K4Mac now has an extensive set of ids strings it uses
@@ -359,13 +370,13 @@ def GetIDString():
 
     # BUT Amazon has now become nasty enough to detect when its app
     # is being run under a debugger and actually changes code paths
-    # including which one of these strings is chosen, all to try 
+    # including which one of these strings is chosen, all to try
     # to prevent reverse engineering
 
     # Sad really ... they will only hurt their own sales ...
     # true book lovers really want to keep their books forever
-    # and move them to their devices and DRM prevents that so they 
-    # will just buy from someplace else that they can remove 
+    # and move them to their devices and DRM prevents that so they
+    # will just buy from someplace else that they can remove
     # the DRM from
 
     # Amazon should know by now that true book lover's are not like
@@ -389,24 +400,88 @@ def GetIDString():
 
 
 # implements an Pseudo Mac Version of Windows built-in Crypto routine
+# used by Kindle for Mac versions < 1.6.0
+class CryptUnprotectData(object):
+    def __init__(self):
+        sernum = GetVolumeSerialNumber()
+        if sernum == '':
+            sernum = '9999999999'
+        sp = sernum + '!@#' + GetUserName()
+        passwdData = encode(SHA256(sp),charMap1)
+        salt = '16743'
+        self.crp = LibCrypto()
+        iter = 0x3e8
+        keylen = 0x80
+        key_iv = self.crp.keyivgen(passwdData, salt, iter, keylen)
+        self.key = key_iv[0:32]
+        self.iv = key_iv[32:48]
+        self.crp.set_decrypt_key(self.key, self.iv)
+
+    def decrypt(self, encryptedData):
+        cleartext = self.crp.decrypt(encryptedData)
+        cleartext = decode(cleartext,charMap1)
+        return cleartext
+
+
+# implements an Pseudo Mac Version of Windows built-in Crypto routine
 # used for Kindle for Mac Versions >= 1.6.0
-def CryptUnprotectDataV2(encryptedData):
-    sp = GetUserName() + ':&%:' + GetIDString()
-    passwdData = encode(SHA256(sp),charMap5)
-    # salt generation as per the code
-    salt = 0x0512981d * 2 * 1 * 1
-    salt = str(salt) + GetUserName()
-    salt = encode(salt,charMap5)
+class CryptUnprotectDataV2(object):
+    def __init__(self):
+        sp = GetUserName() + ':&%:' + GetIDString()
+        passwdData = encode(SHA256(sp),charMap5)
+        # salt generation as per the code
+        salt = 0x0512981d * 2 * 1 * 1
+        salt = str(salt) + GetUserName()
+        salt = encode(salt,charMap5)
+        self.crp = LibCrypto()
+        iter = 0x800
+        keylen = 0x400
+        key_iv = self.crp.keyivgen(passwdData, salt, iter, keylen)
+        self.key = key_iv[0:32]
+        self.iv = key_iv[32:48]
+        self.crp.set_decrypt_key(self.key, self.iv)
+
+    def decrypt(self, encryptedData):
+        cleartext = self.crp.decrypt(encryptedData)
+        cleartext = decode(cleartext, charMap5)
+        return cleartext
+
+
+# unprotect the new header blob in .kinf2011
+# used in Kindle for Mac Version >= 1.9.0
+def UnprotectHeaderData(encryptedData):
+    passwdData = 'header_key_data'
+    salt = 'HEADER.2011'
+    iter = 0x80
+    keylen = 0x100
     crp = LibCrypto()
-    iter = 0x800
-    keylen = 0x400
     key_iv = crp.keyivgen(passwdData, salt, iter, keylen)
     key = key_iv[0:32]
     iv = key_iv[32:48]
     crp.set_decrypt_key(key,iv)
     cleartext = crp.decrypt(encryptedData)
-    cleartext = decode(cleartext, charMap5)
     return cleartext
+
+
+# implements an Pseudo Mac Version of Windows built-in Crypto routine
+# used for Kindle for Mac Versions >= 1.9.0
+class CryptUnprotectDataV3(object):
+    def __init__(self, entropy):
+        sp = GetUserName() + '+@#$%+' + GetIDString()
+        passwdData = encode(SHA256(sp),charMap2)
+        salt = entropy
+        self.crp = LibCrypto()
+        iter = 0x800
+        keylen = 0x400
+        key_iv = self.crp.keyivgen(passwdData, salt, iter, keylen)
+        self.key = key_iv[0:32]
+        self.iv = key_iv[32:48]
+        self.crp.set_decrypt_key(self.key, self.iv)
+
+    def decrypt(self, encryptedData):
+        cleartext = self.crp.decrypt(encryptedData)
+        cleartext = decode(cleartext, charMap2)
+        return cleartext
 
 
 # Locate the .kindle-info files
@@ -424,8 +499,18 @@ def getKindleInfoFiles(kInfoFiles):
         if os.path.isfile(resline):
             kInfoFiles.append(resline)
             found = True
-    # add any .kinf files 
+    # add any .rainier*-kinf files
     cmdline = 'find "' + home + '/Library/Application Support" -name ".rainier*-kinf"'
+    cmdline = cmdline.encode(sys.getfilesystemencoding())
+    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
+    out1, out2 = p1.communicate()
+    reslst = out1.split('\n')
+    for resline in reslst:
+        if os.path.isfile(resline):
+            kInfoFiles.append(resline)
+            found = True
+    # add any .kinf2011 files
+    cmdline = 'find "' + home + '/Library/Application Support" -name ".kinf2011"'
     cmdline = cmdline.encode(sys.getfilesystemencoding())
     p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
     out1, out2 = p1.communicate()
@@ -438,7 +523,7 @@ def getKindleInfoFiles(kInfoFiles):
         print('No kindle-info files have been found.')
     return kInfoFiles
 
-# determine type of kindle info provided and return a 
+# determine type of kindle info provided and return a
 # database of keynames and values
 def getDBfromFile(kInfoFile):
     names = ["kindle.account.tokens","kindle.cookie.item","eulaVersionAccepted","login_date","kindle.token.item","login","kindle.key.item","kindle.name.info","kindle.device.info", "MazamaRandomNumber", "max_date", "SIGVERIF"]
@@ -449,7 +534,9 @@ def getDBfromFile(kInfoFile):
     data = infoReader.read()
 
     if data.find('[') != -1 :
+
         # older style kindle-info file
+        cud = CryptUnprotectData()
         items = data.split('[')
         for item in items:
             if item != '':
@@ -462,87 +549,175 @@ def getDBfromFile(kInfoFile):
                 if keyname == "unknown":
                     keyname = keyhash
                 encryptedValue = decode(rawdata,charMap2)
-                cleartext = CryptUnprotectData(encryptedValue)
+                cleartext = cud.decrypt(encryptedValue)
                 DB[keyname] = cleartext
                 cnt = cnt + 1
         if cnt == 0:
             DB = None
         return DB
 
-    # else newer style .kinf file used by K4Mac >= 1.6.0
-    # the .kinf file uses "/" to separate it into records
-    # so remove the trailing "/" to make it easy to use split
+    if hdr == '/':
+
+        # else newer style .kinf file used by K4Mac >= 1.6.0
+        # the .kinf file uses "/" to separate it into records
+        # so remove the trailing "/" to make it easy to use split
+        data = data[:-1]
+        items = data.split('/')
+        cud = CryptUnprotectDataV2()
+
+        # loop through the item records until all are processed
+        while len(items) > 0:
+
+            # get the first item record
+            item = items.pop(0)
+
+            # the first 32 chars of the first record of a group
+            # is the MD5 hash of the key name encoded by charMap5
+            keyhash = item[0:32]
+            keyname = "unknown"
+
+            # the raw keyhash string is also used to create entropy for the actual
+            # CryptProtectData Blob that represents that keys contents
+            # "entropy" not used for K4Mac only K4PC
+            # entropy = SHA1(keyhash)
+
+            # the remainder of the first record when decoded with charMap5
+            # has the ':' split char followed by the string representation
+            # of the number of records that follow
+            # and make up the contents
+            srcnt = decode(item[34:],charMap5)
+            rcnt = int(srcnt)
+
+            # read and store in rcnt records of data
+            # that make up the contents value
+            edlst = []
+            for i in xrange(rcnt):
+                item = items.pop(0)
+                edlst.append(item)
+
+            keyname = "unknown"
+            for name in names:
+                if encodeHash(name,charMap5) == keyhash:
+                    keyname = name
+                    break
+            if keyname == "unknown":
+                keyname = keyhash
+
+            # the charMap5 encoded contents data has had a length
+            # of chars (always odd) cut off of the front and moved
+            # to the end to prevent decoding using charMap5 from
+            # working properly, and thereby preventing the ensuing
+            # CryptUnprotectData call from succeeding.
+
+            # The offset into the charMap5 encoded contents seems to be:
+            # len(contents) - largest prime number less than or equal to int(len(content)/3)
+            # (in other words split "about" 2/3rds of the way through)
+
+            # move first offsets chars to end to align for decode by charMap5
+            encdata = "".join(edlst)
+            contlen = len(encdata)
+
+            # now properly split and recombine
+            # by moving noffset chars from the start of the
+            # string to the end of the string
+            noffset = contlen - primes(int(contlen/3))[-1]
+            pfx = encdata[0:noffset]
+            encdata = encdata[noffset:]
+            encdata = encdata + pfx
+
+            # decode using charMap5 to get the CryptProtect Data
+            encryptedValue = decode(encdata,charMap5)
+            cleartext = cud.decrypt(encryptedValue)
+            DB[keyname] = cleartext
+            cnt = cnt + 1
+
+        if cnt == 0:
+            DB = None
+        return DB
+
+    # the latest .kinf2011 version for K4M 1.9.1
+    # put back the hdr char, it is needed
+    data = hdr + data
     data = data[:-1]
     items = data.split('/')
 
+    # the headerblob is the encrypted information needed to build the entropy string
+    headerblob = items.pop(0)
+    encryptedValue = decode(headerblob, charMap1)
+    cleartext = UnprotectHeaderData(encryptedValue)
+
+    # now extract the pieces in the same way
+    # this version is different from K4PC it scales the build number by multipying by 735
+    pattern = re.compile(r'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
+    for m in re.finditer(pattern, cleartext):
+        entropy = str(int(m.group(2)) * 0x2df) + m.group(4)
+
+    cud = CryptUnprotectDataV3(entropy)
+
     # loop through the item records until all are processed
     while len(items) > 0:
-    
+
         # get the first item record
         item = items.pop(0)
-    
+
         # the first 32 chars of the first record of a group
         # is the MD5 hash of the key name encoded by charMap5
         keyhash = item[0:32]
         keyname = "unknown"
 
-        # the raw keyhash string is also used to create entropy for the actual
-        # CryptProtectData Blob that represents that keys contents
-        # "entropy" not used for K4Mac only K4PC
-        # entropy = SHA1(keyhash)
-    
-        # the remainder of the first record when decoded with charMap5 
+        # unlike K4PC the keyhash is not used in generating entropy
+        # entropy = SHA1(keyhash) + added_entropy
+        # entropy = added_entropy
+
+        # the remainder of the first record when decoded with charMap5
         # has the ':' split char followed by the string representation
         # of the number of records that follow
         # and make up the contents
         srcnt = decode(item[34:],charMap5)
         rcnt = int(srcnt)
-    
+
         # read and store in rcnt records of data
         # that make up the contents value
         edlst = []
         for i in xrange(rcnt):
             item = items.pop(0)
             edlst.append(item)
-    
+
         keyname = "unknown"
         for name in names:
-            if encodeHash(name,charMap5) == keyhash:
+            if encodeHash(name,testMap8) == keyhash:
                 keyname = name
                 break
         if keyname == "unknown":
             keyname = keyhash
-    
-        # the charMap5 encoded contents data has had a length 
+
+        # the testMap8 encoded contents data has had a length
         # of chars (always odd) cut off of the front and moved
-        # to the end to prevent decoding using charMap5 from 
-        # working properly, and thereby preventing the ensuing 
+        # to the end to prevent decoding using testMap8 from
+        # working properly, and thereby preventing the ensuing
         # CryptUnprotectData call from succeeding.
-    
-        # The offset into the charMap5 encoded contents seems to be:
+
+        # The offset into the testMap8 encoded contents seems to be:
         # len(contents) - largest prime number less than or equal to int(len(content)/3)
         # (in other words split "about" 2/3rds of the way through)
-    
-        # move first offsets chars to end to align for decode by charMap5
+
+        # move first offsets chars to end to align for decode by testMap8
         encdata = "".join(edlst)
         contlen = len(encdata)
 
-        # now properly split and recombine 
-        # by moving noffset chars from the start of the 
-        # string to the end of the string 
+        # now properly split and recombine
+        # by moving noffset chars from the start of the
+        # string to the end of the string
         noffset = contlen - primes(int(contlen/3))[-1]
         pfx = encdata[0:noffset]
         encdata = encdata[noffset:]
         encdata = encdata + pfx
-    
-        # decode using charMap5 to get the CryptProtect Data
-        encryptedValue = decode(encdata,charMap5)
-        cleartext = CryptUnprotectDataV2(encryptedValue)
-        # Debugging
+
+        # decode using testMap8 to get the CryptProtect Data
+        encryptedValue = decode(encdata,testMap8)
+        cleartext = cud.decrypt(encryptedValue)
         # print keyname
         # print cleartext
-        # print cleartext.encode('hex')
-        # print
         DB[keyname] = cleartext
         cnt = cnt + 1
 

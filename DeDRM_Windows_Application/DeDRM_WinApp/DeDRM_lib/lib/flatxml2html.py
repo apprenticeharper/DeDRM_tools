@@ -68,7 +68,7 @@ class DocParser(object):
         ys = []
         gdefs = []
 
-        # get path defintions, positions, dimensions for each glyph 
+        # get path defintions, positions, dimensions for each glyph
         # that makes up the image, and find min x and min y to reposition origin
         minx = -1
         miny = -1
@@ -79,7 +79,7 @@ class DocParser(object):
             xs.append(gxList[j])
             if minx == -1: minx = gxList[j]
             else : minx = min(minx, gxList[j])
- 
+
             ys.append(gyList[j])
             if miny == -1: miny = gyList[j]
             else : miny = min(miny, gyList[j])
@@ -124,12 +124,12 @@ class DocParser(object):
             item = self.docList[pos]
             if item.find('=') >= 0:
                 (name, argres) = item.split('=',1)
-            else : 
+            else :
                 name = item
                 argres = ''
         return name, argres
 
-        
+
     # find tag in doc if within pos to end inclusive
     def findinDoc(self, tagpath, pos, end) :
         result = None
@@ -142,10 +142,10 @@ class DocParser(object):
             item = self.docList[j]
             if item.find('=') >= 0:
                 (name, argres) = item.split('=',1)
-            else : 
+            else :
                 name = item
                 argres = ''
-            if name.endswith(tagpath) : 
+            if name.endswith(tagpath) :
                 result = argres
                 foundat = j
                 break
@@ -182,13 +182,13 @@ class DocParser(object):
         # class names are an issue given topaz may start them with numerals (not allowed),
         # use a mix of cases (which cause some browsers problems), and actually
         # attach numbers after "_reclustered*" to the end to deal classeses that inherit
-        # from a base class (but then not actually provide all of these _reclustereed 
+        # from a base class (but then not actually provide all of these _reclustereed
         # classes in the stylesheet!
 
         # so we clean this up by lowercasing, prepend 'cl-', and getting any baseclass
         # that exists in the stylesheet first, and then adding this specific class
         # after
-        
+
         # also some class names have spaces in them so need to convert to dashes
         if nclass != None :
             nclass = nclass.replace(' ','-')
@@ -211,7 +211,7 @@ class DocParser(object):
         return nclass
 
 
-    # develop a sorted description of the starting positions of 
+    # develop a sorted description of the starting positions of
     # groups and regions on the page, as well as the page type
     def PageDescription(self):
 
@@ -267,7 +267,7 @@ class DocParser(object):
         result = []
 
         # paragraph
-        (pos, pclass) = self.findinDoc('paragraph.class',start,end) 
+        (pos, pclass) = self.findinDoc('paragraph.class',start,end)
 
         pclass = self.getClass(pclass)
 
@@ -281,16 +281,21 @@ class DocParser(object):
         if (sfirst != None) and (slast != None) :
             first = int(sfirst)
             last = int(slast)
-            
+
             makeImage = (regtype == 'vertical') or (regtype == 'table')
-            makeImage = makeImage or (extraglyphs != None) 
+            makeImage = makeImage or (extraglyphs != None)
             if self.fixedimage:
                 makeImage = makeImage or (regtype == 'fixed')
 
-            if (pclass != None): 
+            if (pclass != None):
                 makeImage = makeImage or (pclass.find('.inverted') >= 0)
                 if self.fixedimage :
                     makeImage = makeImage or (pclass.find('cl-f-') >= 0)
+
+            # before creating an image make sure glyph info exists
+            gidList = self.getData('info.glyph.glyphID',0,-1)
+
+            makeImage = makeImage & (len(gidList) > 0)
 
             if not makeImage :
                 # standard all word paragraph
@@ -332,10 +337,10 @@ class DocParser(object):
             result.append(('svg', num))
             return pclass, result
 
-        # this type of paragraph may be made up of multiple spans, inline 
-        # word monograms (images), and words with semantic meaning, 
+        # this type of paragraph may be made up of multiple spans, inline
+        # word monograms (images), and words with semantic meaning,
         # plus glyphs used to form starting letter of first word
-        
+
         # need to parse this type line by line
         line = start + 1
         word_class = ''
@@ -344,7 +349,7 @@ class DocParser(object):
         if end == -1 :
             end = self.docSize
 
-        # seems some xml has last* coming before first* so we have to 
+        # seems some xml has last* coming before first* so we have to
         # handle any order
         sp_first = -1
         sp_last = -1
@@ -382,10 +387,10 @@ class DocParser(object):
                 ws_last = int(argres)
 
             elif name.endswith('word.class'):
-               (cname, space) = argres.split('-',1)
-               if space == '' : space = '0'
-               if (cname == 'spaceafter') and (int(space) > 0) :
-                   word_class = 'sa'
+                (cname, space) = argres.split('-',1)
+                if space == '' : space = '0'
+                if (cname == 'spaceafter') and (int(space) > 0) :
+                    word_class = 'sa'
 
             elif name.endswith('word.img.src'):
                 result.append(('img' + word_class, int(argres)))
@@ -416,11 +421,11 @@ class DocParser(object):
                     result.append(('ocr', wordnum))
                 ws_first = -1
                 ws_last = -1
-                              
+
             line += 1
 
         return pclass, result
-                            
+
 
     def buildParagraph(self, pclass, pdesc, type, regtype) :
         parares = ''
@@ -433,7 +438,7 @@ class DocParser(object):
         br_lb = (regtype == 'fixed') or (regtype == 'chapterheading') or (regtype == 'vertical')
 
         handle_links = len(self.link_id) > 0
-        
+
         if (type == 'full') or (type == 'begin') :
             parares += '<p' + classres + '>'
 
@@ -462,7 +467,7 @@ class DocParser(object):
                         if linktype == 'external' :
                             linkhref = self.link_href[link-1]
                             linkhtml = '<a href="%s">' % linkhref
-                        else : 
+                        else :
                             if len(self.link_page) >= link :
                                 ptarget = self.link_page[link-1] - 1
                                 linkhtml = '<a href="#page%04d">' % ptarget
@@ -509,7 +514,7 @@ class DocParser(object):
 
             elif wtype == 'svg' :
                 sep = ''
-                parares += '<img src="img/' + self.id + '_%04d.svg" alt="" />' % num 
+                parares += '<img src="img/' + self.id + '_%04d.svg" alt="" />' % num
                 parares += sep
 
         if len(sep) > 0 : parares = parares[0:-1]
@@ -551,7 +556,7 @@ class DocParser(object):
                             title = ''
                             alt_title = ''
                             linkpage = ''
-                        else : 
+                        else :
                             if len(self.link_page) >= link :
                                 ptarget = self.link_page[link-1] - 1
                                 linkpage = '%04d' % ptarget
@@ -584,14 +589,14 @@ class DocParser(object):
 
 
 
-    
+
     # walk the document tree collecting the information needed
     # to build an html page using the ocrText
 
     def process(self):
 
-        htmlpage = ''
         tocinfo = ''
+        hlst = []
 
         # get the ocr text
         (pos, argres) = self.findinDoc('info.word.ocrText',0,-1)
@@ -602,8 +607,8 @@ class DocParser(object):
 
         # determine if first paragraph is continued from previous page
         (pos, self.parastems_stemid) = self.findinDoc('info.paraStems.stemID',0,-1)
-        first_para_continued = (self.parastems_stemid  != None) 
-        
+        first_para_continued = (self.parastems_stemid  != None)
+
         # determine if last paragraph is continued onto the next page
         (pos, self.paracont_stemid) = self.findinDoc('info.paraCont.stemID',0,-1)
         last_para_continued = (self.paracont_stemid != None)
@@ -631,25 +636,25 @@ class DocParser(object):
 
         # get a descriptions of the starting points of the regions
         # and groups on the page
-        (pagetype, pageDesc) = self.PageDescription() 
+        (pagetype, pageDesc) = self.PageDescription()
         regcnt = len(pageDesc) - 1
 
         anchorSet = False
         breakSet = False
         inGroup = False
-        
+
         # process each region on the page and convert what you can to html
 
         for j in xrange(regcnt):
 
             (etype, start) = pageDesc[j]
             (ntype, end) = pageDesc[j+1]
-            
+
 
             # set anchor for link target on this page
             if not anchorSet and not first_para_continued:
-                htmlpage += '<div style="visibility: hidden; height: 0; width: 0;" id="' 
-                htmlpage += self.id + '" title="pagetype_' + pagetype + '"></div>\n'
+                hlst.append('<div style="visibility: hidden; height: 0; width: 0;" id="')
+                hlst.append(self.id + '" title="pagetype_' + pagetype + '"></div>\n')
                 anchorSet = True
 
             # handle groups of graphics with text captions
@@ -658,12 +663,12 @@ class DocParser(object):
                 if grptype != None:
                     if grptype == 'graphic':
                         gcstr = ' class="' + grptype + '"'
-                        htmlpage += '<div' + gcstr + '>'
+                        hlst.append('<div' + gcstr + '>')
                         inGroup = True
-                
+
             elif (etype == 'grpend'):
                 if inGroup:
-                    htmlpage += '</div>\n'
+                    hlst.append('</div>\n')
                     inGroup = False
 
             else:
@@ -673,25 +678,25 @@ class DocParser(object):
                     (pos, simgsrc) = self.findinDoc('img.src',start,end)
                     if simgsrc:
                         if inGroup:
-                            htmlpage += '<img src="img/img%04d.jpg" alt="" />' % int(simgsrc)
+                            hlst.append('<img src="img/img%04d.jpg" alt="" />' % int(simgsrc))
                         else:
-                            htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)
-            
+                            hlst.append('<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc))
+
                 elif regtype == 'chapterheading' :
                     (pclass, pdesc) = self.getParaDescription(start,end, regtype)
                     if not breakSet:
-                        htmlpage += '<div style="page-break-after: always;">&nbsp;</div>\n'
+                        hlst.append('<div style="page-break-after: always;">&nbsp;</div>\n')
                         breakSet = True
                     tag = 'h1'
                     if pclass and (len(pclass) >= 7):
                         if pclass[3:7] == 'ch1-' : tag = 'h1'
                         if pclass[3:7] == 'ch2-' : tag = 'h2'
                         if pclass[3:7] == 'ch3-' : tag = 'h3'
-                        htmlpage += '<' + tag + ' class="' + pclass + '">'
+                        hlst.append('<' + tag + ' class="' + pclass + '">')
                     else:
-                        htmlpage += '<' + tag + '>'
-                    htmlpage += self.buildParagraph(pclass, pdesc, 'middle', regtype)
-                    htmlpage += '</' + tag + '>'
+                        hlst.append('<' + tag + '>')
+                    hlst.append(self.buildParagraph(pclass, pdesc, 'middle', regtype))
+                    hlst.append('</' + tag + '>')
 
                 elif (regtype == 'text') or (regtype == 'fixed') or (regtype == 'insert') or (regtype == 'listitem'):
                     ptype = 'full'
@@ -705,11 +710,11 @@ class DocParser(object):
                         if pclass[3:6] == 'h1-' : tag = 'h4'
                         if pclass[3:6] == 'h2-' : tag = 'h5'
                         if pclass[3:6] == 'h3-' : tag = 'h6'
-                        htmlpage += '<' + tag + ' class="' + pclass + '">'
-                        htmlpage += self.buildParagraph(pclass, pdesc, 'middle', regtype)
-                        htmlpage += '</' + tag + '>'
+                        hlst.append('<' + tag + ' class="' + pclass + '">')
+                        hlst.append(self.buildParagraph(pclass, pdesc, 'middle', regtype))
+                        hlst.append('</' + tag + '>')
                     else :
-                        htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+                        hlst.append(self.buildParagraph(pclass, pdesc, ptype, regtype))
 
                 elif (regtype == 'tocentry') :
                     ptype = 'full'
@@ -718,7 +723,7 @@ class DocParser(object):
                         first_para_continued = False
                     (pclass, pdesc) = self.getParaDescription(start,end, regtype)
                     tocinfo += self.buildTOCEntry(pdesc)
-                    htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+                    hlst.append(self.buildParagraph(pclass, pdesc, ptype, regtype))
 
                 elif (regtype == 'vertical') or (regtype == 'table') :
                     ptype = 'full'
@@ -728,13 +733,13 @@ class DocParser(object):
                         ptype = 'end'
                         first_para_continued = False
                     (pclass, pdesc) = self.getParaDescription(start, end, regtype)
-                    htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+                    hlst.append(self.buildParagraph(pclass, pdesc, ptype, regtype))
 
 
                 elif (regtype == 'synth_fcvr.center'):
                     (pos, simgsrc) = self.findinDoc('img.src',start,end)
                     if simgsrc:
-                        htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)
+                        hlst.append('<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc))
 
                 else :
                     print '          Making region type', regtype,
@@ -760,18 +765,19 @@ class DocParser(object):
                             if pclass[3:6] == 'h1-' : tag = 'h4'
                             if pclass[3:6] == 'h2-' : tag = 'h5'
                             if pclass[3:6] == 'h3-' : tag = 'h6'
-                            htmlpage += '<' + tag + ' class="' + pclass + '">'
-                            htmlpage += self.buildParagraph(pclass, pdesc, 'middle', regtype)
-                            htmlpage += '</' + tag + '>'
+                            hlst.append('<' + tag + ' class="' + pclass + '">')
+                            hlst.append(self.buildParagraph(pclass, pdesc, 'middle', regtype))
+                            hlst.append('</' + tag + '>')
                         else :
-                            htmlpage += self.buildParagraph(pclass, pdesc, ptype, regtype)
+                            hlst.append(self.buildParagraph(pclass, pdesc, ptype, regtype))
                     else :
                         print ' a "graphic" region'
                         (pos, simgsrc) = self.findinDoc('img.src',start,end)
                         if simgsrc:
-                            htmlpage += '<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc)
+                            hlst.append('<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc))
 
 
+        htmlpage = "".join(hlst)
         if last_para_continued :
             if htmlpage[-4:] == '</p>':
                 htmlpage = htmlpage[0:-4]

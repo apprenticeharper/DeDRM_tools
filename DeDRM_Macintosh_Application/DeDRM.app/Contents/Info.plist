@@ -24,17 +24,17 @@
 	<key>CFBundleExecutable</key>
 	<string>droplet</string>
 	<key>CFBundleGetInfoString</key>
-	<string>DeDRM 3.1, Written 2010–2011 by Apprentice Alf and others.</string>
+	<string>DeDRM 5.0, Written 2010–2012 by Apprentice Alf and others.</string>
 	<key>CFBundleIconFile</key>
 	<string>droplet</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>DeDRM 3.1</string>
+	<string>DeDRM 5.0</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>3.1</string>
+	<string>5.0</string>
 	<key>CFBundleSignature</key>
 	<string>dplt</string>
 	<key>LSMinimumSystemVersion</key>
@@ -52,7 +52,7 @@
 		<key>positionOfDivider</key>
 		<real>460</real>
 		<key>savedFrame</key>
-		<string>39 106 1316 746 0 0 1440 878 </string>
+		<string>-2 132 1316 746 0 0 1440 878 </string>
 		<key>selectedTabView</key>
 		<string>event log</string>
 	</dict>

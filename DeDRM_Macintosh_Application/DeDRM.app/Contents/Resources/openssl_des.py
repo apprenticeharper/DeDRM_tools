@@ -18,7 +18,7 @@ def load_libcrypto():
         return None
 
     libcrypto = CDLL(libcrypto)
-    
+
     # typedef struct DES_ks
     #     {
     #     union
@@ -30,7 +30,7 @@ def load_libcrypto():
     #         } ks[16];
     #     } DES_key_schedule;
 
-    # just create a big enough place to hold everything 
+    # just create a big enough place to hold everything
     # it will have alignment of structure so we should be okay (16 byte aligned?)
     class DES_KEY_SCHEDULE(Structure):
         _fields_ = [('DES_cblock1', c_char * 16),
@@ -61,7 +61,7 @@ def load_libcrypto():
     DES_set_key = F(None, 'DES_set_key',[c_char_p, DES_KEY_SCHEDULE_p])
     DES_ecb_encrypt = F(None, 'DES_ecb_encrypt',[c_char_p, c_char_p, DES_KEY_SCHEDULE_p, c_int])
 
-    
+
     class DES(object):
         def __init__(self, key):
             if len(key) != 8 :
@@ -87,4 +87,3 @@ def load_libcrypto():
             return ''.join(result)
 
     return DES
-

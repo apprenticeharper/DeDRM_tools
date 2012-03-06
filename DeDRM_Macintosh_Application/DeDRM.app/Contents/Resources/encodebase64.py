@@ -29,18 +29,17 @@ def usage(progname):
 
 def cli_main(argv=sys.argv):
     progname = os.path.basename(argv[0])
-        
+
     if len(argv)<2:
         usage(progname)
         sys.exit(2)
-        
+
     keypath = argv[1]
     with open(keypath, 'rb') as f:
         keyder = f.read()
-	print keyder.encode('base64')
+        print keyder.encode('base64')
     return 0
 
 
 if __name__ == '__main__':
     sys.exit(cli_main())
-   

@@ -16,15 +16,15 @@
 
 # ** NOTE: This program does NOT decrypt or modify Topaz files in any way. It simply identifies them.
 
-# PLEASE DO NOT PIRATE EBOOKS! 
+# PLEASE DO NOT PIRATE EBOOKS!
 
 # We want all authors and publishers, and eBook stores to live
-# long and prosperous lives but at the same time  we just want to 
-# be able to read OUR books on whatever device we want and to keep 
+# long and prosperous lives but at the same time  we just want to
+# be able to read OUR books on whatever device we want and to keep
 # readable for a long, long time
 
-#  This borrows very heavily from works by CMBDTC, IHeartCabbages, skindle, 
-#    unswindle, DarkReverser, ApprenticeAlf, DiapDealer, some_updates 
+#  This borrows very heavily from works by CMBDTC, IHeartCabbages, skindle,
+#    unswindle, DarkReverser, ApprenticeAlf, DiapDealer, some_updates
 #    and many many others
 
 # Revision history:
@@ -71,17 +71,17 @@ def cli_main(argv=sys.argv, obj=None):
     if len(argv) != 2:
         print "usage: %s DIRECTORY" % (progname,)
         return 1
-    
+
     if obj == None:
         print "\nTopaz search results:\n"
     else:
         obj.stext.insert(Tkconstants.END,"Topaz search results:\n\n")
-        
+
     inpath = argv[1]
     files = os.listdir(inpath)
     filefilter = re.compile("(\.azw$)|(\.azw1$)|(\.prc$)|(\.tpz$)", re.IGNORECASE)
     files = filter(filefilter.search, files)
-    
+
     if files:
         topazcount = 0
         totalcount = 0
@@ -136,14 +136,14 @@ def cli_main(argv=sys.argv, obj=None):
         else:
             msg = "No typical Topaz file extensions found in %s.\n\n" % inpath
             obj.stext.insert(Tkconstants.END,msg)
-    
+
     return 0
 
 
 class DecryptionDialog(Tkinter.Frame):
     def __init__(self, root):
         Tkinter.Frame.__init__(self, root, border=5)
-        ltext='Search a directory for Topaz eBooks\n'        
+        ltext='Search a directory for Topaz eBooks\n'
         self.status = Tkinter.Label(self, text=ltext)
         self.status.pack(fill=Tkconstants.X, expand=1)
         body = Tkinter.Frame(self)
@@ -162,7 +162,7 @@ class DecryptionDialog(Tkinter.Frame):
         #self.stext.insert(Tkconstants.END,msg1)
         buttons = Tkinter.Frame(self)
         buttons.pack()
-  
+
 
         self.botton = Tkinter.Button(
             buttons, text="Search", width=10, command=self.search)
@@ -171,7 +171,7 @@ class DecryptionDialog(Tkinter.Frame):
         self.button = Tkinter.Button(
             buttons, text="Quit", width=10, command=self.quit)
         self.button.pack(side=Tkconstants.RIGHT)
-        
+
     def get_inpath(self):
         cwd = os.getcwdu()
         cwd = cwd.encode('utf-8')
@@ -183,8 +183,8 @@ class DecryptionDialog(Tkinter.Frame):
             self.inpath.delete(0, Tkconstants.END)
             self.inpath.insert(0, inpath)
         return
-        
-    
+
+
     def search(self):
         inpath = self.inpath.get()
         if not inpath or not os.path.exists(inpath):

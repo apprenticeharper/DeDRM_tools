@@ -53,7 +53,7 @@ def _load_crypto_libcrypto():
     libcrypto = CDLL(libcrypto)
 
     AES_MAXNR = 14
-    
+
     c_char_pp = POINTER(c_char_p)
     c_int_p = POINTER(c_int)
 
@@ -61,28 +61,28 @@ def _load_crypto_libcrypto():
         _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
                     ('rounds', c_int)]
     AES_KEY_p = POINTER(AES_KEY)
-    
+
     def F(restype, name, argtypes):
         func = getattr(libcrypto, name)
         func.restype = restype
         func.argtypes = argtypes
         return func
-    
+
     AES_set_encrypt_key = F(c_int, 'AES_set_encrypt_key',
                             [c_char_p, c_int, AES_KEY_p])
     AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
                         [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
                          c_int])
     class AES(object):
-         def __init__(self, userkey, iv):
+        def __init__(self, userkey, iv):
             self._blocksize = len(userkey)
             self._iv = iv
             key = self._key = AES_KEY()
             rv = AES_set_encrypt_key(userkey, len(userkey) * 8, key)
             if rv < 0:
                 raise IGNOBLEError('Failed to initialize AES Encrypt key')
-    
-         def encrypt(self, data):
+
+        def encrypt(self, data):
             out = create_string_buffer(len(data))
             rv = AES_cbc_encrypt(data, out, len(data), self._key, self._iv, 1)
             if rv == 0:

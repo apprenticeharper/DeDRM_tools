@@ -30,8 +30,8 @@ class fixZip:
         self.inzip = zipfile.ZipFile(zinput,'r')
         self.outzip = zipfile.ZipFile(zoutput,'w')
         # open the input zip for reading only as a raw file
-	self.bzf = file(zinput,'rb')
-        
+        self.bzf = file(zinput,'rb')
+
     def getlocalname(self, zi):
         local_header_offset = zi.header_offset
         self.bzf.seek(local_header_offset + _FILENAME_LEN_OFFSET)
@@ -86,7 +86,7 @@ class fixZip:
 
         return data
 
-        
+
 
     def fix(self):
         # get the zipinfo for each member of the input archive
@@ -103,7 +103,7 @@ class fixZip:
             if zinfo.filename != "mimetype" or self.ztype == '.zip':
                 data = None
                 nzinfo = zinfo
-                try: 
+                try:
                     data = self.inzip.read(zinfo.filename)
                 except zipfile.BadZipfile or zipfile.error:
                     local_name = self.getlocalname(zinfo)
@@ -126,7 +126,7 @@ def usage():
      inputzip is the source zipfile to fix
      outputzip is the fixed zip archive
     """
-    
+
 
 def repairBook(infile, outfile):
     if not os.path.exists(infile):
@@ -152,5 +152,3 @@ def main(argv=sys.argv):
 
 if __name__ == '__main__' :
     sys.exit(main())
-
-

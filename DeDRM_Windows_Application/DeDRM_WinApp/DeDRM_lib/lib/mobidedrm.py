@@ -27,8 +27,8 @@
 #         files reveals that a confusion has arisen because trailing data entries
 #         are not encrypted, but it turns out that the multibyte entries
 #         in utf8 file are encrypted. (Although neither kind gets compressed.)
-#         This knowledge leads to a simplification of the test for the 
-#         trailing data byte flags - version 5 and higher AND header size >= 0xE4. 
+#         This knowledge leads to a simplification of the test for the
+#         trailing data byte flags - version 5 and higher AND header size >= 0xE4.
 #  0.15 - Now outputs 'heartbeat', and is also quicker for long files.
 #  0.16 - And reverts to 'done' not 'done.' at the end for unswindle compatibility.
 #  0.17 - added modifications to support its use as an imported python module
@@ -42,7 +42,7 @@
 #  0.20 - Correction: It seems that multibyte entries are encrypted in a v6 file.
 #  0.21 - Added support for multiple pids
 #  0.22 - revised structure to hold MobiBook as a class to allow an extended interface
-#  0.23 - fixed problem with older files with no EXTH section 
+#  0.23 - fixed problem with older files with no EXTH section
 #  0.24 - add support for type 1 encryption and 'TEXtREAd' books as well
 #  0.25 - Fixed support for 'BOOKMOBI' type 1 encryption
 #  0.26 - Now enables Text-To-Speech flag and sets clipping limit to 100%
@@ -54,8 +54,10 @@
 #  0.30 - Modified interface slightly to work better with new calibre plugin style
 #  0.31 - The multibyte encrytion info is true for version 7 files too.
 #  0.32 - Added support for "Print Replica" Kindle ebooks
+#  0.33 - Performance improvements for large files (concatenation)
+#  0.34 - Performance improvements in decryption (libalfcrypto)
 
-__version__ = '0.32'
+__version__ = '0.34'
 
 import sys
 
@@ -72,6 +74,7 @@ sys.stdout=Unbuffered(sys.stdout)
 import os
 import struct
 import binascii
+from alfcrypto import Pukall_Cipher
 
 class DrmException(Exception):
     pass
@@ -83,36 +86,37 @@ class DrmException(Exception):
 
 # Implementation of Pukall Cipher 1
 def PC1(key, src, decryption=True):
-    sum1 = 0;
-    sum2 = 0;
-    keyXorVal = 0;
-    if len(key)!=16:
-        print "Bad key length!"
-        return None
-    wkey = []
-    for i in xrange(8):
-        wkey.append(ord(key[i*2])<<8 | ord(key[i*2+1]))
-    dst = ""
-    for i in xrange(len(src)):
-        temp1 = 0;
-        byteXorVal = 0;
-        for j in xrange(8):
-            temp1 ^= wkey[j]
-            sum2  = (sum2+j)*20021 + sum1
-            sum1  = (temp1*346)&0xFFFF
-            sum2  = (sum2+sum1)&0xFFFF
-            temp1 = (temp1*20021+1)&0xFFFF
-            byteXorVal ^= temp1 ^ sum2
-        curByte = ord(src[i])
-        if not decryption:
-            keyXorVal = curByte * 257;
-        curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
-        if decryption:
-            keyXorVal = curByte * 257;
-        for j in xrange(8):
-            wkey[j] ^= keyXorVal;
-        dst+=chr(curByte)
-    return dst
+    return Pukall_Cipher().PC1(key,src,decryption)
+#     sum1 = 0;
+#     sum2 = 0;
+#     keyXorVal = 0;
+#     if len(key)!=16:
+#         print "Bad key length!"
+#         return None
+#     wkey = []
+#     for i in xrange(8):
+#         wkey.append(ord(key[i*2])<<8 | ord(key[i*2+1]))
+#     dst = ""
+#     for i in xrange(len(src)):
+#         temp1 = 0;
+#         byteXorVal = 0;
+#         for j in xrange(8):
+#             temp1 ^= wkey[j]
+#             sum2  = (sum2+j)*20021 + sum1
+#             sum1  = (temp1*346)&0xFFFF
+#             sum2  = (sum2+sum1)&0xFFFF
+#             temp1 = (temp1*20021+1)&0xFFFF
+#             byteXorVal ^= temp1 ^ sum2
+#         curByte = ord(src[i])
+#         if not decryption:
+#             keyXorVal = curByte * 257;
+#         curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
+#         if decryption:
+#             keyXorVal = curByte * 257;
+#         for j in xrange(8):
+#             wkey[j] ^= keyXorVal;
+#         dst+=chr(curByte)
+#     return dst
 
 def checksumPid(s):
     letters = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
@@ -236,7 +240,7 @@ class MobiBook:
             self.meta_array = {}
             pass
         self.print_replica = False
-            
+
     def getBookTitle(self):
         codec_map = {
             1252 : 'windows-1252',
@@ -319,7 +323,7 @@ class MobiBook:
 
     def getMobiFile(self, outpath):
         file(outpath,'wb').write(self.mobi_data)
-        
+
     def getPrintReplica(self):
         return self.print_replica
 
@@ -355,9 +359,9 @@ class MobiBook:
             if self.magic == 'TEXtREAd':
                 bookkey_data = self.sect[0x0E:0x0E+16]
             elif self.mobi_version < 0:
-                bookkey_data = self.sect[0x90:0x90+16] 
+                bookkey_data = self.sect[0x90:0x90+16]
             else:
-                bookkey_data = self.sect[self.mobi_length+16:self.mobi_length+32] 
+                bookkey_data = self.sect[self.mobi_length+16:self.mobi_length+32]
             pid = "00000000"
             found_key = PC1(t1_keyvec, bookkey_data)
         else :
@@ -372,7 +376,7 @@ class MobiBook:
             self.patchSection(0, "\0" * drm_size, drm_ptr)
             # kill the drm pointers
             self.patchSection(0, "\xff" * 4 + "\0" * 12, 0xA8)
-            
+
         if pid=="00000000":
             print "File has default encryption, no specific PID."
         else:
@@ -383,7 +387,8 @@ class MobiBook:
 
         # decrypt sections
         print "Decrypting. Please wait . . .",
-        self.mobi_data = self.data_file[:self.sections[1][0]]
+        mobidataList = []
+        mobidataList.append(self.data_file[:self.sections[1][0]])
         for i in xrange(1, self.records+1):
             data = self.loadSection(i)
             extra_size = getSizeOfTrailingDataEntries(data, len(data), self.extra_data_flags)
@@ -393,11 +398,12 @@ class MobiBook:
             decoded_data = PC1(found_key, data[0:len(data) - extra_size])
             if i==1:
                 self.print_replica = (decoded_data[0:4] == '%MOP')
-            self.mobi_data += decoded_data
+            mobidataList.append(decoded_data)
             if extra_size > 0:
-                self.mobi_data += data[-extra_size:]
+                mobidataList.append(data[-extra_size:])
         if self.num_sections > self.records+1:
-            self.mobi_data += self.data_file[self.sections[self.records+1][0]:]
+            mobidataList.append(self.data_file[self.sections[self.records+1][0]:])
+        self.mobi_data = "".join(mobidataList)
         print "done"
         return
 

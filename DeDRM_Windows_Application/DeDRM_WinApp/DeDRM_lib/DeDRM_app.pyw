@@ -18,6 +18,9 @@ from subasyncio import Process
 import re
 import simpleprefs
 
+
+__version__ = '5.0'
+
 class DrmException(Exception):
     pass
 
@@ -29,7 +32,7 @@ class MainApp(Tk):
         self.apphome = apphome
         # preference settings
         # [dictionary key, file in preferences directory where info is stored]
-        description = [ ['pids'   , 'pidlist.txt'   ], 
+        description = [ ['pids'   , 'pidlist.txt'   ],
                         ['serials', 'seriallist.txt'],
                         ['sdrms'  , 'sdrmlist.txt'  ],
                         ['outdir' , 'outdir.txt'    ]]
@@ -123,7 +126,7 @@ class PrefsDialog(Toplevel):
             self.bnkpath.insert(0, path)
         button = Tkinter.Button(body, text="...", command=self.get_bnkpath)
         button.grid(row=1, column=2)
-        
+
         Tkinter.Label(body, text='Additional kindle.info or .kinf file').grid(row=2, sticky=Tkconstants.E)
         self.altinfopath = Tkinter.Entry(body, width=50)
         self.altinfopath.grid(row=2, column=1, sticky=sticky)
@@ -180,7 +183,7 @@ class PrefsDialog(Toplevel):
         self.bookpath.grid(row=9, column=1, sticky=sticky)
         button = Tkinter.Button(body, text="...", command=self.get_bookpath)
         button.grid(row=9, column=2)
-   
+
         Tkinter.Label(body, font=("Helvetica", "10", "italic"), text='*To DeDRM multiple ebooks simultaneously, set your preferences and quit.\nThen drag and drop ebooks or folders onto the DeDRM_Drop_Target').grid(row=10, column=1, sticky=Tkconstants.E)
 
         Tkinter.Label(body, text='').grid(row=11, column=0, columnspan=2, sticky=Tkconstants.E)
@@ -365,7 +368,7 @@ class ConvDialog(Toplevel):
     def conversion_done(self):
         self.hide()
         self.master.alldone()
-        
+
     def processBooks(self):
         while self.running == 'inactive':
             rscpath = self.prefs_array['dir']
@@ -429,7 +432,7 @@ class ConvDialog(Toplevel):
             # nothing to wait for so just return
             return
         poll = self.p2.wait('nowait')
-        if poll != None: 
+        if poll != None:
             self.bar.stop()
             if poll == 0:
                 msg = 'Success\n'
@@ -451,7 +454,7 @@ class ConvDialog(Toplevel):
             self.running = 'inactive'
             self.after(50,self.processBooks)
             return
-        # make sure we get invoked again by event loop after interval 
+        # make sure we get invoked again by event loop after interval
         self.stext.after(self.interval,self.processPipe)
         return
 
@@ -481,7 +484,7 @@ def runit(apphome, ncmd, nparms):
     if sys.platform.startswith('win'):
         search_path = os.environ['PATH']
         search_path = search_path.lower()
-        if search_path.find('python') < 0: 
+        if search_path.find('python') < 0:
             # if no python hope that win registry finds what is associated with py extension
             cmdline = '"' + os.path.join(apphome, ncmd) + '" '
     cmdline += nparms
@@ -585,4 +588,3 @@ def main(argv=sys.argv):
 
 if __name__ == "__main__":
     sys.exit(main())
-

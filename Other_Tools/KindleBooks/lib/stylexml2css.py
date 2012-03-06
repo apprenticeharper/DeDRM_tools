@@ -6,6 +6,7 @@ import csv
 import sys
 import os
 import getopt
+import re
 from struct import pack
 from struct import unpack
 
@@ -43,8 +44,8 @@ class DocParser(object):
         'pos-right' : 'text-align: right;',
         'pos-center' : 'text-align: center; margin-left: auto; margin-right: auto;',
     }
-    
-    
+
+
     # find tag if within pos to end inclusive
     def findinDoc(self, tagpath, pos, end) :
         result = None
@@ -59,10 +60,10 @@ class DocParser(object):
             item = docList[j]
             if item.find('=') >= 0:
                 (name, argres) = item.split('=',1)
-            else : 
+            else :
                 name = item
                 argres = ''
-            if name.endswith(tagpath) : 
+            if name.endswith(tagpath) :
                 result = argres
                 foundat = j
                 break
@@ -82,12 +83,19 @@ class DocParser(object):
         return startpos
 
     # returns a vector of integers for the tagpath
-    def getData(self, tagpath, pos, end):
+    def getData(self, tagpath, pos, end, clean=False):
+        if clean:
+            digits_only = re.compile(r'''([0-9]+)''')
         argres=[]
         (foundat, argt) = self.findinDoc(tagpath, pos, end)
         if (argt != None) and (len(argt) > 0) :
             argList = argt.split('|')
-            argres = [ int(strval) for strval in argList]
+            for strval in argList:
+                if clean:
+                    m = re.search(digits_only, strval)
+                    if m != None:
+                        strval = m.group()
+                argres.append(int(strval))
         return argres
 
     def process(self):
@@ -112,7 +120,7 @@ class DocParser(object):
             (pos, tag) = self.findinDoc('style._tag',start,end)
             if tag == None :
                 (pos, tag) = self.findinDoc('style.type',start,end)
-                
+
             # Is this something we know how to convert to css
             if tag in self.stags :
 
@@ -121,7 +129,7 @@ class DocParser(object):
                 if sclass != None:
                     sclass = sclass.replace(' ','-')
                     sclass = '.cl-' + sclass.lower()
-                else : 
+                else :
                     sclass = ''
 
                 # check for any "after class" specifiers
@@ -129,7 +137,7 @@ class DocParser(object):
                 if aftclass != None:
                     aftclass = aftclass.replace(' ','-')
                     aftclass = '.cl-' + aftclass.lower()
-                else : 
+                else :
                     aftclass = ''
 
                 cssargs = {}
@@ -140,7 +148,7 @@ class DocParser(object):
                     (pos2, val) = self.findinDoc('style.rule.value', start, end)
 
                     if attr == None : break
-                    
+
                     if (attr == 'display') or (attr == 'pos') or (attr == 'align'):
                         # handle text based attributess
                         attr = attr + '-' + val
@@ -168,7 +176,7 @@ class DocParser(object):
                 if aftclass != "" : keep = False
 
                 if keep :
-                    # make sure line-space does not go below 100% or above 300% since 
+                    # make sure line-space does not go below 100% or above 300% since
                     # it can be wacky in some styles
                     if 'line-space' in cssargs:
                         seg = cssargs['line-space'][0]
@@ -178,7 +186,7 @@ class DocParser(object):
                         del cssargs['line-space']
                         cssargs['line-space'] = (self.attr_val_map['line-space'], val)
 
-                    
+
                     # handle modifications for css style hanging indents
                     if 'hang' in cssargs:
                         hseg = cssargs['hang'][0]
@@ -211,7 +219,7 @@ class DocParser(object):
 
                     if sclass != '' :
                         classlst += sclass + '\n'
-                    
+
                     # handle special case of paragraph class used inside chapter heading
                     # and non-chapter headings
                     if sclass != '' :
@@ -232,7 +240,7 @@ class DocParser(object):
                     if cssline != ' { }':
                         csspage += self.stags[tag] + cssline + '\n'
 
-                
+
         return csspage, classlst
 
 
@@ -251,5 +259,5 @@ def convert2CSS(flatxml, fontsize, ph, pw):
 
 def getpageIDMap(flatxml):
     dp = DocParser(flatxml, 0, 0, 0)
-    pageidnumbers = dp.getData('info.original.pid', 0, -1)
+    pageidnumbers = dp.getData('info.original.pid', 0, -1, True)
     return pageidnumbers

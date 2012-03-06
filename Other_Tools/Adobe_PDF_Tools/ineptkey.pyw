@@ -76,13 +76,13 @@ if sys.platform.startswith('win'):
             _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
                         ('rounds', c_int)]
         AES_KEY_p = POINTER(AES_KEY)
-    
+
         def F(restype, name, argtypes):
             func = getattr(libcrypto, name)
             func.restype = restype
             func.argtypes = argtypes
             return func
-    
+
         AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
                                 [c_char_p, c_int, AES_KEY_p])
         AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
@@ -427,8 +427,8 @@ def extractKeyfile(keypath):
         print "Key generation Error: " + str(e)
         return 1
     except Exception, e:
-    	print "General Error: " + str(e)
-    	return 1
+        print "General Error: " + str(e)
+        return 1
     if not success:
         return 1
     return 0

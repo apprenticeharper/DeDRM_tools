@@ -4,28 +4,62 @@ from __future__ import with_statement
 
 from calibre.customize import FileTypePlugin
 from calibre.gui2 import is_ok_to_use_qt
+from calibre.utils.config import config_dir
+from calibre.constants import iswindows, isosx
 # from calibre.ptempfile import PersistentTemporaryDirectory
 
-from calibre_plugins.k4mobidedrm import kgenpids
-from calibre_plugins.k4mobidedrm import topazextract
-from calibre_plugins.k4mobidedrm import mobidedrm
 
 import sys
 import os
 import re
+from zipfile import ZipFile
 
 class K4DeDRM(FileTypePlugin):
     name                = 'K4PC, K4Mac, Kindle Mobi and Topaz DeDRM' # Name of the plugin
     description         = 'Removes DRM from Mobipocket, Kindle/Mobi, Kindle/Topaz and Kindle/Print Replica files. Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
     supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
     author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-    version             = (0, 3, 8)   # The version number of this plugin
+    version             = (0, 4, 1)   # The version number of this plugin
     file_types          = set(['prc','mobi','azw','azw1','azw4','tpz']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
     priority            = 210  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm
     minimum_calibre_version = (0, 7, 55)
+    
+    def initialize(self):
+        """
+        Dynamic modules can't be imported/loaded from a zipfile... so this routine
+        runs whenever the plugin gets initialized. This will extract the appropriate
+        library for the target OS and copy it to the 'alfcrypto' subdirectory of
+        calibre's configuration directory. That 'alfcrypto' directory is then
+        inserted into the syspath (as the very first entry) in the run function
+        so the CDLL stuff will work in the alfcrypto.py script.
+        """
+        if iswindows:
+            names = ['alfcrypto.dll','alfcrypto64.dll']
+        elif isosx:
+            names = ['libalfcrypto.dylib']
+        else:
+            names = ['libalfcrypto32.so','libalfcrypto64.so']
+        lib_dict = self.load_resources(names)
+        self.alfdir = os.path.join(config_dir, 'alfcrypto')
+        if not os.path.exists(self.alfdir):
+            os.mkdir(self.alfdir)
+        for entry, data in lib_dict.items():
+            file_path = os.path.join(self.alfdir, entry)
+            with open(file_path,'wb') as f:
+                f.write(data)
 
     def run(self, path_to_ebook):
+        # add the alfcrypto directory to sys.path so alfcrypto.py 
+        # will be able to locate the custom lib(s) for CDLL import.
+        sys.path.insert(0, self.alfdir)
+        # Had to move these imports here so the custom libs can be
+        # extracted to the appropriate places beforehand these routines
+        # look for them.
+        from calibre_plugins.k4mobidedrm import kgenpids
+        from calibre_plugins.k4mobidedrm import topazextract
+        from calibre_plugins.k4mobidedrm import mobidedrm
+
         plug_ver = '.'.join(str(self.version).strip('()').replace(' ', '').split(','))
         k4 = True
         if sys.platform.startswith('linux'):
@@ -45,7 +79,7 @@ class K4DeDRM(FileTypePlugin):
                     serials.append(customvalue)
                 else:
                     print "%s is not a valid Kindle serial number or PID." % str(customvalue)
-                        
+
         # Load any kindle info files (*.info) included Calibre's config directory.
         try:
             # Find Calibre's configuration directory.
@@ -77,7 +111,7 @@ class K4DeDRM(FileTypePlugin):
 
         title = mb.getBookTitle()
         md1, md2 = mb.getPIDMetaInfo()
-        pidlst = kgenpids.getPidList(md1, md2, k4, pids, serials, kInfoFiles) 
+        pidlst = kgenpids.getPidList(md1, md2, k4, pids, serials, kInfoFiles)
 
         try:
             mb.processBook(pidlst)
@@ -94,11 +128,11 @@ class K4DeDRM(FileTypePlugin):
         except topazextract.TpzDRMError, e:
             #if you reached here then no luck raise and exception
             if is_ok_to_use_qt():
-                    from PyQt4.Qt import QMessageBox
-                    d = QMessageBox(QMessageBox.Warning, "K4MobiDeDRM v%s Plugin" % plug_ver, "Error: " + str(e) + "... %s\n" % path_to_ebook)
-                    d.show()
-                    d.raise_()
-                    d.exec_()
+                from PyQt4.Qt import QMessageBox
+                d = QMessageBox(QMessageBox.Warning, "K4MobiDeDRM v%s Plugin" % plug_ver, "Error: " + str(e) + "... %s\n" % path_to_ebook)
+                d.show()
+                d.raise_()
+                d.exec_()
             raise Exception("K4MobiDeDRM plugin v%s Error: %s" % (plug_ver, str(e)))
 
         print "Success!"
@@ -117,3 +151,11 @@ class K4DeDRM(FileTypePlugin):
 
     def customization_help(self, gui=False):
         return 'Enter 10 character PIDs and/or Kindle serial numbers, use a comma (no spaces) to separate each PID or SerialNumber from the next.'
+
+    def load_resources(self, names):
+        ans = {}
+        with ZipFile(self.plugin_path, 'r') as zf:
+            for candidate in zf.namelist():
+                if candidate in names:
+                    ans[candidate] = zf.read(candidate)
+        return ans

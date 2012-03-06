@@ -54,8 +54,9 @@
 #  0.30 - Modified interface slightly to work better with new calibre plugin style
 #  0.31 - The multibyte encrytion info is true for version 7 files too.
 #  0.32 - Added support for "Print Replica" Kindle ebooks
+#  0.33 - Performance improvements for large files (concatenation)
 
-__version__ = '0.32'
+__version__ = '0.33'
 
 import sys
 
@@ -383,7 +384,8 @@ class MobiBook:
 
         # decrypt sections
         print "Decrypting. Please wait . . .",
-        self.mobi_data = self.data_file[:self.sections[1][0]]
+        mobidataList = []
+        mobidataList.append(self.data_file[:self.sections[1][0]])
         for i in xrange(1, self.records+1):
             data = self.loadSection(i)
             extra_size = getSizeOfTrailingDataEntries(data, len(data), self.extra_data_flags)
@@ -393,11 +395,12 @@ class MobiBook:
             decoded_data = PC1(found_key, data[0:len(data) - extra_size])
             if i==1:
                 self.print_replica = (decoded_data[0:4] == '%MOP')
-            self.mobi_data += decoded_data
+            mobidataList.append(decoded_data)
             if extra_size > 0:
-                self.mobi_data += data[-extra_size:]
+                mobidataList.append(data[-extra_size:])
         if self.num_sections > self.records+1:
-            self.mobi_data += self.data_file[self.sections[self.records+1][0]:]
+            mobidataList.append(self.data_file[self.sections[self.records+1][0]:])
+        self.mobi_data = "".join(mobidataList)
         print "done"
         return
 

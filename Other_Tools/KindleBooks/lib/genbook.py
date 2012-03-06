@@ -39,6 +39,8 @@ else :
     import flatxml2svg
     import stylexml2css
 
+# global switch
+buildXML = False
 
 # Get a 7 bit encoded number from a file
 def readEncodedNumber(file):
@@ -46,27 +48,27 @@ def readEncodedNumber(file):
     c = file.read(1)
     if (len(c) == 0):
         return None
-    data = ord(c)    
+    data = ord(c)
     if data == 0xFF:
-       flag = True
-       c = file.read(1)
-       if (len(c) == 0):
-           return None
-       data = ord(c)       
+        flag = True
+        c = file.read(1)
+        if (len(c) == 0):
+            return None
+        data = ord(c)
     if data >= 0x80:
         datax = (data & 0x7F)
         while data >= 0x80 :
             c = file.read(1)
-            if (len(c) == 0): 
+            if (len(c) == 0):
                 return None
             data = ord(c)
             datax = (datax <<7) + (data & 0x7F)
-        data = datax 
+        data = datax
     if flag:
-       data = -data
+        data = -data
     return data
 
-# Get a length prefixed string from the file 
+# Get a length prefixed string from the file
 def lengthPrefixString(data):
     return encodeNumber(len(data))+data
 
@@ -77,7 +79,7 @@ def readString(file):
     sv = file.read(stringLength)
     if (len(sv)  != stringLength):
         return ""
-    return unpack(str(stringLength)+"s",sv)[0]  
+    return unpack(str(stringLength)+"s",sv)[0]
 
 def getMetaArray(metaFile):
     # parse the meta file
@@ -141,10 +143,10 @@ class PageDimParser(object):
             item = docList[j]
             if item.find('=') >= 0:
                 (name, argres) = item.split('=')
-            else : 
+            else :
                 name = item
                 argres = ''
-            if name.endswith(tagpath) : 
+            if name.endswith(tagpath) :
                 result = argres
                 foundat = j
                 break
@@ -298,9 +300,10 @@ def generateBook(bookDir, raw, fixedimage):
     if not os.path.exists(svgDir) :
         os.makedirs(svgDir)
 
-    xmlDir = os.path.join(bookDir,'xml')
-    if not os.path.exists(xmlDir) :
-        os.makedirs(xmlDir)
+    if buildXML:
+        xmlDir = os.path.join(bookDir,'xml')
+        if not os.path.exists(xmlDir) :
+            os.makedirs(xmlDir)
 
     otherFile = os.path.join(bookDir,'other0000.dat')
     if not os.path.exists(otherFile) :
@@ -336,7 +339,7 @@ def generateBook(bookDir, raw, fixedimage):
     print 'Processing Meta Data and creating OPF'
     meta_array = getMetaArray(metaFile)
 
-    # replace special chars in title and authors like & < > 
+    # replace special chars in title and authors like & < >
     title = meta_array.get('Title','No Title Provided')
     title = title.replace('&','&amp;')
     title = title.replace('<','&lt;')
@@ -348,11 +351,14 @@ def generateBook(bookDir, raw, fixedimage):
     authors = authors.replace('>','&gt;')
     meta_array['Authors'] = authors
 
-    xname = os.path.join(xmlDir, 'metadata.xml')
-    metastr = ''
-    for key in meta_array:
-        metastr += '<meta name="' + key + '" content="' + meta_array[key] + '" />\n'
-    file(xname, 'wb').write(metastr)
+    if buildXML:
+        xname = os.path.join(xmlDir, 'metadata.xml')
+        mlst = []
+        for key in meta_array:
+            mlst.append('<meta name="' + key + '" content="' + meta_array[key] + '" />\n')
+        metastr = "".join(mlst)
+        mlst = None
+        file(xname, 'wb').write(metastr)
 
     print 'Processing StyleSheet'
     # get some scaling info from metadata to use while processing styles
@@ -404,8 +410,9 @@ def generateBook(bookDir, raw, fixedimage):
     # now get the css info
     cssstr , classlst = stylexml2css.convert2CSS(flat_xml, fontsize, ph, pw)
     file(xname, 'wb').write(cssstr)
-    xname = os.path.join(xmlDir, 'other0000.xml')
-    file(xname, 'wb').write(convert2xml.getXML(dict, otherFile))
+    if buildXML:
+        xname = os.path.join(xmlDir, 'other0000.xml')
+        file(xname, 'wb').write(convert2xml.getXML(dict, otherFile))
 
     print 'Processing Glyphs'
     gd = GlyphDict()
@@ -425,8 +432,9 @@ def generateBook(bookDir, raw, fixedimage):
         fname = os.path.join(glyphsDir,filename)
         flat_xml = convert2xml.fromData(dict, fname)
 
-        xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
-        file(xname, 'wb').write(convert2xml.getXML(dict, fname))
+        if buildXML:
+            xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
+            file(xname, 'wb').write(convert2xml.getXML(dict, fname))
 
         gp = GParser(flat_xml)
         for i in xrange(0, gp.count):
@@ -441,29 +449,29 @@ def generateBook(bookDir, raw, fixedimage):
     glyfile.close()
     print " "
 
-    # build up tocentries while processing html
-    tocentries = ''
 
     # start up the html
+    # also build up tocentries while processing html
     htmlFileName = "book.html"
-    htmlstr = '<?xml version="1.0" encoding="utf-8"?>\n'
-    htmlstr += '<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.1 Strict//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11-strict.dtd">\n'
-    htmlstr += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">\n'
-    htmlstr += '<head>\n'
-    htmlstr += '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>\n'
-    htmlstr += '<title>' + meta_array['Title'] + ' by ' + meta_array['Authors'] + '</title>\n' 
-    htmlstr += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
-    htmlstr += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
+    hlst = []
+    hlst.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    hlst.append('<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.1 Strict//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11-strict.dtd">\n')
+    hlst.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">\n')
+    hlst.append('<head>\n')
+    hlst.append('<meta http-equiv="content-type" content="text/html; charset=utf-8"/>\n')
+    hlst.append('<title>' + meta_array['Title'] + ' by ' + meta_array['Authors'] + '</title>\n')
+    hlst.append('<meta name="Author" content="' + meta_array['Authors'] + '" />\n')
+    hlst.append('<meta name="Title" content="' + meta_array['Title'] + '" />\n')
     if 'ASIN' in meta_array:
-        htmlstr += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
+        hlst.append('<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n')
     if 'GUID' in meta_array:
-        htmlstr += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
-    htmlstr += '<link href="style.css" rel="stylesheet" type="text/css" />\n'
-    htmlstr += '</head>\n<body>\n'
+        hlst.append('<meta name="GUID" content="' + meta_array['GUID'] + '" />\n')
+    hlst.append('<link href="style.css" rel="stylesheet" type="text/css" />\n')
+    hlst.append('</head>\n<body>\n')
 
     print 'Processing Pages'
     # Books are at 1440 DPI.  This is rendering at twice that size for
-    # readability when rendering to the screen.  
+    # readability when rendering to the screen.
     scaledpi = 1440.0
 
     filenames = os.listdir(pageDir)
@@ -471,6 +479,7 @@ def generateBook(bookDir, raw, fixedimage):
     numfiles = len(filenames)
 
     xmllst = []
+    elst = []
 
     for filename in filenames:
         # print '     ', filename
@@ -481,45 +490,51 @@ def generateBook(bookDir, raw, fixedimage):
         # keep flat_xml for later svg processing
         xmllst.append(flat_xml)
 
-        xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
-        file(xname, 'wb').write(convert2xml.getXML(dict, fname))
+        if buildXML:
+            xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
+            file(xname, 'wb').write(convert2xml.getXML(dict, fname))
 
         # first get the html
         pagehtml, tocinfo = flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir, gd, fixedimage)
-        tocentries += tocinfo 
-        htmlstr += pagehtml
+        elst.append(tocinfo)
+        hlst.append(pagehtml)
 
     # finish up the html string and output it
-    htmlstr += '</body>\n</html>\n'
+    hlst.append('</body>\n</html>\n')
+    htmlstr = "".join(hlst)
+    hlst = None
     file(os.path.join(bookDir, htmlFileName), 'wb').write(htmlstr)
-    
+
     print " "
     print 'Extracting Table of Contents from Amazon OCR'
 
     # first create a table of contents file for the svg images
-    tochtml = '<?xml version="1.0" encoding="utf-8"?>\n'
-    tochtml += '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
-    tochtml += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >'
-    tochtml += '<head>\n'
-    tochtml += '<title>' + meta_array['Title'] + '</title>\n'
-    tochtml += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
-    tochtml += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
+    tlst = []
+    tlst.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    tlst.append('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n')
+    tlst.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >')
+    tlst.append('<head>\n')
+    tlst.append('<title>' + meta_array['Title'] + '</title>\n')
+    tlst.append('<meta name="Author" content="' + meta_array['Authors'] + '" />\n')
+    tlst.append('<meta name="Title" content="' + meta_array['Title'] + '" />\n')
     if 'ASIN' in meta_array:
-        tochtml += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
+        tlst.append('<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n')
     if 'GUID' in meta_array:
-        tochtml += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
-    tochtml += '</head>\n'
-    tochtml += '<body>\n'
+        tlst.append('<meta name="GUID" content="' + meta_array['GUID'] + '" />\n')
+    tlst.append('</head>\n')
+    tlst.append('<body>\n')
 
-    tochtml += '<h2>Table of Contents</h2>\n'
+    tlst.append('<h2>Table of Contents</h2>\n')
     start = pageidnums[0]
     if (raw):
         startname = 'page%04d.svg' % start
     else:
         startname = 'page%04d.xhtml' % start
 
-    tochtml += '<h3><a href="' + startname + '">Start of Book</a></h3>\n'
+    tlst.append('<h3><a href="' + startname + '">Start of Book</a></h3>\n')
     # build up a table of contents for the svg xhtml output
+    tocentries = "".join(elst)
+    elst = None
     toclst = tocentries.split('\n')
     toclst.pop()
     for entry in toclst:
@@ -530,30 +545,32 @@ def generateBook(bookDir, raw, fixedimage):
             fname = 'page%04d.svg' % id
         else:
             fname = 'page%04d.xhtml' % id
-        tochtml += '<h3><a href="'+ fname + '">' + title + '</a></h3>\n'
-    tochtml += '</body>\n'
-    tochtml += '</html>\n'
+        tlst.append('<h3><a href="'+ fname + '">' + title + '</a></h3>\n')
+    tlst.append('</body>\n')
+    tlst.append('</html>\n')
+    tochtml = "".join(tlst)
     file(os.path.join(svgDir, 'toc.xhtml'), 'wb').write(tochtml)
 
 
     # now create index_svg.xhtml that points to all required files
-    svgindex = '<?xml version="1.0" encoding="utf-8"?>\n'
-    svgindex += '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n'
-    svgindex += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >'
-    svgindex += '<head>\n'
-    svgindex += '<title>' + meta_array['Title'] + '</title>\n'
-    svgindex += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
-    svgindex += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
+    slst = []
+    slst.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    slst.append('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n')
+    slst.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >')
+    slst.append('<head>\n')
+    slst.append('<title>' + meta_array['Title'] + '</title>\n')
+    slst.append('<meta name="Author" content="' + meta_array['Authors'] + '" />\n')
+    slst.append('<meta name="Title" content="' + meta_array['Title'] + '" />\n')
     if 'ASIN' in meta_array:
-        svgindex += '<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n'
+        slst.append('<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n')
     if 'GUID' in meta_array:
-        svgindex += '<meta name="GUID" content="' + meta_array['GUID'] + '" />\n'
-    svgindex += '</head>\n'
-    svgindex += '<body>\n'
+        slst.append('<meta name="GUID" content="' + meta_array['GUID'] + '" />\n')
+    slst.append('</head>\n')
+    slst.append('<body>\n')
 
     print "Building svg images of each book page"
-    svgindex += '<h2>List of Pages</h2>\n'
-    svgindex += '<div>\n'
+    slst.append('<h2>List of Pages</h2>\n')
+    slst.append('<div>\n')
     idlst = sorted(pageIDMap.keys())
     numids = len(idlst)
     cnt = len(idlst)
@@ -566,49 +583,54 @@ def generateBook(bookDir, raw, fixedimage):
             nextid = None
         print '.',
         pagelst = pageIDMap[pageid]
-        flat_svg = ''
+        flst = []
         for page in pagelst:
-            flat_svg += xmllst[page]
+            flst.append(xmllst[page])
+        flat_svg = "".join(flst)
+        flst=None
         svgxml = flatxml2svg.convert2SVG(gd, flat_svg, pageid, previd, nextid, svgDir, raw, meta_array, scaledpi)
         if (raw) :
             pfile = open(os.path.join(svgDir,'page%04d.svg' % pageid),'w')
-            svgindex += '<a href="svg/page%04d.svg">Page %d</a>\n' % (pageid, pageid)
+            slst.append('<a href="svg/page%04d.svg">Page %d</a>\n' % (pageid, pageid))
         else :
             pfile = open(os.path.join(svgDir,'page%04d.xhtml' % pageid), 'w')
-            svgindex += '<a href="svg/page%04d.xhtml">Page %d</a>\n' % (pageid, pageid)
+            slst.append('<a href="svg/page%04d.xhtml">Page %d</a>\n' % (pageid, pageid))
         previd = pageid
         pfile.write(svgxml)
         pfile.close()
         counter += 1
-    svgindex += '</div>\n'
-    svgindex += '<h2><a href="svg/toc.xhtml">Table of Contents</a></h2>\n'
-    svgindex += '</body>\n</html>\n'
+    slst.append('</div>\n')
+    slst.append('<h2><a href="svg/toc.xhtml">Table of Contents</a></h2>\n')
+    slst.append('</body>\n</html>\n')
+    svgindex = "".join(slst)
+    slst = None
     file(os.path.join(bookDir, 'index_svg.xhtml'), 'wb').write(svgindex)
 
     print " "
 
     # build the opf file
     opfname = os.path.join(bookDir, 'book.opf')
-    opfstr = '<?xml version="1.0" encoding="utf-8"?>\n'
-    opfstr += '<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="guid_id">\n'
+    olst = []
+    olst.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    olst.append('<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="guid_id">\n')
     # adding metadata
-    opfstr += '   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">\n'
+    olst.append('   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">\n')
     if 'GUID' in meta_array:
-        opfstr += '      <dc:identifier opf:scheme="GUID" id="guid_id">' + meta_array['GUID'] + '</dc:identifier>\n'
+        olst.append('      <dc:identifier opf:scheme="GUID" id="guid_id">' + meta_array['GUID'] + '</dc:identifier>\n')
     if 'ASIN' in meta_array:
-        opfstr += '      <dc:identifier opf:scheme="ASIN">' + meta_array['ASIN'] + '</dc:identifier>\n'
+        olst.append('      <dc:identifier opf:scheme="ASIN">' + meta_array['ASIN'] + '</dc:identifier>\n')
     if 'oASIN' in meta_array:
-        opfstr += '      <dc:identifier opf:scheme="oASIN">' + meta_array['oASIN'] + '</dc:identifier>\n'
-    opfstr += '      <dc:title>' + meta_array['Title'] + '</dc:title>\n'
-    opfstr += '      <dc:creator opf:role="aut">' + meta_array['Authors'] + '</dc:creator>\n'
-    opfstr += '      <dc:language>en</dc:language>\n'
-    opfstr += '      <dc:date>' + meta_array['UpdateTime'] + '</dc:date>\n'
+        olst.append('      <dc:identifier opf:scheme="oASIN">' + meta_array['oASIN'] + '</dc:identifier>\n')
+    olst.append('      <dc:title>' + meta_array['Title'] + '</dc:title>\n')
+    olst.append('      <dc:creator opf:role="aut">' + meta_array['Authors'] + '</dc:creator>\n')
+    olst.append('      <dc:language>en</dc:language>\n')
+    olst.append('      <dc:date>' + meta_array['UpdateTime'] + '</dc:date>\n')
     if isCover:
-        opfstr += '      <meta name="cover" content="bookcover"/>\n'
-    opfstr += '   </metadata>\n'
-    opfstr += '<manifest>\n'
-    opfstr += '   <item id="book" href="book.html" media-type="application/xhtml+xml"/>\n'
-    opfstr += '   <item id="stylesheet" href="style.css" media-type="text/css"/>\n'
+        olst.append('      <meta name="cover" content="bookcover"/>\n')
+    olst.append('   </metadata>\n')
+    olst.append('<manifest>\n')
+    olst.append('   <item id="book" href="book.html" media-type="application/xhtml+xml"/>\n')
+    olst.append('   <item id="stylesheet" href="style.css" media-type="text/css"/>\n')
     # adding image files to manifest
     filenames = os.listdir(imgDir)
     filenames = sorted(filenames)
@@ -618,17 +640,19 @@ def generateBook(bookDir, raw, fixedimage):
             imgext = 'jpeg'
         if imgext == '.svg':
             imgext = 'svg+xml'
-        opfstr += '   <item id="' + imgname + '" href="img/' + filename + '" media-type="image/' + imgext + '"/>\n'
+        olst.append('   <item id="' + imgname + '" href="img/' + filename + '" media-type="image/' + imgext + '"/>\n')
     if isCover:
-        opfstr += '   <item id="bookcover" href="cover.jpg" media-type="image/jpeg" />\n'
-    opfstr += '</manifest>\n'
+        olst.append('   <item id="bookcover" href="cover.jpg" media-type="image/jpeg" />\n')
+    olst.append('</manifest>\n')
     # adding spine
-    opfstr += '<spine>\n   <itemref idref="book" />\n</spine>\n'
+    olst.append('<spine>\n   <itemref idref="book" />\n</spine>\n')
     if isCover:
-        opfstr += '   <guide>\n'
-        opfstr += '      <reference href="cover.jpg" type="cover" title="Cover"/>\n'
-        opfstr += '   </guide>\n'
-    opfstr += '</package>\n'
+        olst.append('   <guide>\n')
+        olst.append('      <reference href="cover.jpg" type="cover" title="Cover"/>\n')
+        olst.append('   </guide>\n')
+    olst.append('</package>\n')
+    opfstr = "".join(olst)
+    olst = None
     file(opfname, 'wb').write(opfstr)
 
     print 'Processing Complete'
@@ -649,7 +673,6 @@ def usage():
 
 def main(argv):
     bookDir = ''
-
     if len(argv) == 0:
         argv = sys.argv
 
@@ -663,7 +686,7 @@ def main(argv):
 
     if len(opts) == 0 and len(args) == 0 :
         usage()
-        return 1 
+        return 1
 
     raw = 0
     fixedimage = True

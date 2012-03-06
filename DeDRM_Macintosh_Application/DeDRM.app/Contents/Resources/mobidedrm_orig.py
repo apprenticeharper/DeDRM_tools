@@ -54,10 +54,8 @@
 #  0.30 - Modified interface slightly to work better with new calibre plugin style
 #  0.31 - The multibyte encrytion info is true for version 7 files too.
 #  0.32 - Added support for "Print Replica" Kindle ebooks
-#  0.33 - Performance improvements for large files (concatenation)
-#  0.34 - Performance improvements in decryption (libalfcrypto)
 
-__version__ = '0.34'
+__version__ = '0.32'
 
 import sys
 
@@ -74,7 +72,6 @@ sys.stdout=Unbuffered(sys.stdout)
 import os
 import struct
 import binascii
-from alfcrypto import Pukall_Cipher
 
 class DrmException(Exception):
     pass
@@ -86,37 +83,36 @@ class DrmException(Exception):
 
 # Implementation of Pukall Cipher 1
 def PC1(key, src, decryption=True):
-    return Pukall_Cipher().PC1(key,src,decryption)
-#     sum1 = 0;
-#     sum2 = 0;
-#     keyXorVal = 0;
-#     if len(key)!=16:
-#         print "Bad key length!"
-#         return None
-#     wkey = []
-#     for i in xrange(8):
-#         wkey.append(ord(key[i*2])<<8 | ord(key[i*2+1]))
-#     dst = ""
-#     for i in xrange(len(src)):
-#         temp1 = 0;
-#         byteXorVal = 0;
-#         for j in xrange(8):
-#             temp1 ^= wkey[j]
-#             sum2  = (sum2+j)*20021 + sum1
-#             sum1  = (temp1*346)&0xFFFF
-#             sum2  = (sum2+sum1)&0xFFFF
-#             temp1 = (temp1*20021+1)&0xFFFF
-#             byteXorVal ^= temp1 ^ sum2
-#         curByte = ord(src[i])
-#         if not decryption:
-#             keyXorVal = curByte * 257;
-#         curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
-#         if decryption:
-#             keyXorVal = curByte * 257;
-#         for j in xrange(8):
-#             wkey[j] ^= keyXorVal;
-#         dst+=chr(curByte)
-#     return dst
+    sum1 = 0;
+    sum2 = 0;
+    keyXorVal = 0;
+    if len(key)!=16:
+        print "Bad key length!"
+        return None
+    wkey = []
+    for i in xrange(8):
+        wkey.append(ord(key[i*2])<<8 | ord(key[i*2+1]))
+    dst = ""
+    for i in xrange(len(src)):
+        temp1 = 0;
+        byteXorVal = 0;
+        for j in xrange(8):
+            temp1 ^= wkey[j]
+            sum2  = (sum2+j)*20021 + sum1
+            sum1  = (temp1*346)&0xFFFF
+            sum2  = (sum2+sum1)&0xFFFF
+            temp1 = (temp1*20021+1)&0xFFFF
+            byteXorVal ^= temp1 ^ sum2
+        curByte = ord(src[i])
+        if not decryption:
+            keyXorVal = curByte * 257;
+        curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
+        if decryption:
+            keyXorVal = curByte * 257;
+        for j in xrange(8):
+            wkey[j] ^= keyXorVal;
+        dst+=chr(curByte)
+    return dst
 
 def checksumPid(s):
     letters = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
@@ -387,8 +383,7 @@ class MobiBook:
 
         # decrypt sections
         print "Decrypting. Please wait . . .",
-        mobidataList = []
-        mobidataList.append(self.data_file[:self.sections[1][0]])
+        self.mobi_data = self.data_file[:self.sections[1][0]]
         for i in xrange(1, self.records+1):
             data = self.loadSection(i)
             extra_size = getSizeOfTrailingDataEntries(data, len(data), self.extra_data_flags)
@@ -398,12 +393,11 @@ class MobiBook:
             decoded_data = PC1(found_key, data[0:len(data) - extra_size])
             if i==1:
                 self.print_replica = (decoded_data[0:4] == '%MOP')
-            mobidataList.append(decoded_data)
+            self.mobi_data += decoded_data
             if extra_size > 0:
-                mobidataList.append(data[-extra_size:])
+                self.mobi_data += data[-extra_size:]
         if self.num_sections > self.records+1:
-            mobidataList.append(self.data_file[self.sections[self.records+1][0]:])
-        self.mobi_data = "".join(mobidataList)
+            self.mobi_data += self.data_file[self.sections[self.records+1][0]:]
         print "done"
         return
 

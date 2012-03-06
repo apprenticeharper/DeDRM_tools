@@ -1,7 +1,7 @@
-ReadMe_DeDRM_WinApp_vX.X
+ReadMe_DeDRM_vX.X_WinApp
 -----------------------
 
-DeDRM_WinApp is a pure python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto theDeDRM_Drop_Target to have the DRM removed.  It repackages the"tools" python software in one easy to use program.
+DeDRM_vX.X_WinApp is a pure python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto the DeDRM_Drop_Target to have the DRM removed.  It repackages the"tools" python software in one easy to use program that remembers preferences and settings.
 
 It should work out of the box with Kindle for PC ebooks and Adobe Adept epub and pdf ebooks.
 
@@ -21,9 +21,9 @@ This program requires that the proper 32 bit version of Python 2.X (tested with 
 Installation
 ------------
 
-1. Download the latest DeDRM_WinApp_vx.x.zip and fully Extract its contents. 
+1. From tools_vX.X\DeDRM_Applications\, right click on DeDRM_v_X.X_WinApp.zip and fully Extract its contents. 
 
-2. Move the resulting DeDRM_WinApp_vX.X folder to whereever you keep you other programs.
+2. Move the resulting DeDRM_vX.X_WinApp folder to whereever you keep you other programs.
    (I typically use an "Applications" folder inside of my home directory)
 
 3. Open the folder, and create a short-cut to DeDRM_Drop_Target and move that short-cut to your Desktop.
@@ -33,18 +33,17 @@ Installation
 
 If you already have a correct version of Python and PyCrypto installed and in your path, you are ready to go!
 
-
-
-If not, see where you can get these additional pieces.
+If not, see below.
 
 
 Installing Python on Windows
 ----------------------------
-I strongly recommend installing ActiveState’s Active Python, Community Edition for Windows (x86) 32 bits. This is a free, full version of the Python.  It comes with some important additional modules that are not included in the bare-bones version from www.python.org unless you choose to install everything.
+I strongly recommend fully installing ActiveState’s Active Python, free Community Edition for Windows (x86) 32 bits. This is a free, full version of the Python.  It comes with some important additional modules that are not included in the bare-bones version from www.python.org unless you choose to install everything.
 
-1. Download ActivePython 2.7.1 for Windows (x86) (or later 2.7 version for Windows (x86) ) from http://www.activestate.com/activepython/downloads. Do not download the ActivePython 2.7.1 for Windows (64-bit, x64) verson, even if you are running 64-bit Windows.
+1. Download ActivePython 2.7.X for Windows (x86) (or later 2.7 version for Windows (x86) ) from http://www.activestate.com/activepython/downloads. Do not download the ActivePython 2.7.X for Windows (64-bit, x64) verson, even if you are running 64-bit Windows.
 
 2. When it has finished downloading, run the installer. Accept the default options.
+
 
 Installing PyCrypto on Windows
 ------------------------------

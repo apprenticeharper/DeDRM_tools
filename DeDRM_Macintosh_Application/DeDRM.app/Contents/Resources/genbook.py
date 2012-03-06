@@ -46,27 +46,27 @@ def readEncodedNumber(file):
     c = file.read(1)
     if (len(c) == 0):
         return None
-    data = ord(c)    
+    data = ord(c)
     if data == 0xFF:
-       flag = True
-       c = file.read(1)
-       if (len(c) == 0):
-           return None
-       data = ord(c)       
+        flag = True
+        c = file.read(1)
+        if (len(c) == 0):
+            return None
+        data = ord(c)
     if data >= 0x80:
         datax = (data & 0x7F)
         while data >= 0x80 :
             c = file.read(1)
-            if (len(c) == 0): 
+            if (len(c) == 0):
                 return None
             data = ord(c)
             datax = (datax <<7) + (data & 0x7F)
-        data = datax 
+        data = datax
     if flag:
-       data = -data
+        data = -data
     return data
 
-# Get a length prefixed string from the file 
+# Get a length prefixed string from the file
 def lengthPrefixString(data):
     return encodeNumber(len(data))+data
 
@@ -77,7 +77,7 @@ def readString(file):
     sv = file.read(stringLength)
     if (len(sv)  != stringLength):
         return ""
-    return unpack(str(stringLength)+"s",sv)[0]  
+    return unpack(str(stringLength)+"s",sv)[0]
 
 def getMetaArray(metaFile):
     # parse the meta file
@@ -141,10 +141,10 @@ class PageDimParser(object):
             item = docList[j]
             if item.find('=') >= 0:
                 (name, argres) = item.split('=')
-            else : 
+            else :
                 name = item
                 argres = ''
-            if name.endswith(tagpath) : 
+            if name.endswith(tagpath) :
                 result = argres
                 foundat = j
                 break
@@ -336,7 +336,7 @@ def generateBook(bookDir, raw, fixedimage):
     print 'Processing Meta Data and creating OPF'
     meta_array = getMetaArray(metaFile)
 
-    # replace special chars in title and authors like & < > 
+    # replace special chars in title and authors like & < >
     title = meta_array.get('Title','No Title Provided')
     title = title.replace('&','&amp;')
     title = title.replace('<','&lt;')
@@ -451,7 +451,7 @@ def generateBook(bookDir, raw, fixedimage):
     htmlstr += '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">\n'
     htmlstr += '<head>\n'
     htmlstr += '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>\n'
-    htmlstr += '<title>' + meta_array['Title'] + ' by ' + meta_array['Authors'] + '</title>\n' 
+    htmlstr += '<title>' + meta_array['Title'] + ' by ' + meta_array['Authors'] + '</title>\n'
     htmlstr += '<meta name="Author" content="' + meta_array['Authors'] + '" />\n'
     htmlstr += '<meta name="Title" content="' + meta_array['Title'] + '" />\n'
     if 'ASIN' in meta_array:
@@ -463,7 +463,7 @@ def generateBook(bookDir, raw, fixedimage):
 
     print 'Processing Pages'
     # Books are at 1440 DPI.  This is rendering at twice that size for
-    # readability when rendering to the screen.  
+    # readability when rendering to the screen.
     scaledpi = 1440.0
 
     filenames = os.listdir(pageDir)
@@ -486,13 +486,13 @@ def generateBook(bookDir, raw, fixedimage):
 
         # first get the html
         pagehtml, tocinfo = flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir, gd, fixedimage)
-        tocentries += tocinfo 
+        tocentries += tocinfo
         htmlstr += pagehtml
 
     # finish up the html string and output it
     htmlstr += '</body>\n</html>\n'
     file(os.path.join(bookDir, htmlFileName), 'wb').write(htmlstr)
-    
+
     print " "
     print 'Extracting Table of Contents from Amazon OCR'
 
@@ -663,7 +663,7 @@ def main(argv):
 
     if len(opts) == 0 and len(args) == 0 :
         usage()
-        return 1 
+        return 1
 
     raw = 0
     fixedimage = True

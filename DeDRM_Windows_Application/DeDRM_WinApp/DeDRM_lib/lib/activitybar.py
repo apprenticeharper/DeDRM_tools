@@ -7,7 +7,7 @@ class ActivityBar(Tkinter.Frame):
     def __init__(self, master, length=300, height=20, barwidth=15, interval=50, bg='white', fillcolor='orchid1',\
                  bd=2, relief=Tkconstants.GROOVE, *args, **kw):
         Tkinter.Frame.__init__(self, master, bg=bg, width=length, height=height, *args, **kw)
-        self._master = master 
+        self._master = master
         self._interval = interval
         self._maximum = length
         self._startx = 0
@@ -24,7 +24,7 @@ class ActivityBar(Tkinter.Frame):
                                     highlightthickness=0, relief=relief, bd=bd)
         self._canv.pack(fill='both', expand=1)
         self._rect = self._canv.create_rectangle(0, 0, self._canv.winfo_reqwidth(), self._canv.winfo_reqheight(), fill=fillcolor, width=0)
-        
+
         self._set()
         self.bind('<Configure>', self._update_coords)
         self._running = False
@@ -64,7 +64,7 @@ class ActivityBar(Tkinter.Frame):
     def stop(self):
         self._running = False
         self._set()
-        
+
     def _step(self):
         if self._running:
             stepsize = self._barwidth / 4

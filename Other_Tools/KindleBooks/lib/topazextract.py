@@ -16,15 +16,18 @@ if 'calibre' in sys.modules:
 else:
     inCalibre = False
 
+buildXML = False
+
 import os, csv, getopt
 import zlib, zipfile, tempfile, shutil
 from struct import pack
 from struct import unpack
+from alfcrypto import Topaz_Cipher
 
 class TpzDRMError(Exception):
     pass
 
-    
+
 # local support routines
 if inCalibre:
     from calibre_plugins.k4mobidedrm import kgenpids
@@ -58,22 +61,22 @@ def bookReadEncodedNumber(fo):
     flag = False
     data = ord(fo.read(1))
     if data == 0xFF:
-       flag = True
-       data = ord(fo.read(1))
+        flag = True
+        data = ord(fo.read(1))
     if data >= 0x80:
         datax = (data & 0x7F)
         while data >= 0x80 :
             data = ord(fo.read(1))
             datax = (datax <<7) + (data & 0x7F)
-        data = datax 
+        data = datax
     if flag:
-       data = -data
+        data = -data
     return data
-    
-# Get a length prefixed string from file 
+
+# Get a length prefixed string from file
 def bookReadString(fo):
     stringLength = bookReadEncodedNumber(fo)
-    return unpack(str(stringLength)+"s",fo.read(stringLength))[0]  
+    return unpack(str(stringLength)+"s",fo.read(stringLength))[0]
 
 #
 # crypto routines
@@ -81,25 +84,28 @@ def bookReadString(fo):
 
 # Context initialisation for the Topaz Crypto
 def topazCryptoInit(key):
-    ctx1 = 0x0CAFFE19E
-    for keyChar in key:
-        keyByte = ord(keyChar)
-        ctx2 = ctx1 
-        ctx1 = ((((ctx1 >>2) * (ctx1 >>7))&0xFFFFFFFF) ^ (keyByte * keyByte * 0x0F902007)& 0xFFFFFFFF )
-    return [ctx1,ctx2]
-    
+    return Topaz_Cipher().ctx_init(key)
+
+#     ctx1 = 0x0CAFFE19E
+#     for keyChar in key:
+#         keyByte = ord(keyChar)
+#         ctx2 = ctx1
+#         ctx1 = ((((ctx1 >>2) * (ctx1 >>7))&0xFFFFFFFF) ^ (keyByte * keyByte * 0x0F902007)& 0xFFFFFFFF )
+#     return [ctx1,ctx2]
+
 # decrypt data with the context prepared by topazCryptoInit()
 def topazCryptoDecrypt(data, ctx):
-    ctx1 = ctx[0]
-    ctx2 = ctx[1]
-    plainText = ""
-    for dataChar in data:
-        dataByte = ord(dataChar)
-        m = (dataByte ^ ((ctx1 >> 3) &0xFF) ^ ((ctx2<<3) & 0xFF)) &0xFF
-        ctx2 = ctx1
-        ctx1 = (((ctx1 >> 2) * (ctx1 >> 7)) &0xFFFFFFFF) ^((m * m * 0x0F902007) &0xFFFFFFFF)
-        plainText += chr(m)
-    return plainText
+    return Topaz_Cipher().decrypt(data, ctx)
+#     ctx1 = ctx[0]
+#     ctx2 = ctx[1]
+#     plainText = ""
+#     for dataChar in data:
+#         dataByte = ord(dataChar)
+#         m = (dataByte ^ ((ctx1 >> 3) &0xFF) ^ ((ctx2<<3) & 0xFF)) &0xFF
+#         ctx2 = ctx1
+#         ctx1 = (((ctx1 >> 2) * (ctx1 >> 7)) &0xFFFFFFFF) ^((m * m * 0x0F902007) &0xFFFFFFFF)
+#         plainText += chr(m)
+#     return plainText
 
 # Decrypt data with the PID
 def decryptRecord(data,PID):
@@ -153,7 +159,7 @@ class TopazBook:
 
     def parseTopazHeaders(self):
         def bookReadHeaderRecordData():
-            # Read and return the data of one header record at the current book file position 
+            # Read and return the data of one header record at the current book file position
             # [[offset,decompressedLength,compressedLength],...]
             nbValues = bookReadEncodedNumber(self.fo)
             values = []
@@ -213,11 +219,11 @@ class TopazBook:
         self.bookKey = key
 
     def getBookPayloadRecord(self, name, index):
-        # Get a record in the book payload, given its name and index. 
-        # decrypted and decompressed if necessary 
+        # Get a record in the book payload, given its name and index.
+        # decrypted and decompressed if necessary
         encrypted = False
         compressed = False
-        try: 
+        try:
             recordOffset = self.bookHeaderRecords[name][index][0]
         except:
             raise TpzDRMError("Parse Error : Invalid Record, record not found")
@@ -268,8 +274,8 @@ class TopazBook:
             rv = genbook.generateBook(self.outdir, raw, fixedimage)
             if rv == 0:
                 print "\nBook Successfully generated"
-            return rv            
-    
+            return rv
+
         # try each pid to decode the file
         bookKey = None
         for pid in pidlst:
@@ -297,7 +303,7 @@ class TopazBook:
         rv = genbook.generateBook(self.outdir, raw, fixedimage)
         if rv == 0:
             print "\nBook Successfully generated"
-        return rv            
+        return rv
 
     def createBookDirectory(self):
         outdir = self.outdir
@@ -361,7 +367,7 @@ class TopazBook:
         zipUpDir(svgzip, self.outdir, 'svg')
         zipUpDir(svgzip, self.outdir, 'img')
         svgzip.close()
-
+    
     def getXMLZip(self, zipname):
         xmlzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
         targetdir = os.path.join(self.outdir,'xml')
@@ -371,23 +377,23 @@ class TopazBook:
 
     def cleanup(self):
         if os.path.isdir(self.outdir):
-            pass
-            # shutil.rmtree(self.outdir, True)
+            shutil.rmtree(self.outdir, True)
 
 def usage(progname):
     print "Removes DRM protection from Topaz ebooks and extract the contents"
     print "Usage:"
     print "    %s [-k <kindle.info>] [-p <pidnums>] [-s <kindleSerialNumbers>] <infile> <outdir>  " % progname
-    
+
 
 # Main
 def main(argv=sys.argv):
+    global buildXML
     progname = os.path.basename(argv[0])
     k4 = False
     pids = []
     serials = []
     kInfoFiles = []
-    
+
     try:
         opts, args = getopt.getopt(sys.argv[1:], "k:p:s:")
     except getopt.GetoptError, err:
@@ -397,7 +403,7 @@ def main(argv=sys.argv):
     if len(args)<2:
         usage(progname)
         return 1
-        
+
     for o, a in opts:
         if o == "-k":
             if a == None :
@@ -429,7 +435,7 @@ def main(argv=sys.argv):
     title = tb.getBookTitle()
     print "Processing Book: ", title
     keysRecord, keysRecordRecord = tb.getPIDMetaInfo()
-    pidlst = kgenpids.getPidList(keysRecord, keysRecordRecord, k4, pids, serials, kInfoFiles) 
+    pidlst = kgenpids.getPidList(keysRecord, keysRecordRecord, k4, pids, serials, kInfoFiles)
 
     try:
         print "Decrypting Book"
@@ -443,9 +449,10 @@ def main(argv=sys.argv):
         zipname = os.path.join(outdir, bookname + '_SVG' + '.zip')
         tb.getSVGZip(zipname)
 
-        print "   Creating XML ZIP Archive"
-        zipname = os.path.join(outdir, bookname + '_XML' + '.zip')
-        tb.getXMLZip(zipname)
+        if buildXML:
+            print "   Creating XML ZIP Archive"
+            zipname = os.path.join(outdir, bookname + '_XML' + '.zip')
+            tb.getXMLZip(zipname)
 
         # removing internal temporary directory of pieces
         tb.cleanup()
@@ -461,9 +468,8 @@ def main(argv=sys.argv):
         return 1
 
     return 0
-                
+
 
 if __name__ == '__main__':
     sys.stdout=Unbuffered(sys.stdout)
     sys.exit(main())
-

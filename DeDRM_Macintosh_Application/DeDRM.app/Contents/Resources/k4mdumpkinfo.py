@@ -1,9 +1,9 @@
 # engine to remove drm from Kindle for Mac books
 # for personal use for archiving and converting your ebooks
-#  PLEASE DO NOT PIRATE! 
+#  PLEASE DO NOT PIRATE!
 # We want all authors and Publishers, and eBook stores to live long and prosperous lives
 #
-# it borrows heavily from works by CMBDTC, IHeartCabbages, skindle, 
+# it borrows heavily from works by CMBDTC, IHeartCabbages, skindle,
 #    unswindle, DiapDealer, some_updates and many many others
 
 from __future__ import with_statement
@@ -75,20 +75,20 @@ def _load_crypto_libcrypto():
     class AES_KEY(Structure):
         _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))), ('rounds', c_int)]
     AES_KEY_p = POINTER(AES_KEY)
-    
+
     def F(restype, name, argtypes):
         func = getattr(libcrypto, name)
         func.restype = restype
         func.argtypes = argtypes
         return func
-    
+
     AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',[c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,c_int])
 
     AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',[c_char_p, c_int, AES_KEY_p])
 
-    PKCS5_PBKDF2_HMAC_SHA1 = F(c_int, 'PKCS5_PBKDF2_HMAC_SHA1', 
+    PKCS5_PBKDF2_HMAC_SHA1 = F(c_int, 'PKCS5_PBKDF2_HMAC_SHA1',
                                 [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
-    
+
     class LibCrypto(object):
         def __init__(self):
             self._blocksize = 0
@@ -168,7 +168,7 @@ def GetVolumeSerialNumber():
         sernum = '9999999999'
     return sernum
 
-# uses unix env to get username instead of using sysctlbyname 
+# uses unix env to get username instead of using sysctlbyname
 def GetUserName():
     username = os.getenv('USER')
     return username
@@ -183,7 +183,7 @@ global kindleDatabase
 
 # Various character maps used to decrypt books. Probably supposed to act as obfuscation
 charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
-charMap2 = "ZB0bYyc1xDdW2wEV3Ff7KkPpL8UuGA4gz-Tme9Nn_tHh5SvXCsIiR6rJjQaqlOoM" 
+charMap2 = "ZB0bYyc1xDdW2wEV3Ff7KkPpL8UuGA4gz-Tme9Nn_tHh5SvXCsIiR6rJjQaqlOoM"
 charMap3 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 charMap4 = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
 
@@ -197,7 +197,7 @@ def encode(data, map):
         result += map[Q]
         result += map[R]
     return result
-  
+
 # Hash the bytes in data and then encode the digest with the characters in map
 def encodeHash(data,map):
     return encode(MD5(data),map)
@@ -254,7 +254,7 @@ def getKindleInfoValueForHash(hashedKey):
     encryptedValue = decode(kindleDatabase[hashedKey],charMap2)
     cleartext = CryptUnprotectData(encryptedValue)
     return decode(cleartext, charMap1)
- 
+
 #  Get a record from the Kindle.info file for the string in "key" (plaintext). Return the decoded and decrypted record
 def getKindleInfoValueForKey(key):
     return getKindleInfoValueForHash(encodeHash(key,charMap2))
@@ -265,10 +265,10 @@ def findNameForHash(hash):
     result = ""
     for name in names:
         if hash == encodeHash(name, charMap2):
-           result = name
-           break
+            result = name
+            break
     return result
-    
+
 # Print all the records from the kindle.info file (option -i)
 def printKindleInfo():
     for record in kindleDatabase:
@@ -284,7 +284,7 @@ def printKindleInfo():
 #
 # PID generation routines
 #
-  
+
 # Returns two bit at offset from a bit field
 def getTwoBitsFromBitField(bitField,offset):
     byteNumber = offset // 4
@@ -293,10 +293,10 @@ def getTwoBitsFromBitField(bitField,offset):
 
 # Returns the six bits at offset from a bit field
 def getSixBitsFromBitField(bitField,offset):
-     offset *= 3
-     value = (getTwoBitsFromBitField(bitField,offset) <<4) + (getTwoBitsFromBitField(bitField,offset+1) << 2) +getTwoBitsFromBitField(bitField,offset+2)
-     return value
-     
+    offset *= 3
+    value = (getTwoBitsFromBitField(bitField,offset) <<4) + (getTwoBitsFromBitField(bitField,offset+1) << 2) +getTwoBitsFromBitField(bitField,offset+2)
+    return value
+
 # 8 bits to six bits encoding from hash to generate PID string
 def encodePID(hash):
     global charMap3
@@ -304,29 +304,29 @@ def encodePID(hash):
     for position in range (0,8):
         PID += charMap3[getSixBitsFromBitField(hash,position)]
     return PID
-    
- 
+
+
 #
 # Main
-#   
+#
 
 def main(argv=sys.argv):
     global kindleDatabase
-    
+
     kindleDatabase = None
 
     #
     # Read the encrypted database
     #
-    
+
     try:
         kindleDatabase = parseKindleInfo()
     except Exception, message:
         print(message)
-    
+
     if kindleDatabase != None :
         printKindleInfo()
-     
+
     return 0
 
 if __name__ == '__main__':

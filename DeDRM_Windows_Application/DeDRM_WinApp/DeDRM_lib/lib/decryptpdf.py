@@ -25,11 +25,11 @@ def main(argv=sys.argv):
     rscpath = args[2]
     errlog = ''
     rv = 1
-    
+
     # determine a good name for the output file
     name, ext = os.path.splitext(os.path.basename(infile))
     outfile = os.path.join(outdir, name + '_nodrm.pdf')
-    
+
     # try with any keyfiles (*.der) in the rscpath
     files = os.listdir(rscpath)
     filefilter = re.compile("\.der$", re.IGNORECASE)
@@ -52,4 +52,3 @@ def main(argv=sys.argv):
 
 if __name__ == "__main__":
     sys.exit(main())
-
