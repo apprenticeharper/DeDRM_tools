@@ -37,29 +37,25 @@ def SHA256(message):
     return ctx.digest()
 
 # For K4PC 1.9.X
-# need to use routines from openssl
-#    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',[c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,c_int])
-#    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',[c_char_p, c_int, AES_KEY_p])
-#    PKCS5_PBKDF2_HMAC_SHA1 = F(c_int, 'PKCS5_PBKDF2_HMAC_SHA1',
-#                                [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
-# but the user may not have openssl installed or their version is a hacked one that was shipped
-# with many ethernet cards that used software instead of hardware routines
-# so using pure python implementations
-from pbkdf2 import pbkdf2
-import aescbc
+# use routines in alfcrypto:
+#    AES_cbc_encrypt
+#    AES_set_decrypt_key
+#    PKCS5_PBKDF2_HMAC_SHA1
+
+from alfcrypto import AES_CBC, KeyIVGen
 
 def UnprotectHeaderData(encryptedData):
     passwdData = 'header_key_data'
     salt = 'HEADER.2011'
     iter = 0x80
     keylen = 0x100
-    key_iv = pbkdf2(passwdData, salt, iter, keylen)
+    key_iv = KeyIVGen().pbkdf2(passwdData, salt, iter, keylen)
     key = key_iv[0:32]
     iv = key_iv[32:48]
-    aes=aescbc.AES_CBC(key, aescbc.noPadding() ,32)
-    cleartext = aes.decrypt(iv + encryptedData)
+    aes=AES_CBC()
+    aes.set_decrypt_key(key, iv)
+    cleartext = aes.decrypt(encryptedData)
     return cleartext
-
 
 
 # simple primes table (<= n) calculator
@@ -208,6 +204,13 @@ CryptUnprotectData = CryptUnprotectData()
 def getKindleInfoFiles(kInfoFiles):
     regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
     path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
+
+    # some 64 bit machines do not have the proper registry key for some reason
+    # or the pythonn interface to the 32 vs 64 bit registry is broken
+    if 'LOCALAPPDATA' in os.environ.keys():
+        path = os.environ['LOCALAPPDATA']
+
+    print "searching for kinfoFiles in ", path
 
     # first look for older kindle-info files
     kinfopath = path +'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info'

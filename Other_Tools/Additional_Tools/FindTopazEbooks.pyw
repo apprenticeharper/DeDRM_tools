@@ -36,6 +36,7 @@ __license__ = 'GPL v3'
 
 import sys
 import os
+os.environ['PYTHONIOENCODING'] = "utf-8"
 import re
 import shutil
 import Tkinter

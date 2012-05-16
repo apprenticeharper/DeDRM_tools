@@ -1,249 +1,454 @@
-#! /usr/bin/python
-# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+#!/usr/bin/python
+#
+# This is a python script. You need a Python interpreter to run it.
+# For example, ActiveState Python, which exists for windows.
+#
+# Changelog
+#  0.01 - Initial version
+#  0.02 - Huffdic compressed books were not properly decrypted
+#  0.03 - Wasn't checking MOBI header length
+#  0.04 - Wasn't sanity checking size of data record
+#  0.05 - It seems that the extra data flags take two bytes not four
+#  0.06 - And that low bit does mean something after all :-)
+#  0.07 - The extra data flags aren't present in MOBI header < 0xE8 in size
+#  0.08 - ...and also not in Mobi header version < 6
+#  0.09 - ...but they are there with Mobi header version 6, header size 0xE4!
+#  0.10 - Outputs unencrypted files as-is, so that when run as a Calibre
+#         import filter it works when importing unencrypted files.
+#         Also now handles encrypted files that don't need a specific PID.
+#  0.11 - use autoflushed stdout and proper return values
+#  0.12 - Fix for problems with metadata import as Calibre plugin, report errors
+#  0.13 - Formatting fixes: retabbed file, removed trailing whitespace
+#         and extra blank lines, converted CR/LF pairs at ends of each line,
+#         and other cosmetic fixes.
+#  0.14 - Working out when the extra data flags are present has been problematic
+#         Versions 7 through 9 have tried to tweak the conditions, but have been
+#         only partially successful. Closer examination of lots of sample
+#         files reveals that a confusion has arisen because trailing data entries
+#         are not encrypted, but it turns out that the multibyte entries
+#         in utf8 file are encrypted. (Although neither kind gets compressed.)
+#         This knowledge leads to a simplification of the test for the
+#         trailing data byte flags - version 5 and higher AND header size >= 0xE4.
+#  0.15 - Now outputs 'heartbeat', and is also quicker for long files.
+#  0.16 - And reverts to 'done' not 'done.' at the end for unswindle compatibility.
+#  0.17 - added modifications to support its use as an imported python module
+#         both inside calibre and also in other places (ie K4DeDRM tools)
+#  0.17a- disabled the standalone plugin feature since a plugin can not import
+#         a plugin
+#  0.18 - It seems that multibyte entries aren't encrypted in a v7 file...
+#         Removed the disabled Calibre plug-in code
+#         Permit use of 8-digit PIDs
+#  0.19 - It seems that multibyte entries aren't encrypted in a v6 file either.
+#  0.20 - Correction: It seems that multibyte entries are encrypted in a v6 file.
+#  0.21 - Added support for multiple pids
+#  0.22 - revised structure to hold MobiBook as a class to allow an extended interface
+#  0.23 - fixed problem with older files with no EXTH section
+#  0.24 - add support for type 1 encryption and 'TEXtREAd' books as well
+#  0.25 - Fixed support for 'BOOKMOBI' type 1 encryption
+#  0.26 - Now enables Text-To-Speech flag and sets clipping limit to 100%
+#  0.27 - Correct pid metadata token generation to match that used by skindle (Thank You Bart!)
+#  0.28 - slight additional changes to metadata token generation (None -> '')
+#  0.29 - It seems that the ideas about when multibyte trailing characters were
+#         included in the encryption were wrong. They are for DOC compressed
+#         files, but they are not for HUFF/CDIC compress files!
+#  0.30 - Modified interface slightly to work better with new calibre plugin style
+#  0.31 - The multibyte encrytion info is true for version 7 files too.
+#  0.32 - Added support for "Print Replica" Kindle ebooks
+#  0.33 - Performance improvements for large files (concatenation)
+#  0.34 - Performance improvements in decryption (libalfcrypto)
+#  0.35 - add interface to get mobi_version
+
+__version__ = '0.35'
 
 import sys
-import csv
+
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+sys.stdout=Unbuffered(sys.stdout)
+
 import os
-import getopt
-from struct import pack
-from struct import unpack
+import struct
+import binascii
+from alfcrypto import Pukall_Cipher
+
+class DrmException(Exception):
+    pass
 
 
-class PParser(object):
-    def __init__(self, gd, flatxml, meta_array):
-        self.gd = gd
-        self.flatdoc = flatxml.split('\n')
-        self.docSize = len(self.flatdoc)
-        self.temp = []
+#
+# MobiBook Utility Routines
+#
 
-        self.ph = -1
-        self.pw = -1
-        startpos = self.posinDoc('page.h') or self.posinDoc('book.h')
-        for p in startpos:
-            (name, argres) = self.lineinDoc(p)
-            self.ph = max(self.ph, int(argres))
-        startpos = self.posinDoc('page.w') or self.posinDoc('book.w')
-        for p in startpos:
-            (name, argres) = self.lineinDoc(p)
-            self.pw = max(self.pw, int(argres))
+# Implementation of Pukall Cipher 1
+def PC1(key, src, decryption=True):
+    return Pukall_Cipher().PC1(key,src,decryption)
+#     sum1 = 0;
+#     sum2 = 0;
+#     keyXorVal = 0;
+#     if len(key)!=16:
+#         print "Bad key length!"
+#         return None
+#     wkey = []
+#     for i in xrange(8):
+#         wkey.append(ord(key[i*2])<<8 | ord(key[i*2+1]))
+#     dst = ""
+#     for i in xrange(len(src)):
+#         temp1 = 0;
+#         byteXorVal = 0;
+#         for j in xrange(8):
+#             temp1 ^= wkey[j]
+#             sum2  = (sum2+j)*20021 + sum1
+#             sum1  = (temp1*346)&0xFFFF
+#             sum2  = (sum2+sum1)&0xFFFF
+#             temp1 = (temp1*20021+1)&0xFFFF
+#             byteXorVal ^= temp1 ^ sum2
+#         curByte = ord(src[i])
+#         if not decryption:
+#             keyXorVal = curByte * 257;
+#         curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
+#         if decryption:
+#             keyXorVal = curByte * 257;
+#         for j in xrange(8):
+#             wkey[j] ^= keyXorVal;
+#         dst+=chr(curByte)
+#     return dst
 
-        if self.ph <= 0:
-            self.ph = int(meta_array.get('pageHeight', '11000'))
-        if self.pw <= 0:
-            self.pw = int(meta_array.get('pageWidth', '8500'))
+def checksumPid(s):
+    letters = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
+    crc = (~binascii.crc32(s,-1))&0xFFFFFFFF
+    crc = crc ^ (crc >> 16)
+    res = s
+    l = len(letters)
+    for i in (0,1):
+        b = crc & 0xff
+        pos = (b // l) ^ (b % l)
+        res += letters[pos%l]
+        crc >>= 8
+    return res
 
-        res = []
-        startpos = self.posinDoc('info.glyph.x')
-        for p in startpos:
-            argres = self.getDataatPos('info.glyph.x', p)
-            res.extend(argres)
-        self.gx = res
+def getSizeOfTrailingDataEntries(ptr, size, flags):
+    def getSizeOfTrailingDataEntry(ptr, size):
+        bitpos, result = 0, 0
+        if size <= 0:
+            return result
+        while True:
+            v = ord(ptr[size-1])
+            result |= (v & 0x7F) << bitpos
+            bitpos += 7
+            size -= 1
+            if (v & 0x80) != 0 or (bitpos >= 28) or (size == 0):
+                return result
+    num = 0
+    testflags = flags >> 1
+    while testflags:
+        if testflags & 1:
+            num += getSizeOfTrailingDataEntry(ptr, size - num)
+        testflags >>= 1
+    # Check the low bit to see if there's multibyte data present.
+    # if multibyte data is included in the encryped data, we'll
+    # have already cleared this flag.
+    if flags & 1:
+        num += (ord(ptr[size - num - 1]) & 0x3) + 1
+    return num
 
-        res = []
-        startpos = self.posinDoc('info.glyph.y')
-        for p in startpos:
-            argres = self.getDataatPos('info.glyph.y', p)
-            res.extend(argres)
-        self.gy = res
-
-        res = []
-        startpos = self.posinDoc('info.glyph.glyphID')
-        for p in startpos:
-            argres = self.getDataatPos('info.glyph.glyphID', p)
-            res.extend(argres)
-        self.gid = res
 
 
-    # return tag at line pos in document
-    def lineinDoc(self, pos) :
-        if (pos >= 0) and (pos < self.docSize) :
-            item = self.flatdoc[pos]
-            if item.find('=') >= 0:
-                (name, argres) = item.split('=',1)
-            else :
-                name = item
-                argres = ''
-        return name, argres
-
-    # find tag in doc if within pos to end inclusive
-    def findinDoc(self, tagpath, pos, end) :
-        result = None
-        if end == -1 :
-            end = self.docSize
+class MobiBook:
+    def loadSection(self, section):
+        if (section + 1 == self.num_sections):
+            endoff = len(self.data_file)
         else:
-            end = min(self.docSize, end)
-        foundat = -1
-        for j in xrange(pos, end):
-            item = self.flatdoc[j]
-            if item.find('=') >= 0:
-                (name, argres) = item.split('=',1)
-            else :
-                name = item
-                argres = ''
-            if name.endswith(tagpath) :
-                result = argres
-                foundat = j
-                break
-        return foundat, result
+            endoff = self.sections[section + 1][0]
+        off = self.sections[section][0]
+        return self.data_file[off:endoff]
 
-    # return list of start positions for the tagpath
-    def posinDoc(self, tagpath):
-        startpos = []
-        pos = 0
-        res = ""
-        while res != None :
-            (foundpos, res) = self.findinDoc(tagpath, pos, -1)
-            if res != None :
-                startpos.append(foundpos)
-            pos = foundpos + 1
-        return startpos
+    def __init__(self, infile):
+        print ('MobiDeDrm v%(__version__)s. '
+           'Copyright 2008-2011 The Dark Reverser et al.' % globals())
 
-    def getData(self, path):
-        result = None
-        cnt = len(self.flatdoc)
-        for j in xrange(cnt):
-            item = self.flatdoc[j]
-            if item.find('=') >= 0:
-                (name, argt) = item.split('=')
-                argres = argt.split('|')
-            else:
-                name = item
-                argres = []
-            if (name.endswith(path)):
-                result = argres
-                break
-        if (len(argres) > 0) :
-            for j in xrange(0,len(argres)):
-                argres[j] = int(argres[j])
-        return result
+        # initial sanity check on file
+        self.data_file = file(infile, 'rb').read()
+        self.mobi_data = ''
+        self.header = self.data_file[0:78]
+        if self.header[0x3C:0x3C+8] != 'BOOKMOBI' and self.header[0x3C:0x3C+8] != 'TEXtREAd':
+            raise DrmException("invalid file format")
+        self.magic = self.header[0x3C:0x3C+8]
+        self.crypto_type = -1
 
-    def getDataatPos(self, path, pos):
-        result = None
-        item = self.flatdoc[pos]
-        if item.find('=') >= 0:
-            (name, argt) = item.split('=')
-            argres = argt.split('|')
-        else:
-            name = item
-            argres = []
-        if (len(argres) > 0) :
-            for j in xrange(0,len(argres)):
-                argres[j] = int(argres[j])
-        if (name.endswith(path)):
-            result = argres
-        return result
+        # build up section offset and flag info
+        self.num_sections, = struct.unpack('>H', self.header[76:78])
+        self.sections = []
+        for i in xrange(self.num_sections):
+            offset, a1,a2,a3,a4 = struct.unpack('>LBBBB', self.data_file[78+i*8:78+i*8+8])
+            flags, val = a1, a2<<16|a3<<8|a4
+            self.sections.append( (offset, flags, val) )
 
-    def getDataTemp(self, path):
-        result = None
-        cnt = len(self.temp)
-        for j in xrange(cnt):
-            item = self.temp[j]
-            if item.find('=') >= 0:
-                (name, argt) = item.split('=')
-                argres = argt.split('|')
-            else:
-                name = item
-                argres = []
-            if (name.endswith(path)):
-                result = argres
-                self.temp.pop(j)
-                break
-        if (len(argres) > 0) :
-            for j in xrange(0,len(argres)):
-                argres[j] = int(argres[j])
-        return result
+        # parse information from section 0
+        self.sect = self.loadSection(0)
+        self.records, = struct.unpack('>H', self.sect[0x8:0x8+2])
+        self.compression, = struct.unpack('>H', self.sect[0x0:0x0+2])
 
-    def getImages(self):
-        result = []
-        self.temp = self.flatdoc
-        while (self.getDataTemp('img') != None):
-            h = self.getDataTemp('img.h')[0]
-            w = self.getDataTemp('img.w')[0]
-            x = self.getDataTemp('img.x')[0]
-            y = self.getDataTemp('img.y')[0]
-            src = self.getDataTemp('img.src')[0]
-            result.append('<image xlink:href="../img/img%04d.jpg" x="%d" y="%d" width="%d" height="%d" />\n' % (src, x, y, w, h))
-        return result
+        if self.magic == 'TEXtREAd':
+            print "Book has format: ", self.magic
+            self.extra_data_flags = 0
+            self.mobi_length = 0
+            self.mobi_version = -1
+            self.meta_array = {}
+            return
+        self.mobi_length, = struct.unpack('>L',self.sect[0x14:0x18])
+        self.mobi_codepage, = struct.unpack('>L',self.sect[0x1c:0x20])
+        self.mobi_version, = struct.unpack('>L',self.sect[0x68:0x6C])
+        print "MOBI header version = %d, length = %d" %(self.mobi_version, self.mobi_length)
+        self.extra_data_flags = 0
+        if (self.mobi_length >= 0xE4) and (self.mobi_version >= 5):
+            self.extra_data_flags, = struct.unpack('>H', self.sect[0xF2:0xF4])
+            print "Extra Data Flags = %d" % self.extra_data_flags
+        if (self.compression != 17480):
+            # multibyte utf8 data is included in the encryption for PalmDoc compression
+            # so clear that byte so that we leave it to be decrypted.
+            self.extra_data_flags &= 0xFFFE
 
-    def getGlyphs(self):
-        result = []
-        if (self.gid != None) and (len(self.gid) > 0):
-            glyphs = []
-            for j in set(self.gid):
-                glyphs.append(j)
-            glyphs.sort()
-            for gid in glyphs:
-                id='id="gl%d"' % gid
-                path = self.gd.lookup(id)
-                if path:
-                    result.append(id + ' ' + path)
-        return result
+        # if exth region exists parse it for metadata array
+        self.meta_array = {}
+        try:
+            exth_flag, = struct.unpack('>L', self.sect[0x80:0x84])
+            exth = 'NONE'
+            if exth_flag & 0x40:
+                exth = self.sect[16 + self.mobi_length:]
+            if (len(exth) >= 4) and (exth[:4] == 'EXTH'):
+                nitems, = struct.unpack('>I', exth[8:12])
+                pos = 12
+                for i in xrange(nitems):
+                    type, size = struct.unpack('>II', exth[pos: pos + 8])
+                    content = exth[pos + 8: pos + size]
+                    self.meta_array[type] = content
+                    # reset the text to speech flag and clipping limit, if present
+                    if type == 401 and size == 9:
+                        # set clipping limit to 100%
+                        self.patchSection(0, "\144", 16 + self.mobi_length + pos + 8)
+                    elif type == 404 and size == 9:
+                        # make sure text to speech is enabled
+                        self.patchSection(0, "\0", 16 + self.mobi_length + pos + 8)
+                    # print type, size, content, content.encode('hex')
+                    pos += size
+        except:
+            self.meta_array = {}
+            pass
+        self.print_replica = False
 
-
-def convert2SVG(gdict, flat_xml, pageid, previd, nextid, svgDir, raw, meta_array, scaledpi):
-    mlst = []
-    pp = PParser(gdict, flat_xml, meta_array)
-    mlst.append('<?xml version="1.0" standalone="no"?>\n')
-    if (raw):
-        mlst.append('<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n')
-        mlst.append('<svg width="%fin" height="%fin" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">\n' % (pp.pw / scaledpi, pp.ph / scaledpi, pp.pw -1, pp.ph -1))
-        mlst.append('<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors']))
-    else:
-        mlst.append('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n')
-        mlst.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" ><head>\n')
-        mlst.append('<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors']))
-        mlst.append('<script><![CDATA[\n')
-        mlst.append('function gd(){var p=window.location.href.replace(/^.*\?dpi=(\d+).*$/i,"$1");return p;}\n')
-        mlst.append('var dpi=%d;\n' % scaledpi)
-        if (previd) :
-            mlst.append('var prevpage="page%04d.xhtml";\n' % (previd))
-        if (nextid) :
-            mlst.append('var nextpage="page%04d.xhtml";\n' % (nextid))
-        mlst.append('var pw=%d;var ph=%d;' % (pp.pw, pp.ph))
-        mlst.append('function zoomin(){dpi=dpi*(0.8);setsize();}\n')
-        mlst.append('function zoomout(){dpi=dpi*1.25;setsize();}\n')
-        mlst.append('function setsize(){var svg=document.getElementById("svgimg");var prev=document.getElementById("prevsvg");var next=document.getElementById("nextsvg");var width=(pw/dpi)+"in";var height=(ph/dpi)+"in";svg.setAttribute("width",width);svg.setAttribute("height",height);prev.setAttribute("height",height);prev.setAttribute("width","50px");next.setAttribute("height",height);next.setAttribute("width","50px");}\n')
-        mlst.append('function ppage(){window.location.href=prevpage+"?dpi="+Math.round(dpi);}\n')
-        mlst.append('function npage(){window.location.href=nextpage+"?dpi="+Math.round(dpi);}\n')
-        mlst.append('var gt=gd();if(gt>0){dpi=gt;}\n')
-        mlst.append('window.onload=setsize;\n')
-        mlst.append(']]></script>\n')
-        mlst.append('</head>\n')
-        mlst.append('<body onLoad="setsize();" style="background-color:#777;text-align:center;">\n')
-        mlst.append('<div style="white-space:nowrap;">\n')
-        if previd == None:
-            mlst.append('<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n')
-        else:
-            mlst.append('<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,150,95,5,95,295" fill="#AAAAAA" /></svg></a>\n')
-
-        mlst.append('<a href="javascript:npage();"><svg id="svgimg" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="background-color:#FFF;border:1px solid black;">' % (pp.pw, pp.ph))
-    if (pp.gid != None):
-        mlst.append('<defs>\n')
-        gdefs = pp.getGlyphs()
-        for j in xrange(0,len(gdefs)):
-            mlst.append(gdefs[j])
-        mlst.append('</defs>\n')
-    img = pp.getImages()
-    if (img != None):
-        for j in xrange(0,len(img)):
-            mlst.append(img[j])
-    if (pp.gid != None):
-        for j in xrange(0,len(pp.gid)):
-            mlst.append('<use xlink:href="#gl%d" x="%d" y="%d" />\n' % (pp.gid[j], pp.gx[j], pp.gy[j]))
-    if (img == None or len(img) == 0) and (pp.gid == None or len(pp.gid) == 0):
-        xpos = "%d" % (pp.pw // 3)
-        ypos = "%d" % (pp.ph // 3)
-        mlst.append('<text x="' + xpos + '" y="' + ypos + '" font-size="' + meta_array['fontSize'] + '" font-family="Helvetica" stroke="black">This page intentionally left blank.</text>\n')
-    if (raw) :
-        mlst.append('</svg>')
-    else :
-        mlst.append('</svg></a>\n')
-        if nextid == None:
-            mlst.append('<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n')
+    def getBookTitle(self):
+        codec_map = {
+            1252 : 'windows-1252',
+            65001 : 'utf-8',
+        }
+        title = ''
+        if 503 in self.meta_array:
+            title = self.meta_array[503]
         else :
-            mlst.append('<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,5,5,295,95,150" fill="#AAAAAA" /></svg></a>\n')
-        mlst.append('</div>\n')
-        mlst.append('<div><a href="javascript:zoomin();">zoom in</a> - <a href="javascript:zoomout();">zoom out</a></div>\n')
-        mlst.append('</body>\n')
-        mlst.append('</html>\n')
-    return "".join(mlst)
+            toff, tlen = struct.unpack('>II', self.sect[0x54:0x5c])
+            tend = toff + tlen
+            title = self.sect[toff:tend]
+        if title == '':
+            title = self.header[:32]
+            title = title.split("\0")[0]
+        codec = 'windows-1252'
+        if self.mobi_codepage in codec_map.keys():
+            codec = codec_map[self.mobi_codepage]
+        return unicode(title, codec).encode('utf-8')
+
+    def getPIDMetaInfo(self):
+        rec209 = ''
+        token = ''
+        if 209 in self.meta_array:
+            rec209 = self.meta_array[209]
+            data = rec209
+            # The 209 data comes in five byte groups. Interpret the last four bytes
+            # of each group as a big endian unsigned integer to get a key value
+            # if that key exists in the meta_array, append its contents to the token
+            for i in xrange(0,len(data),5):
+                val,  = struct.unpack('>I',data[i+1:i+5])
+                sval = self.meta_array.get(val,'')
+                token += sval
+        return rec209, token
+
+    def patch(self, off, new):
+        self.data_file = self.data_file[:off] + new + self.data_file[off+len(new):]
+
+    def patchSection(self, section, new, in_off = 0):
+        if (section + 1 == self.num_sections):
+            endoff = len(self.data_file)
+        else:
+            endoff = self.sections[section + 1][0]
+        off = self.sections[section][0]
+        assert off + in_off + len(new) <= endoff
+        self.patch(off + in_off, new)
+
+    def parseDRM(self, data, count, pidlist):
+        found_key = None
+        keyvec1 = "\x72\x38\x33\xB0\xB4\xF2\xE3\xCA\xDF\x09\x01\xD6\xE2\xE0\x3F\x96"
+        for pid in pidlist:
+            bigpid = pid.ljust(16,'\0')
+            temp_key = PC1(keyvec1, bigpid, False)
+            temp_key_sum = sum(map(ord,temp_key)) & 0xff
+            found_key = None
+            for i in xrange(count):
+                verification, size, type, cksum, cookie = struct.unpack('>LLLBxxx32s', data[i*0x30:i*0x30+0x30])
+                if cksum == temp_key_sum:
+                    cookie = PC1(temp_key, cookie)
+                    ver,flags,finalkey,expiry,expiry2 = struct.unpack('>LL16sLL', cookie)
+                    if verification == ver and (flags & 0x1F) == 1:
+                        found_key = finalkey
+                        break
+            if found_key != None:
+                break
+        if not found_key:
+            # Then try the default encoding that doesn't require a PID
+            pid = "00000000"
+            temp_key = keyvec1
+            temp_key_sum = sum(map(ord,temp_key)) & 0xff
+            for i in xrange(count):
+                verification, size, type, cksum, cookie = struct.unpack('>LLLBxxx32s', data[i*0x30:i*0x30+0x30])
+                if cksum == temp_key_sum:
+                    cookie = PC1(temp_key, cookie)
+                    ver,flags,finalkey,expiry,expiry2 = struct.unpack('>LL16sLL', cookie)
+                    if verification == ver:
+                        found_key = finalkey
+                        break
+        return [found_key,pid]
+
+    def getMobiFile(self, outpath):
+        file(outpath,'wb').write(self.mobi_data)
+
+    def getMobiVersion(self):
+        return self.mobi_version
+        
+    def getPrintReplica(self):
+        return self.print_replica
+
+    def processBook(self, pidlist):
+        crypto_type, = struct.unpack('>H', self.sect[0xC:0xC+2])
+        print 'Crypto Type is: ', crypto_type
+        self.crypto_type = crypto_type
+        if crypto_type == 0:
+            print "This book is not encrypted."
+            # we must still check for Print Replica
+            self.print_replica = (self.loadSection(1)[0:4] == '%MOP')
+            self.mobi_data = self.data_file
+            return
+        if crypto_type != 2 and crypto_type != 1:
+            raise DrmException("Cannot decode unknown Mobipocket encryption type %d" % crypto_type)
+        if 406 in self.meta_array:
+            data406 = self.meta_array[406]
+            val406, = struct.unpack('>Q',data406)
+            if val406 != 0:
+                raise DrmException("Cannot decode library or rented ebooks.")
+
+        goodpids = []
+        for pid in pidlist:
+            if len(pid)==10:
+                if checksumPid(pid[0:-2]) != pid:
+                    print "Warning: PID " + pid + " has incorrect checksum, should have been "+checksumPid(pid[0:-2])
+                goodpids.append(pid[0:-2])
+            elif len(pid)==8:
+                goodpids.append(pid)
+
+        if self.crypto_type == 1:
+            t1_keyvec = "QDCVEPMU675RUBSZ"
+            if self.magic == 'TEXtREAd':
+                bookkey_data = self.sect[0x0E:0x0E+16]
+            elif self.mobi_version < 0:
+                bookkey_data = self.sect[0x90:0x90+16]
+            else:
+                bookkey_data = self.sect[self.mobi_length+16:self.mobi_length+32]
+            pid = "00000000"
+            found_key = PC1(t1_keyvec, bookkey_data)
+        else :
+            # calculate the keys
+            drm_ptr, drm_count, drm_size, drm_flags = struct.unpack('>LLLL', self.sect[0xA8:0xA8+16])
+            if drm_count == 0:
+                raise DrmException("Not yet initialised with PID. Must be opened with Mobipocket Reader first.")
+            found_key, pid = self.parseDRM(self.sect[drm_ptr:drm_ptr+drm_size], drm_count, goodpids)
+            if not found_key:
+                raise DrmException("No key found. Please report this failure for help.")
+            # kill the drm keys
+            self.patchSection(0, "\0" * drm_size, drm_ptr)
+            # kill the drm pointers
+            self.patchSection(0, "\xff" * 4 + "\0" * 12, 0xA8)
+
+        if pid=="00000000":
+            print "File has default encryption, no specific PID."
+        else:
+            print "File is encoded with PID "+checksumPid(pid)+"."
+
+        # clear the crypto type
+        self.patchSection(0, "\0" * 2, 0xC)
+
+        # decrypt sections
+        print "Decrypting. Please wait . . .",
+        mobidataList = []
+        mobidataList.append(self.data_file[:self.sections[1][0]])
+        for i in xrange(1, self.records+1):
+            data = self.loadSection(i)
+            extra_size = getSizeOfTrailingDataEntries(data, len(data), self.extra_data_flags)
+            if i%100 == 0:
+                print ".",
+            # print "record %d, extra_size %d" %(i,extra_size)
+            decoded_data = PC1(found_key, data[0:len(data) - extra_size])
+            if i==1:
+                self.print_replica = (decoded_data[0:4] == '%MOP')
+            mobidataList.append(decoded_data)
+            if extra_size > 0:
+                mobidataList.append(data[-extra_size:])
+        if self.num_sections > self.records+1:
+            mobidataList.append(self.data_file[self.sections[self.records+1][0]:])
+        self.mobi_data = "".join(mobidataList)
+        print "done"
+        return
+
+def getUnencryptedBook(infile,pid):
+    if not os.path.isfile(infile):
+        raise DrmException('Input File Not Found')
+    book = MobiBook(infile)
+    book.processBook([pid])
+    return book.mobi_data
+
+def getUnencryptedBookWithList(infile,pidlist):
+    if not os.path.isfile(infile):
+        raise DrmException('Input File Not Found')
+    book = MobiBook(infile)
+    book.processBook(pidlist)
+    return book.mobi_data
+
+
+def main(argv=sys.argv):
+    print ('MobiDeDrm v%(__version__)s. '
+        'Copyright 2008-2011 The Dark Reverser et al.' % globals())
+    if len(argv)<3 or len(argv)>4:
+        print "Removes protection from Kindle/Mobipocket and Kindle/Print Replica ebooks"
+        print "Usage:"
+        print "    %s <infile> <outfile> [<Comma separated list of PIDs to try>]" % sys.argv[0]
+        return 1
+    else:
+        infile = argv[1]
+        outfile = argv[2]
+        if len(argv) is 4:
+            pidlist = argv[3].split(',')
+        else:
+            pidlist = {}
+        try:
+            stripped_file = getUnencryptedBookWithList(infile, pidlist)
+            file(outfile, 'wb').write(stripped_file)
+        except DrmException, e:
+            print "Error: %s" % e
+            return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

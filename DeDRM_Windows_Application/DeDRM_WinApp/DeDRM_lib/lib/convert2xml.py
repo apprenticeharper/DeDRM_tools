@@ -246,6 +246,7 @@ class PageParser(object):
         'region.y'         : (1, 'scalar_number', 0, 0),
         'region.h'         : (1, 'scalar_number', 0, 0),
         'region.w'         : (1, 'scalar_number', 0, 0),
+        'region.orientation' : (1, 'scalar_number', 0, 0),
 
         'empty_text_region' : (1, 'snippets', 1, 0),
 

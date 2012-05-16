@@ -205,6 +205,13 @@ def getKindleInfoFiles(kInfoFiles):
     regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
     path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
 
+    # some 64 bit machines do not have the proper registry key for some reason
+    # or the pythonn interface to the 32 vs 64 bit registry is broken
+    if 'LOCALAPPDATA' in os.environ.keys():
+        path = os.environ['LOCALAPPDATA']
+
+    print "searching for kinfoFiles in ", path
+
     # first look for older kindle-info files
     kinfopath = path +'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info'
     if not os.path.isfile(kinfopath):

@@ -16,6 +16,8 @@ if 'calibre' in sys.modules:
 else:
     inCalibre = False
 
+buildXML = False
+
 import os, csv, getopt
 import zlib, zipfile, tempfile, shutil
 from struct import pack
@@ -365,7 +367,7 @@ class TopazBook:
         zipUpDir(svgzip, self.outdir, 'svg')
         zipUpDir(svgzip, self.outdir, 'img')
         svgzip.close()
-
+    
     def getXMLZip(self, zipname):
         xmlzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
         targetdir = os.path.join(self.outdir,'xml')
@@ -375,8 +377,7 @@ class TopazBook:
 
     def cleanup(self):
         if os.path.isdir(self.outdir):
-            pass
-            # shutil.rmtree(self.outdir, True)
+            shutil.rmtree(self.outdir, True)
 
 def usage(progname):
     print "Removes DRM protection from Topaz ebooks and extract the contents"
@@ -386,6 +387,7 @@ def usage(progname):
 
 # Main
 def main(argv=sys.argv):
+    global buildXML
     progname = os.path.basename(argv[0])
     k4 = False
     pids = []
@@ -447,9 +449,10 @@ def main(argv=sys.argv):
         zipname = os.path.join(outdir, bookname + '_SVG' + '.zip')
         tb.getSVGZip(zipname)
 
-        print "   Creating XML ZIP Archive"
-        zipname = os.path.join(outdir, bookname + '_XML' + '.zip')
-        tb.getXMLZip(zipname)
+        if buildXML:
+            print "   Creating XML ZIP Archive"
+            zipname = os.path.join(outdir, bookname + '_XML' + '.zip')
+            tb.getXMLZip(zipname)
 
         # removing internal temporary directory of pieces
         tb.cleanup()

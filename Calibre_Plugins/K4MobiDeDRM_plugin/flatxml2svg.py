@@ -1,290 +1,249 @@
-#! /usr/bin/env python
+#! /usr/bin/python
+# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
-import sys, os
-import hmac
+import sys
+import csv
+import os
+import getopt
 from struct import pack
-import hashlib
+from struct import unpack
 
 
-# interface to needed routines libalfcrypto
-def _load_libalfcrypto():
-    import ctypes
-    from ctypes import CDLL, byref, POINTER, c_void_p, c_char_p, c_int, c_long, \
-        Structure, c_ulong, create_string_buffer, addressof, string_at, cast, sizeof
+class PParser(object):
+    def __init__(self, gd, flatxml, meta_array):
+        self.gd = gd
+        self.flatdoc = flatxml.split('\n')
+        self.docSize = len(self.flatdoc)
+        self.temp = []
 
-    pointer_size = ctypes.sizeof(ctypes.c_voidp)
-    name_of_lib = None
-    if sys.platform.startswith('darwin'):
-        name_of_lib = 'libalfcrypto.dylib'
-    elif sys.platform.startswith('win'):
-        if pointer_size == 4:
-            name_of_lib = 'alfcrypto.dll'
+        self.ph = -1
+        self.pw = -1
+        startpos = self.posinDoc('page.h') or self.posinDoc('book.h')
+        for p in startpos:
+            (name, argres) = self.lineinDoc(p)
+            self.ph = max(self.ph, int(argres))
+        startpos = self.posinDoc('page.w') or self.posinDoc('book.w')
+        for p in startpos:
+            (name, argres) = self.lineinDoc(p)
+            self.pw = max(self.pw, int(argres))
+
+        if self.ph <= 0:
+            self.ph = int(meta_array.get('pageHeight', '11000'))
+        if self.pw <= 0:
+            self.pw = int(meta_array.get('pageWidth', '8500'))
+
+        res = []
+        startpos = self.posinDoc('info.glyph.x')
+        for p in startpos:
+            argres = self.getDataatPos('info.glyph.x', p)
+            res.extend(argres)
+        self.gx = res
+
+        res = []
+        startpos = self.posinDoc('info.glyph.y')
+        for p in startpos:
+            argres = self.getDataatPos('info.glyph.y', p)
+            res.extend(argres)
+        self.gy = res
+
+        res = []
+        startpos = self.posinDoc('info.glyph.glyphID')
+        for p in startpos:
+            argres = self.getDataatPos('info.glyph.glyphID', p)
+            res.extend(argres)
+        self.gid = res
+
+
+    # return tag at line pos in document
+    def lineinDoc(self, pos) :
+        if (pos >= 0) and (pos < self.docSize) :
+            item = self.flatdoc[pos]
+            if item.find('=') >= 0:
+                (name, argres) = item.split('=',1)
+            else :
+                name = item
+                argres = ''
+        return name, argres
+
+    # find tag in doc if within pos to end inclusive
+    def findinDoc(self, tagpath, pos, end) :
+        result = None
+        if end == -1 :
+            end = self.docSize
         else:
-            name_of_lib = 'alfcrypto64.dll'
+            end = min(self.docSize, end)
+        foundat = -1
+        for j in xrange(pos, end):
+            item = self.flatdoc[j]
+            if item.find('=') >= 0:
+                (name, argres) = item.split('=',1)
+            else :
+                name = item
+                argres = ''
+            if name.endswith(tagpath) :
+                result = argres
+                foundat = j
+                break
+        return foundat, result
+
+    # return list of start positions for the tagpath
+    def posinDoc(self, tagpath):
+        startpos = []
+        pos = 0
+        res = ""
+        while res != None :
+            (foundpos, res) = self.findinDoc(tagpath, pos, -1)
+            if res != None :
+                startpos.append(foundpos)
+            pos = foundpos + 1
+        return startpos
+
+    def getData(self, path):
+        result = None
+        cnt = len(self.flatdoc)
+        for j in xrange(cnt):
+            item = self.flatdoc[j]
+            if item.find('=') >= 0:
+                (name, argt) = item.split('=')
+                argres = argt.split('|')
+            else:
+                name = item
+                argres = []
+            if (name.endswith(path)):
+                result = argres
+                break
+        if (len(argres) > 0) :
+            for j in xrange(0,len(argres)):
+                argres[j] = int(argres[j])
+        return result
+
+    def getDataatPos(self, path, pos):
+        result = None
+        item = self.flatdoc[pos]
+        if item.find('=') >= 0:
+            (name, argt) = item.split('=')
+            argres = argt.split('|')
+        else:
+            name = item
+            argres = []
+        if (len(argres) > 0) :
+            for j in xrange(0,len(argres)):
+                argres[j] = int(argres[j])
+        if (name.endswith(path)):
+            result = argres
+        return result
+
+    def getDataTemp(self, path):
+        result = None
+        cnt = len(self.temp)
+        for j in xrange(cnt):
+            item = self.temp[j]
+            if item.find('=') >= 0:
+                (name, argt) = item.split('=')
+                argres = argt.split('|')
+            else:
+                name = item
+                argres = []
+            if (name.endswith(path)):
+                result = argres
+                self.temp.pop(j)
+                break
+        if (len(argres) > 0) :
+            for j in xrange(0,len(argres)):
+                argres[j] = int(argres[j])
+        return result
+
+    def getImages(self):
+        result = []
+        self.temp = self.flatdoc
+        while (self.getDataTemp('img') != None):
+            h = self.getDataTemp('img.h')[0]
+            w = self.getDataTemp('img.w')[0]
+            x = self.getDataTemp('img.x')[0]
+            y = self.getDataTemp('img.y')[0]
+            src = self.getDataTemp('img.src')[0]
+            result.append('<image xlink:href="../img/img%04d.jpg" x="%d" y="%d" width="%d" height="%d" />\n' % (src, x, y, w, h))
+        return result
+
+    def getGlyphs(self):
+        result = []
+        if (self.gid != None) and (len(self.gid) > 0):
+            glyphs = []
+            for j in set(self.gid):
+                glyphs.append(j)
+            glyphs.sort()
+            for gid in glyphs:
+                id='id="gl%d"' % gid
+                path = self.gd.lookup(id)
+                if path:
+                    result.append(id + ' ' + path)
+        return result
+
+
+def convert2SVG(gdict, flat_xml, pageid, previd, nextid, svgDir, raw, meta_array, scaledpi):
+    mlst = []
+    pp = PParser(gdict, flat_xml, meta_array)
+    mlst.append('<?xml version="1.0" standalone="no"?>\n')
+    if (raw):
+        mlst.append('<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n')
+        mlst.append('<svg width="%fin" height="%fin" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">\n' % (pp.pw / scaledpi, pp.ph / scaledpi, pp.pw -1, pp.ph -1))
+        mlst.append('<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors']))
     else:
-        if pointer_size == 4:
-            name_of_lib = 'libalfcrypto32.so'
+        mlst.append('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n')
+        mlst.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" ><head>\n')
+        mlst.append('<title>Page %d - %s by %s</title>\n' % (pageid, meta_array['Title'],meta_array['Authors']))
+        mlst.append('<script><![CDATA[\n')
+        mlst.append('function gd(){var p=window.location.href.replace(/^.*\?dpi=(\d+).*$/i,"$1");return p;}\n')
+        mlst.append('var dpi=%d;\n' % scaledpi)
+        if (previd) :
+            mlst.append('var prevpage="page%04d.xhtml";\n' % (previd))
+        if (nextid) :
+            mlst.append('var nextpage="page%04d.xhtml";\n' % (nextid))
+        mlst.append('var pw=%d;var ph=%d;' % (pp.pw, pp.ph))
+        mlst.append('function zoomin(){dpi=dpi*(0.8);setsize();}\n')
+        mlst.append('function zoomout(){dpi=dpi*1.25;setsize();}\n')
+        mlst.append('function setsize(){var svg=document.getElementById("svgimg");var prev=document.getElementById("prevsvg");var next=document.getElementById("nextsvg");var width=(pw/dpi)+"in";var height=(ph/dpi)+"in";svg.setAttribute("width",width);svg.setAttribute("height",height);prev.setAttribute("height",height);prev.setAttribute("width","50px");next.setAttribute("height",height);next.setAttribute("width","50px");}\n')
+        mlst.append('function ppage(){window.location.href=prevpage+"?dpi="+Math.round(dpi);}\n')
+        mlst.append('function npage(){window.location.href=nextpage+"?dpi="+Math.round(dpi);}\n')
+        mlst.append('var gt=gd();if(gt>0){dpi=gt;}\n')
+        mlst.append('window.onload=setsize;\n')
+        mlst.append(']]></script>\n')
+        mlst.append('</head>\n')
+        mlst.append('<body onLoad="setsize();" style="background-color:#777;text-align:center;">\n')
+        mlst.append('<div style="white-space:nowrap;">\n')
+        if previd == None:
+            mlst.append('<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n')
         else:
-            name_of_lib = 'libalfcrypto64.so'
-    
-    libalfcrypto = sys.path[0] + os.sep + name_of_lib
+            mlst.append('<a href="javascript:ppage();"><svg id="prevsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,150,95,5,95,295" fill="#AAAAAA" /></svg></a>\n')
 
-    if not os.path.isfile(libalfcrypto):
-        raise Exception('libalfcrypto not found')
-
-    libalfcrypto = CDLL(libalfcrypto)
-
-    c_char_pp = POINTER(c_char_p)
-    c_int_p = POINTER(c_int)
-
-
-    def F(restype, name, argtypes):
-        func = getattr(libalfcrypto, name)
-        func.restype = restype
-        func.argtypes = argtypes
-        return func
-
-    # aes cbc decryption
-    #
-    # struct aes_key_st {
-    # unsigned long rd_key[4 *(AES_MAXNR + 1)];
-    # int rounds;
-    # };
-    #
-    # typedef struct aes_key_st AES_KEY;
-    #
-    # int AES_set_decrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key);
-    #
-    # 
-    # void AES_cbc_encrypt(const unsigned char *in, unsigned char *out,
-    # const unsigned long length, const AES_KEY *key,
-    # unsigned char *ivec, const int enc);
-
-    AES_MAXNR = 14
-
-    class AES_KEY(Structure):
-        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))), ('rounds', c_int)]
-
-    AES_KEY_p = POINTER(AES_KEY)
-    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',[c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p, c_int])
-    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',[c_char_p, c_int, AES_KEY_p])
-
-
-
-    # Pukall 1 Cipher
-    # unsigned char *PC1(const unsigned char *key, unsigned int klen, const unsigned char *src,
-    #                unsigned char *dest, unsigned int len, int decryption);
-
-    PC1 = F(c_char_p, 'PC1', [c_char_p, c_ulong, c_char_p, c_char_p, c_ulong, c_ulong])
-
-    # Topaz Encryption
-    # typedef struct _TpzCtx {
-    #    unsigned int v[2];
-    # } TpzCtx;
-    #
-    # void topazCryptoInit(TpzCtx *ctx, const unsigned char *key, int klen);
-    # void topazCryptoDecrypt(const TpzCtx *ctx, const unsigned char *in, unsigned char *out, int len);
-
-    class TPZ_CTX(Structure):
-        _fields_ = [('v', c_long * 2)]
-
-    TPZ_CTX_p = POINTER(TPZ_CTX)
-    topazCryptoInit = F(None, 'topazCryptoInit', [TPZ_CTX_p, c_char_p, c_ulong])
-    topazCryptoDecrypt = F(None, 'topazCryptoDecrypt', [TPZ_CTX_p, c_char_p, c_char_p, c_ulong])
-
-
-    class AES_CBC(object):
-        def __init__(self):
-            self._blocksize = 0
-            self._keyctx = None
-            self._iv = 0
-
-        def set_decrypt_key(self, userkey, iv):
-            self._blocksize = len(userkey)
-            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                raise Exception('AES CBC improper key used')
-                return
-            keyctx = self._keyctx = AES_KEY()
-            self._iv = iv
-            rv = AES_set_decrypt_key(userkey, len(userkey) * 8, keyctx)
-            if rv < 0:
-                raise Exception('Failed to initialize AES CBC key')
-
-        def decrypt(self, data):
-            out = create_string_buffer(len(data))
-            mutable_iv = create_string_buffer(self._iv, len(self._iv))
-            rv = AES_cbc_encrypt(data, out, len(data), self._keyctx, mutable_iv, 0)
-            if rv == 0:
-                raise Exception('AES CBC decryption failed')
-            return out.raw
-
-    class Pukall_Cipher(object):
-        def __init__(self):
-            self.key = None
-
-        def PC1(self, key, src, decryption=True):
-            self.key = key
-            out = create_string_buffer(len(src))
-            de = 0
-            if decryption:
-                de = 1
-            rv = PC1(key, len(key), src, out, len(src), de)
-            return out.raw
-
-    class Topaz_Cipher(object):
-        def __init__(self):
-            self._ctx = None
-
-        def ctx_init(self, key):
-            tpz_ctx = self._ctx = TPZ_CTX()
-            topazCryptoInit(tpz_ctx, key, len(key))
-            return tpz_ctx
-
-        def decrypt(self, data,  ctx=None):
-            if ctx == None:
-                ctx = self._ctx
-            out = create_string_buffer(len(data))
-            topazCryptoDecrypt(ctx, data, out, len(data))
-            return out.raw
-
-    print "Using Library AlfCrypto DLL/DYLIB/SO"
-    return (AES_CBC, Pukall_Cipher, Topaz_Cipher)
-
-
-def _load_python_alfcrypto():
-
-    import aescbc
-
-    class Pukall_Cipher(object):
-        def __init__(self):
-            self.key = None
-
-        def PC1(self, key, src, decryption=True):
-            sum1 = 0;
-            sum2 = 0;
-            keyXorVal = 0;
-            if len(key)!=16:
-                print "Bad key length!"
-                return None
-            wkey = []
-            for i in xrange(8):
-                wkey.append(ord(key[i*2])<<8 | ord(key[i*2+1]))
-            dst = ""
-            for i in xrange(len(src)):
-                temp1 = 0;
-                byteXorVal = 0;
-                for j in xrange(8):
-                    temp1 ^= wkey[j]
-                    sum2  = (sum2+j)*20021 + sum1
-                    sum1  = (temp1*346)&0xFFFF
-                    sum2  = (sum2+sum1)&0xFFFF
-                    temp1 = (temp1*20021+1)&0xFFFF
-                    byteXorVal ^= temp1 ^ sum2
-                curByte = ord(src[i])
-                if not decryption:
-                    keyXorVal = curByte * 257;
-                curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
-                if decryption:
-                    keyXorVal = curByte * 257;
-                for j in xrange(8):
-                    wkey[j] ^= keyXorVal;
-                dst+=chr(curByte)
-            return dst
-
-    class Topaz_Cipher(object):
-        def __init__(self):
-            self._ctx = None
-
-        def ctx_init(self, key):
-            ctx1 = 0x0CAFFE19E
-            for keyChar in key:
-                keyByte = ord(keyChar)
-                ctx2 = ctx1
-                ctx1 = ((((ctx1 >>2) * (ctx1 >>7))&0xFFFFFFFF) ^ (keyByte * keyByte * 0x0F902007)& 0xFFFFFFFF )
-            self._ctx = [ctx1, ctx2]
-            return [ctx1,ctx2]
-
-        def decrypt(self, data,  ctx=None):
-            if ctx == None:
-                ctx = self._ctx
-            ctx1 = ctx[0]
-            ctx2 = ctx[1]
-            plainText = ""
-            for dataChar in data:
-                dataByte = ord(dataChar)
-                m = (dataByte ^ ((ctx1 >> 3) &0xFF) ^ ((ctx2<<3) & 0xFF)) &0xFF
-                ctx2 = ctx1
-                ctx1 = (((ctx1 >> 2) * (ctx1 >> 7)) &0xFFFFFFFF) ^((m * m * 0x0F902007) &0xFFFFFFFF)
-                plainText += chr(m)
-            return plainText
-
-    class AES_CBC(object):
-        def __init__(self):
-            self._key = None
-            self._iv = None
-            self.aes = None
-
-        def set_decrypt_key(self, userkey, iv):
-            self._key = userkey
-            self._iv = iv
-            self.aes = aescbc.AES_CBC(userkey, aescbc.noPadding(), len(userkey))
-
-        def decrypt(self, data):
-            iv = self._iv
-            cleartext = self.aes.decrypt(iv + data)
-            return cleartext
-
-    return (AES_CBC, Pukall_Cipher, Topaz_Cipher)
-
-
-def _load_crypto():
-    AES_CBC = Pukall_Cipher = Topaz_Cipher = None
-    cryptolist = (_load_libalfcrypto, _load_python_alfcrypto)
-    for loader in cryptolist:
-        try:
-            AES_CBC, Pukall_Cipher, Topaz_Cipher = loader()
-            break
-        except (ImportError, Exception):
-            pass
-    return AES_CBC, Pukall_Cipher, Topaz_Cipher
-
-AES_CBC, Pukall_Cipher, Topaz_Cipher = _load_crypto()
-
-
-class KeyIVGen(object):
-    # this only exists in openssl so we will use pure python implementation instead
-    # PKCS5_PBKDF2_HMAC_SHA1 = F(c_int, 'PKCS5_PBKDF2_HMAC_SHA1',
-    #                             [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
-    def pbkdf2(self, passwd, salt, iter, keylen):
-
-        def xorstr( a, b ):
-            if len(a) != len(b):
-                raise Exception("xorstr(): lengths differ")
-            return ''.join((chr(ord(x)^ord(y)) for x, y in zip(a, b)))
-
-        def prf( h, data ):
-            hm = h.copy()
-            hm.update( data )
-            return hm.digest()
-
-        def pbkdf2_F( h, salt, itercount, blocknum ):
-            U = prf( h, salt + pack('>i',blocknum ) )
-            T = U
-            for i in range(2, itercount+1):
-                U = prf( h, U )
-                T = xorstr( T, U )
-            return T
-
-        sha = hashlib.sha1
-        digest_size = sha().digest_size
-        # l - number of output blocks to produce
-        l = keylen / digest_size
-        if keylen % digest_size != 0:
-            l += 1
-        h = hmac.new( passwd, None, sha )
-        T = ""
-        for i in range(1, l+1):
-            T += pbkdf2_F( h, salt, iter, i )
-        return T[0: keylen]
-
-
+        mlst.append('<a href="javascript:npage();"><svg id="svgimg" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="background-color:#FFF;border:1px solid black;">' % (pp.pw, pp.ph))
+    if (pp.gid != None):
+        mlst.append('<defs>\n')
+        gdefs = pp.getGlyphs()
+        for j in xrange(0,len(gdefs)):
+            mlst.append(gdefs[j])
+        mlst.append('</defs>\n')
+    img = pp.getImages()
+    if (img != None):
+        for j in xrange(0,len(img)):
+            mlst.append(img[j])
+    if (pp.gid != None):
+        for j in xrange(0,len(pp.gid)):
+            mlst.append('<use xlink:href="#gl%d" x="%d" y="%d" />\n' % (pp.gid[j], pp.gx[j], pp.gy[j]))
+    if (img == None or len(img) == 0) and (pp.gid == None or len(pp.gid) == 0):
+        xpos = "%d" % (pp.pw // 3)
+        ypos = "%d" % (pp.ph // 3)
+        mlst.append('<text x="' + xpos + '" y="' + ypos + '" font-size="' + meta_array['fontSize'] + '" font-family="Helvetica" stroke="black">This page intentionally left blank.</text>\n')
+    if (raw) :
+        mlst.append('</svg>')
+    else :
+        mlst.append('</svg></a>\n')
+        if nextid == None:
+            mlst.append('<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"></svg></a>\n')
+        else :
+            mlst.append('<a href="javascript:npage();"><svg id="nextsvg" viewBox="0 0 100 300" xmlns="http://www.w3.org/2000/svg" version="1.1" style="background-color:#777"><polygon points="5,5,5,295,95,150" fill="#AAAAAA" /></svg></a>\n')
+        mlst.append('</div>\n')
+        mlst.append('<div><a href="javascript:zoomin();">zoom in</a> - <a href="javascript:zoomout();">zoom out</a></div>\n')
+        mlst.append('</body>\n')
+        mlst.append('</html>\n')
+    return "".join(mlst)

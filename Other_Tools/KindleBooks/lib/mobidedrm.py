@@ -56,8 +56,9 @@
 #  0.32 - Added support for "Print Replica" Kindle ebooks
 #  0.33 - Performance improvements for large files (concatenation)
 #  0.34 - Performance improvements in decryption (libalfcrypto)
+#  0.35 - add interface to get mobi_version
 
-__version__ = '0.34'
+__version__ = '0.35'
 
 import sys
 
@@ -324,6 +325,9 @@ class MobiBook:
     def getMobiFile(self, outpath):
         file(outpath,'wb').write(self.mobi_data)
 
+    def getMobiVersion(self):
+        return self.mobi_version
+        
     def getPrintReplica(self):
         return self.print_replica
 
@@ -371,7 +375,7 @@ class MobiBook:
                 raise DrmException("Not yet initialised with PID. Must be opened with Mobipocket Reader first.")
             found_key, pid = self.parseDRM(self.sect[drm_ptr:drm_ptr+drm_size], drm_count, goodpids)
             if not found_key:
-                raise DrmException("No key found. Most likely the correct PID has not been given.")
+                raise DrmException("No key found. Please report this failure for help.")
             # kill the drm keys
             self.patchSection(0, "\0" * drm_size, drm_ptr)
             # kill the drm pointers

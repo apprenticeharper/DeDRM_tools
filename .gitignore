@@ -2,9 +2,6 @@
 __pycache__/
 *.pyc
 
-# C extensions
-*.so
-
 # Distribution / packaging
 .Python
 env/

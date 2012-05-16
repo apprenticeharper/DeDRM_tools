@@ -361,16 +361,28 @@ def generateBook(bookDir, raw, fixedimage):
         file(xname, 'wb').write(metastr)
 
     print 'Processing StyleSheet'
+
     # get some scaling info from metadata to use while processing styles
+    # and first page info
+
     fontsize = '135'
     if 'fontSize' in meta_array:
         fontsize = meta_array['fontSize']
 
     # also get the size of a normal text page
+    # get the total number of pages unpacked as a safety check
+    filenames = os.listdir(pageDir)
+    numfiles = len(filenames)
+
     spage = '1'
     if 'firstTextPage' in meta_array:
         spage = meta_array['firstTextPage']
     pnum = int(spage)
+    if pnum >= numfiles or pnum < 0:
+        # metadata is wrong so just select a page near the front
+        # 10% of the book to get a normal text page
+        pnum = int(0.10 * numfiles)
+    # print "first normal text page is", spage
 
     # get page height and width from first text page for use in stylesheet scaling
     pname = 'page%04d.dat' % (pnum + 1)

@@ -17,7 +17,7 @@ from __future__ import with_statement
 #    and many many others
 
 
-__version__ = '4.0'
+__version__ = '4.2'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -33,6 +33,8 @@ import os, csv, getopt
 import string
 import re
 import traceback
+
+buildXML = False
 
 class DrmException(Exception):
     pass
@@ -75,6 +77,8 @@ def cleanup_name(name):
     return one
 
 def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
+    global buildXML
+
     # handle the obvious cases at the beginning
     if not os.path.isfile(infile):
         print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: Input file does not exist"
@@ -125,6 +129,8 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     if mobi:
         if mb.getPrintReplica():
             outfile = os.path.join(outdir, outfilename + '_nodrm' + '.azw4')
+        elif mb.getMobiVersion() >= 8:
+            outfile = os.path.join(outdir, outfilename + '_nodrm' + '.azw3')
         else:
             outfile = os.path.join(outdir, outfilename + '_nodrm' + '.mobi')
         mb.getMobiFile(outfile)
@@ -139,9 +145,10 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     zipname = os.path.join(outdir, outfilename + '_SVG' + '.zip')
     mb.getSVGZip(zipname)
 
-    print "   Creating XML ZIP Archive"
-    zipname = os.path.join(outdir, outfilename + '_XML' + '.zip')
-    mb.getXMLZip(zipname)
+    if buildXML:
+        print "   Creating XML ZIP Archive"
+        zipname = os.path.join(outdir, outfilename + '_XML' + '.zip')
+        mb.getXMLZip(zipname)
 
     # remove internal temporary directory of Topaz pieces
     mb.cleanup()

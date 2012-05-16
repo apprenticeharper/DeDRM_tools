@@ -4,6 +4,8 @@
 import sys
 import os, os.path
 sys.path.append(sys.path[0]+os.sep+'lib')
+os.environ['PYTHONIOENCODING'] = "utf-8"
+
 import shutil
 import Tkinter
 from Tkinter import *
@@ -110,7 +112,6 @@ class PrefsDialog(Toplevel):
         keyfile = os.path.join(prefdir,'adeptkey.der')
         if os.path.isfile(keyfile):
             path = keyfile
-            path = path.encode('utf-8')
             self.adkpath.insert(0, path)
         button = Tkinter.Button(body, text="...", command=self.get_adkpath)
         button.grid(row=0, column=2)
@@ -122,7 +123,6 @@ class PrefsDialog(Toplevel):
         keyfile = os.path.join(prefdir,'bnepubkey.b64')
         if os.path.isfile(keyfile):
             path = keyfile
-            path = path.encode('utf-8')
             self.bnkpath.insert(0, path)
         button = Tkinter.Button(body, text="...", command=self.get_bnkpath)
         button.grid(row=1, column=2)
@@ -138,7 +138,6 @@ class PrefsDialog(Toplevel):
             path = infofile
         elif os.path.isfile(ainfofile):
             path = ainfofile
-        path = path.encode('utf-8')
         self.altinfopath.insert(0, path)
         button = Tkinter.Button(body, text="...", command=self.get_altinfopath)
         button.grid(row=2, column=2)
@@ -169,7 +168,6 @@ class PrefsDialog(Toplevel):
         self.outpath.grid(row=6, column=1, sticky=sticky)
         if 'outdir' in self.prefs_array:
             dpath = self.prefs_array['outdir']
-            dpath = dpath.encode('utf-8')
             self.outpath.insert(0, dpath)
         button = Tkinter.Button(body, text="...", command=self.get_outpath)
         button.grid(row=6, column=2)
@@ -266,6 +264,7 @@ class PrefsDialog(Toplevel):
             filetypes=[('ePub Files','.epub'),
                        ('Kindle','.azw'),
                        ('Kindle','.azw1'),
+                       ('Kindle','.azw3'),
                        ('Kindle','.azw4'),
                        ('Kindle','.tpz'),
                        ('Kindle','.mobi'),
@@ -417,7 +416,6 @@ class ConvDialog(Toplevel):
     # post output from subprocess in scrolled text widget
     def showCmdOutput(self, msg):
         if msg and msg !='':
-            msg = msg.encode('utf-8')
             if sys.platform.startswith('win'):
                 msg = msg.replace('\r\n','\n')
             self.stext.insert(Tkconstants.END,msg)
@@ -469,7 +467,7 @@ class ConvDialog(Toplevel):
         if ext == '.pdb':
             self.p2 = processPDB(apphome, infile, outdir, rscpath)
             return 0
-        if ext in ['.azw', '.azw1', '.azw4', '.prc', '.mobi', '.tpz']:
+        if ext in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.tpz']:
             self.p2 = processK4MOBI(apphome, infile, outdir, rscpath)
             return 0
         if ext == '.pdf':
@@ -480,13 +478,17 @@ class ConvDialog(Toplevel):
 
 # run as a subprocess via pipes and collect stdout, stderr, and return value
 def runit(apphome, ncmd, nparms):
-    cmdline = 'python ' + '"' + os.path.join(apphome, ncmd) + '" '
-    if sys.platform.startswith('win'):
-        search_path = os.environ['PATH']
-        search_path = search_path.lower()
-        if search_path.find('python') < 0:
-            # if no python hope that win registry finds what is associated with py extension
-            cmdline = '"' + os.path.join(apphome, ncmd) + '" '
+    pengine = sys.executable
+    if pengine is None or pengine == '':
+        pengine = 'python'
+    pengine = os.path.normpath(pengine)
+    cmdline = pengine + ' "' + os.path.join(apphome, ncmd) + '" '
+    # if sys.platform.startswith('win'):
+    #     search_path = os.environ['PATH']
+    #     search_path = search_path.lower()
+    #     if search_path.find('python') < 0:
+    #        # if no python hope that win registry finds what is associated with py extension
+    #        cmdline = pengine + ' "' + os.path.join(apphome, ncmd) + '" '
     cmdline += nparms
     cmdline = cmdline.encode(sys.getfilesystemencoding())
     p2 = subasyncio.Process(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
@@ -564,6 +566,7 @@ def main(argv=sys.argv):
         infilelst = argv[1:]
         filenames = []
         for infile in infilelst:
+            print infile
             infile = infile.replace('"','')
             infile = os.path.abspath(infile)
             if os.path.isdir(infile):

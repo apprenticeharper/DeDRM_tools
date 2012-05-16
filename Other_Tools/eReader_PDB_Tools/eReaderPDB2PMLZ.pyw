@@ -5,6 +5,7 @@ import sys
 sys.path.append('lib')
 
 import os, os.path, urllib
+os.environ['PYTHONIOENCODING'] = "utf-8"
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 import Tkinter
@@ -88,7 +89,6 @@ class MainDialog(Tkinter.Frame):
     # post output from subprocess in scrolled text widget
     def showCmdOutput(self, msg):
         if msg and msg !='':
-            msg = msg.encode('utf-8')
             if sys.platform.startswith('win'):
                 msg = msg.replace('\r\n','\n')
             self.stext.insert(Tkconstants.END,msg)
@@ -98,15 +98,19 @@ class MainDialog(Tkinter.Frame):
     # run erdr2pml.py as a subprocess via pipes and collect stdout
     def erdr(self, infile, name, ccnum):
         # os.putenv('PYTHONUNBUFFERED', '1')
-        cmdline = 'python ./lib/erdr2pml.py --make-pmlz "' + infile + '" "' + name + '" ' + ccnum 
+        pengine = sys.executable
+        if pengine is None or pengine == '':
+            pengine = "python"
+        pengine = os.path.normpath(pengine)
+        cmdline = pengine + ' ./lib/erdr2pml.py --make-pmlz "' + infile + '" "' + name + '" ' + ccnum 
         if sys.platform[0:3] == 'win':
-            search_path = os.environ['PATH']
-            search_path = search_path.lower()
-            if search_path.find('python') >= 0: 
-                cmdline = 'python lib\erdr2pml.py --make-pmlz "' + infile + '" "' + name + '" ' + ccnum
-            else :
-                cmdline = 'lib\erdr2pml.py --make-pmlz "' + infile + '" "' + name + '" ' + ccnum
-
+            # search_path = os.environ['PATH']
+            # search_path = search_path.lower()
+            # if search_path.find('python') >= 0: 
+            #     cmdline = 'python lib\erdr2pml.py --make-pmlz "' + infile + '" "' + name + '" ' + ccnum
+            # else :
+            #     cmdline = 'lib\erdr2pml.py --make-pmlz "' + infile + '" "' + name + '" ' + ccnum
+            cmdline = pengine + ' lib\\erdr2pml.py --make-pmlz "' + infile + '" "' + name + '" ' + ccnum
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
         return p2
@@ -156,7 +160,6 @@ class MainDialog(Tkinter.Frame):
         log += 'Last 8 of CC = "' + ccnum + '"\n'
         log += '\n\n'
         log += 'Please Wait ...\n'
-        log = log.encode('utf-8')
         self.stext.insert(Tkconstants.END,log)
         self.p2 = self.erdr(pdbpath, name, ccnum)
 

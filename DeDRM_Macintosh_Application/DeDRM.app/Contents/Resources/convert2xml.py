@@ -246,6 +246,7 @@ class PageParser(object):
         'region.y'         : (1, 'scalar_number', 0, 0),
         'region.h'         : (1, 'scalar_number', 0, 0),
         'region.w'         : (1, 'scalar_number', 0, 0),
+        'region.orientation' : (1, 'scalar_number', 0, 0),
 
         'empty_text_region' : (1, 'snippets', 1, 0),
 
@@ -615,28 +616,30 @@ class PageParser(object):
         nodename = fullpathname.pop()
         ilvl = len(fullpathname)
         indent = ' ' * (3 * ilvl)
-        result = indent + '<' + nodename + '>'
+        rlst = []
+        rlst.append(indent + '<' + nodename + '>')
         if len(argList) > 0:
-            argres = ''
+            alst = []
             for j in argList:
                 if (argtype == 'text') or (argtype == 'scalar_text') :
-                    argres += j + '|'
+                    alst.append(j + '|')
                 else :
-                    argres += str(j) + ','
+                    alst.append(str(j) + ',')
+            argres = "".join(alst)
             argres = argres[0:-1]
             if argtype == 'snippets' :
-                result += 'snippets:' + argres
+                rlst.append('snippets:' + argres)
             else :
-                result += argres
+                rlst.append(argres)
         if len(subtagList) > 0 :
-            result += '\n'
+            rlst.append('\n')
             for j in subtagList:
                 if len(j) > 0 :
-                    result += self.formatTag(j)
-            result += indent + '</' + nodename + '>\n'
+                    rlst.append(self.formatTag(j))
+            rlst.append(indent + '</' + nodename + '>\n')
         else:
-            result += '</' + nodename + '>\n'
-        return result
+            rlst.append('</' + nodename + '>\n')
+        return "".join(rlst)
 
 
     # flatten tag
@@ -645,35 +648,38 @@ class PageParser(object):
         subtagList = node[1]
         argtype = node[2]
         argList = node[3]
-        result = name
+        rlst = []
+        rlst.append(name)
         if (len(argList) > 0):
-            argres = ''
+            alst = []
             for j in argList:
                 if (argtype == 'text') or (argtype == 'scalar_text') :
-                    argres += j + '|'
+                    alst.append(j + '|')
                 else :
-                    argres += str(j) + '|'
+                    alst.append(str(j) + '|')
+            argres = "".join(alst)
             argres = argres[0:-1]
             if argtype == 'snippets' :
-                result += '.snippets=' + argres
+                rlst.append('.snippets=' + argres)
             else :
-                result += '=' + argres
-        result += '\n'
+                rlst.append('=' + argres)
+        rlst.append('\n')
         for j in subtagList:
             if len(j) > 0 :
-                result += self.flattenTag(j)
-        return result
+                rlst.append(self.flattenTag(j))
+        return "".join(rlst)
 
 
     # reduce create xml output
     def formatDoc(self, flat_xml):
-        result = ''
+        rlst = []
         for j in self.doc :
             if len(j) > 0:
                 if flat_xml:
-                    result += self.flattenTag(j)
+                    rlst.append(self.flattenTag(j))
                 else:
-                    result += self.formatTag(j)
+                    rlst.append(self.formatTag(j))
+        result = "".join(rlst)
         if self.debug : print result
         return result
 

@@ -40,7 +40,7 @@ def _load_crypto_libcrypto():
     #
     # int AES_set_decrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key);
     #
-    # note:  the ivec string, and output buffer are mutable
+    # note:  the ivec string, and output buffer are both mutable
     # void AES_cbc_encrypt(const unsigned char *in, unsigned char *out,
     #     const unsigned long length, const AES_KEY *key, unsigned char *ivec, const int enc);
 

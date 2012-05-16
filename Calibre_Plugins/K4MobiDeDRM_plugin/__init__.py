@@ -19,8 +19,8 @@ class K4DeDRM(FileTypePlugin):
     description         = 'Removes DRM from Mobipocket, Kindle/Mobi, Kindle/Topaz and Kindle/Print Replica files. Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
     supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
     author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-    version             = (0, 4, 1)   # The version number of this plugin
-    file_types          = set(['prc','mobi','azw','azw1','azw4','tpz']) # The file types that this plugin will be applied to
+    version             = (0, 4, 2)   # The version number of this plugin
+    file_types          = set(['prc','mobi','azw','azw1','azw3','azw4','tpz']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
     priority            = 210  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm
     minimum_calibre_version = (0, 7, 55)
@@ -140,6 +140,9 @@ class K4DeDRM(FileTypePlugin):
             if mb.getPrintReplica():
                 of = self.temporary_file(bookname+'.azw4')
                 print 'K4MobiDeDRM v%s: Print Replica format detected.' % plug_ver
+            elif mb.getMobiVersion() >= 8:
+                print 'K4MobiDeDRM v%s: Stand-alone KF8 format detected.' % plug_ver
+                of = self.temporary_file(bookname+'.azw3')
             else:
                 of = self.temporary_file(bookname+'.mobi')
             mb.getMobiFile(of.name)

@@ -4,6 +4,8 @@
 import sys
 sys.path.append('lib')
 import os, os.path, urllib
+os.environ['PYTHONIOENCODING'] = "utf-8"
+
 import Tkinter
 import Tkconstants
 import tkFileDialog
@@ -45,7 +47,7 @@ class MainDialog(Tkinter.Frame):
         self.outpath.insert(0, outname)
         button = Tkinter.Button(body, text="...", command=self.get_outpath)
         button.grid(row=1, column=2)
-        
+
         Tkinter.Label(body, text='Optional Alternative Kindle.info file').grid(row=2, sticky=Tkconstants.E)
         self.altinfopath = Tkinter.Entry(body, width=50)
         self.altinfopath.grid(row=2, column=1, sticky=sticky)
@@ -87,7 +89,7 @@ class MainDialog(Tkinter.Frame):
     # option being used, so need to reset it for the next time
     def processPipe(self):
         poll = self.p2.wait('nowait')
-        if poll != None: 
+        if poll != None:
             text = self.p2.readerr()
             text += self.p2.read()
             msg = text + '\n\n' + 'Encryption successfully removed\n'
@@ -102,14 +104,13 @@ class MainDialog(Tkinter.Frame):
         text = self.p2.readerr()
         text += self.p2.read()
         self.showCmdOutput(text)
-        # make sure we get invoked again by event loop after interval 
+        # make sure we get invoked again by event loop after interval
         self.stext.after(self.interval,self.processPipe)
         return
 
     # post output from subprocess in scrolled text widget
     def showCmdOutput(self, msg):
         if msg and msg !='':
-            # msg = msg.encode('utf-8')
             if sys.platform.startswith('win'):
                 msg = msg.replace('\r\n','\n')
             self.stext.insert(Tkconstants.END,msg)
@@ -129,16 +130,14 @@ class MainDialog(Tkinter.Frame):
         infooption = ''
         if altinfopath and altinfopath != '':
             infooption = ' -k "' + altinfopath + '" '
-        cmdline = 'python ./lib/' + tool + ' ' + pidoption + seroption + infooption + '"' + infile + '" "' + outfile + '"'
-        print cmdline
+        pengine = sys.executable
+        if pengine is None or pengine == '':
+            pengine = "python"
+        pengine = os.path.normpath(pengine)
+        cmdline = pengine + ' ./lib/' + tool + ' ' + pidoption + seroption + infooption + '"' + infile + '" "' + outfile + '"'
         if sys.platform.startswith('win'):
-            search_path = os.environ['PATH']
-            search_path = search_path.lower()
-            if search_path.find('python') >= 0: 
-                cmdline = 'python lib\\' + tool + ' ' + pidoption + seroption + infooption + '"' + infile + '" "' + outfile + '"'
-            else :
-                cmdline = 'lib\\' + tool + ' ' + pidoption + seroption + infooption + '"' + infile + '" "' + outfile + '"'
-
+                cmdline = pengine + ' lib\\' + tool + ' ' + pidoption + seroption + infooption + '"' + infile + '" "' + outfile + '"'
+        print cmdline
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
         return p2
@@ -241,7 +240,7 @@ class MainDialog(Tkinter.Frame):
         self.p2 = self.mobirdr(mobipath, outpath, altinfopath, pidnums, sernums)
 
         # python does not seem to allow you to create
-        # your own eventloop which every other gui does - strange 
+        # your own eventloop which every other gui does - strange
         # so need to use the widget "after" command to force
         # event loop to run non-gui events every interval
         self.stext.after(self.interval,self.processPipe)
@@ -256,7 +255,7 @@ def main(argv=None):
     MainDialog(root).pack(fill=Tkconstants.X, expand=1)
     root.mainloop()
     return 0
-    
+
 
 if __name__ == "__main__":
     sys.exit(main())

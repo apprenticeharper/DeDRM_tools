@@ -4,6 +4,7 @@
 import sys
 sys.path.append('lib')
 import os, os.path, urllib
+os.environ['PYTHONIOENCODING'] = "utf-8"
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 import subasyncio
@@ -84,7 +85,6 @@ class MainDialog(Tkinter.Frame):
     # post output from subprocess in scrolled text widget
     def showCmdOutput(self, msg):
         if msg and msg !='':
-            msg = msg.encode('utf-8')
             if sys.platform.startswith('win'):
                 msg = msg.replace('\r\n','\n')
             self.stext.insert(Tkconstants.END,msg)
@@ -94,14 +94,19 @@ class MainDialog(Tkinter.Frame):
     # run xpml2hxtml.py as a subprocess via pipes and collect stdout
     def pmlhtml(self, infile, outfile):
         # os.putenv('PYTHONUNBUFFERED', '1')
-        cmdline = 'python ./lib/xpml2xhtml.py "' + infile + '" "' + outfile + '"' 
+        pengine = sys.executable
+        if pengine is None or pengine == '':
+            pengine = "python"
+        pengine = os.path.normpath(pengine)
+        cmdline = pengine + ' ./lib/xpml2xhtml.py "' + infile + '" "' + outfile + '"' 
         if sys.platform[0:3] == 'win':
-            search_path = os.environ['PATH']
-            search_path = search_path.lower()
-            if search_path.find('python') >= 0: 
-                cmdline = 'python lib\\xpml2xhtml.py "' + infile + '" "' + outfile + '"'
-            else :
-                cmdline = 'lib\\xpml2xhtml.py "' + infile + '" "' + outfile + '"'
+            # search_path = os.environ['PATH']
+            # search_path = search_path.lower()
+            # if search_path.find('python') >= 0: 
+            #     cmdline = 'python lib\\xpml2xhtml.py "' + infile + '" "' + outfile + '"'
+            # else :
+            #     cmdline = 'lib\\xpml2xhtml.py "' + infile + '" "' + outfile + '"'
+            cmdline = pengine + ' lib\\xpml2xhtml.py "' + infile + '" "' + outfile + '"'
 
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=PIPE, stderr=PIPE, close_fds=False)
@@ -162,7 +167,6 @@ class MainDialog(Tkinter.Frame):
         log += 'HTML Output File = "' + outpath + '"\n'
         log += '\n\n'
         log += 'Please Wait ...\n\n'
-        log = log.encode('utf-8')
         self.stext.insert(Tkconstants.END,log)
         self.p2 = self.pmlhtml(pmlpath, outpath)
 

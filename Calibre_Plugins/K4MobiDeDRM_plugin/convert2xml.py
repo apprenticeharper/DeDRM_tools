@@ -1,568 +1,844 @@
-#! /usr/bin/env python
+#! /usr/bin/python
+# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+# For use with Topaz Scripts Version 2.6
 
-"""
-    Routines for doing AES CBC in one file
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
 
-    Modified by some_updates to extract
-    and combine only those parts needed for AES CBC
-    into one simple to add python file
+import sys
+sys.stdout=Unbuffered(sys.stdout)
 
-    Original Version
-    Copyright (c) 2002 by Paul A. Lambert
-    Under:
-    CryptoPy Artisitic License Version 1.0
-    See the wonderful pure python package cryptopy-1.2.5
-    and read its LICENSE.txt for complete license details.
-"""
+import csv
+import os
+import getopt
+from struct import pack
+from struct import unpack
 
-class CryptoError(Exception):
-    """ Base class for crypto exceptions """
-    def __init__(self,errorMessage='Error!'):
-        self.message = errorMessage
-    def __str__(self):
-        return self.message
+class TpzDRMError(Exception):
+    pass
 
-class InitCryptoError(CryptoError):
-    """ Crypto errors during algorithm initialization """
-class BadKeySizeError(InitCryptoError):
-    """ Bad key size error """
-class EncryptError(CryptoError):
-    """ Error in encryption processing """
-class DecryptError(CryptoError):
-    """ Error in decryption processing """
-class DecryptNotBlockAlignedError(DecryptError):
-    """ Error in decryption processing """
+# Get a 7 bit encoded number from string. The most
+# significant byte comes first and has the high bit (8th) set
 
-def xorS(a,b):
-    """ XOR two strings """
-    assert len(a)==len(b)
-    x = []
-    for i in range(len(a)):
-        x.append( chr(ord(a[i])^ord(b[i])))
-    return ''.join(x)
+def readEncodedNumber(file):
+    flag = False
+    c = file.read(1)
+    if (len(c) == 0):
+        return None
+    data = ord(c)
 
-def xor(a,b):
-    """ XOR two strings """
-    x = []
-    for i in range(min(len(a),len(b))):
-        x.append( chr(ord(a[i])^ord(b[i])))
-    return ''.join(x)
+    if data == 0xFF:
+        flag = True
+        c = file.read(1)
+        if (len(c) == 0):
+            return None
+        data = ord(c)
 
-"""
-    Base 'BlockCipher' and Pad classes for cipher instances.
-    BlockCipher supports automatic padding and type conversion. The BlockCipher
-    class was written to make the actual algorithm code more readable and
-    not for performance.
-"""
+    if data >= 0x80:
+        datax = (data & 0x7F)
+        while data >= 0x80 :
+            c = file.read(1)
+            if (len(c) == 0):
+                return None
+            data = ord(c)
+            datax = (datax <<7) + (data & 0x7F)
+        data = datax
 
-class BlockCipher:
-    """ Block ciphers """
-    def __init__(self):
-        self.reset()
+    if flag:
+        data = -data
+    return data
 
-    def reset(self):
-        self.resetEncrypt()
-        self.resetDecrypt()
-    def resetEncrypt(self):
-        self.encryptBlockCount = 0
-        self.bytesToEncrypt = ''
-    def resetDecrypt(self):
-        self.decryptBlockCount = 0
-        self.bytesToDecrypt = ''
 
-    def encrypt(self, plainText, more = None):
-        """ Encrypt a string and return a binary string """
-        self.bytesToEncrypt += plainText  # append plainText to any bytes from prior encrypt
-        numBlocks, numExtraBytes = divmod(len(self.bytesToEncrypt), self.blockSize)
-        cipherText = ''
-        for i in range(numBlocks):
-            bStart = i*self.blockSize
-            ctBlock = self.encryptBlock(self.bytesToEncrypt[bStart:bStart+self.blockSize])
-            self.encryptBlockCount += 1
-            cipherText += ctBlock
-        if numExtraBytes > 0:        # save any bytes that are not block aligned
-            self.bytesToEncrypt = self.bytesToEncrypt[-numExtraBytes:]
+# returns a binary string that encodes a number into 7 bits
+# most significant byte first which has the high bit set
+
+def encodeNumber(number):
+    result = ""
+    negative = False
+    flag = 0
+
+    if number < 0 :
+        number = -number + 1
+        negative = True
+
+    while True:
+        byte = number & 0x7F
+        number = number >> 7
+        byte += flag
+        result += chr(byte)
+        flag = 0x80
+        if number == 0 :
+            if (byte == 0xFF and negative == False) :
+                result += chr(0x80)
+            break
+
+    if negative:
+        result += chr(0xFF)
+
+    return result[::-1]
+
+
+
+# create / read  a length prefixed string from the file
+
+def lengthPrefixString(data):
+    return encodeNumber(len(data))+data
+
+def readString(file):
+    stringLength = readEncodedNumber(file)
+    if (stringLength == None):
+        return ""
+    sv = file.read(stringLength)
+    if (len(sv)  != stringLength):
+        return ""
+    return unpack(str(stringLength)+"s",sv)[0]
+
+
+# convert a binary string generated by encodeNumber (7 bit encoded number)
+# to the value you would find inside the page*.dat files to be processed
+
+def convert(i):
+    result = ''
+    val = encodeNumber(i)
+    for j in xrange(len(val)):
+        c = ord(val[j:j+1])
+        result += '%02x' % c
+    return result
+
+
+
+# the complete string table used to store all book text content
+# as well as the xml tokens and values that make sense out of it
+
+class Dictionary(object):
+    def __init__(self, dictFile):
+        self.filename = dictFile
+        self.size = 0
+        self.fo = file(dictFile,'rb')
+        self.stable = []
+        self.size = readEncodedNumber(self.fo)
+        for i in xrange(self.size):
+            self.stable.append(self.escapestr(readString(self.fo)))
+        self.pos = 0
+
+    def escapestr(self, str):
+        str = str.replace('&','&amp;')
+        str = str.replace('<','&lt;')
+        str = str.replace('>','&gt;')
+        str = str.replace('=','&#61;')
+        return str
+
+    def lookup(self,val):
+        if ((val >= 0) and (val < self.size)) :
+            self.pos = val
+            return self.stable[self.pos]
         else:
-            self.bytesToEncrypt = ''
+            print "Error - %d outside of string table limits" % val
+            raise TpzDRMError('outside of string table limits')
+            # sys.exit(-1)
 
-        if more == None:   # no more data expected from caller
-            finalBytes = self.padding.addPad(self.bytesToEncrypt,self.blockSize)
-            if len(finalBytes) > 0:
-                ctBlock = self.encryptBlock(finalBytes)
-                self.encryptBlockCount += 1
-                cipherText += ctBlock
-            self.resetEncrypt()
-        return cipherText
+    def getSize(self):
+        return self.size
 
-    def decrypt(self, cipherText, more = None):
-        """ Decrypt a string and return a string """
-        self.bytesToDecrypt += cipherText  # append to any bytes from prior decrypt
+    def getPos(self):
+        return self.pos
 
-        numBlocks, numExtraBytes = divmod(len(self.bytesToDecrypt), self.blockSize)
-        if more == None:  # no more calls to decrypt, should have all the data
-            if numExtraBytes  != 0:
-                raise DecryptNotBlockAlignedError, 'Data not block aligned on decrypt'
+    def dumpDict(self):
+        for i in xrange(self.size):
+            print "%d %s %s" % (i, convert(i), self.stable[i])
+        return
 
-        # hold back some bytes in case last decrypt has zero len
-        if (more != None) and (numExtraBytes == 0) and (numBlocks >0) :
-            numBlocks -= 1
-            numExtraBytes = self.blockSize
+# parses the xml snippets that are represented by each page*.dat file.
+# also parses the other0.dat file - the main stylesheet
+# and information used to inject the xml snippets into page*.dat files
 
-        plainText = ''
-        for i in range(numBlocks):
-            bStart = i*self.blockSize
-            ptBlock = self.decryptBlock(self.bytesToDecrypt[bStart : bStart+self.blockSize])
-            self.decryptBlockCount += 1
-            plainText += ptBlock
+class PageParser(object):
+    def __init__(self, filename, dict, debug, flat_xml):
+        self.fo = file(filename,'rb')
+        self.id = os.path.basename(filename).replace('.dat','')
+        self.dict = dict
+        self.debug = debug
+        self.flat_xml = flat_xml
+        self.tagpath = []
+        self.doc = []
+        self.snippetList = []
 
-        if numExtraBytes > 0:        # save any bytes that are not block aligned
-            self.bytesToEncrypt = self.bytesToEncrypt[-numExtraBytes:]
+
+    # hash table used to enable the decoding process
+    # This has all been developed by trial and error so it may still have omissions or
+    # contain errors
+    # Format:
+    # tag : (number of arguments, argument type, subtags present, special case of subtags presents when escaped)
+
+    token_tags = {
+        'x'            : (1, 'scalar_number', 0, 0),
+        'y'            : (1, 'scalar_number', 0, 0),
+        'h'            : (1, 'scalar_number', 0, 0),
+        'w'            : (1, 'scalar_number', 0, 0),
+        'firstWord'    : (1, 'scalar_number', 0, 0),
+        'lastWord'     : (1, 'scalar_number', 0, 0),
+        'rootID'       : (1, 'scalar_number', 0, 0),
+        'stemID'       : (1, 'scalar_number', 0, 0),
+        'type'         : (1, 'scalar_text', 0, 0),
+
+        'info'            : (0, 'number', 1, 0),
+
+        'info.word'            : (0, 'number', 1, 1),
+        'info.word.ocrText'    : (1, 'text', 0, 0),
+        'info.word.firstGlyph' : (1, 'raw', 0, 0),
+        'info.word.lastGlyph'  : (1, 'raw', 0, 0),
+        'info.word.bl'         : (1, 'raw', 0, 0),
+        'info.word.link_id'    : (1, 'number', 0, 0),
+
+        'glyph'           : (0, 'number', 1, 1),
+        'glyph.x'         : (1, 'number', 0, 0),
+        'glyph.y'         : (1, 'number', 0, 0),
+        'glyph.glyphID'   : (1, 'number', 0, 0),
+
+        'dehyphen'          : (0, 'number', 1, 1),
+        'dehyphen.rootID'   : (1, 'number', 0, 0),
+        'dehyphen.stemID'   : (1, 'number', 0, 0),
+        'dehyphen.stemPage' : (1, 'number', 0, 0),
+        'dehyphen.sh'       : (1, 'number', 0, 0),
+
+        'links'        : (0, 'number', 1, 1),
+        'links.page'   : (1, 'number', 0, 0),
+        'links.rel'    : (1, 'number', 0, 0),
+        'links.row'    : (1, 'number', 0, 0),
+        'links.title'  : (1, 'text', 0, 0),
+        'links.href'   : (1, 'text', 0, 0),
+        'links.type'   : (1, 'text', 0, 0),
+
+        'paraCont'          : (0, 'number', 1, 1),
+        'paraCont.rootID'   : (1, 'number', 0, 0),
+        'paraCont.stemID'   : (1, 'number', 0, 0),
+        'paraCont.stemPage' : (1, 'number', 0, 0),
+
+        'paraStems'        : (0, 'number', 1, 1),
+        'paraStems.stemID' : (1, 'number', 0, 0),
+
+        'wordStems'          : (0, 'number', 1, 1),
+        'wordStems.stemID'   : (1, 'number', 0, 0),
+
+        'empty'          : (1, 'snippets', 1, 0),
+
+        'page'           : (1, 'snippets', 1, 0),
+        'page.pageid'    : (1, 'scalar_text', 0, 0),
+        'page.pagelabel' : (1, 'scalar_text', 0, 0),
+        'page.type'      : (1, 'scalar_text', 0, 0),
+        'page.h'         : (1, 'scalar_number', 0, 0),
+        'page.w'         : (1, 'scalar_number', 0, 0),
+        'page.startID' : (1, 'scalar_number', 0, 0),
+
+        'group'           : (1, 'snippets', 1, 0),
+        'group.type'      : (1, 'scalar_text', 0, 0),
+        'group._tag'      : (1, 'scalar_text', 0, 0),
+
+        'region'           : (1, 'snippets', 1, 0),
+        'region.type'      : (1, 'scalar_text', 0, 0),
+        'region.x'         : (1, 'scalar_number', 0, 0),
+        'region.y'         : (1, 'scalar_number', 0, 0),
+        'region.h'         : (1, 'scalar_number', 0, 0),
+        'region.w'         : (1, 'scalar_number', 0, 0),
+        'region.orientation' : (1, 'scalar_number', 0, 0),
+
+        'empty_text_region' : (1, 'snippets', 1, 0),
+
+        'img'           : (1, 'snippets', 1, 0),
+        'img.x'         : (1, 'scalar_number', 0, 0),
+        'img.y'         : (1, 'scalar_number', 0, 0),
+        'img.h'         : (1, 'scalar_number', 0, 0),
+        'img.w'         : (1, 'scalar_number', 0, 0),
+        'img.src'       : (1, 'scalar_number', 0, 0),
+        'img.color_src' : (1, 'scalar_number', 0, 0),
+
+        'paragraph'           : (1, 'snippets', 1, 0),
+        'paragraph.class'     : (1, 'scalar_text', 0, 0),
+        'paragraph.firstWord' : (1, 'scalar_number', 0, 0),
+        'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
+        'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
+        'paragraph.gridSize'  : (1, 'scalar_number', 0, 0),
+        'paragraph.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        'paragraph.gridTopCenter' : (1, 'scalar_number', 0, 0),
+        'paragraph.gridBeginCenter' : (1, 'scalar_number', 0, 0),
+        'paragraph.gridEndCenter' : (1, 'scalar_number', 0, 0),
+
+
+        'word_semantic'           : (1, 'snippets', 1, 1),
+        'word_semantic.type'      : (1, 'scalar_text', 0, 0),
+        'word_semantic.firstWord' : (1, 'scalar_number', 0, 0),
+        'word_semantic.lastWord'  : (1, 'scalar_number', 0, 0),
+
+        'word'            : (1, 'snippets', 1, 0),
+        'word.type'       : (1, 'scalar_text', 0, 0),
+        'word.class'      : (1, 'scalar_text', 0, 0),
+        'word.firstGlyph' : (1, 'scalar_number', 0, 0),
+        'word.lastGlyph'  : (1, 'scalar_number', 0, 0),
+
+        '_span'           : (1, 'snippets', 1, 0),
+        '_span.firstWord' : (1, 'scalar_number', 0, 0),
+        '_span.lastWord'  : (1, 'scalar_number', 0, 0),
+        '_span.gridSize'  : (1, 'scalar_number', 0, 0),
+        '_span.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        '_span.gridTopCenter' : (1, 'scalar_number', 0, 0),
+        '_span.gridBeginCenter' : (1, 'scalar_number', 0, 0),
+        '_span.gridEndCenter' : (1, 'scalar_number', 0, 0),
+
+        'span'           : (1, 'snippets', 1, 0),
+        'span.firstWord' : (1, 'scalar_number', 0, 0),
+        'span.lastWord'  : (1, 'scalar_number', 0, 0),
+        'span.gridSize'  : (1, 'scalar_number', 0, 0),
+        'span.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        'span.gridTopCenter' : (1, 'scalar_number', 0, 0),
+        'span.gridBeginCenter' : (1, 'scalar_number', 0, 0),
+        'span.gridEndCenter' : (1, 'scalar_number', 0, 0),
+
+        'extratokens'            : (1, 'snippets', 1, 0),
+        'extratokens.type'       : (1, 'scalar_text', 0, 0),
+        'extratokens.firstGlyph' : (1, 'scalar_number', 0, 0),
+        'extratokens.lastGlyph'  : (1, 'scalar_number', 0, 0),
+
+        'glyph.h'      : (1, 'number', 0, 0),
+        'glyph.w'      : (1, 'number', 0, 0),
+        'glyph.use'    : (1, 'number', 0, 0),
+        'glyph.vtx'    : (1, 'number', 0, 1),
+        'glyph.len'    : (1, 'number', 0, 1),
+        'glyph.dpi'    : (1, 'number', 0, 0),
+        'vtx'          : (0, 'number', 1, 1),
+        'vtx.x'        : (1, 'number', 0, 0),
+        'vtx.y'        : (1, 'number', 0, 0),
+        'len'          : (0, 'number', 1, 1),
+        'len.n'        : (1, 'number', 0, 0),
+
+        'book'         : (1, 'snippets', 1, 0),
+        'version'      : (1, 'snippets', 1, 0),
+        'version.FlowEdit_1_id'            : (1, 'scalar_text', 0, 0),
+        'version.FlowEdit_1_version'       : (1, 'scalar_text', 0, 0),
+        'version.Schema_id'                : (1, 'scalar_text', 0, 0),
+        'version.Schema_version'           : (1, 'scalar_text', 0, 0),
+        'version.Topaz_version'            : (1, 'scalar_text', 0, 0),
+        'version.WordDetailEdit_1_id'      : (1, 'scalar_text', 0, 0),
+        'version.WordDetailEdit_1_version' : (1, 'scalar_text', 0, 0),
+        'version.ZoneEdit_1_id'            : (1, 'scalar_text', 0, 0),
+        'version.ZoneEdit_1_version'       : (1, 'scalar_text', 0, 0),
+        'version.chapterheaders'           : (1, 'scalar_text', 0, 0),
+        'version.creation_date'            : (1, 'scalar_text', 0, 0),
+        'version.header_footer'            : (1, 'scalar_text', 0, 0),
+        'version.init_from_ocr'            : (1, 'scalar_text', 0, 0),
+        'version.letter_insertion'         : (1, 'scalar_text', 0, 0),
+        'version.xmlinj_convert'           : (1, 'scalar_text', 0, 0),
+        'version.xmlinj_reflow'            : (1, 'scalar_text', 0, 0),
+        'version.xmlinj_transform'         : (1, 'scalar_text', 0, 0),
+        'version.findlists'                : (1, 'scalar_text', 0, 0),
+        'version.page_num'                 : (1, 'scalar_text', 0, 0),
+        'version.page_type'                : (1, 'scalar_text', 0, 0),
+        'version.bad_text'                 : (1, 'scalar_text', 0, 0),
+        'version.glyph_mismatch'           : (1, 'scalar_text', 0, 0),
+        'version.margins'                  : (1, 'scalar_text', 0, 0),
+        'version.staggered_lines'          : (1, 'scalar_text', 0, 0),
+        'version.paragraph_continuation'   : (1, 'scalar_text', 0, 0),
+        'version.toc'                      : (1, 'scalar_text', 0, 0),
+
+        'stylesheet'   : (1, 'snippets', 1, 0),
+        'style'              : (1, 'snippets', 1, 0),
+        'style._tag'         : (1, 'scalar_text', 0, 0),
+        'style.type'         : (1, 'scalar_text', 0, 0),
+        'style._parent_type' : (1, 'scalar_text', 0, 0),
+        'style.class'        : (1, 'scalar_text', 0, 0),
+        'style._after_class' : (1, 'scalar_text', 0, 0),
+        'rule'               : (1, 'snippets', 1, 0),
+        'rule.attr'          : (1, 'scalar_text', 0, 0),
+        'rule.value'         : (1, 'scalar_text', 0, 0),
+
+        'original'      : (0, 'number', 1, 1),
+        'original.pnum' : (1, 'number', 0, 0),
+        'original.pid'  : (1, 'text', 0, 0),
+        'pages'        : (0, 'number', 1, 1),
+        'pages.ref'    : (1, 'number', 0, 0),
+        'pages.id'     : (1, 'number', 0, 0),
+        'startID'      : (0, 'number', 1, 1),
+        'startID.page' : (1, 'number', 0, 0),
+        'startID.id'   : (1, 'number', 0, 0),
+
+     }
+
+
+    # full tag path record keeping routines
+    def tag_push(self, token):
+        self.tagpath.append(token)
+    def tag_pop(self):
+        if len(self.tagpath) > 0 :
+            self.tagpath.pop()
+    def tagpath_len(self):
+        return len(self.tagpath)
+    def get_tagpath(self, i):
+        cnt = len(self.tagpath)
+        if i < cnt : result = self.tagpath[i]
+        for j in xrange(i+1, cnt) :
+            result += '.' + self.tagpath[j]
+        return result
+
+
+    # list of absolute command byte values values that indicate
+    # various types of loop meachanisms typically used to generate vectors
+
+    cmd_list = (0x76, 0x76)
+
+    # peek at and return 1 byte that is ahead by i bytes
+    def peek(self, aheadi):
+        c = self.fo.read(aheadi)
+        if (len(c) == 0):
+            return None
+        self.fo.seek(-aheadi,1)
+        c = c[-1:]
+        return ord(c)
+
+
+    # get the next value from the file being processed
+    def getNext(self):
+        nbyte = self.peek(1);
+        if (nbyte == None):
+            return None
+        val = readEncodedNumber(self.fo)
+        return val
+
+
+    # format an arg by argtype
+    def formatArg(self, arg, argtype):
+        if (argtype == 'text') or (argtype == 'scalar_text') :
+            result = self.dict.lookup(arg)
+        elif (argtype == 'raw') or (argtype == 'number') or (argtype == 'scalar_number') :
+            result = arg
+        elif (argtype == 'snippets') :
+            result = arg
+        else :
+            print "Error Unknown argtype %s" % argtype
+            sys.exit(-2)
+        return result
+
+
+    # process the next tag token, recursively handling subtags,
+    # arguments, and commands
+    def procToken(self, token):
+
+        known_token = False
+        self.tag_push(token)
+
+        if self.debug : print 'Processing: ', self.get_tagpath(0)
+        cnt = self.tagpath_len()
+        for j in xrange(cnt):
+            tkn = self.get_tagpath(j)
+            if tkn in self.token_tags :
+                num_args = self.token_tags[tkn][0]
+                argtype = self.token_tags[tkn][1]
+                subtags = self.token_tags[tkn][2]
+                splcase = self.token_tags[tkn][3]
+                ntags = -1
+                known_token = True
+                break
+
+        if known_token :
+
+            # handle subtags if present
+            subtagres = []
+            if (splcase == 1):
+                # this type of tag uses of escape marker 0x74 indicate subtag count
+                if self.peek(1) == 0x74:
+                    skip = readEncodedNumber(self.fo)
+                    subtags = 1
+                    num_args = 0
+
+            if (subtags == 1):
+                ntags = readEncodedNumber(self.fo)
+                if self.debug : print 'subtags: ' + token + ' has ' + str(ntags)
+                for j in xrange(ntags):
+                    val = readEncodedNumber(self.fo)
+                    subtagres.append(self.procToken(self.dict.lookup(val)))
+
+            # arguments can be scalars or vectors of text or numbers
+            argres = []
+            if num_args > 0 :
+                firstarg = self.peek(1)
+                if (firstarg in self.cmd_list) and (argtype != 'scalar_number') and (argtype != 'scalar_text'):
+                    # single argument is a variable length vector of data
+                    arg = readEncodedNumber(self.fo)
+                    argres = self.decodeCMD(arg,argtype)
+                else :
+                    # num_arg scalar arguments
+                    for i in xrange(num_args):
+                        argres.append(self.formatArg(readEncodedNumber(self.fo), argtype))
+
+            # build the return tag
+            result = []
+            tkn = self.get_tagpath(0)
+            result.append(tkn)
+            result.append(subtagres)
+            result.append(argtype)
+            result.append(argres)
+            self.tag_pop()
+            return result
+
+        # all tokens that need to be processed should be in the hash
+        # table if it may indicate a problem, either new token
+        # or an out of sync condition
         else:
-            self.bytesToEncrypt = ''
-
-        if more == None:         # last decrypt remove padding
-            plainText = self.padding.removePad(plainText, self.blockSize)
-            self.resetDecrypt()
-        return plainText
-
-
-class Pad:
-    def __init__(self):
-        pass              # eventually could put in calculation of min and max size extension
-
-class padWithPadLen(Pad):
-    """ Pad a binary string with the length of the padding """
-
-    def addPad(self, extraBytes, blockSize):
-        """ Add padding to a binary string to make it an even multiple
-            of the block size """
-        blocks, numExtraBytes = divmod(len(extraBytes), blockSize)
-        padLength = blockSize - numExtraBytes
-        return extraBytes + padLength*chr(padLength)
-
-    def removePad(self, paddedBinaryString, blockSize):
-        """ Remove padding from a binary string """
-        if not(0<len(paddedBinaryString)):
-            raise DecryptNotBlockAlignedError, 'Expected More Data'
-        return paddedBinaryString[:-ord(paddedBinaryString[-1])]
-
-class noPadding(Pad):
-    """ No padding. Use this to get ECB behavior from encrypt/decrypt """
-
-    def addPad(self, extraBytes, blockSize):
-        """ Add no padding """
-        return extraBytes
-
-    def removePad(self, paddedBinaryString, blockSize):
-        """ Remove no padding """
-        return paddedBinaryString
-
-"""
-    Rijndael encryption algorithm
-    This byte oriented implementation is intended to closely
-    match FIPS specification for readability.  It is not implemented
-    for performance.
-"""
-
-class Rijndael(BlockCipher):
-    """ Rijndael encryption algorithm """
-    def __init__(self, key = None, padding = padWithPadLen(), keySize=16, blockSize=16 ):
-        self.name       = 'RIJNDAEL'
-        self.keySize    = keySize
-        self.strength   = keySize*8
-        self.blockSize  = blockSize  # blockSize is in bytes
-        self.padding    = padding    # change default to noPadding() to get normal ECB behavior
-
-        assert( keySize%4==0 and NrTable[4].has_key(keySize/4)),'key size must be 16,20,24,29 or 32 bytes'
-        assert( blockSize%4==0 and NrTable.has_key(blockSize/4)), 'block size must be 16,20,24,29 or 32 bytes'
-
-        self.Nb = self.blockSize/4          # Nb is number of columns of 32 bit words
-        self.Nk = keySize/4                 # Nk is the key length in 32-bit words
-        self.Nr = NrTable[self.Nb][self.Nk] # The number of rounds (Nr) is a function of
-                                            # the block (Nb) and key (Nk) sizes.
-        if key != None:
-            self.setKey(key)
-
-    def setKey(self, key):
-        """ Set a key and generate the expanded key """
-        assert( len(key) == (self.Nk*4) ), 'Key length must be same as keySize parameter'
-        self.__expandedKey = keyExpansion(self, key)
-        self.reset()                   # BlockCipher.reset()
-
-    def encryptBlock(self, plainTextBlock):
-        """ Encrypt a block, plainTextBlock must be a array of bytes [Nb by 4] """
-        self.state = self._toBlock(plainTextBlock)
-        AddRoundKey(self, self.__expandedKey[0:self.Nb])
-        for round in range(1,self.Nr):          #for round = 1 step 1 to Nr
-            SubBytes(self)
-            ShiftRows(self)
-            MixColumns(self)
-            AddRoundKey(self, self.__expandedKey[round*self.Nb:(round+1)*self.Nb])
-        SubBytes(self)
-        ShiftRows(self)
-        AddRoundKey(self, self.__expandedKey[self.Nr*self.Nb:(self.Nr+1)*self.Nb])
-        return self._toBString(self.state)
+            result = []
+            if (self.debug):
+                print 'Unknown Token:', token
+            self.tag_pop()
+            return result
 
 
-    def decryptBlock(self, encryptedBlock):
-        """ decrypt a block (array of bytes) """
-        self.state = self._toBlock(encryptedBlock)
-        AddRoundKey(self, self.__expandedKey[self.Nr*self.Nb:(self.Nr+1)*self.Nb])
-        for round in range(self.Nr-1,0,-1):
-            InvShiftRows(self)
-            InvSubBytes(self)
-            AddRoundKey(self, self.__expandedKey[round*self.Nb:(round+1)*self.Nb])
-            InvMixColumns(self)
-        InvShiftRows(self)
-        InvSubBytes(self)
-        AddRoundKey(self, self.__expandedKey[0:self.Nb])
-        return self._toBString(self.state)
+    # special loop used to process code snippets
+    # it is NEVER used to format arguments.
+    # builds the snippetList
+    def doLoop72(self, argtype):
+        cnt = readEncodedNumber(self.fo)
+        if self.debug :
+            result = 'Set of '+ str(cnt) + ' xml snippets. The overall structure \n'
+            result += 'of the document is indicated by snippet number sets at the\n'
+            result += 'end of each snippet. \n'
+            print result
+        for i in xrange(cnt):
+            if self.debug: print 'Snippet:',str(i)
+            snippet = []
+            snippet.append(i)
+            val = readEncodedNumber(self.fo)
+            snippet.append(self.procToken(self.dict.lookup(val)))
+            self.snippetList.append(snippet)
+        return
 
-    def _toBlock(self, bs):
-        """ Convert binary string to array of bytes, state[col][row]"""
-        assert ( len(bs) == 4*self.Nb ), 'Rijndarl blocks must be of size blockSize'
-        return [[ord(bs[4*i]),ord(bs[4*i+1]),ord(bs[4*i+2]),ord(bs[4*i+3])] for i in range(self.Nb)]
 
-    def _toBString(self, block):
-        """ Convert block (array of bytes) to binary string """
-        l = []
-        for col in block:
-            for rowElement in col:
-                l.append(chr(rowElement))
-        return ''.join(l)
-#-------------------------------------
-"""    Number of rounds Nr = NrTable[Nb][Nk]
 
-            Nb  Nk=4   Nk=5   Nk=6   Nk=7   Nk=8
-            -------------------------------------   """
-NrTable =  {4: {4:10,  5:11,  6:12,  7:13,  8:14},
-            5: {4:11,  5:11,  6:12,  7:13,  8:14},
-            6: {4:12,  5:12,  6:12,  7:13,  8:14},
-            7: {4:13,  5:13,  6:13,  7:13,  8:14},
-            8: {4:14,  5:14,  6:14,  7:14,  8:14}}
-#-------------------------------------
-def keyExpansion(algInstance, keyString):
-    """ Expand a string of size keySize into a larger array """
-    Nk, Nb, Nr = algInstance.Nk, algInstance.Nb, algInstance.Nr # for readability
-    key = [ord(byte) for byte in keyString]  # convert string to list
-    w = [[key[4*i],key[4*i+1],key[4*i+2],key[4*i+3]] for i in range(Nk)]
-    for i in range(Nk,Nb*(Nr+1)):
-        temp = w[i-1]        # a four byte column
-        if (i%Nk) == 0 :
-            temp     = temp[1:]+[temp[0]]  # RotWord(temp)
-            temp     = [ Sbox[byte] for byte in temp ]
-            temp[0] ^= Rcon[i/Nk]
-        elif Nk > 6 and  i%Nk == 4 :
-            temp     = [ Sbox[byte] for byte in temp ]  # SubWord(temp)
-        w.append( [ w[i-Nk][byte]^temp[byte] for byte in range(4) ] )
-    return w
+    # general loop code gracisouly submitted by "skindle" - thank you!
+    def doLoop76Mode(self, argtype, cnt, mode):
+        result = []
+        adj = 0
+        if mode & 1:
+            adj = readEncodedNumber(self.fo)
+        mode = mode >> 1
+        x = []
+        for i in xrange(cnt):
+            x.append(readEncodedNumber(self.fo) - adj)
+        for i in xrange(mode):
+            for j in xrange(1, cnt):
+                x[j] = x[j] + x[j - 1]
+        for i in xrange(cnt):
+            result.append(self.formatArg(x[i],argtype))
+        return result
 
-Rcon = (0,0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36,     # note extra '0' !!!
-        0x6c,0xd8,0xab,0x4d,0x9a,0x2f,0x5e,0xbc,0x63,0xc6,
-        0x97,0x35,0x6a,0xd4,0xb3,0x7d,0xfa,0xef,0xc5,0x91)
 
-#-------------------------------------
-def AddRoundKey(algInstance, keyBlock):
-    """ XOR the algorithm state with a block of key material """
-    for column in range(algInstance.Nb):
-        for row in range(4):
-            algInstance.state[column][row] ^= keyBlock[column][row]
-#-------------------------------------
+    # dispatches loop commands bytes with various modes
+    # The 0x76 style loops are used to build vectors
 
-def SubBytes(algInstance):
-    for column in range(algInstance.Nb):
-        for row in range(4):
-            algInstance.state[column][row] = Sbox[algInstance.state[column][row]]
+    # This was all derived by trial and error and
+    # new loop types may exist that are not handled here
+    # since they did not appear in the test cases
 
-def InvSubBytes(algInstance):
-    for column in range(algInstance.Nb):
-        for row in range(4):
-            algInstance.state[column][row] = InvSbox[algInstance.state[column][row]]
+    def decodeCMD(self, cmd, argtype):
+        if (cmd == 0x76):
 
-Sbox =    (0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,
-           0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
-           0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,
-           0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
-           0xb7,0xfd,0x93,0x26,0x36,0x3f,0xf7,0xcc,
-           0x34,0xa5,0xe5,0xf1,0x71,0xd8,0x31,0x15,
-           0x04,0xc7,0x23,0xc3,0x18,0x96,0x05,0x9a,
-           0x07,0x12,0x80,0xe2,0xeb,0x27,0xb2,0x75,
-           0x09,0x83,0x2c,0x1a,0x1b,0x6e,0x5a,0xa0,
-           0x52,0x3b,0xd6,0xb3,0x29,0xe3,0x2f,0x84,
-           0x53,0xd1,0x00,0xed,0x20,0xfc,0xb1,0x5b,
-           0x6a,0xcb,0xbe,0x39,0x4a,0x4c,0x58,0xcf,
-           0xd0,0xef,0xaa,0xfb,0x43,0x4d,0x33,0x85,
-           0x45,0xf9,0x02,0x7f,0x50,0x3c,0x9f,0xa8,
-           0x51,0xa3,0x40,0x8f,0x92,0x9d,0x38,0xf5,
-           0xbc,0xb6,0xda,0x21,0x10,0xff,0xf3,0xd2,
-           0xcd,0x0c,0x13,0xec,0x5f,0x97,0x44,0x17,
-           0xc4,0xa7,0x7e,0x3d,0x64,0x5d,0x19,0x73,
-           0x60,0x81,0x4f,0xdc,0x22,0x2a,0x90,0x88,
-           0x46,0xee,0xb8,0x14,0xde,0x5e,0x0b,0xdb,
-           0xe0,0x32,0x3a,0x0a,0x49,0x06,0x24,0x5c,
-           0xc2,0xd3,0xac,0x62,0x91,0x95,0xe4,0x79,
-           0xe7,0xc8,0x37,0x6d,0x8d,0xd5,0x4e,0xa9,
-           0x6c,0x56,0xf4,0xea,0x65,0x7a,0xae,0x08,
-           0xba,0x78,0x25,0x2e,0x1c,0xa6,0xb4,0xc6,
-           0xe8,0xdd,0x74,0x1f,0x4b,0xbd,0x8b,0x8a,
-           0x70,0x3e,0xb5,0x66,0x48,0x03,0xf6,0x0e,
-           0x61,0x35,0x57,0xb9,0x86,0xc1,0x1d,0x9e,
-           0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,
-           0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,
-           0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,
-           0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16)
+            # loop with cnt, and mode to control loop styles
+            cnt = readEncodedNumber(self.fo)
+            mode = readEncodedNumber(self.fo)
 
-InvSbox = (0x52,0x09,0x6a,0xd5,0x30,0x36,0xa5,0x38,
-           0xbf,0x40,0xa3,0x9e,0x81,0xf3,0xd7,0xfb,
-           0x7c,0xe3,0x39,0x82,0x9b,0x2f,0xff,0x87,
-           0x34,0x8e,0x43,0x44,0xc4,0xde,0xe9,0xcb,
-           0x54,0x7b,0x94,0x32,0xa6,0xc2,0x23,0x3d,
-           0xee,0x4c,0x95,0x0b,0x42,0xfa,0xc3,0x4e,
-           0x08,0x2e,0xa1,0x66,0x28,0xd9,0x24,0xb2,
-           0x76,0x5b,0xa2,0x49,0x6d,0x8b,0xd1,0x25,
-           0x72,0xf8,0xf6,0x64,0x86,0x68,0x98,0x16,
-           0xd4,0xa4,0x5c,0xcc,0x5d,0x65,0xb6,0x92,
-           0x6c,0x70,0x48,0x50,0xfd,0xed,0xb9,0xda,
-           0x5e,0x15,0x46,0x57,0xa7,0x8d,0x9d,0x84,
-           0x90,0xd8,0xab,0x00,0x8c,0xbc,0xd3,0x0a,
-           0xf7,0xe4,0x58,0x05,0xb8,0xb3,0x45,0x06,
-           0xd0,0x2c,0x1e,0x8f,0xca,0x3f,0x0f,0x02,
-           0xc1,0xaf,0xbd,0x03,0x01,0x13,0x8a,0x6b,
-           0x3a,0x91,0x11,0x41,0x4f,0x67,0xdc,0xea,
-           0x97,0xf2,0xcf,0xce,0xf0,0xb4,0xe6,0x73,
-           0x96,0xac,0x74,0x22,0xe7,0xad,0x35,0x85,
-           0xe2,0xf9,0x37,0xe8,0x1c,0x75,0xdf,0x6e,
-           0x47,0xf1,0x1a,0x71,0x1d,0x29,0xc5,0x89,
-           0x6f,0xb7,0x62,0x0e,0xaa,0x18,0xbe,0x1b,
-           0xfc,0x56,0x3e,0x4b,0xc6,0xd2,0x79,0x20,
-           0x9a,0xdb,0xc0,0xfe,0x78,0xcd,0x5a,0xf4,
-           0x1f,0xdd,0xa8,0x33,0x88,0x07,0xc7,0x31,
-           0xb1,0x12,0x10,0x59,0x27,0x80,0xec,0x5f,
-           0x60,0x51,0x7f,0xa9,0x19,0xb5,0x4a,0x0d,
-           0x2d,0xe5,0x7a,0x9f,0x93,0xc9,0x9c,0xef,
-           0xa0,0xe0,0x3b,0x4d,0xae,0x2a,0xf5,0xb0,
-           0xc8,0xeb,0xbb,0x3c,0x83,0x53,0x99,0x61,
-           0x17,0x2b,0x04,0x7e,0xba,0x77,0xd6,0x26,
-           0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d)
+            if self.debug : print 'Loop for', cnt, 'with  mode', mode,  ':  '
+            return self.doLoop76Mode(argtype, cnt, mode)
 
-#-------------------------------------
-""" For each block size (Nb), the ShiftRow operation shifts row i
-    by the amount Ci.  Note that row 0 is not shifted.
-                 Nb      C1 C2 C3
-               -------------------  """
-shiftOffset  = { 4 : ( 0, 1, 2, 3),
-                 5 : ( 0, 1, 2, 3),
-                 6 : ( 0, 1, 2, 3),
-                 7 : ( 0, 1, 2, 4),
-                 8 : ( 0, 1, 3, 4) }
-def ShiftRows(algInstance):
-    tmp = [0]*algInstance.Nb   # list of size Nb
-    for r in range(1,4):       # row 0 reamains unchanged and can be skipped
-        for c in range(algInstance.Nb):
-            tmp[c] = algInstance.state[(c+shiftOffset[algInstance.Nb][r]) % algInstance.Nb][r]
-        for c in range(algInstance.Nb):
-            algInstance.state[c][r] = tmp[c]
-def InvShiftRows(algInstance):
-    tmp = [0]*algInstance.Nb   # list of size Nb
-    for r in range(1,4):       # row 0 reamains unchanged and can be skipped
-        for c in range(algInstance.Nb):
-            tmp[c] = algInstance.state[(c+algInstance.Nb-shiftOffset[algInstance.Nb][r]) % algInstance.Nb][r]
-        for c in range(algInstance.Nb):
-            algInstance.state[c][r] = tmp[c]
-#-------------------------------------
-def MixColumns(a):
-    Sprime = [0,0,0,0]
-    for j in range(a.Nb):    # for each column
-        Sprime[0] = mul(2,a.state[j][0])^mul(3,a.state[j][1])^mul(1,a.state[j][2])^mul(1,a.state[j][3])
-        Sprime[1] = mul(1,a.state[j][0])^mul(2,a.state[j][1])^mul(3,a.state[j][2])^mul(1,a.state[j][3])
-        Sprime[2] = mul(1,a.state[j][0])^mul(1,a.state[j][1])^mul(2,a.state[j][2])^mul(3,a.state[j][3])
-        Sprime[3] = mul(3,a.state[j][0])^mul(1,a.state[j][1])^mul(1,a.state[j][2])^mul(2,a.state[j][3])
-        for i in range(4):
-            a.state[j][i] = Sprime[i]
+        if self.dbug: print  "Unknown command", cmd
+        result = []
+        return result
 
-def InvMixColumns(a):
-    """ Mix the four bytes of every column in a linear way
-        This is the opposite operation of Mixcolumn """
-    Sprime = [0,0,0,0]
-    for j in range(a.Nb):    # for each column
-        Sprime[0] = mul(0x0E,a.state[j][0])^mul(0x0B,a.state[j][1])^mul(0x0D,a.state[j][2])^mul(0x09,a.state[j][3])
-        Sprime[1] = mul(0x09,a.state[j][0])^mul(0x0E,a.state[j][1])^mul(0x0B,a.state[j][2])^mul(0x0D,a.state[j][3])
-        Sprime[2] = mul(0x0D,a.state[j][0])^mul(0x09,a.state[j][1])^mul(0x0E,a.state[j][2])^mul(0x0B,a.state[j][3])
-        Sprime[3] = mul(0x0B,a.state[j][0])^mul(0x0D,a.state[j][1])^mul(0x09,a.state[j][2])^mul(0x0E,a.state[j][3])
-        for i in range(4):
-            a.state[j][i] = Sprime[i]
 
-#-------------------------------------
-def mul(a, b):
-    """ Multiply two elements of GF(2^m)
-        needed for MixColumn and InvMixColumn """
-    if (a !=0 and  b!=0):
-        return Alogtable[(Logtable[a] + Logtable[b])%255]
-    else:
+
+    # add full tag path to injected snippets
+    def updateName(self, tag, prefix):
+        name = tag[0]
+        subtagList = tag[1]
+        argtype = tag[2]
+        argList = tag[3]
+        nname = prefix + '.' + name
+        nsubtaglist = []
+        for j in subtagList:
+            nsubtaglist.append(self.updateName(j,prefix))
+        ntag = []
+        ntag.append(nname)
+        ntag.append(nsubtaglist)
+        ntag.append(argtype)
+        ntag.append(argList)
+        return ntag
+
+
+
+    # perform depth first injection of specified snippets into this one
+    def injectSnippets(self, snippet):
+        snipno, tag = snippet
+        name = tag[0]
+        subtagList = tag[1]
+        argtype = tag[2]
+        argList = tag[3]
+        nsubtagList = []
+        if len(argList) > 0 :
+            for j in argList:
+                asnip = self.snippetList[j]
+                aso, atag = self.injectSnippets(asnip)
+                atag = self.updateName(atag, name)
+                nsubtagList.append(atag)
+        argtype='number'
+        argList=[]
+        if len(nsubtagList) > 0 :
+            subtagList.extend(nsubtagList)
+        tag = []
+        tag.append(name)
+        tag.append(subtagList)
+        tag.append(argtype)
+        tag.append(argList)
+        snippet = []
+        snippet.append(snipno)
+        snippet.append(tag)
+        return snippet
+
+
+
+    # format the tag for output
+    def formatTag(self, node):
+        name = node[0]
+        subtagList = node[1]
+        argtype = node[2]
+        argList = node[3]
+        fullpathname = name.split('.')
+        nodename = fullpathname.pop()
+        ilvl = len(fullpathname)
+        indent = ' ' * (3 * ilvl)
+        rlst = []
+        rlst.append(indent + '<' + nodename + '>')
+        if len(argList) > 0:
+            alst = []
+            for j in argList:
+                if (argtype == 'text') or (argtype == 'scalar_text') :
+                    alst.append(j + '|')
+                else :
+                    alst.append(str(j) + ',')
+            argres = "".join(alst)
+            argres = argres[0:-1]
+            if argtype == 'snippets' :
+                rlst.append('snippets:' + argres)
+            else :
+                rlst.append(argres)
+        if len(subtagList) > 0 :
+            rlst.append('\n')
+            for j in subtagList:
+                if len(j) > 0 :
+                    rlst.append(self.formatTag(j))
+            rlst.append(indent + '</' + nodename + '>\n')
+        else:
+            rlst.append('</' + nodename + '>\n')
+        return "".join(rlst)
+
+
+    # flatten tag
+    def flattenTag(self, node):
+        name = node[0]
+        subtagList = node[1]
+        argtype = node[2]
+        argList = node[3]
+        rlst = []
+        rlst.append(name)
+        if (len(argList) > 0):
+            alst = []
+            for j in argList:
+                if (argtype == 'text') or (argtype == 'scalar_text') :
+                    alst.append(j + '|')
+                else :
+                    alst.append(str(j) + '|')
+            argres = "".join(alst)
+            argres = argres[0:-1]
+            if argtype == 'snippets' :
+                rlst.append('.snippets=' + argres)
+            else :
+                rlst.append('=' + argres)
+        rlst.append('\n')
+        for j in subtagList:
+            if len(j) > 0 :
+                rlst.append(self.flattenTag(j))
+        return "".join(rlst)
+
+
+    # reduce create xml output
+    def formatDoc(self, flat_xml):
+        rlst = []
+        for j in self.doc :
+            if len(j) > 0:
+                if flat_xml:
+                    rlst.append(self.flattenTag(j))
+                else:
+                    rlst.append(self.formatTag(j))
+        result = "".join(rlst)
+        if self.debug : print result
+        return result
+
+
+
+    # main loop - parse the page.dat files
+    # to create structured document and snippets
+
+    # FIXME: value at end of magic appears to be a subtags count
+    # but for what?  For now, inject an 'info" tag as it is in
+    # every dictionary and seems close to what is meant
+    # The alternative is to special case the last _ "0x5f" to mean something
+
+    def process(self):
+
+        # peek at the first bytes to see what type of file it is
+        magic = self.fo.read(9)
+        if (magic[0:1] == 'p') and (magic[2:9] == 'marker_'):
+            first_token = 'info'
+        elif (magic[0:1] == 'p') and (magic[2:9] == '__PAGE_'):
+            skip = self.fo.read(2)
+            first_token = 'info'
+        elif (magic[0:1] == 'p') and (magic[2:8] == '_PAGE_'):
+            first_token = 'info'
+        elif (magic[0:1] == 'g') and (magic[2:9] == '__GLYPH'):
+            skip = self.fo.read(3)
+            first_token = 'info'
+        else :
+            # other0.dat file
+            first_token = None
+            self.fo.seek(-9,1)
+
+
+        # main loop to read and build the document tree
+        while True:
+
+            if first_token != None :
+                # use "inserted" first token 'info' for page and glyph files
+                tag = self.procToken(first_token)
+                if len(tag) > 0 :
+                    self.doc.append(tag)
+                first_token = None
+
+            v = self.getNext()
+            if (v == None):
+                break
+
+            if (v == 0x72):
+                self.doLoop72('number')
+            elif (v > 0) and (v < self.dict.getSize()) :
+                tag = self.procToken(self.dict.lookup(v))
+                if len(tag) > 0 :
+                    self.doc.append(tag)
+            else:
+                if self.debug:
+                    print "Main Loop:  Unknown value: %x" % v
+                if (v == 0):
+                    if (self.peek(1) == 0x5f):
+                        skip = self.fo.read(1)
+                        first_token = 'info'
+
+        # now do snippet injection
+        if len(self.snippetList) > 0 :
+            if self.debug : print 'Injecting Snippets:'
+            snippet = self.injectSnippets(self.snippetList[0])
+            snipno = snippet[0]
+            tag_add = snippet[1]
+            if self.debug : print self.formatTag(tag_add)
+            if len(tag_add) > 0:
+                self.doc.append(tag_add)
+
+        # handle generation of xml output
+        xmlpage = self.formatDoc(self.flat_xml)
+
+        return xmlpage
+
+
+def fromData(dict, fname):
+    flat_xml = True
+    debug = False
+    pp = PageParser(fname, dict, debug, flat_xml)
+    xmlpage = pp.process()
+    return xmlpage
+
+def getXML(dict, fname):
+    flat_xml = False
+    debug = False
+    pp = PageParser(fname, dict, debug, flat_xml)
+    xmlpage = pp.process()
+    return xmlpage
+
+def usage():
+    print 'Usage: '
+    print '    convert2xml.py dict0000.dat infile.dat '
+    print ' '
+    print ' Options:'
+    print '   -h            print this usage help message '
+    print '   -d            turn on debug output to check for potential errors '
+    print '   --flat-xml    output the flattened xml page description only '
+    print ' '
+    print '     This program will attempt to convert a page*.dat file or '
+    print ' glyphs*.dat file, using the dict0000.dat file, to its xml description. '
+    print ' '
+    print ' Use "cmbtc_dump.py" first to unencrypt, uncompress, and dump '
+    print ' the *.dat files from a Topaz format e-book.'
+
+#
+# Main
+#
+
+def main(argv):
+    dictFile = ""
+    pageFile = ""
+    debug = False
+    flat_xml = False
+    printOutput = False
+    if len(argv) == 0:
+        printOutput = True
+        argv = sys.argv
+
+    try:
+        opts, args = getopt.getopt(argv[1:], "hd", ["flat-xml"])
+
+    except getopt.GetoptError, err:
+
+        # print help information and exit:
+        print str(err) # will print something like "option -a not recognized"
+        usage()
+        sys.exit(2)
+
+    if len(opts) == 0 and len(args) == 0 :
+        usage()
+        sys.exit(2)
+
+    for o, a in opts:
+        if o =="-d":
+            debug=True
+        if o =="-h":
+            usage()
+            sys.exit(0)
+        if o =="--flat-xml":
+            flat_xml = True
+
+    dictFile, pageFile = args[0], args[1]
+
+    # read in the string table dictionary
+    dict = Dictionary(dictFile)
+    # dict.dumpDict()
+
+    # create a page parser
+    pp = PageParser(pageFile, dict, debug, flat_xml)
+
+    xmlpage = pp.process()
+
+    if printOutput:
+        print xmlpage
         return 0
 
-Logtable = ( 0,   0,  25,   1,  50,   2,  26, 198,  75, 199,  27, 104,  51, 238, 223,   3,
-           100,   4, 224,  14,  52, 141, 129, 239,  76, 113,   8, 200, 248, 105,  28, 193,
-           125, 194,  29, 181, 249, 185,  39, 106,  77, 228, 166, 114, 154, 201,   9, 120,
-           101,  47, 138,   5,  33,  15, 225,  36,  18, 240, 130,  69,  53, 147, 218, 142,
-           150, 143, 219, 189,  54, 208, 206, 148,  19,  92, 210, 241,  64,  70, 131,  56,
-           102, 221, 253,  48, 191,   6, 139,  98, 179,  37, 226, 152,  34, 136, 145,  16,
-           126, 110,  72, 195, 163, 182,  30,  66,  58, 107,  40,  84, 250, 133,  61, 186,
-            43, 121,  10,  21, 155, 159,  94, 202,  78, 212, 172, 229, 243, 115, 167,  87,
-           175,  88, 168,  80, 244, 234, 214, 116,  79, 174, 233, 213, 231, 230, 173, 232,
-            44, 215, 117, 122, 235,  22,  11, 245,  89, 203,  95, 176, 156, 169,  81, 160,
-           127,  12, 246, 111,  23, 196,  73, 236, 216,  67,  31,  45, 164, 118, 123, 183,
-           204, 187,  62,  90, 251,  96, 177, 134,  59,  82, 161, 108, 170,  85,  41, 157,
-           151, 178, 135, 144,  97, 190, 220, 252, 188, 149, 207, 205,  55,  63,  91, 209,
-            83,  57, 132,  60,  65, 162, 109,  71,  20,  42, 158,  93,  86, 242, 211, 171,
-            68,  17, 146, 217,  35,  32,  46, 137, 180, 124, 184,  38, 119, 153, 227, 165,
-           103,  74, 237, 222, 197,  49, 254,  24,  13,  99, 140, 128, 192, 247, 112,   7)
+    return xmlpage
 
-Alogtable= ( 1,   3,   5,  15,  17,  51,  85, 255,  26,  46, 114, 150, 161, 248,  19,  53,
-            95, 225,  56,  72, 216, 115, 149, 164, 247,   2,   6,  10,  30,  34, 102, 170,
-           229,  52,  92, 228,  55,  89, 235,  38, 106, 190, 217, 112, 144, 171, 230,  49,
-            83, 245,   4,  12,  20,  60,  68, 204,  79, 209, 104, 184, 211, 110, 178, 205,
-            76, 212, 103, 169, 224,  59,  77, 215,  98, 166, 241,   8,  24,  40, 120, 136,
-           131, 158, 185, 208, 107, 189, 220, 127, 129, 152, 179, 206,  73, 219, 118, 154,
-           181, 196,  87, 249,  16,  48,  80, 240,  11,  29,  39, 105, 187, 214,  97, 163,
-           254,  25,  43, 125, 135, 146, 173, 236,  47, 113, 147, 174, 233,  32,  96, 160,
-           251,  22,  58,  78, 210, 109, 183, 194,  93, 231,  50,  86, 250,  21,  63,  65,
-           195,  94, 226,  61,  71, 201,  64, 192,  91, 237,  44, 116, 156, 191, 218, 117,
-           159, 186, 213, 100, 172, 239,  42, 126, 130, 157, 188, 223, 122, 142, 137, 128,
-           155, 182, 193,  88, 232,  35, 101, 175, 234,  37, 111, 177, 200,  67, 197,  84,
-           252,  31,  33,  99, 165, 244,   7,   9,  27,  45, 119, 153, 176, 203,  70, 202,
-            69, 207,  74, 222, 121, 139, 134, 145, 168, 227,  62,  66, 198,  81, 243,  14,
-            18,  54,  90, 238,  41, 123, 141, 140, 143, 138, 133, 148, 167, 242,  13,  23,
-            57,  75, 221, 124, 132, 151, 162, 253,  28,  36, 108, 180, 199,  82, 246,   1)
-
-
-
-
-"""
-    AES Encryption Algorithm
-    The AES algorithm is just Rijndael algorithm restricted to the default
-    blockSize of 128 bits.
-"""
-
-class AES(Rijndael):
-    """ The AES algorithm is the Rijndael block cipher restricted to block
-        sizes of 128 bits and key sizes of 128, 192 or 256 bits
-    """
-    def __init__(self, key = None, padding = padWithPadLen(), keySize=16):
-        """ Initialize AES, keySize is in bytes """
-        if  not (keySize == 16 or keySize == 24 or keySize == 32) :
-            raise BadKeySizeError, 'Illegal AES key size, must be 16, 24, or 32 bytes'
-
-        Rijndael.__init__( self, key, padding=padding, keySize=keySize, blockSize=16 )
-
-        self.name       = 'AES'
-
-
-"""
-    CBC mode of encryption for block ciphers.
-    This algorithm mode wraps any BlockCipher to make a
-    Cipher Block Chaining mode.
-"""
-from random             import Random  # should change to crypto.random!!!
-
-
-class CBC(BlockCipher):
-    """ The CBC class wraps block ciphers to make cipher block chaining (CBC) mode
-        algorithms.  The initialization (IV) is automatic if set to None.  Padding
-        is also automatic based on the Pad class used to initialize the algorithm
-    """
-    def __init__(self, blockCipherInstance, padding = padWithPadLen()):
-        """ CBC algorithms are created by initializing with a BlockCipher instance """
-        self.baseCipher = blockCipherInstance
-        self.name       = self.baseCipher.name + '_CBC'
-        self.blockSize  = self.baseCipher.blockSize
-        self.keySize    = self.baseCipher.keySize
-        self.padding    = padding
-        self.baseCipher.padding = noPadding()   # baseCipher should NOT pad!!
-        self.r          = Random()            # for IV generation, currently uses
-                                              # mediocre standard distro version     <----------------
-        import time
-        newSeed = time.ctime()+str(self.r)    # seed with instance location
-        self.r.seed(newSeed)                  # to make unique
-        self.reset()
-
-    def setKey(self, key):
-        self.baseCipher.setKey(key)
-
-    # Overload to reset both CBC state and the wrapped baseCipher
-    def resetEncrypt(self):
-        BlockCipher.resetEncrypt(self)  # reset CBC encrypt state (super class)
-        self.baseCipher.resetEncrypt()  # reset base cipher encrypt state
-
-    def resetDecrypt(self):
-        BlockCipher.resetDecrypt(self)  # reset CBC state (super class)
-        self.baseCipher.resetDecrypt()  # reset base cipher decrypt state
-
-    def encrypt(self, plainText, iv=None, more=None):
-        """ CBC encryption - overloads baseCipher to allow optional explicit IV
-            when iv=None, iv is auto generated!
-        """
-        if self.encryptBlockCount == 0:
-            self.iv = iv
-        else:
-            assert(iv==None), 'IV used only on first call to encrypt'
-
-        return BlockCipher.encrypt(self,plainText, more=more)
-
-    def decrypt(self, cipherText, iv=None, more=None):
-        """ CBC decryption - overloads baseCipher to allow optional explicit IV
-            when iv=None, iv is auto generated!
-        """
-        if self.decryptBlockCount == 0:
-            self.iv = iv
-        else:
-            assert(iv==None), 'IV used only on first call to decrypt'
-
-        return BlockCipher.decrypt(self, cipherText, more=more)
-
-    def encryptBlock(self, plainTextBlock):
-        """ CBC block encryption, IV is set with 'encrypt' """
-        auto_IV = ''
-        if self.encryptBlockCount == 0:
-            if self.iv == None:
-                # generate IV and use
-                self.iv = ''.join([chr(self.r.randrange(256)) for i in range(self.blockSize)])
-                self.prior_encr_CT_block = self.iv
-                auto_IV = self.prior_encr_CT_block    # prepend IV if it's automatic
-            else:                       # application provided IV
-                assert(len(self.iv) == self.blockSize ),'IV must be same length as block'
-                self.prior_encr_CT_block = self.iv
-        """ encrypt the prior CT XORed with the PT """
-        ct = self.baseCipher.encryptBlock( xor(self.prior_encr_CT_block, plainTextBlock) )
-        self.prior_encr_CT_block = ct
-        return auto_IV+ct
-
-    def decryptBlock(self, encryptedBlock):
-        """ Decrypt a single block """
-
-        if self.decryptBlockCount == 0:   # first call, process IV
-            if self.iv == None:    # auto decrypt IV?
-                self.prior_CT_block = encryptedBlock
-                return ''
-            else:
-                assert(len(self.iv)==self.blockSize),"Bad IV size on CBC decryption"
-                self.prior_CT_block = self.iv
-
-        dct = self.baseCipher.decryptBlock(encryptedBlock)
-        """ XOR the prior decrypted CT with the prior CT """
-        dct_XOR_priorCT = xor( self.prior_CT_block, dct )
-
-        self.prior_CT_block = encryptedBlock
-
-        return dct_XOR_priorCT
-
-
-"""
-    AES_CBC Encryption Algorithm
-"""
-
-class AES_CBC(CBC):
-    """ AES encryption in CBC feedback mode """
-    def __init__(self, key=None, padding=padWithPadLen(), keySize=16):
-        CBC.__init__( self, AES(key, noPadding(), keySize), padding)
-        self.name       = 'AES_CBC'
+if __name__ == '__main__':
+    sys.exit(main(''))

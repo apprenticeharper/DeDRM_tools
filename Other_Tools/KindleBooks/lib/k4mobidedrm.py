@@ -17,7 +17,7 @@ from __future__ import with_statement
 #    and many many others
 
 
-__version__ = '4.0'
+__version__ = '4.2'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -129,6 +129,8 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     if mobi:
         if mb.getPrintReplica():
             outfile = os.path.join(outdir, outfilename + '_nodrm' + '.azw4')
+        elif mb.getMobiVersion() >= 8:
+            outfile = os.path.join(outdir, outfilename + '_nodrm' + '.azw3')
         else:
             outfile = os.path.join(outdir, outfilename + '_nodrm' + '.mobi')
         mb.getMobiFile(outfile)
