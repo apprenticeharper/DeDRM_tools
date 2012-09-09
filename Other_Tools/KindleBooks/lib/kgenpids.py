@@ -62,7 +62,7 @@ def encode(data, map):
         result += map[Q]
         result += map[R]
     return result
-  
+
 # Hash the bytes in data and then encode the digest with the characters in map
 def encodeHash(data,map):
     return encode(MD5(data),map)
@@ -78,11 +78,11 @@ def decode(data,map):
         value = (((high * len(map)) ^ 0x80) & 0xFF) + low
         result += pack("B",value)
     return result
-    
+
 #
 # PID generation routines
 #
-  
+
 # Returns two bit at offset from a bit field
 def getTwoBitsFromBitField(bitField,offset):
     byteNumber = offset // 4
@@ -91,10 +91,10 @@ def getTwoBitsFromBitField(bitField,offset):
 
 # Returns the six bits at offset from a bit field
 def getSixBitsFromBitField(bitField,offset):
-     offset *= 3
-     value = (getTwoBitsFromBitField(bitField,offset) <<4) + (getTwoBitsFromBitField(bitField,offset+1) << 2) +getTwoBitsFromBitField(bitField,offset+2)
-     return value
-     
+    offset *= 3
+    value = (getTwoBitsFromBitField(bitField,offset) <<4) + (getTwoBitsFromBitField(bitField,offset+1) << 2) +getTwoBitsFromBitField(bitField,offset+2)
+    return value
+
 # 8 bits to six bits encoding from hash to generate PID string
 def encodePID(hash):
     global charMap3
@@ -121,8 +121,8 @@ def generatePidEncryptionTable() :
 def generatePidSeed(table,dsn) :
     value = 0
     for counter in range (0,4) :
-       index = (ord(dsn[counter]) ^ value) &0xFF
-       value = (value >> 8) ^ table[index]
+        index = (ord(dsn[counter]) ^ value) &0xFF
+        value = (value >> 8) ^ table[index]
     return value
 
 # Generate the device PID
@@ -141,7 +141,7 @@ def generateDevicePID(table,dsn,nbRoll):
     return pidAscii
 
 def crc32(s):
-  return (~binascii.crc32(s,-1))&0xFFFFFFFF 
+    return (~binascii.crc32(s,-1))&0xFFFFFFFF
 
 # convert from 8 digit PID to 10 digit PID with checksum
 def checksumPid(s):
@@ -204,10 +204,10 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
         print(message)
         kindleDatabase = None
         pass
-    
+
     if kindleDatabase == None :
         return pidlst
-        
+
     try:
         # Get the Mazama Random number
         MazamaRandomNumber = kindleDatabase["MazamaRandomNumber"]
@@ -217,7 +217,7 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
     except KeyError:
         print "Keys not found in " + kInfoFile
         return pidlst
-        
+
     # Get the ID string used
     encodedIDString = encodeHash(GetIDString(),charMap1)
 
@@ -226,7 +226,7 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
 
     # concat, hash and encode to calculate the DSN
     DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
-       
+
     # Compute the device PID (for which I can tell, is used for nothing).
     table =  generatePidEncryptionTable()
     devicePID = generateDevicePID(table,DSN,4)
@@ -258,13 +258,19 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
 def getPidList(md1, md2, k4, pids, serials, kInfoFiles):
     pidlst = []
     if kInfoFiles is None:
-    	kInfoFiles = []
+        kInfoFiles = []
     if k4:
         kInfoFiles = getKindleInfoFiles(kInfoFiles)
     for infoFile in kInfoFiles:
-        pidlst = getK4Pids(pidlst, md1, md2, infoFile)
+        try:
+            pidlst = getK4Pids(pidlst, md1, md2, infoFile)
+        except Exception, message:
+            print("Error getting PIDs from " + infoFile + ": " + message)
     for serialnum in serials:
-        pidlst = getKindlePid(pidlst, md1, md2, serialnum)
+        try:
+            pidlst = getKindlePid(pidlst, md1, md2, serialnum)
+        except Exception, message:
+            print("Error getting PIDs from " + serialnum + ": " + message)
     for pid in pids:
         pidlst.append(pid)
     return pidlst

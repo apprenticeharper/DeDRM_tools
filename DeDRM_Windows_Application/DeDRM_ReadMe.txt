@@ -1,35 +1,29 @@
-ReadMe_DeDRM_vX.X_WinApp
+ReadMe_DeDRM_v5.2_WinApp
 -----------------------
 
-DeDRM_vX.X_WinApp is a pure python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto the DeDRM_Drop_Target to have the DRM removed.  It repackages the"tools" python software in one easy to use program that remembers preferences and settings.
+DeDRM_v5.2_WinApp is a pure python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto the DeDRM_Drop_Target to have the DRM removed.  It repackages the"tools" python software in one easy to use program that remembers preferences and settings.
 
 It should work out of the box with Kindle for PC ebooks and Adobe Adept epub and pdf ebooks.
 
 To remove the DRM from standalone Kindle ebooks, eReader pdb ebooks, Barnes and Noble epubs, and Mobipocket ebooks requires the user to double-click the DeDRM_Drop_Target and set some additional Preferences including:
 
-Kindle 16 digit Serial Number
-Barnes & Noble key files (bnepubkey.b64)
-eReader Social DRM: (Name:Last 8 digits of CC number)
-MobiPocket, Kindle for iPhone/iPad/iPodTouch  10 digit PID 
+eInk Kindle: 16 digit Serial Number
+Barnes & Noble: key file (bnepubkey.b64)
+eReader Social DRM: Name:Last 8 digits of CC number
+MobiPocket: 10 digit PID 
 
 Once these preferences have been set, the user can simply drag and drop ebooks onto the DeDRM_Drop_Target to remove the DRM.
 
 This program requires that the proper 32 bit version of Python 2.X (tested with Python 2.5 through Python 2.7) and PyCrypto be installed on your computer before it will work.  See below for where to get theese programs for Windows.
 
-
-
 Installation
 ------------
 
-1. From tools_vX.X\DeDRM_Applications\, right click on DeDRM_v_X.X_WinApp.zip and fully Extract its contents. 
+1. In tools_v5.2\DeDRM_Applications\Windows, right click on DeDRM_5.2_Win.zip and fully extract its contents using "Extract All...", saving to your "My Documents" folder.
 
-2. Move the resulting DeDRM_vX.X_WinApp folder to whereever you keep you other programs.
-   (I typically use an "Applications" folder inside of my home directory)
+2. Open the DeDRM_5.2_Win folder you've just created, and make a short-cut of the DeDRM_Drop_Target.bat file (right-click/Create Shortcut). Drag the shortcut file onto your Desktop.
 
-3. Open the folder, and create a short-cut to DeDRM_Drop_Target and move that short-cut to your Desktop.
-
-4. To set the preferences simply double-click on your just created short-cut.
-
+3. To set the preferences simply double-click on your just created short-cut.
 
 If you already have a correct version of Python and PyCrypto installed and in your path, you are ready to go!
 

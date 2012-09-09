@@ -57,8 +57,11 @@
 #  0.33 - Performance improvements for large files (concatenation)
 #  0.34 - Performance improvements in decryption (libalfcrypto)
 #  0.35 - add interface to get mobi_version
+#  0.36 - fixed problem with TEXtREAd and getBookTitle interface
+#  0.37 - Fixed double announcement for stand-alone operation
 
-__version__ = '0.35'
+
+__version__ = '0.37'
 
 import sys
 
@@ -168,9 +171,10 @@ class MobiBook:
         off = self.sections[section][0]
         return self.data_file[off:endoff]
 
-    def __init__(self, infile):
-        print ('MobiDeDrm v%(__version__)s. '
-           'Copyright 2008-2011 The Dark Reverser et al.' % globals())
+    def __init__(self, infile, announce = True):
+        if announce:
+            print ('MobiDeDrm v%(__version__)s. '
+               'Copyright 2008-2012 The Dark Reverser et al.' % globals())
 
         # initial sanity check on file
         self.data_file = file(infile, 'rb').read()
@@ -198,6 +202,7 @@ class MobiBook:
             print "Book has format: ", self.magic
             self.extra_data_flags = 0
             self.mobi_length = 0
+            self.mobi_codepage = 1252
             self.mobi_version = -1
             self.meta_array = {}
             return
@@ -248,18 +253,19 @@ class MobiBook:
             65001 : 'utf-8',
         }
         title = ''
-        if 503 in self.meta_array:
-            title = self.meta_array[503]
-        else :
-            toff, tlen = struct.unpack('>II', self.sect[0x54:0x5c])
-            tend = toff + tlen
-            title = self.sect[toff:tend]
+        codec = 'windows-1252'
+        if self.magic == 'BOOKMOBI':
+            if 503 in self.meta_array:
+                title = self.meta_array[503]
+            else:
+                toff, tlen = struct.unpack('>II', self.sect[0x54:0x5c])
+                tend = toff + tlen
+                title = self.sect[toff:tend]
+            if self.mobi_codepage in codec_map.keys():
+                codec = codec_map[self.mobi_codepage]
         if title == '':
             title = self.header[:32]
             title = title.split("\0")[0]
-        codec = 'windows-1252'
-        if self.mobi_codepage in codec_map.keys():
-            codec = codec_map[self.mobi_codepage]
         return unicode(title, codec).encode('utf-8')
 
     def getPIDMetaInfo(self):
@@ -375,7 +381,7 @@ class MobiBook:
                 raise DrmException("Not yet initialised with PID. Must be opened with Mobipocket Reader first.")
             found_key, pid = self.parseDRM(self.sect[drm_ptr:drm_ptr+drm_size], drm_count, goodpids)
             if not found_key:
-                raise DrmException("No key found. Please report this failure for help.")
+                raise DrmException("No key found in " + str(len(goodpids)) + " keys tried. Please report this failure for help.")
             # kill the drm keys
             self.patchSection(0, "\0" * drm_size, drm_ptr)
             # kill the drm pointers
@@ -411,26 +417,26 @@ class MobiBook:
         print "done"
         return
 
-def getUnencryptedBook(infile,pid):
+def getUnencryptedBook(infile,pid,announce=True):
     if not os.path.isfile(infile):
         raise DrmException('Input File Not Found')
-    book = MobiBook(infile)
+    book = MobiBook(infile,announce)
     book.processBook([pid])
     return book.mobi_data
 
-def getUnencryptedBookWithList(infile,pidlist):
+def getUnencryptedBookWithList(infile,pidlist,announce=True):
     if not os.path.isfile(infile):
         raise DrmException('Input File Not Found')
-    book = MobiBook(infile)
+    book = MobiBook(infile, announce)
     book.processBook(pidlist)
     return book.mobi_data
 
 
 def main(argv=sys.argv):
     print ('MobiDeDrm v%(__version__)s. '
-        'Copyright 2008-2011 The Dark Reverser et al.' % globals())
+        'Copyright 2008-2012 The Dark Reverser et al.' % globals())
     if len(argv)<3 or len(argv)>4:
-        print "Removes protection from Kindle/Mobipocket and Kindle/Print Replica ebooks"
+        print "Removes protection from Kindle/Mobipocket, Kindle/KF8 and Kindle/Print Replica ebooks"
         print "Usage:"
         print "    %s <infile> <outfile> [<Comma separated list of PIDs to try>]" % sys.argv[0]
         return 1
@@ -442,7 +448,7 @@ def main(argv=sys.argv):
         else:
             pidlist = {}
         try:
-            stripped_file = getUnencryptedBookWithList(infile, pidlist)
+            stripped_file = getUnencryptedBookWithList(infile, pidlist, False)
             file(outfile, 'wb').write(stripped_file)
         except DrmException, e:
             print "Error: %s" % e

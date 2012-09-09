@@ -164,6 +164,9 @@ class DocParser(object):
                                 scale = self.pw
                             elif attr == 'line-space':
                                 scale = self.fontsize * 2.0
+                            
+                            if val == "":
+                                val = 0
 
                             if not ((attr == 'hang') and (int(val) == 0)) :
                                 pv = float(val)/scale

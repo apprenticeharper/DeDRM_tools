@@ -1,18 +1,21 @@
 Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. 
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.2 archive.
 
 The is archive includes tools to remove DRM from:
- - eReader PDB books
+
+ - Kindle ebooks (including Mobi, Topaz, Print Replica and KF8).
  - Barnes and Noble ePubs
- - Adobe Digitial Editions ePubs
- - Adobe Digitial Editions PDFs
- - Kindle/Mobipocket ebooks (including Topaz, Print Replica and KF8).
+ - Adobe Digital Editions ePubs
+ - Adobe Digital Editions PDFs
+ - Mobipocket ebooks
+ - eReader PDB books
 
 These tools do NOT work with Apple's iBooks FairPlay DRM.
 
 The only tool that removes Apple's iBooks Fairplay DRM that is Requiem by Brahms version 3.3 or later. Requiem is NOT included in this tools package. It is under active development because Apple constantly updates its DRM scheme to stop Requiem from working.
+The latest version as of September 2012 is 3.3.5 and works with iTunes 10.5 and above.
 
 Requiem has a Tor website: http://tag3ulp55xczs3pn.onion. To reach the site using Tor, you will need to install Tor (http://www.torproject.org). If you're willing to sacrifice your anonymity, you can use the regular web with tor2web. Just go to http://tag3ulp55xczs3pn.tor2web.com.
 
@@ -20,30 +23,34 @@ Requiem has a Tor website: http://tag3ulp55xczs3pn.onion. To reach the site usin
 
 Calibre Users (Mac OS X, Windows, and Linux)
 --------------------------------------------
-If you are a calibre user, the quickest and easiest way to remove DRM from your ebooks is to open the Calibre_Plugins folder and install each of the plugins following the instructions and configuration directions provided in each plugins' README file.
+If you are a calibre user, the quickest and easiest way to remove DRM from your ebooks is to install each of the plugins in the Calibre_Plugins folder, following the instructions and configuration directions provided in each plugin's ReadMe file.
 
-Once installed and configured, you can simply add a DRM book to calibre and the DeDRM version will be imported into the calibre database. Note that DRM removal ONLY occurs on import. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
+Once installed and configured, you can simply add a DRM book to calibre and the DeDRMed version will be imported into the calibre database. Note that DRM removal ONLY occurs on import. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
 
-These plugins work for Windows and Mac OS X. All plugins (including the K4MobiDeDRM plugin when used on books from Kindle for PC under wine) should also work on Linux. Linux users should read the section at the end of this ReadMe.
+These plugins work for Windows, Mac OS X and Linux. For ebooks from Kindle 4 PC and Adobe Digital Editions, Linux users should read the section at the end of this ReadMe.
 
 
 
-DeDRM Application for Mac OS X Users: (Mac OS X 10.5, 10.6, and 10.7)
+DeDRM application for Mac OS X users: (Mac OS X 10.5 and above)
 ----------------------------------------------------------------------
-From the DeDRM_Applications folder, drag the DeDRM_X.X.app.zip droplet to your Desktop. Double-click on it once to unzip it to create the DeDRM X.X.app droplet. Double-click on the droplet once and it will guide you through collecting the data it needs to remove the DRM.
+Drag the "DeDRM 5.2.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
-To use it simply drag ebooks or folders containing ebooks onto the DeDRM X.X.app droplet and it will process the ebooks.
+To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM application and it will remove the DRM of the kinds listed above.
+
+For more detailed instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Applications/Macintosh folder.
 
 
 
-DeDRM Application for Windows Users: (Windows XP through Windows 7)
+DeDRM application for Windows users: (Windows XP through Windows 7)
 ------------------------------------------------------------------
-***This program requires that Python and PyCrypto be properly installed***.
-See below for details on which versions are recommended.
+***This program requires that Python and PyCrypto be properly installed.***
+***See below for details on recommended versions are where to get them.***
 
-From the DeDRM_Applications folder, fully extract the DeDRM_vX.X_WinApp.zip. Drag the resulting DeDRM_vx.x_WinApp folder to someplace out of the way on your machine. Open the folder and make a short-cut from the DeDRM_Drop_Target onto your Desktop. Double-click on the short-cut and DeDRM will launch and it will guide you through collecting the data it needs to remove the DRM. 
+Unzip the DeDRM_5.2_Win.zip archive that's in the DeDRM_Applications/Windows folder, saving the resulting DeDRM_5.2_Win folder in your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_5.2_Win folder. Double-click on the shortcut and the DeDRM application will run and guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
-To use it simply drag ebooks or folders containing ebooks onto the DeDRM_Drop_Target short-cut, and it will process the ebooks.
+To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM_Drop_Target.bat shortcut and it will remove the DRM of the kinds listed above.
+
+For more detailed instructions, see the DeDRM_ReadMe.txt file in the DeDRM_Applications/Windows folder.
 
 
 
@@ -77,7 +84,7 @@ Look for a README inside of the relevant folder to get you started.
 
 Additional Tools
 ----------------
-Some additional useful tools **unrelated to DRM** are also provided in the "Additional_Tools" folder. There are tools for working with finding Topaz ebooks, unpacking Kindle/Mobipocket ebooks (without DRM) to get to the Mobipocket markup language inside, tools to strip source archive from Kindlegen generated mobis, tools to work with Kindle for iPhone/iPad, etc, and tools to dump the contents of mobi headers to see all EXTH (metadata) and related values.
+Some additional useful tools **unrelated to DRM** are also provided in the "Additional_Tools" folder inside the "Other_Tools" folder. There are tools for working with finding Topaz ebooks, unpacking Kindle/Mobipocket ebooks (without DRM) to get to the Mobipocket markup language inside, tools to strip source archive from Kindlegen generated mobis, tools to work with Kindle for iPhone/iPad, etc, and tools to dump the contents of mobi headers to see all EXTH (metadata) and related values.
 
 
 
@@ -122,6 +129,27 @@ Linux Users Only
 ================
 
 Since Kindle for PC and Adobe Digital Editions do not offer native Linux versions, here are instructions for using Windows versions under Wine as well as related instructions for the special way to handle some of these tools:
+
+
+
+Linux and Kindle for PC
+-----------------------
+
+It is possible to run the Kindle for PC application under Wine.
+
+1. Install a recent version of Wine (>=1.3.15)
+
+2. Some versions of winecfg have a bug in setting the volume serial number, so create a .windows-serial file at root of drive_c to set a proper windows volume serial number (8 digit hex value for unsigned integer).
+cd ~
+cd .wine
+cd drive_c
+echo deadbeef > .windows-serial 
+
+Replace "deadbeef" with whatever hex value you want but I would stay away from the default setting of "ffffffff" which does not seem to work. BTW: deadbeef is itself a valid possible hex value if you want to use it
+
+3. Download and install Kindle for PC under Wine.
+
+
 
 
 Linux and Kindle for PC (Other_Tools/KindleBooks/)
@@ -227,7 +255,7 @@ this will launch a window with 3 lines
 2. input file: drmbook.epub
 3. output file: name-ypu-want_for_free_book.epub
 
-Also… once you successfully generate your adept.der keyfile using WINE, you can use the regular ineptepub plugin with the standard Linux calibre. Just put the *.der file(s) in your calibre configuration directory.
+Also… once you successfully generate your adept.der keyfile using Wine, you can use the regular ineptepub plugin with the standard Linux calibre. Just put the *.der file(s) in your calibre configuration directory.
 so if you want you can use calibre in Linux:
 
 11. install the plugins from the tools as discribed in the readmes for win

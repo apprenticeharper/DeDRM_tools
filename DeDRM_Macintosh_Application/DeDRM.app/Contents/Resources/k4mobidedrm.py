@@ -17,7 +17,7 @@ from __future__ import with_statement
 #    and many many others
 
 
-__version__ = '4.2'
+__version__ = '4.4'
 
 class Unbuffered:
     def __init__(self, stream):
@@ -58,7 +58,7 @@ else:
 # borrowed from calibre from calibre/src/calibre/__init__.py
 # added in removal of non-printing chars
 # and removal of . at start
-# convert spaces to underscores
+# convert underscores to spaces (we're OK with spaces in file names)
 def cleanup_name(name):
     _filename_sanitize = re.compile(r'[\xae\0\\|\?\*<":>\+/]')
     substitute='_'
@@ -73,7 +73,7 @@ def cleanup_name(name):
     # Mac and Unix don't like file names that begin with a full stop
     if len(one) > 0 and one[0] == '.':
         one = substitute+one[1:]
-    one = one.replace(' ','_')
+    one = one.replace('_',' ')
     return one
 
 def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
@@ -99,11 +99,20 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     title = mb.getBookTitle()
     print "Processing Book: ", title
     filenametitle = cleanup_name(title)
-    outfilename = bookname
-    if len(outfilename)<=8 or len(filenametitle)<=8:
-        outfilename = outfilename + "_" + filenametitle
-    elif outfilename[:8] != filenametitle[:8]:
-        outfilename = outfilename[:8] + "_" + filenametitle
+    outfilename = cleanup_name(bookname)
+    
+    # generate 'sensible' filename, that will sort with the original name,
+    # but is close to the name from the file.
+    outlength = len(outfilename)
+    comparelength = min(8,min(outlength,len(filenametitle)))
+    copylength = min(max(outfilename.find(' '),8),len(outfilename))
+    if outlength==0:
+        outfilename = filenametitle
+    elif comparelength > 0:
+    	if outfilename[:comparelength] == filenametitle[:comparelength]:
+        	outfilename = filenametitle
+        else:
+        	outfilename = outfilename[:copylength] + " " + filenametitle
 
     # avoid excessively long file names
     if len(outfilename)>150:

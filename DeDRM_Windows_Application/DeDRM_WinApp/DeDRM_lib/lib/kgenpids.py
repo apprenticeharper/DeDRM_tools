@@ -262,9 +262,15 @@ def getPidList(md1, md2, k4, pids, serials, kInfoFiles):
     if k4:
         kInfoFiles = getKindleInfoFiles(kInfoFiles)
     for infoFile in kInfoFiles:
-        pidlst = getK4Pids(pidlst, md1, md2, infoFile)
+        try:
+            pidlst = getK4Pids(pidlst, md1, md2, infoFile)
+        except Exception, message:
+            print("Error getting PIDs from " + infoFile + ": " + message)
     for serialnum in serials:
-        pidlst = getKindlePid(pidlst, md1, md2, serialnum)
+        try:
+            pidlst = getKindlePid(pidlst, md1, md2, serialnum)
+        except Exception, message:
+            print("Error getting PIDs from " + serialnum + ": " + message)
     for pid in pids:
         pidlst.append(pid)
     return pidlst

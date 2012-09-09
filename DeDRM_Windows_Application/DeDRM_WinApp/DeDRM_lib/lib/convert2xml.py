@@ -214,6 +214,7 @@ class PageParser(object):
         'links.title'  : (1, 'text', 0, 0),
         'links.href'   : (1, 'text', 0, 0),
         'links.type'   : (1, 'text', 0, 0),
+        'links.id'     : (1, 'number', 0, 0),
 
         'paraCont'          : (0, 'number', 1, 1),
         'paraCont.rootID'   : (1, 'number', 0, 0),
@@ -239,6 +240,7 @@ class PageParser(object):
         'group'           : (1, 'snippets', 1, 0),
         'group.type'      : (1, 'scalar_text', 0, 0),
         'group._tag'      : (1, 'scalar_text', 0, 0),
+        'group.orientation': (1, 'scalar_text', 0, 0),
 
         'region'           : (1, 'snippets', 1, 0),
         'region.type'      : (1, 'scalar_text', 0, 0),
@@ -246,7 +248,7 @@ class PageParser(object):
         'region.y'         : (1, 'scalar_number', 0, 0),
         'region.h'         : (1, 'scalar_number', 0, 0),
         'region.w'         : (1, 'scalar_number', 0, 0),
-        'region.orientation' : (1, 'scalar_number', 0, 0),
+        'region.orientation' : (1, 'scalar_text', 0, 0),
 
         'empty_text_region' : (1, 'snippets', 1, 0),
 

@@ -151,7 +151,9 @@ def GetVolumeSerialNumber():
 GetVolumeSerialNumber = GetVolumeSerialNumber()
 
 def GetIDString():
-    return GetVolumeSerialNumber()
+    vsn = GetVolumeSerialNumber()
+    print('Using Volume Serial Number for ID: '+vsn)
+    return vsn
 
 def getLastError():
     GetLastError = kernel32.GetLastError
@@ -210,37 +212,40 @@ def getKindleInfoFiles(kInfoFiles):
     if 'LOCALAPPDATA' in os.environ.keys():
         path = os.environ['LOCALAPPDATA']
 
-    print "searching for kinfoFiles in ", path
+    print('searching for kinfoFiles in ' + path)
+    found = False
 
     # first look for older kindle-info files
     kinfopath = path +'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info'
-    if not os.path.isfile(kinfopath):
-        print('No kindle.info files have not been found.')
-    else:
+    if os.path.isfile(kinfopath):
+        found = True
+        print('Found K4PC kindle.info file: ' + kinfopath)
         kInfoFiles.append(kinfopath)
 
     # now look for newer (K4PC 1.5.0 and later rainier.2.1.1.kinf file
 
     kinfopath = path +'\\Amazon\\Kindle For PC\\storage\\rainier.2.1.1.kinf'
-    if not os.path.isfile(kinfopath):
-        print('No K4PC 1.5.X .kinf files have not been found.')
-    else:
+    if os.path.isfile(kinfopath):
+        found = True
+        print('Found K4PC 1.5.X kinf file: ' + kinfopath)
         kInfoFiles.append(kinfopath)
 
     # now look for even newer (K4PC 1.6.0 and later) rainier.2.1.1.kinf file
     kinfopath = path +'\\Amazon\\Kindle\\storage\\rainier.2.1.1.kinf'
-    if not os.path.isfile(kinfopath):
-        print('No K4PC 1.6.X .kinf files have not been found.')
-    else:
+    if os.path.isfile(kinfopath):
+        found = True
+        print('Found K4PC 1.6.X kinf file: ' + kinfopath)
         kInfoFiles.append(kinfopath)
 
     # now look for even newer (K4PC 1.9.0 and later) .kinf2011 file
     kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
-    if not os.path.isfile(kinfopath):
-        print('No K4PC 1.9.X .kinf files have not been found.')
-    else:
+    if os.path.isfile(kinfopath):
+        found = True
+        print('Found K4PC kinf2011 file: ' + kinfopath)
         kInfoFiles.append(kinfopath)
 
+    if not found:
+        print('No K4PC kindle.info/kinf/kinf2011 files have been found.')
     return kInfoFiles
 
 

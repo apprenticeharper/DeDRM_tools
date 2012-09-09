@@ -385,17 +385,22 @@ def GetIDString():
     if isNewInstall():
         mungedmac = GetMACAddressMunged()
         if len(mungedmac) > 7:
+            print('Using Munged MAC Address for ID: '+mungedmac)
             return mungedmac
     sernum = GetVolumeSerialNumber()
     if len(sernum) > 7:
+        print('Using Volume Serial Number for ID: '+sernum)
         return sernum
     diskpart = GetUserHomeAppSupKindleDirParitionName()
     uuidnum = GetDiskPartitionUUID(diskpart)
     if len(uuidnum) > 7:
+        print('Using Disk Partition UUID for ID: '+uuidnum)
         return uuidnum
     mungedmac = GetMACAddressMunged()
     if len(mungedmac) > 7:
+        print('Using Munged MAC Address for ID: '+mungedmac)
         return mungedmac
+    print('Using Fixed constant 9999999999 for ID.')
     return '9999999999'
 
 
@@ -498,6 +503,7 @@ def getKindleInfoFiles(kInfoFiles):
     for resline in reslst:
         if os.path.isfile(resline):
             kInfoFiles.append(resline)
+            print('Found K4Mac kindle-info file: ' + resline)
             found = True
     # add any .rainier*-kinf files
     cmdline = 'find "' + home + '/Library/Application Support" -name ".rainier*-kinf"'
@@ -508,6 +514,7 @@ def getKindleInfoFiles(kInfoFiles):
     for resline in reslst:
         if os.path.isfile(resline):
             kInfoFiles.append(resline)
+            print('Found k4Mac kinf file: ' + resline)
             found = True
     # add any .kinf2011 files
     cmdline = 'find "' + home + '/Library/Application Support" -name ".kinf2011"'
@@ -518,9 +525,10 @@ def getKindleInfoFiles(kInfoFiles):
     for resline in reslst:
         if os.path.isfile(resline):
             kInfoFiles.append(resline)
+            print('Found k4Mac kinf2011 file: ' + resline)
             found = True
     if not found:
-        print('No kindle-info files have been found.')
+        print('No k4Mac kindle-info/kinf/kinf2011 files have been found.')
     return kInfoFiles
 
 # determine type of kindle info provided and return a

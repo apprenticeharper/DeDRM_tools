@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-# ineptpdf.pyw, version 7.9
+# ineptpdf.pyw, version 7.11
 
 from __future__ import with_statement
 
@@ -34,6 +34,8 @@ from __future__ import with_statement
 #   7.7 - On Windows try PyCrypto first and OpenSSL next
 #   7.8 - Modify interface to allow use of import
 #   7.9 - Bug fix for some session key errors when len(bookkey) > length required
+#   7.10 - Various tweaks to fix minor problems.
+#   7.11 - More tweaks to fix minor problems.
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
@@ -2200,11 +2202,19 @@ class DecryptionDialog(Tkinter.Frame):
 
 def decryptBook(keypath, inpath, outpath):
     with open(inpath, 'rb') as inf:
-        serializer = PDFSerializer(inf, keypath)
+        try:
+            serializer = PDFSerializer(inf, keypath)
+        except:
+            print "Error serializing pdf. Probably wrong key."
+            return 1
         # hope this will fix the 'bad file descriptor' problem
         with open(outpath, 'wb') as outf:
         # help construct to make sure the method runs to the end
-            serializer.dump(outf)
+            try:
+                serializer.dump(outf)
+            except:
+                print "error writing pdf."
+                return 1
     return 0
 
 

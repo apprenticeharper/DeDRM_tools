@@ -21,7 +21,7 @@ import re
 import simpleprefs
 
 
-__version__ = '5.0'
+__version__ = '5.2'
 
 class DrmException(Exception):
     pass
@@ -38,7 +38,7 @@ class MainApp(Tk):
                         ['serials', 'seriallist.txt'],
                         ['sdrms'  , 'sdrmlist.txt'  ],
                         ['outdir' , 'outdir.txt'    ]]
-        self.po = simpleprefs.SimplePrefs('DeDRM',description)
+        self.po = simpleprefs.SimplePrefs("DeDRM",description)
         if self.dnd:
             self.cd = ConvDialog(self)
             prefs = self.getPreferences()
@@ -95,7 +95,7 @@ class PrefsDialog(Toplevel):
         Toplevel.__init__(self, mainapp)
         self.withdraw()
         self.protocol("WM_DELETE_WINDOW", self.withdraw)
-        self.title("DeDRM")
+        self.title("DeDRM " + __version__)
         self.prefs_array = prefs_array
         self.status = Tkinter.Label(self, text='Setting Preferences')
         self.status.pack(fill=Tkconstants.X, expand=1)
@@ -566,6 +566,7 @@ def main(argv=sys.argv):
         infilelst = argv[1:]
         filenames = []
         for infile in infilelst:
+            infile = infile.decode(sys.getfilesystemencoding())
             print infile
             infile = infile.replace('"','')
             infile = os.path.abspath(infile)

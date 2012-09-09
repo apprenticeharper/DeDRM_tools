@@ -15,16 +15,16 @@ import re
 from zipfile import ZipFile
 
 class K4DeDRM(FileTypePlugin):
-    name                = 'K4PC, K4Mac, Kindle Mobi and Topaz DeDRM' # Name of the plugin
-    description         = 'Removes DRM from Mobipocket, Kindle/Mobi, Kindle/Topaz and Kindle/Print Replica files. Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc.'
+    name                = 'Kindle and Mobipocket DeDRM' # Name of the plugin
+    description         = 'Removes DRM from eInk Kindle, Kindle 4 Mac and Kindle 4 PC ebooks, and from Mobipocket ebooks. Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, mdlnx, ApprenticeAlf, etc.'
     supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
-    author              = 'DiapDealer, SomeUpdates' # The author of this plugin
-    version             = (0, 4, 2)   # The version number of this plugin
+    author              = 'DiapDealer, SomeUpdates, mdlnx, Apprentice Alf' # The author of this plugin
+    version             = (0, 4, 4)   # The version number of this plugin
     file_types          = set(['prc','mobi','azw','azw1','azw3','azw4','tpz']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
-    priority            = 210  # run this plugin before mobidedrm, k4pcdedrm, k4dedrm
+    priority            = 520  # run this plugin before earlier versions
     minimum_calibre_version = (0, 7, 55)
-    
+
     def initialize(self):
         """
         Dynamic modules can't be imported/loaded from a zipfile... so this routine
@@ -39,7 +39,7 @@ class K4DeDRM(FileTypePlugin):
         elif isosx:
             names = ['libalfcrypto.dylib']
         else:
-            names = ['libalfcrypto32.so','libalfcrypto64.so']
+            names = ['libalfcrypto32.so','libalfcrypto64.so','alfcrypto.py','alfcrypto.dll','alfcrypto64.dll','getk4pcpids.py','mobidedrm.py','kgenpids.py','k4pcutils.py','topazextract.py']
         lib_dict = self.load_resources(names)
         self.alfdir = os.path.join(config_dir, 'alfcrypto')
         if not os.path.exists(self.alfdir):
@@ -62,35 +62,45 @@ class K4DeDRM(FileTypePlugin):
 
         plug_ver = '.'.join(str(self.version).strip('()').replace(' ', '').split(','))
         k4 = True
-        if sys.platform.startswith('linux'):
-            k4 = False
         pids = []
         serials = []
         kInfoFiles = []
+        self.config()
+        
         # Get supplied list of PIDs to try from plugin customization.
-        customvalues = self.site_customization.split(',')
-        for customvalue in customvalues:
-            customvalue = str(customvalue)
-            customvalue = customvalue.strip()
-            if len(customvalue) == 10 or len(customvalue) == 8:
-                pids.append(customvalue)
-            else :
-                if len(customvalue) == 16 and customvalue[0] == 'B':
-                    serials.append(customvalue)
-                else:
-                    print "%s is not a valid Kindle serial number or PID." % str(customvalue)
-
+        pidstringlistt = self.pids_string.split(',')
+        for pid in pidstringlistt:
+            pid = str(pid).strip()
+            if len(pid) == 10 or len(pid) == 8:
+                pids.append(pid)
+            else:
+                if len(pid) > 0:
+                    print "'%s' is not a valid Mobipocket PID." % pid
+                        
+        # For linux, get PIDs by calling the right routines under WINE
+        if sys.platform.startswith('linux'):
+            k4 = False
+            pids.extend(self.WINEgetPIDs(path_to_ebook))
+            
+        # Get supplied list of Kindle serial numbers to try from plugin customization.
+        serialstringlistt = self.serials_string.split(',')
+        for serial in serialstringlistt:
+            serial = str(serial).strip()
+            if len(serial) == 16 and serial[0] == 'B':
+                serials.append(serial)
+            else:
+                if len(serial) > 0:
+                    print "'%s' is not a valid Kindle serial number." % serial
+                    
         # Load any kindle info files (*.info) included Calibre's config directory.
         try:
-            # Find Calibre's configuration directory.
-            confpath = os.path.split(os.path.split(self.plugin_path)[0])[0]
-            print 'K4MobiDeDRM v%s: Calibre configuration directory = %s' % (plug_ver, confpath)
-            files = os.listdir(confpath)
+            print 'K4MobiDeDRM v%s: Calibre configuration directory = %s' % (plug_ver, config_dir)
+            files = os.listdir(config_dir)
             filefilter = re.compile("\.info$|\.kinf$", re.IGNORECASE)
             files = filter(filefilter.search, files)
             if files:
                 for filename in files:
-                    fpath = os.path.join(confpath, filename)
+                    fpath = os.path.join(config_dir, filename)
                     kInfoFiles.append(fpath)
                 print 'K4MobiDeDRM v%s: Kindle info/kinf file %s found in config folder.' % (plug_ver, filename)
         except IOError:
@@ -152,8 +162,77 @@ class K4DeDRM(FileTypePlugin):
             mb.cleanup()
         return of.name
 
-    def customization_help(self, gui=False):
-        return 'Enter 10 character PIDs and/or Kindle serial numbers, use a comma (no spaces) to separate each PID or SerialNumber from the next.'
+    def WINEgetPIDs(self, infile):
+
+        import subprocess
+        from subprocess import Popen, PIPE, STDOUT
+
+        import subasyncio
+        from subasyncio import Process
+
+        print "   Getting PIDs from WINE"
+
+        outfile = os.path.join(self.alfdir + 'winepids.txt')
+
+        cmdline = 'wine python.exe ' \
+                  + '"'+self.alfdir + '/getk4pcpids.py"' \
+                  + ' "' + infile + '"' \
+                  + ' "' + outfile + '"'
+
+        env = os.environ
+        
+        print "My wine_prefix from tweaks is ", self.wine_prefix
+
+        if ("WINEPREFIX" in env):
+            print "Using WINEPREFIX from the environment: ", env["WINEPREFIX"]
+        elif (self.wine_prefix is not None):
+            env['WINEPREFIX'] = self.wine_prefix
+            print "Using WINEPREFIX from tweaks: ", self.wine_prefix
+        else:
+            print "No wine prefix used"
+
+        print cmdline
+
+        cmdline = cmdline.encode(sys.getfilesystemencoding())
+        p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=sys.stdout, stderr=STDOUT, close_fds=False)
+        result = p2.wait("wait")
+        print "Conversion returned ", result
+        WINEpids = []
+        customvalues = file(outfile, 'r').readline().split(',')
+        for customvalue in customvalues:
+            customvalue = str(customvalue)
+            customvalue = customvalue.strip()
+            if len(customvalue) == 10 or len(customvalue) == 8:
+                WINEpids.append(customvalue)
+            else:
+                print "'%s' is not a valid PID." % customvalue
+        return WINEpids
+
+    def is_customizable(self):
+        # return true to allow customization via the Plugin->Preferences.
+        return True
+
+    def config_widget(self):
+        # It is important to put this import statement here rather than at the
+        # top of the module as importing the config class will also cause the
+        # GUI libraries to be loaded, which we do not want when using calibre
+        # from the command line
+        from calibre_plugins.k4mobidedrm.config import ConfigWidget
+        return config.ConfigWidget()
+    
+    def config(self):
+        from calibre_plugins.k4mobidedrm.config import prefs
+        
+        self.pids_string = prefs['pids']
+        self.serials_string = prefs['serials']
+        self.wine_prefix = prefs['WINEPREFIX']
+        
+    def save_settings(self, config_widget):
+        '''
+        Save the settings specified by the user with config_widget.
+        '''
+        config_widget.save_settings()
+        self.config()
 
     def load_resources(self, names):
         ans = {}

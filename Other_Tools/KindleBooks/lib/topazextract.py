@@ -31,11 +31,8 @@ class TpzDRMError(Exception):
 # local support routines
 if inCalibre:
     from calibre_plugins.k4mobidedrm import kgenpids
-    from calibre_plugins.k4mobidedrm import genbook
 else:
     import kgenpids
-    import genbook
-
 
 # recursive zip creation support routine
 def zipUpDir(myzip, tdir, localname):
@@ -271,6 +268,11 @@ class TopazBook:
             self.createBookDirectory()
             self.extractFiles()
             print "Successfully Extracted Topaz contents"
+            if inCalibre:
+                from calibre_plugins.k4mobidedrm import genbook
+            else:
+                import genbook
+            
             rv = genbook.generateBook(self.outdir, raw, fixedimage)
             if rv == 0:
                 print "\nBook Successfully generated"
@@ -300,6 +302,11 @@ class TopazBook:
         self.createBookDirectory()
         self.extractFiles()
         print "Successfully Extracted Topaz contents"
+        if inCalibre:
+            from calibre_plugins.k4mobidedrm import genbook
+        else:
+            import genbook
+        
         rv = genbook.generateBook(self.outdir, raw, fixedimage)
         if rv == 0:
             print "\nBook Successfully generated"
