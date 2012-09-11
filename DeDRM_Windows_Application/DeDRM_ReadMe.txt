@@ -1,7 +1,7 @@
-ReadMe_DeDRM_v5.2_WinApp
+ReadMe_DeDRM_v5.3_WinApp
 -----------------------
 
-DeDRM_v5.2_WinApp is a pure python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto the DeDRM_Drop_Target to have the DRM removed.  It repackages the"tools" python software in one easy to use program that remembers preferences and settings.
+DeDRM_v5.3_WinApp is a pure python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto the DeDRM_Drop_Target to have the DRM removed.  It repackages the"tools" python software in one easy to use program that remembers preferences and settings.
 
 It should work out of the box with Kindle for PC ebooks and Adobe Adept epub and pdf ebooks.
 
@@ -19,9 +19,9 @@ This program requires that the proper 32 bit version of Python 2.X (tested with 
 Installation
 ------------
 
-1. In tools_v5.2\DeDRM_Applications\Windows, right click on DeDRM_5.2_Win.zip and fully extract its contents using "Extract All...", saving to your "My Documents" folder.
+1. In tools_v5.3\DeDRM_Applications\Windows, right click on DeDRM_5.3_Win.zip and fully extract its contents using "Extract All...", saving to your "My Documents" folder.
 
-2. Open the DeDRM_5.2_Win folder you've just created, and make a short-cut of the DeDRM_Drop_Target.bat file (right-click/Create Shortcut). Drag the shortcut file onto your Desktop.
+2. Open the DeDRM_5.3_Win folder you've just created, and make a short-cut of the DeDRM_Drop_Target.bat file (right-click/Create Shortcut). Drag the shortcut file onto your Desktop.
 
 3. To set the preferences simply double-click on your just created short-cut.
 

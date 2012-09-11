@@ -1,4 +1,4 @@
-K4MobiDeDRM_v04.4_plugin.zip
+K4MobiDeDRM_v04.5_plugin.zip
 
 Credit given to The Dark Reverser for the original standalone script. Credit also to the many people who have updated and expanded that script since then.
 

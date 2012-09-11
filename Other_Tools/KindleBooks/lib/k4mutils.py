@@ -233,7 +233,7 @@ def GetVolumeSerialNumber():
 
 def GetUserHomeAppSupKindleDirParitionName():
     home = os.getenv('HOME')
-    dpath =  home + '/Library/Application Support/Kindle'
+    dpath =  home + '/Library'
     cmdline = '/sbin/mount'
     cmdline = cmdline.encode(sys.getfilesystemencoding())
     p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
@@ -357,6 +357,10 @@ def isNewInstall():
     home = os.getenv('HOME')
     # soccer game fan anyone
     dpath = home + '/Library/Application Support/Kindle/storage/.pes2011'
+    # print dpath, os.path.exists(dpath)
+    if os.path.exists(dpath):
+        return True
+    dpath = home + '/Library/Containers/com.amazon.Kindle/Data/Library/Application Support/Kindle/storage/.pes2011'
     # print dpath, os.path.exists(dpath)
     if os.path.exists(dpath):
         return True
@@ -491,8 +495,30 @@ class CryptUnprotectDataV3(object):
 
 # Locate the .kindle-info files
 def getKindleInfoFiles(kInfoFiles):
-    # first search for current .kindle-info files
     home = os.getenv('HOME')
+    # search for any .kinf2011 files in new location (Sep 2012)
+    cmdline = 'find "' + home + '/Library/Containers/com.amazon.Kindle/Data/Library/Application Support" -name ".kinf2011"'
+    cmdline = cmdline.encode(sys.getfilesystemencoding())
+    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
+    out1, out2 = p1.communicate()
+    reslst = out1.split('\n')
+    for resline in reslst:
+        if os.path.isfile(resline):
+            kInfoFiles.append(resline)
+            print('Found k4Mac kinf2011 file: ' + resline)
+            found = True
+   # search for any .kinf2011 files
+    cmdline = 'find "' + home + '/Library/Application Support" -name ".kinf2011"'
+    cmdline = cmdline.encode(sys.getfilesystemencoding())
+    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
+    out1, out2 = p1.communicate()
+    reslst = out1.split('\n')
+    for resline in reslst:
+        if os.path.isfile(resline):
+            kInfoFiles.append(resline)
+            print('Found k4Mac kinf2011 file: ' + resline)
+            found = True
+    # search for any .kindle-info files
     cmdline = 'find "' + home + '/Library/Application Support" -name ".kindle-info"'
     cmdline = cmdline.encode(sys.getfilesystemencoding())
     p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
@@ -505,7 +531,7 @@ def getKindleInfoFiles(kInfoFiles):
             kInfoFiles.append(resline)
             print('Found K4Mac kindle-info file: ' + resline)
             found = True
-    # add any .rainier*-kinf files
+    # search for any .rainier*-kinf files
     cmdline = 'find "' + home + '/Library/Application Support" -name ".rainier*-kinf"'
     cmdline = cmdline.encode(sys.getfilesystemencoding())
     p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
@@ -515,17 +541,6 @@ def getKindleInfoFiles(kInfoFiles):
         if os.path.isfile(resline):
             kInfoFiles.append(resline)
             print('Found k4Mac kinf file: ' + resline)
-            found = True
-    # add any .kinf2011 files
-    cmdline = 'find "' + home + '/Library/Application Support" -name ".kinf2011"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p1.communicate()
-    reslst = out1.split('\n')
-    for resline in reslst:
-        if os.path.isfile(resline):
-            kInfoFiles.append(resline)
-            print('Found k4Mac kinf2011 file: ' + resline)
             found = True
     if not found:
         print('No k4Mac kindle-info/kinf/kinf2011 files have been found.')
