@@ -1,7 +1,7 @@
 Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.3 archive.
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.3.1 archive.
 
 The is archive includes tools to remove DRM from:
 
@@ -33,7 +33,7 @@ These plugins work for Windows, Mac OS X and Linux. For ebooks from Kindle 4 PC 
 
 DeDRM application for Mac OS X users: (Mac OS X 10.5 and above)
 ----------------------------------------------------------------------
-Drag the "DeDRM 5.3.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
+Drag the "DeDRM 5.3.1.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
 To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM application and it will remove the DRM of the kinds listed above.
 
