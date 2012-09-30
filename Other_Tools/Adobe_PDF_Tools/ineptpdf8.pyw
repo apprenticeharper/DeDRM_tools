@@ -1,7 +1,7 @@
 #! /usr/bin/python
 
-# ineptpdf8.4.48.pyw
-# ineptpdf, version 8.4.48
+# ineptpdf8.4.51.pyw
+# ineptpdf, version 8.4.51
 
 # To run this program install Python 2.7 from http://www.python.org/download/ 
 #
@@ -16,7 +16,7 @@
 # Windows system).
 #
 # Save this script file as
-# ineptpdf8.4.48.pyw and double-click on it to run it.
+# ineptpdf8.4.51.pyw and double-click on it to run it.
 
 # Revision history:
 #   1 - Initial release
@@ -103,6 +103,10 @@
 #   8.4.46 - script cleanup and optimizations (Tetrachroma)
 #   8.4.47 - script identification change to Adobe Reader (Tetrachroma)
 #   8.4.48 - improved tolerance for false file/registry entries (Tetrachroma)
+#   8.4.49 - improved username encryption (Tetrachroma)
+#   8.4.50 - improved (experimental) APS support (Tetrachroma & Neisklar)
+#   8.4.51 - automatic APS offline key retrieval (works only for
+#            Onleihe right now) (80ka80 & Tetrachroma)
 
 """
 Decrypts Adobe ADEPT-encrypted and Fileopen PDF files.
@@ -139,6 +143,7 @@ import traceback
 import inspect
 import tempfile
 import sqlite3
+import httplib
 try:
     from Crypto.Cipher import ARC4
     # needed for newer pdfs
@@ -162,7 +167,7 @@ INPUTFILEPATH = ''
 KEYFILEPATH = ''
 PASSWORD = ''
 DEBUG_MODE = False
-IVERSION = '8.4.48'
+IVERSION = '8.4.51'
 
 # Do we generate cross reference streams on output?
 # 0 = never
@@ -1333,11 +1338,74 @@ class PDFDocument(object):
         self.decipher = self.decrypt_aes
         self.ready = True
         return
+    
+    def getPrincipalKey(self, k=None, url=None, referer=None):
+            if url == None:
+                    url="ssl://edc.bibliothek-digital.de/edcws/services/urn:EDCLicenseService"
+            data1='<?xml version="1.0" encoding="UTF-8"?><SOAP-ENV:Envelope xmlns:SO'+\
+            'AP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http'+\
+            '://schemas.xmlsoap.org/soap/encoding/" xmlns:xsi="http://www.w3.org/2001/'+\
+            'XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns1="'+\
+            'http://edc.adobe.com/edcwebservice" xmlns:impl="http://localhost:8080/axis/s'+\
+            'ervices/urn:EDCLicenseService" xmlns:ns2="http://common.edc.adobe.com" xmlns:ns1="'+\
+            'http://ns.adobe.com/PolicyServer/ws"><SOAP-ENV:Header><EDCSecurity>&lt;wsse:Security '+\
+            'xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-'+\
+            '1.0.xsd"&gt;&lt;wsse:UsernameToken&gt;&lt;wsse:Username&gt;edc_anonymous&lt;/wsse:Username&'+\
+            'gt;&lt;wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-'+\
+            'token-profile-1.0#PasswordText"&gt;edc_anonymous&lt;/wsse:Password&gt;&lt;/wsse:UsernameToken&'+\
+            'gt;&lt;/wsse:Security&gt;</EDCSecurity><Version>7</Version><Locale>de-de</Locale></SOAP-ENV:Header>'+\
+            '<SOAP-ENV:Body><impl:synchronize><SynchronizationRequest><firstTime>1</firstTime><licenseSeqNum>0</'+\
+            'licenseSeqNum><policySeqNum>1</policySeqNum><revocationSeqNum>0</revocationSeqNum><'+\
+            'watermarkTemplateSeqNum>0</watermarkTemplateSeqNum></SynchronizationRequest></'+\
+            'impl:synchronize></SOAP-ENV:Body></SOAP-ENV:Envelope>'
+            if k not in url[:40]:
+                return None
+            #~ extract host and path:
+            host=re.compile(r'[a-zA-Z]://([^/]+)/.+', re.I).search(url).group(1)
+            urlpath=re.compile(r'[a-zA-Z]://[^/]+(/.+)', re.I).search(url).group(1)
+            
+            # open a socket connection on port 80
+
+            conn = httplib.HTTPSConnection(host, 443)
+            
+            #~ Headers for request
+            headers={"Accept": "*/*", "Host": host, "User-Agent": "Mozilla/3.0 (compatible; Acrobat EDC SOAP 1.0)",
+                     "Content-Type": "text/xml; charset=utf-8", "Cache-Control": "no-cache", "SOAPAction": ""}
+            
+            # send data1 and headers
+            try:
+                    conn.request("POST", urlpath, data1, headers)
+            except:
+                    raise ADEPTError("Could not post request to '"+host+"'.")
+            
+            # read respose
+            try:
+                    response = conn.getresponse()
+                    responsedata=response.read()
+            except:
+                    raise ADEPTError("Could not read response from '"+host+"'.")
+            
+            # close connection
+            conn.close()
+            
+            try:
+                    key=re.compile(r'PricipalKey"((?!<key>).)*<key[^>]*>(((?!</key>).)*)</key>', re.I).search(responsedata).group(2)
+            
+            except :
+                    key=None
+            return key
 
     def genkey_adobe_ps(self, param):
         # nice little offline principal keys dictionary
-        # global static principal key for German Onleihe / Bibliothek Digital
-        principalkeys = { 'bibliothek-digital.de': 'rRwGv2tbpKov1krvv7PO0ws9S436/lArPlfipz5Pqhw='.decode('base64')}
+        principalkeys = { 'bibliothek-digital.de': 'Dzqx8McQUNd2CDzBVmtnweUxVWlqJTMqyYtiDIc4dZI='.decode('base64')}
+        for k, v in principalkeys.iteritems():
+            result = self.getPrincipalKey(k)
+            #print result
+            if result != None:
+                principalkeys[k] = result.decode('base64')
+            else:
+                raise ADEPTError("No (Online) PrincipalKey found.")
+                
         self.is_printable = self.is_modifiable = self.is_extractable = True
 ##        print 'keyvalue'
 ##        print len(keyvalue)
@@ -1350,27 +1418,39 @@ class PDFDocument(object):
         edclist = []
         for pair in edcdata.split('\n'):
             edclist.append(pair)
-        #print edclist
-        #print 'edcdata decrypted'
-        #print edclist[0].decode('base64').encode('hex')
-        #print edclist[1].decode('base64').encode('hex')
-        #print edclist[2].decode('base64').encode('hex')
-        #print edclist[3].decode('base64').encode('hex')
-        #print 'offlinekey'
-        #print len(edclist[9].decode('base64'))
-        #print pdrllic
+##        print edclist
+##        print 'edcdata decrypted'
+##        print edclist[0].decode('base64').encode('hex')
+##        print edclist[1].decode('base64').encode('hex')
+##        print edclist[2].decode('base64').encode('hex')
+##        print edclist[3].decode('base64').encode('hex')
+##        print 'offlinekey'
+##        print len(edclist[9].decode('base64'))
+##        print pdrllic
         # principal key request
         for key in principalkeys:
             if key in pdrllic:
                 principalkey = principalkeys[key]
             else:
                 raise ADEPTError('Cannot find principal key for this pdf')
-        shakey = SHA256.new(principalkey).digest()
+##        print 'minorversion'
+##        print int(edclist[8])
+        # fix for minor version
+##        minorversion = int(edclist[8]) - 100
+##        if minorversion < 1:
+##            minorversion = 1
+##        print int(minorversion)
+        shakey = SHA256.new()
+        shakey.update(principalkey)
+##        for i in range(0,minorversion):
+##            shakey.update(principalkey)
+        shakey = shakey.digest()
+##        shakey = SHA256.new(principalkey).digest()
         ivector = 16 * chr(0)
         #print shakey
         plaintext = AES.new(shakey,AES.MODE_CBC,ivector).decrypt(edclist[9].decode('base64'))
         if plaintext[-16:] != 16 * chr(16):
-            raise ADEPTError('Offlinekey cannot be decrypted, aborting ...')
+            raise ADEPTError('Offlinekey cannot be decrypted, aborting (hint: redownload pdf) ...')
         pdrlpol = AES.new(plaintext[16:32],AES.MODE_CBC,edclist[2].decode('base64')).decrypt(pdrlpol)
         if ord(pdrlpol[-1]) < 1 or ord(pdrlpol[-1]) > 16:
             raise ADEPTError('Could not decrypt PDRLPol, aborting ...')
@@ -1633,8 +1713,8 @@ class PDFDocument(object):
             self.fo_sethwids = self.fo_linux_sethwids            
         else:
             adeptout = ''
-            adeptout = adeptout + 'Due to various privacy violations from Apple\n'
-            adeptout = adeptout + 'Mac OS X support is disabled by default.'
+            adeptout = adeptout + 'Mac OS X is not supported, yet.'
+            adeptout = adeptout + 'Read the blogs FAQs for more information'
             raise ADEPTError(adeptout)            
         # add static arguments for http/https request
         self.fo_setattributes()
@@ -1720,8 +1800,10 @@ class PDFDocument(object):
             self.fileopen['RequestSchema'] = self.surlresult['RequestSchema']
         if 'ServerSessionData' in self.surlresult:
             self.fileopen['ServerSessionData'] = self.surlresult['ServerSessionData']
+        if 'SetScope' in self.surlresult:
+            self.fileopen['RequestSchema'] = self.surlresult['SetScope']            
         #print self.surlresult
-        if 'RetVal' in self.surlresult and (('Reason' in self.surlresult and \
+        if 'RetVal' in self.surlresult and 'SEMO' not in self.fileopen and(('Reason' in self.surlresult and \
            self.surlresult['Reason'] == 'AskUnp') or ('SetTarget' in self.surlresult and\
                                                self.surlresult['SetTarget'] == 'UnpDlg')):
             # get user and password dialog
@@ -2173,7 +2255,8 @@ class PDFDocument(object):
 ##                    self.fileopen['Uuid'] = self.genkey_cryptmach(userkey,1)[4:]
 ##                else:
             except:
-                raise ADEPTError('Cannot find FowP3Uuid file')
+                raise ADEPTError('Cannot find FowP3Uuid file - reason might be Adobe (Reader) X.'\
+                                 'Read the FAQs for more information how to solve the problem.')
         else:
             self.fileopen['Uuid'] = str(uuid.uuid1())
         # get time stamp
@@ -3063,7 +3146,7 @@ def gui_main():
             "This script requires PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
-    root.title('INEPT PDF Decrypter 8.4.48 (FileOpen/APS-Support)')
+    root.title('INEPT PDF Decrypter 8.4.51 (FileOpen/APS-Support)')
     root.resizable(True, False)
     root.minsize(370, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
