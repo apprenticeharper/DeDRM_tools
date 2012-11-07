@@ -52,7 +52,7 @@ class Process(object):
             self.__stdout_thread = threading.Thread(
                 name="stdout-thread",
                 target=self.__reader, args=(self.__collected_outdata,
-					    self.__process.stdout))
+                                            self.__process.stdout))
             self.__stdout_thread.setDaemon(True)
             self.__stdout_thread.start()
 
@@ -60,7 +60,7 @@ class Process(object):
             self.__stderr_thread = threading.Thread(
                 name="stderr-thread",
                 target=self.__reader, args=(self.__collected_errdata,
-					    self.__process.stderr))
+                                            self.__process.stderr))
             self.__stderr_thread.setDaemon(True)
             self.__stderr_thread.start()
 

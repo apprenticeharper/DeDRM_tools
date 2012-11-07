@@ -20,7 +20,7 @@ class ConfigWidget(QWidget):
         self.l = QVBoxLayout()
         self.setLayout(self.l)
 
-        self.serialLabel = QLabel('Kindle Serial numbers (separate with commas, no spaces)')
+        self.serialLabel = QLabel('eInk Kindle Serial numbers (First character B, 16 characters, use commas if more than one)')
         self.l.addWidget(self.serialLabel)
 
         self.serials = QLineEdit(self)
@@ -28,7 +28,7 @@ class ConfigWidget(QWidget):
         self.l.addWidget(self.serials)
         self.serialLabel.setBuddy(self.serials)
 
-        self.pidLabel = QLabel('Mobipocket PIDs (separate with commas, no spaces)')
+        self.pidLabel = QLabel('Mobipocket PIDs (8 or 10 characters, use commas if more than one)')
         self.l.addWidget(self.pidLabel)
 
         self.pids = QLineEdit(self)
@@ -50,8 +50,8 @@ class ConfigWidget(QWidget):
         self.wpLabel.setBuddy(self.wineprefix)
 
     def save_settings(self):
-        prefs['pids'] = str(self.pids.text())
-        prefs['serials'] = str(self.serials.text())
+    	prefs['pids'] = str(self.pids.text()).replace(" ","")
+        prefs['serials'] = str(self.serials.text()).replace(" ","")
         winepref=str(self.wineprefix.text())
         if winepref.strip() != '':
             prefs['WINEPREFIX'] = winepref

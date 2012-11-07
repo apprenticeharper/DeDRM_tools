@@ -1,17 +1,59 @@
-#!/usr/bin/env python
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+
+from __future__ import with_statement
+
+# ineptkey.pyw, version 5.6
+# Copyright © 2009-2010 i♥cabbages
+
+# Released under the terms of the GNU General Public Licence, version 3 or
+# later.  <http://www.gnu.org/licenses/>
+
+# Windows users: Before running this program, you must first install Python 2.6
+#   from <http://www.python.org/download/> and PyCrypto from
+#   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make certain
+#   to install the version for Python 2.6).  Then save this script file as
+#   ineptkey.pyw and double-click on it to run it.  It will create a file named
+#   adeptkey.der in the same directory.  This is your ADEPT user key.
+#
+# Mac OS X users: Save this script file as ineptkey.pyw.  You can run this
+#   program from the command line (pythonw ineptkey.pyw) or by double-clicking
+#   it when it has been associated with PythonLauncher.  It will create a file
+#   named adeptkey.der in the same directory.  This is your ADEPT user key.
+
+# Revision history:
+#   1 - Initial release, for Adobe Digital Editions 1.7
+#   2 - Better algorithm for finding pLK; improved error handling
+#   3 - Rename to INEPT
+#   4 - Series of changes by joblack (and others?) --
+#   4.1 - quick beta fix for ADE 1.7.2 (anon)
+#   4.2 - added old 1.7.1 processing
+#   4.3 - better key search
+#   4.4 - Make it working on 64-bit Python
+#   5 - Clean up and improve 4.x changes;
+#       Clean up and merge OS X support by unknown
+#   5.1 - add support for using OpenSSL on Windows in place of PyCrypto
+#   5.2 - added support for output of key to a particular file
+#   5.3 - On Windows try PyCrypto first, OpenSSL next
+#   5.4 - Modify interface to allow use of import
+#   5.5 - Fix for potential problem with PyCrypto
+#   5.6 - Revise to allow use in Plugins to eliminate need for duplicate code
 
 """
 Retrieve Adobe ADEPT user key.
 """
-
-from __future__ import with_statement
 
 __license__ = 'GPL v3'
 
 import sys
 import os
 import struct
-from calibre.constants import iswindows, isosx
+
+try:
+    from calibre.constants import iswindows, isosx
+except:
+    iswindows = sys.platform.startswith('win')
+    isosx = sys.platform.startswith('darwin')
 
 class ADEPTError(Exception):
     pass
@@ -72,7 +114,7 @@ if iswindows:
         from Crypto.Cipher import AES as _AES
         class AES(object):
             def __init__(self, key):
-                self._aes = _AES.new(key, _AES.MODE_CBC)
+                self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
             def decrypt(self, data):
                 return self._aes.decrypt(data)
         return AES
@@ -254,13 +296,9 @@ if iswindows:
         return CryptUnprotectData
     CryptUnprotectData = CryptUnprotectData()
 
-    def retrieve_key():
+    def retrieve_keys():
         if AES is None:
-            tkMessageBox.showerror(
-                "ADEPT Key",
-                "This script requires PyCrypto or OpenSSL which must be installed "
-                "separately.  Read the top-of-script comment for details.")
-            return False
+            raise ADEPTError("PyCrypto or OpenSSL must be installed")
         root = GetSystemDirectory().split('\\')[0] + '\\'
         serial = GetVolumeSerialNumber(root)
         vendor = cpuid0()
@@ -275,6 +313,7 @@ if iswindows:
         device = winreg.QueryValueEx(regkey, 'key')[0]
         keykey = CryptUnprotectData(device, entropy)
         userkey = None
+        keys = []
         try:
             plkroot = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_PATH)
         except WindowsError:
@@ -296,19 +335,17 @@ if iswindows:
                 if ktype != 'privateLicenseKey':
                     continue
                 userkey = winreg.QueryValueEx(plkkey, 'value')[0]
-                break
-            if userkey is not None:
-                break
-        if userkey is None:
+                userkey = userkey.decode('base64')
+                aes = AES(keykey)
+                userkey = aes.decrypt(userkey)
+                userkey = userkey[26:-ord(userkey[-1])]
+                keys.append(userkey)
+        if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')
-        userkey = userkey.decode('base64')
-        aes = AES(keykey)
-        userkey = aes.decrypt(userkey)
-        userkey = userkey[26:-ord(userkey[-1])]
-        return userkey
+        return keys
+        
 
-else:
-
+elif isosx:
     import xml.etree.ElementTree as etree
     import subprocess
 
@@ -332,8 +369,8 @@ else:
         if os.path.exists(ActDatPath):
             return ActDatPath
         return None
-    
-    def retrieve_key():
+
+    def retrieve_keys():
         actpath = findActivationDat()
         if actpath is None:
             raise ADEPTError("Could not locate ADE activation")
@@ -343,4 +380,78 @@ else:
         userkey = tree.findtext(expr)
         userkey = userkey.decode('base64')
         userkey = userkey[26:]
-        return userkey
+        return [userkey]
+
+else:
+    def retrieve_keys(keypath):
+        raise ADEPTError("This script only supports Windows and Mac OS X.")
+        return []
+        
+def retrieve_key(keypath):
+    keys = retrieve_keys()
+    with open(keypath, 'wb') as f:
+        f.write(keys[0])
+    return True
+
+def extractKeyfile(keypath):
+    try:
+        success = retrieve_key(keypath)
+    except ADEPTError, e:
+        print "Key generation Error: " + str(e)
+        return 1
+    except Exception, e:
+        print "General Error: " + str(e)
+        return 1
+    if not success:
+        return 1
+    return 0
+
+
+def cli_main(argv=sys.argv):
+    keypath = argv[1]
+    return extractKeyfile(keypath)
+
+
+def main(argv=sys.argv):
+    import Tkinter
+    import Tkconstants
+    import tkMessageBox
+    import traceback
+
+    class ExceptionDialog(Tkinter.Frame):
+        def __init__(self, root, text):
+            Tkinter.Frame.__init__(self, root, border=5)
+            label = Tkinter.Label(self, text="Unexpected error:",
+                                  anchor=Tkconstants.W, justify=Tkconstants.LEFT)
+            label.pack(fill=Tkconstants.X, expand=0)
+            self.text = Tkinter.Text(self)
+            self.text.pack(fill=Tkconstants.BOTH, expand=1)
+    
+            self.text.insert(Tkconstants.END, text)
+
+
+    root = Tkinter.Tk()
+    root.withdraw()
+    progname = os.path.basename(argv[0])
+    keypath = os.path.abspath("adeptkey.der")
+    success = False
+    try:
+        success = retrieve_key(keypath)
+    except ADEPTError, e:
+        tkMessageBox.showerror("ADEPT Key", "Error: " + str(e))
+    except Exception:
+        root.wm_state('normal')
+        root.title('ADEPT Key')
+        text = traceback.format_exc()
+        ExceptionDialog(root, text).pack(fill=Tkconstants.BOTH, expand=1)
+        root.mainloop()
+    if not success:
+        return 1
+    tkMessageBox.showinfo(
+        "ADEPT Key", "Key successfully retrieved to %s" % (keypath))
+    return 0
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        sys.exit(cli_main())
+    sys.exit(main())

@@ -3,7 +3,7 @@
 
 from __future__ import with_statement
 
-# ineptkey.pyw, version 5.4
+# ineptkey.pyw, version 5.6
 # Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3 or
@@ -36,6 +36,8 @@ from __future__ import with_statement
 #   5.2 - added support for output of key to a particular file
 #   5.3 - On Windows try PyCrypto first, OpenSSL next
 #   5.4 - Modify interface to allow use of import
+#   5.5 - Fix for potential problem with PyCrypto
+#   5.6 - Revise to allow use in Plugins to eliminate need for duplicate code
 
 """
 Retrieve Adobe ADEPT user key.
@@ -46,15 +48,17 @@ __license__ = 'GPL v3'
 import sys
 import os
 import struct
-import Tkinter
-import Tkconstants
-import tkMessageBox
-import traceback
+
+try:
+    from calibre.constants import iswindows, isosx
+except:
+    iswindows = sys.platform.startswith('win')
+    isosx = sys.platform.startswith('darwin')
 
 class ADEPTError(Exception):
     pass
 
-if sys.platform.startswith('win'):
+if iswindows:
     from ctypes import windll, c_char_p, c_wchar_p, c_uint, POINTER, byref, \
         create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
         string_at, Structure, c_void_p, cast, c_size_t, memmove, CDLL, c_int, \
@@ -76,13 +80,13 @@ if sys.platform.startswith('win'):
             _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
                         ('rounds', c_int)]
         AES_KEY_p = POINTER(AES_KEY)
-
+    
         def F(restype, name, argtypes):
             func = getattr(libcrypto, name)
             func.restype = restype
             func.argtypes = argtypes
             return func
-
+    
         AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
                                 [c_char_p, c_int, AES_KEY_p])
         AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
@@ -110,7 +114,7 @@ if sys.platform.startswith('win'):
         from Crypto.Cipher import AES as _AES
         class AES(object):
             def __init__(self, key):
-                self._aes = _AES.new(key, _AES.MODE_CBC)
+                self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
             def decrypt(self, data):
                 return self._aes.decrypt(data)
         return AES
@@ -292,13 +296,9 @@ if sys.platform.startswith('win'):
         return CryptUnprotectData
     CryptUnprotectData = CryptUnprotectData()
 
-    def retrieve_key(keypath):
+    def retrieve_keys():
         if AES is None:
-            tkMessageBox.showerror(
-                "ADEPT Key",
-                "This script requires PyCrypto or OpenSSL which must be installed "
-                "separately.  Read the top-of-script comment for details.")
-            return False
+            raise ADEPTError("PyCrypto or OpenSSL must be installed")
         root = GetSystemDirectory().split('\\')[0] + '\\'
         serial = GetVolumeSerialNumber(root)
         vendor = cpuid0()
@@ -313,6 +313,7 @@ if sys.platform.startswith('win'):
         device = winreg.QueryValueEx(regkey, 'key')[0]
         keykey = CryptUnprotectData(device, entropy)
         userkey = None
+        keys = []
         try:
             plkroot = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_PATH)
         except WindowsError:
@@ -334,50 +335,43 @@ if sys.platform.startswith('win'):
                 if ktype != 'privateLicenseKey':
                     continue
                 userkey = winreg.QueryValueEx(plkkey, 'value')[0]
-                break
-            if userkey is not None:
-                break
-        if userkey is None:
+                userkey = userkey.decode('base64')
+                aes = AES(keykey)
+                userkey = aes.decrypt(userkey)
+                userkey = userkey[26:-ord(userkey[-1])]
+                keys.append(userkey)
+        if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')
-        userkey = userkey.decode('base64')
-        aes = AES(keykey)
-        userkey = aes.decrypt(userkey)
-        userkey = userkey[26:-ord(userkey[-1])]
-        with open(keypath, 'wb') as f:
-            f.write(userkey)
-        return True
+        return keys
+        
 
-elif sys.platform.startswith('darwin'):
+elif isosx:
     import xml.etree.ElementTree as etree
-    import Carbon.File
-    import Carbon.Folder
-    import Carbon.Folders
-    import MacOS
+    import subprocess
 
-    ACTIVATION_PATH = 'Adobe/Digital Editions/activation.dat'
     NSMAP = {'adept': 'http://ns.adobe.com/adept',
              'enc': 'http://www.w3.org/2001/04/xmlenc#'}
 
-    def find_folder(domain, dtype):
-        try:
-            fsref = Carbon.Folder.FSFindFolder(domain, dtype, False)
-            return Carbon.File.pathname(fsref)
-        except MacOS.Error:
-            return None
-
-    def find_app_support_file(subpath):
-        dtype = Carbon.Folders.kApplicationSupportFolderType
-        for domain in Carbon.Folders.kUserDomain, Carbon.Folders.kLocalDomain:
-            path = find_folder(domain, dtype)
-            if path is None:
-                continue
-            path = os.path.join(path, subpath)
-            if os.path.isfile(path):
-                return path
+    def findActivationDat():
+        home = os.getenv('HOME')
+        cmdline = 'find "' + home + '/Library/Application Support/Adobe/Digital Editions" -name "activation.dat"'
+        cmdline = cmdline.encode(sys.getfilesystemencoding())
+        p2 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
+        out1, out2 = p2.communicate()
+        reslst = out1.split('\n')
+        cnt = len(reslst)
+        for j in xrange(cnt):
+            resline = reslst[j]
+            pp = resline.find('activation.dat')
+            if pp >= 0:
+                ActDatPath = resline
+                break
+        if os.path.exists(ActDatPath):
+            return ActDatPath
         return None
 
-    def retrieve_key(keypath):
-        actpath = find_app_support_file(ACTIVATION_PATH)
+    def retrieve_keys():
+        actpath = findActivationDat()
         if actpath is None:
             raise ADEPTError("Could not locate ADE activation")
         tree = etree.parse(actpath)
@@ -386,39 +380,18 @@ elif sys.platform.startswith('darwin'):
         userkey = tree.findtext(expr)
         userkey = userkey.decode('base64')
         userkey = userkey[26:]
-        with open(keypath, 'wb') as f:
-            f.write(userkey)
-        return True
-
-elif sys.platform.startswith('cygwin'):
-    def retrieve_key(keypath):
-        tkMessageBox.showerror(
-            "ADEPT Key",
-            "This script requires a Windows-native Python, and cannot be run "
-            "under Cygwin.  Please install a Windows-native Python and/or "
-            "check your file associations.")
-        return False
+        return [userkey]
 
 else:
-    def retrieve_key(keypath):
-        tkMessageBox.showerror(
-            "ADEPT Key",
-            "This script only supports Windows and Mac OS X.  For Linux "
-            "you should be able to run ADE and this script under Wine (with "
-            "an appropriate version of Windows Python installed).")
-        return False
-
-class ExceptionDialog(Tkinter.Frame):
-    def __init__(self, root, text):
-        Tkinter.Frame.__init__(self, root, border=5)
-        label = Tkinter.Label(self, text="Unexpected error:",
-                              anchor=Tkconstants.W, justify=Tkconstants.LEFT)
-        label.pack(fill=Tkconstants.X, expand=0)
-        self.text = Tkinter.Text(self)
-        self.text.pack(fill=Tkconstants.BOTH, expand=1)
-
-        self.text.insert(Tkconstants.END, text)
-
+    def retrieve_keys(keypath):
+        raise ADEPTError("This script only supports Windows and Mac OS X.")
+        return []
+        
+def retrieve_key(keypath):
+    keys = retrieve_keys()
+    with open(keypath, 'wb') as f:
+        f.write(keys[0])
+    return True
 
 def extractKeyfile(keypath):
     try:
@@ -440,10 +413,27 @@ def cli_main(argv=sys.argv):
 
 
 def main(argv=sys.argv):
+    import Tkinter
+    import Tkconstants
+    import tkMessageBox
+    import traceback
+
+    class ExceptionDialog(Tkinter.Frame):
+        def __init__(self, root, text):
+            Tkinter.Frame.__init__(self, root, border=5)
+            label = Tkinter.Label(self, text="Unexpected error:",
+                                  anchor=Tkconstants.W, justify=Tkconstants.LEFT)
+            label.pack(fill=Tkconstants.X, expand=0)
+            self.text = Tkinter.Text(self)
+            self.text.pack(fill=Tkconstants.BOTH, expand=1)
+    
+            self.text.insert(Tkconstants.END, text)
+
+
     root = Tkinter.Tk()
     root.withdraw()
     progname = os.path.basename(argv[0])
-    keypath = 'adeptkey.der'
+    keypath = os.path.abspath("adeptkey.der")
     success = False
     try:
         success = retrieve_key(keypath)

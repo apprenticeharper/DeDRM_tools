@@ -5,11 +5,16 @@ Barnes and Noble EPUB ebooks use a form of Social DRM which requires information
 For more info, see the author's blog:
 http://i-u2665-cabbages.blogspot.com/2009_12_01_archive.html
 
-The original scripts by IHeartCabbages are available here as well.  These scripts have been modified to allow the use of OpenSSL in place of PyCrypto to make them easier to run on Linux and Mac OS X, as well as to fix some minor bugs/
+The original scripts by IHeartCabbages are available here as well.  These scripts have been modified to allow the use of OpenSSL in place of PyCrypto to make them easier to run on Linux and Mac OS X, as well as to fix some minor bugs.
 
 There are 2 scripts:
 
-The first is ignoblekeygen_vX.X.pyw.  Double-click to launch it and provide the required information, and this program will generate a key file needed to remove the DRM from the books.  This key file need only be generated once unless either you change your credit card number or your name on the credit card (or if you use a different credit card to purchase your book).
+The first is ignoblekeygen_v2.4.pyw.  Double-click to launch it and provide the required information, and this program will generate a key file needed to remove the DRM from the books. The require information is
+
+* Your Name: Your name as set in your Barnes & Noble account, My Account page, directly under PERSONAL INFORMATION. It is usually just your first name and last name separated by a space.
+* Credit Card number: This is the credit card number that was on file with Barnes & Noble at the time of download of the ebooks.
+
+This key file need only be generated once unless either you change the default credit card number or your name on your B&N account.
 
 The second is ignobleepub_vX.X.pyw.  Double-click it and it will ask for your key file and the path to the book to remove the DRM from.
 

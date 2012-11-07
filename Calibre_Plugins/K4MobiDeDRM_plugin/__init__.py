@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 
 from __future__ import with_statement
 
@@ -19,7 +20,7 @@ class K4DeDRM(FileTypePlugin):
     description         = 'Removes DRM from eInk Kindle, Kindle 4 Mac and Kindle 4 PC ebooks, and from Mobipocket ebooks. Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, mdlnx, ApprenticeAlf, etc.'
     supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
     author              = 'DiapDealer, SomeUpdates, mdlnx, Apprentice Alf' # The author of this plugin
-    version             = (0, 4, 5)   # The version number of this plugin
+    version             = (0, 4, 6)   # The version number of this plugin
     file_types          = set(['prc','mobi','azw','azw1','azw3','azw4','tpz']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
     priority            = 520  # run this plugin before earlier versions
@@ -39,7 +40,7 @@ class K4DeDRM(FileTypePlugin):
         elif isosx:
             names = ['libalfcrypto.dylib']
         else:
-            names = ['libalfcrypto32.so','libalfcrypto64.so','alfcrypto.py','alfcrypto.dll','alfcrypto64.dll','getk4pcpids.py','mobidedrm.py','kgenpids.py','k4pcutils.py','topazextract.py']
+            names = ['libalfcrypto32.so','libalfcrypto64.so','alfcrypto.py','alfcrypto.dll','alfcrypto64.dll','getk4pcpids.py','mobidedrm.py','kgenpids.py','k4pcutils.py','topazextract.py','outputfix.py']
         lib_dict = self.load_resources(names)
         self.alfdir = os.path.join(config_dir, 'alfcrypto')
         if not os.path.exists(self.alfdir):
@@ -56,9 +57,16 @@ class K4DeDRM(FileTypePlugin):
         # Had to move these imports here so the custom libs can be
         # extracted to the appropriate places beforehand these routines
         # look for them.
-        from calibre_plugins.k4mobidedrm import kgenpids
-        from calibre_plugins.k4mobidedrm import topazextract
-        from calibre_plugins.k4mobidedrm import mobidedrm
+        from calibre_plugins.k4mobidedrm import kgenpids, topazextract, mobidedrm, outputfix
+
+        if sys.stdout.encoding == None:
+            sys.stdout = outputfix.getwriter('utf-8')(sys.stdout)
+        else:
+            sys.stdout = outputfix.getwriter(sys.stdout.encoding)(sys.stdout)
+        if sys.stderr.encoding == None:
+            sys.stderr = outputfix.getwriter('utf-8')(sys.stderr)
+        else:
+            sys.stderr = outputfix.getwriter(sys.stderr.encoding)(sys.stderr)
 
         plug_ver = '.'.join(str(self.version).strip('()').replace(' ', '').split(','))
         k4 = True

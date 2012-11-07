@@ -296,7 +296,7 @@ class TopazBook:
                 break
 
         if not bookKey:
-            raise TpzDRMError('Decryption Unsucessful; No valid pid found')
+            raise TpzDRMError("Topaz Book. No key found in " + str(len(pidlst)) + " keys tried. Please report this failure for help.")
 
         self.setBookKey(bookKey)
         self.createBookDirectory()

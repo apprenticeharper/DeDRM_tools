@@ -2,7 +2,7 @@
 
 import sys
 import zlib
-import zipfile
+import zipfilerugged
 import os
 import os.path
 import getopt
@@ -15,7 +15,7 @@ _FILENAME_OFFSET = 30
 _MAX_SIZE = 64 * 1024
 _MIMETYPE = 'application/epub+zip'
 
-class ZipInfo(zipfile.ZipInfo):
+class ZipInfo(zipfilerugged.ZipInfo):
     def __init__(self, *args, **kwargs):
         if 'compress_type' in kwargs:
             compress_type = kwargs.pop('compress_type')
@@ -27,10 +27,14 @@ class fixZip:
         self.ztype = 'zip'
         if zinput.lower().find('.epub') >= 0 :
             self.ztype = 'epub'
-        self.inzip = zipfile.ZipFile(zinput,'r')
-        self.outzip = zipfile.ZipFile(zoutput,'w')
+        print "opening input"
+        self.inzip = zipfilerugged.ZipFile(zinput,'r')
+        print "opening outout"
+        self.outzip = zipfilerugged.ZipFile(zoutput,'w')
+        print "opening input as raw file"
         # open the input zip for reading only as a raw file
         self.bzf = file(zinput,'rb')
+        print "finished initialising"
 
     def getlocalname(self, zi):
         local_header_offset = zi.header_offset
@@ -76,11 +80,11 @@ class fixZip:
         data = None
 
         # if not compressed we are good to go
-        if zi.compress_type == zipfile.ZIP_STORED:
+        if zi.compress_type == zipfilerugged.ZIP_STORED:
             data = self.bzf.read(zi.file_size)
 
         # if compressed we must decompress it using zlib
-        if zi.compress_type == zipfile.ZIP_DEFLATED:
+        if zi.compress_type == zipfilerugged.ZIP_DEFLATED:
             cmpdata = self.bzf.read(zi.compress_size)
             data = self.uncompress(cmpdata)
 
@@ -95,7 +99,7 @@ class fixZip:
 
         # if epub write mimetype file first, with no compression
         if self.ztype == 'epub':
-            nzinfo = ZipInfo('mimetype', compress_type=zipfile.ZIP_STORED)
+            nzinfo = ZipInfo('mimetype', compress_type=zipfilerugged.ZIP_STORED)
             self.outzip.writestr(nzinfo, _MIMETYPE)
 
         # write the rest of the files
@@ -105,7 +109,7 @@ class fixZip:
                 nzinfo = zinfo
                 try:
                     data = self.inzip.read(zinfo.filename)
-                except zipfile.BadZipfile or zipfile.error:
+                except zipfilerugged.BadZipfile or zipfilerugged.error:
                     local_name = self.getlocalname(zinfo)
                     data = self.getfiledata(zinfo)
                     nzinfo.filename = local_name

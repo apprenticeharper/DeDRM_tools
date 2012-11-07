@@ -495,6 +495,7 @@ class CryptUnprotectDataV3(object):
 
 # Locate the .kindle-info files
 def getKindleInfoFiles(kInfoFiles):
+    found = False
     home = os.getenv('HOME')
     # search for any .kinf2011 files in new location (Sep 2012)
     cmdline = 'find "' + home + '/Library/Containers/com.amazon.Kindle/Data/Library/Application Support" -name ".kinf2011"'
@@ -525,7 +526,6 @@ def getKindleInfoFiles(kInfoFiles):
     out1, out2 = p1.communicate()
     reslst = out1.split('\n')
     kinfopath = 'NONE'
-    found = False
     for resline in reslst:
         if os.path.isfile(resline):
             kInfoFiles.append(resline)

@@ -30,6 +30,8 @@ from __future__ import with_statement
 #   5.4 - add support for encoding to 'utf-8' when building up list of files to decrypt from encryption.xml
 #   5.5 - On Windows try PyCrypto first, OpenSSL next
 #   5.6 - Modify interface to allow use with import
+#   5.7 - Fix for potential problem with PyCrypto
+
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
 """
@@ -235,7 +237,7 @@ def _load_crypto_pycrypto():
 
     class AES(object):
         def __init__(self, key):
-            self._aes = _AES.new(key, _AES.MODE_CBC)
+            self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
 
         def decrypt(self, data):
             return self._aes.decrypt(data)

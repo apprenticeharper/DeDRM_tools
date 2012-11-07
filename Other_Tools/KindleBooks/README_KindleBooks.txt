@@ -1,15 +1,14 @@
 KindleBooks (Originally called K4MobiDeDRM and Topaz_Tools)
 
+Most users will be better off using the DeDRM applications or the calibre plugin. This script is provided more for historical interest than anything else.
+
+
 This tools combines functionality of MobiDeDRM with that of K4PCDeDRM, K4MDeDRM, and K4DeDRM.  Effectively, it provides one-stop shopping for all your Mobipocket, Kindle for iPhone/iPad/iPodTouch, Kindle for PC, and Kindle for Mac needs and should work for both Mobi and Topaz ebooks.
 
 Preliminary Steps:
 
-1. Make sure you have Python 2.X installed (32 bit) and properly set as part of your SYSTEM PATH environment variable (On Windows I recommend ActiveState's ActivePython. See their web pages for instructions on how to install and how to properly set your PATH). On Mac OSX 10.6 everything you need is already installed.
+1. Make sure you have Python 2.5, 2.6 or 2.7 installed (32 bit) and properly set as part of your SYSTEM PATH environment variable (On Windows I recommend ActiveState's ActivePython. See their web pages for instructions on how to install and how to properly set your PATH). On Mac OSX 10.5 and later everything you need is already installed.
 
-
-****
-Please Note: If you a happy user of MobiDeDRM, K4DeDRM, K4PCDeDRM, or K4MUnswindle, please continue to use these programs as there is no additional capability provided by this tool over the others.  In the long run, if you have problems with any of those tools, you might want to try this one as it will continue under development eventually replacing all of those tools.
-****
 
 Instructions:
 

@@ -2,7 +2,7 @@
 
 from __future__ import with_statement
 
-# ignobleepub.pyw, version 3.4
+# ignobleepub.pyw, version 3.5
 
 # To run this program install Python 2.6 from <http://www.python.org/download/>
 # and OpenSSL or PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
@@ -17,7 +17,7 @@ from __future__ import with_statement
 #   3.2 - add support for encoding to 'utf-8' when building up list of files to cecrypt from encryption.xml
 #   3.3 - On Windows try PyCrypto first and OpenSSL next
 #   3.4 - Modify interace to allow use with import
-
+#   3.5 - Fix for potential problem with PyCrypto
 
 __license__ = 'GPL v3'
 
@@ -100,7 +100,7 @@ def _load_crypto_pycrypto():
 
     class AES(object):
         def __init__(self, key):
-            self._aes = _AES.new(key, _AES.MODE_CBC)
+            self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
 
         def decrypt(self, data):
             return self._aes.decrypt(data)
@@ -143,7 +143,7 @@ class ZipInfo(zipfile.ZipInfo):
 class Decryptor(object):
     def __init__(self, bookkey, encryption):
         enc = lambda tag: '{%s}%s' % (NSMAP['enc'], tag)
-        # self._aes = AES.new(bookkey, AES.MODE_CBC)
+        # self._aes = AES.new(bookkey, AES.MODE_CBC, '\x00'*16)
         self._aes = AES(bookkey)
         encryption = etree.fromstring(encryption)
         self._encrypted = encrypted = set()
@@ -271,7 +271,7 @@ def decryptBook(keypath, inpath, outpath):
     with open(keypath, 'rb') as f:
         keyb64 = f.read()
     key = keyb64.decode('base64')[:16]
-    # aes = AES.new(key, AES.MODE_CBC)
+    # aes = AES.new(key, AES.MODE_CBC, '\x00'*16)
     aes = AES(key)
 
     with closing(ZipFile(open(inpath, 'rb'))) as inf:

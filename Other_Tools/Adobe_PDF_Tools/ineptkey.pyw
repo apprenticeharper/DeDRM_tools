@@ -3,7 +3,7 @@
 
 from __future__ import with_statement
 
-# ineptkey.pyw, version 5.4
+# ineptkey.pyw, version 5.5
 # Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3 or
@@ -36,6 +36,7 @@ from __future__ import with_statement
 #   5.2 - added support for output of key to a particular file
 #   5.3 - On Windows try PyCrypto first, OpenSSL next
 #   5.4 - Modify interface to allow use of import
+#   5.5 - Fix for potential problem with PyCrypto
 
 """
 Retrieve Adobe ADEPT user key.
@@ -110,7 +111,7 @@ if sys.platform.startswith('win'):
         from Crypto.Cipher import AES as _AES
         class AES(object):
             def __init__(self, key):
-                self._aes = _AES.new(key, _AES.MODE_CBC)
+                self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
             def decrypt(self, data):
                 return self._aes.decrypt(data)
         return AES

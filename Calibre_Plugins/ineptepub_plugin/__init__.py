@@ -1,4 +1,7 @@
-#! /usr/bin/python
+#!/usr/bin/env python
+# vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
+
+from __future__ import with_statement
 
 # ineptepub_plugin.py
 # Released under the terms of the GNU General Public Licence, version 3 or
@@ -50,12 +53,16 @@
 #   0.1.5 - update zipfix to handle out of position mimetypes
 #   0.1.6 - update zipfix to handle completely missing mimetype files
 #   0.1.7 - update to new calibre plugin interface
+#   0.1.8 - Fix for potential problem with PyCrypto
+#   0.1.9 - Fix for potential problem with ADE keys and fix possible output/unicode problem
 
 """
 Decrypt Adobe ADEPT-encrypted EPUB books.
 """
 
-from __future__ import with_statement
+PLUGIN_NAME = 'Inept Epub DeDRM'
+PLUGIN_VERSION_TUPLE = (0, 1, 9)
+PLUGIN_VERSION = '.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 
 __license__ = 'GPL v3'
 
@@ -89,7 +96,7 @@ def _load_crypto_libcrypto():
     else:
         libcrypto = find_library('crypto')
     if libcrypto is None:
-        raise ADEPTError('libcrypto not found')
+        raise ADEPTError('%s Plugin v%s: libcrypto not found' % (PLUGIN_NAME, PLUGIN_VERSION))
     libcrypto = CDLL(libcrypto)
 
     RSA_NO_PADDING = 3
@@ -262,7 +269,7 @@ def _load_crypto_pycrypto():
 
     class AES(object):
         def __init__(self, key):
-            self._aes = _AES.new(key, _AES.MODE_CBC)
+            self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
 
         def decrypt(self, data):
             return self._aes.decrypt(data)
@@ -369,18 +376,29 @@ from calibre.customize import FileTypePlugin
 from calibre.constants import iswindows, isosx
 
 class IneptDeDRM(FileTypePlugin):
-    name                    = 'Inept Epub DeDRM'
+    name                    = PLUGIN_NAME
     description             = 'Removes DRM from secure Adobe epub files. \
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 7)
+    version                 = PLUGIN_VERSION_TUPLE
     minimum_calibre_version = (0, 7, 55)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub'])
     on_import               = True
     priority                = 100
     
     def run(self, path_to_ebook):
+        from calibre_plugins.ineptepub import outputfix
+         
+        if sys.stdout.encoding == None:
+            sys.stdout = outputfix.getwriter('utf-8')(sys.stdout)
+        else:
+            sys.stdout = outputfix.getwriter(sys.stdout.encoding)(sys.stdout)
+        if sys.stderr.encoding == None:
+            sys.stderr = outputfix.getwriter('utf-8')(sys.stderr)
+        else:
+            sys.stderr = outputfix.getwriter(sys.stderr.encoding)(sys.stderr)
+
         global AES
         global RSA
         
@@ -400,10 +418,13 @@ class IneptDeDRM(FileTypePlugin):
         files = os.listdir(confpath)
         filefilter = re.compile("\.der$", re.IGNORECASE)
         files = filter(filefilter.search, files)
+        foundDefault = False
 
         if files:
             try:
                 for filename in files:
+                    if filename[:16] == 'calibre-adeptkey':
+                        foundDefault = True
                     fpath = os.path.join(confpath, filename)
                     with open(fpath, 'rb') as f:
                         userkeys.append(f.read())
@@ -411,22 +432,23 @@ class IneptDeDRM(FileTypePlugin):
             except IOError:
                 print 'IneptEpub: Error reading keyfiles from config directory.'
                 pass
-        else:
+        
+        if not foundDefault:
             # Try to find key from ADE install and save the key in
             # Calibre's configuration directory for future use.
             if iswindows or isosx:
                 # ADE key retrieval script included in respective OS folder.
-                from calibre_plugins.ineptepub.ade_key import retrieve_key
+                from calibre_plugins.ineptepub.ineptkey import retrieve_keys
                 try:
-                    keydata = retrieve_key()
-                    userkeys.append(keydata)
-                    keypath = os.path.join(confpath, 'calibre-adeptkey.der')
-                    with open(keypath, 'wb') as f:
-                        f.write(keydata)
-                    print 'IneptEpub: Created keyfile from ADE install.'    
+                    keys = retrieve_keys()
+                    for i,key in enumerate(keys):
+                        userkeys.append(key)
+                        keypath = os.path.join(confpath, 'calibre-adeptkey{0:d}.der'.format(i))
+                        open(keypath, 'wb').write(key)
+                        print 'IneptEpub: Created keyfile %s from ADE install.' % keypath
                 except:
-                    print 'IneptEpub: Couldn\'t Retrieve key from ADE install.'
-                    pass
+                   print 'IneptEpub: Couldn\'t Retrieve key from ADE install.'
+                   pass
 
         if not userkeys:
             # No user keys found... bail out.
@@ -440,9 +462,11 @@ class IneptDeDRM(FileTypePlugin):
             from calibre_plugins.ineptepub import zipfix
             inf = self.temporary_file('.epub')
             try:
+                print '%s Plugin: Verifying zip archive integrity.' % PLUGIN_NAME
                 fr = zipfix.fixZip(path_to_ebook, inf.name)
                 fr.fix()
             except Exception, e:
+                print '%s Plugin: unforeseen zip archive issue.' % PLUGIN_NAME
                 raise Exception(e)
                 return
             of = self.temporary_file('.epub')

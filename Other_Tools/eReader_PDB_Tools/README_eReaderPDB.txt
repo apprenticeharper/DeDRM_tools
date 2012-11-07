@@ -14,7 +14,7 @@ The second script, Pml2HTML.pyw, converts the PML file extracted by the first sc
 
 The last script is eReaderPDB2PMLZ.pyw and it removes the DRM and extracts the PML and images from the ebook into a zip archive that can be directly imported into Calibre.
 
-All of these scripts are gui python programs.   Python 2.X (32 bit) is already installed in Mac OSX.  We recommend ActiveState's Active Python Version 2.X (32 bit) for Windows users.
+All of these scripts are gui python programs.   Python 2.5 or later (32 bit) is already installed in Mac OSX 10.5 and later.  We recommend ActiveState's Active Python Version 2.5 or later (32 bit) for Windows users.
 
 Simply double-click to launch these applications and follow along.
 

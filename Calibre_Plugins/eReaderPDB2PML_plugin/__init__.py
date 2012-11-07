@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 
 # eReaderPDB2PML_plugin.py
 # Released under the terms of the GNU General Public Licence, version 3 or
@@ -33,13 +34,14 @@
 #   0.0.3 - removed added psyco code as it is not supported under Calibre's Python 2.7
 #   0.0.4 - minor typos fixed
 #   0.0.5 - updated to the new calibre plugin interface
+#   0.0.6 - unknown changes
+#   0.0.7 - improved config dialog processing and fix possible output/unicode problem
 
 import sys, os
 
 from calibre.customize import FileTypePlugin
 from calibre.ptempfile import PersistentTemporaryDirectory
 from calibre.constants import iswindows, isosx
-from calibre_plugins.erdrpdb2pml import erdr2pml
 
 class eRdrDeDRM(FileTypePlugin):
     name                = 'eReader PDB 2 PML' # Name of the plugin
@@ -47,12 +49,22 @@ class eRdrDeDRM(FileTypePlugin):
                             Credit given to The Dark Reverser for the original standalone script.'
     supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
     author              = 'DiapDealer' # The author of this plugin
-    version             = (0, 0, 6)   # The version number of this plugin
+    version             = (0, 0, 7)   # The version number of this plugin
     file_types          = set(['pdb']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
     minimum_calibre_version = (0, 7, 55)
 
     def run(self, path_to_ebook):
+        from calibre_plugins.erdrpdb2pml import erdr2pml, outputfix
+         
+        if sys.stdout.encoding == None:
+            sys.stdout = outputfix.getwriter('utf-8')(sys.stdout)
+        else:
+            sys.stdout = outputfix.getwriter(sys.stdout.encoding)(sys.stdout)
+        if sys.stderr.encoding == None:
+            sys.stderr = outputfix.getwriter('utf-8')(sys.stderr)
+        else:
+            sys.stderr = outputfix.getwriter(sys.stderr.encoding)(sys.stderr)
         
         global bookname, erdr2pml
         
@@ -67,10 +79,13 @@ class eRdrDeDRM(FileTypePlugin):
             for i in ar:
                 try:
                     name, cc = i.split(',')
+                    #remove spaces at start or end of name, and anywhere in CC
+                    name = name.strip()
+                    cc = cc.replace(" ","")
                 except ValueError:
                     print '   Error parsing user supplied data.'
                     return path_to_ebook
-
+                
                 try:
                     print "Processing..."
                     import time

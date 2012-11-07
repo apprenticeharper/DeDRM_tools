@@ -21,7 +21,7 @@ import re
 import simpleprefs
 
 
-__version__ = '5.2'
+__version__ = '5.4'
 
 class DrmException(Exception):
     pass
@@ -142,21 +142,21 @@ class PrefsDialog(Toplevel):
         button = Tkinter.Button(body, text="...", command=self.get_altinfopath)
         button.grid(row=2, column=2)
 
-        Tkinter.Label(body, text='PID list (10 characters, no spaces, comma separated)').grid(row=3, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='Mobipocket PID list\n(8 or 10 characters, comma separated)').grid(row=3, sticky=Tkconstants.E)
         self.pidnums = Tkinter.StringVar()
         self.pidinfo = Tkinter.Entry(body, width=50, textvariable=self.pidnums)
         if 'pids' in self.prefs_array:
             self.pidnums.set(self.prefs_array['pids'])
         self.pidinfo.grid(row=3, column=1, sticky=sticky)
 
-        Tkinter.Label(body, text='Kindle Serial Number list (16 characters, no spaces, comma separated)').grid(row=4, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='eInk Kindle Serial Number list\n(16 characters, first character B, comma separated)').grid(row=4, sticky=Tkconstants.E)
         self.sernums = Tkinter.StringVar()
         self.serinfo = Tkinter.Entry(body, width=50, textvariable=self.sernums)
         if 'serials' in self.prefs_array:
             self.sernums.set(self.prefs_array['serials'])
         self.serinfo.grid(row=4, column=1, sticky=sticky)
 
-        Tkinter.Label(body, text='eReader data list (name:last 8 digits on credit card, comma separated)').grid(row=5, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='eReader data list\n(name:last 8 digits on credit card, comma separated)').grid(row=5, sticky=Tkconstants.E)
         self.sdrmnums = Tkinter.StringVar()
         self.sdrminfo = Tkinter.Entry(body, width=50, textvariable=self.sdrmnums)
         if 'sdrms' in self.prefs_array:
@@ -287,9 +287,9 @@ class PrefsDialog(Toplevel):
         new_prefs = {}
         prefdir = self.prefs_array['dir']
         new_prefs['dir'] = prefdir
-        new_prefs['pids'] = self.pidinfo.get().strip()
-        new_prefs['serials'] = self.serinfo.get().strip()
-        new_prefs['sdrms'] = self.sdrminfo.get().strip()
+        new_prefs['pids'] = self.pidinfo.get().replace(" ","")
+        new_prefs['serials'] = self.serinfo.get().replace(" ","")
+        new_prefs['sdrms'] = self.sdrminfo.get().strip().replace(", ",",")
         new_prefs['outdir'] = self.outpath.get().strip()
         adkpath = self.adkpath.get()
         if os.path.dirname(adkpath) != prefdir:

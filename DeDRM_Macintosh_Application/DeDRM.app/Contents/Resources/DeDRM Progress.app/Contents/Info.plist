@@ -27,15 +27,15 @@
 	<key>CFBundleVersion</key>
 	<string>1.0</string>
 	<key>DTCompiler</key>
-	<string></string>
+	<string>4.0</string>
 	<key>DTPlatformBuild</key>
 	<string>10M2518</string>
 	<key>DTPlatformVersion</key>
 	<string>PG</string>
 	<key>DTSDKBuild</key>
-	<string>9L31a</string>
+	<string>8S2167</string>
 	<key>DTSDKName</key>
-	<string>macosx10.5</string>
+	<string>macosx10.4</string>
 	<key>DTXcode</key>
 	<string>0400</string>
 	<key>DTXcodeBuild</key>

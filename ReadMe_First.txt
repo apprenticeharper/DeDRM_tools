@@ -1,29 +1,43 @@
 Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.3.1 archive.
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.4 archive.
 
 The is archive includes tools to remove DRM from:
 
- - Kindle ebooks (including Mobi, Topaz, Print Replica and KF8).
+ - Kindle ebooks (Mobi, Topaz, Print Replica and KF8).
  - Barnes and Noble ePubs
- - Adobe Digital Editions ePubs
+ - Adobe Digital Editions ePubs (including Sony and Kobo ePubs downloaded to ADE)
  - Adobe Digital Editions PDFs
  - Mobipocket ebooks
  - eReader PDB books
 
-These tools do NOT work with Apple's iBooks FairPlay DRM.
+These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
-The only tool that removes Apple's iBooks Fairplay DRM that is Requiem by Brahms version 3.3 or later. Requiem is NOT included in this tools package. It is under active development because Apple constantly updates its DRM scheme to stop Requiem from working.
-The latest version as of September 2012 is 3.3.5 and works with iTunes 10.5 and above.
 
-Requiem has a Tor website: http://tag3ulp55xczs3pn.onion. To reach the site using Tor, you will need to install Tor (http://www.torproject.org). If you're willing to sacrifice your anonymity, you can use the regular web with tor2web. Just go to http://tag3ulp55xczs3pn.tor2web.com.
+About the tools
+---------------
+These tools have been updated and maintained by Apprentice Alf, DiapDealer and some_updates.
 
+You can find the latest updates and get support at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
+
+If you re-post these tools, a link to the blog would be appreciated.
+
+The original inept and ignoble scripts were by I♥cabbages
+The original mobidedrm and erdr2pml scripts were by The Dark Reverser
+The original topaz DRM removal script was by CMBDTC
+The original topaz format conversion scripts were by some_updates, clarknova and Bart Simpson
+
+The calibre plugin conversions were originally by DiapDealer
+The DeDRM AppleScript application was by Apprentice Alf
+The DeDRM python GUI was by some_updates
+
+Many fixes, updates and enhancements to the scripts and applicatons have been by Apprentice Alf, some_updates and DiapDealer.
 
 
 Calibre Users (Mac OS X, Windows, and Linux)
 --------------------------------------------
-If you are a calibre user, the quickest and easiest way to remove DRM from your ebooks is to install each of the plugins in the Calibre_Plugins folder, following the instructions and configuration directions provided in each plugin's ReadMe file.
+If you are a calibre user, the quickest and easiest way, especially on Windows, to remove DRM from your ebooks is to install each of the plugins in the Calibre_Plugins folder, following the instructions and configuration directions provided in each plugin's ReadMe file.
 
 Once installed and configured, you can simply add a DRM book to calibre and the DeDRMed version will be imported into the calibre database. Note that DRM removal ONLY occurs on import. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
 
@@ -31,13 +45,16 @@ These plugins work for Windows, Mac OS X and Linux. For ebooks from Kindle 4 PC 
 
 
 
-DeDRM application for Mac OS X users: (Mac OS X 10.5 and above)
+DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
 ----------------------------------------------------------------------
-Drag the "DeDRM 5.3.1.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
+This application combines all the tools into one easy-to-use tool for Mac OS X users.
+
+Drag the "DeDRM 5.4.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
 To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM application and it will remove the DRM of the kinds listed above.
 
-For more detailed instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Applications/Macintosh folder.
+For more detailed instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Applications/Macintosh folder, including details of the extra step that Mac OS X 10.4 users need to take to use the application.
+
 
 
 
@@ -46,12 +63,19 @@ DeDRM application for Windows users: (Windows XP through Windows 7)
 ***This program requires that Python and PyCrypto be properly installed.***
 ***See below for details on recommended versions are where to get them.***
 
-Unzip the DeDRM_5.3_Win.zip archive that's in the DeDRM_Applications/Windows folder, saving the resulting DeDRM_5.3_Win folder in your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_5.3_Win folder. Double-click on the shortcut and the DeDRM application will run and guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
+This application combines all the tools into one easy-to-use tool for Windows users.
+
+Drag the DeDRM_5.4 folder that's in the DeDRM_Applications/Windows folder, to your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_5.4 folder. Double-click on the shortcut and the DeDRM application will run and guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
 To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM_Drop_Target.bat shortcut and it will remove the DRM of the kinds listed above.
 
 For more detailed instructions, see the DeDRM_ReadMe.txt file in the DeDRM_Applications/Windows folder.
 
+
+
+Kindle_for_Android_Patches
+--------------------------
+Definitely only for the adventurous, this folder contains information on how to modify the Kindel for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin).
 
 
 Other_Tools
@@ -60,21 +84,21 @@ There are a number of other python based tools that have graphical user interfac
 
 On Mac OS X (10.5, 10.6 and 10.7), your systems already have the proper Python and OpenSSL installed. So nothing need be done, you can already run these tools by double-clicking on the .pyw python scripts.
 
-Users of Mac OS X 10.3 and 10.4, need to download and install the "32-bit Mac Installer disk Image (2.7.X) for OS X 10.3 and later from http://www.python.org/download/releases/2.7.1/
+Users of Mac OS X 10.3 and 10.4, need to download and install the "32-bit Mac Installer disk Image (2.7.3) for OS X 10.3 and later from http://www.python.org/ftp/python/2.7.3/python-2.7.3-macosx10.3.dmg.
 
 On Windows, you need to install a 32 bit version of Python (even on Windows 64) plus a matching 32 bit version of PyCrypto *OR* OpenSSL. We ***strongly*** recommend the free community edition of ActiveState's Active Python version. See the end of this document for details.
 
-Linux users should have python 2.7, and openssl installed. but may need to run some of these tools under recent versions of Wine. See the Linux_Users section below:
+Linux users should have python 2.7, and openssl installed, but may need to run some of these tools under recent versions of Wine. See the Linux_Users section below:
 
 The scripts in the Other_Tools folder are organized by type of ebook you need to remove the DRM from. Choose from among:
 
   "Adobe_ePub_Tools"
   "Adobe_PDF_Tools"
   "Barnes_and_Noble_ePub_Tools"
-  "eReader_PDB_Tools"
-  "KindleBooks"
-  "Kindle_for_Android_Patch"
   "ePub_Fixer" (for fixing incorrectly made Adobe and Barnes and Noble ePubs)
+  "eReader_PDB_Tools"
+  "Kindle/Mobi_Tools"
+  "KindleBooks"
 
 by simply opening that folder.
 
@@ -262,3 +286,24 @@ so if you want you can use calibre in Linux:
 
 12. copy the adeptkey.der into the config dir of calibre (~/.config/calibre in debian). Every book imported to calibre will automaticly freed from DRM.
 
+
+Apple's iBooks FairPlay DRM
+---------------------------
+
+The only tool that removes Apple's iBooks Fairplay DRM that is Requiem by Brahms version 3.3 or later. Requiem is NOT included in this tools package. It is under active development because Apple constantly updates its DRM scheme to stop Requiem from working.
+The latest version as of October 2012 is 3.3.5 and works with iTunes 10.5 and above.
+
+Requiem has a Tor website: http://tag3ulp55xczs3pn.onion. To reach the site using Tor, you will need to install Tor (http://www.torproject.org). If you're willing to sacrifice your anonymity, you can use the regular web with tor2web. Just go to http://tag3ulp55xczs3pn.tor2web.com.
+
+Alternatively, you can download the 3.3.5 version from the following locationss:
+
+Requiem Windows application: http://www.datafilehost.com/download-b015485b.html
+MD5: 954f9ecf42635fae77afbc3a24489004
+
+Requiem Mac OS X application: http://www.datafilehost.com/download-50608ba6.html
+MD5: 4e7dc46ad7e0b54bea6182c5ad024ffe
+
+Requiem source code: http://www.datafilehost.com/download-af8f91a1.html
+MD5: e175560590a154859c0344e30870ac73
+
+No support for requiem is provided at Apprentice Alf's blog.
