@@ -1,124 +1,22 @@
-# standlone set of Mac OSX specific routines needed for KindleBooks
+#!/usr/bin/env python
+# K4PC Windows specific routines
 
 from __future__ import with_statement
 
-import sys
-import os
-import os.path
-import re
-import copy
-import subprocess
+import sys, os, re
 from struct import pack, unpack, unpack_from
 
-class DrmException(Exception):
-    pass
+from ctypes import windll, c_char_p, c_wchar_p, c_uint, POINTER, byref, \
+    create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
+    string_at, Structure, c_void_p, cast
 
+import _winreg as winreg
+MAX_PATH = 255
+kernel32 = windll.kernel32
+advapi32 = windll.advapi32
+crypt32 = windll.crypt32
 
-# interface to needed routines in openssl's libcrypto
-def _load_crypto_libcrypto():
-    from ctypes import CDLL, byref, POINTER, c_void_p, c_char_p, c_int, c_long, \
-        Structure, c_ulong, create_string_buffer, addressof, string_at, cast
-    from ctypes.util import find_library
-
-    libcrypto = find_library('crypto')
-    if libcrypto is None:
-        raise DrmException('libcrypto not found')
-    libcrypto = CDLL(libcrypto)
-
-    # From OpenSSL's crypto aes header
-    #
-    # AES_ENCRYPT     1
-    # AES_DECRYPT     0
-    # AES_MAXNR 14 (in bytes)
-    # AES_BLOCK_SIZE 16 (in bytes)
-    # 
-    # struct aes_key_st {
-    #    unsigned long rd_key[4 *(AES_MAXNR + 1)];
-    #    int rounds;
-    # };
-    # typedef struct aes_key_st AES_KEY;
-    #
-    # int AES_set_decrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key);
-    #
-    # note:  the ivec string, and output buffer are both mutable
-    # void AES_cbc_encrypt(const unsigned char *in, unsigned char *out,
-    #     const unsigned long length, const AES_KEY *key, unsigned char *ivec, const int enc);
-
-    AES_MAXNR = 14
-    c_char_pp = POINTER(c_char_p)
-    c_int_p = POINTER(c_int)
-
-    class AES_KEY(Structure):
-        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))), ('rounds', c_int)]
-    AES_KEY_p = POINTER(AES_KEY)
-
-    def F(restype, name, argtypes):
-        func = getattr(libcrypto, name)
-        func.restype = restype
-        func.argtypes = argtypes
-        return func
-
-    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',[c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,c_int])
-
-    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',[c_char_p, c_int, AES_KEY_p])
-
-    # From OpenSSL's Crypto evp/p5_crpt2.c
-    #
-    # int PKCS5_PBKDF2_HMAC_SHA1(const char *pass, int passlen,
-    #                        const unsigned char *salt, int saltlen, int iter,
-    #                        int keylen, unsigned char *out);
-
-    PKCS5_PBKDF2_HMAC_SHA1 = F(c_int, 'PKCS5_PBKDF2_HMAC_SHA1',
-                                [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
-
-    class LibCrypto(object):
-        def __init__(self):
-            self._blocksize = 0
-            self._keyctx = None
-            self._iv = 0
-
-        def set_decrypt_key(self, userkey, iv):
-            self._blocksize = len(userkey)
-            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                raise DrmException('AES improper key used')
-                return
-            keyctx = self._keyctx = AES_KEY()
-            self._iv = iv
-            self._userkey = userkey
-            rv = AES_set_decrypt_key(userkey, len(userkey) * 8, keyctx)
-            if rv < 0:
-                raise DrmException('Failed to initialize AES key')
-
-        def decrypt(self, data):
-            out = create_string_buffer(len(data))
-            mutable_iv = create_string_buffer(self._iv, len(self._iv))
-            keyctx = self._keyctx
-            rv = AES_cbc_encrypt(data, out, len(data), keyctx, mutable_iv, 0)
-            if rv == 0:
-                raise DrmException('AES decryption failed')
-            return out.raw
-
-        def keyivgen(self, passwd, salt, iter, keylen):
-            saltlen = len(salt)
-            passlen = len(passwd)
-            out = create_string_buffer(keylen)
-            rv = PKCS5_PBKDF2_HMAC_SHA1(passwd, passlen, salt, saltlen, iter, keylen, out)
-            return out.raw
-    return LibCrypto
-
-def _load_crypto():
-    LibCrypto = None
-    try:
-        LibCrypto = _load_crypto_libcrypto()
-    except (ImportError, DrmException):
-        pass
-    return LibCrypto
-
-LibCrypto = _load_crypto()
-
-#
-# Utility Routines
-#
+import traceback
 
 # crypto digestroutines
 import hashlib
@@ -138,19 +36,62 @@ def SHA256(message):
     ctx.update(message)
     return ctx.digest()
 
-# Various character maps used to decrypt books. Probably supposed to act as obfuscation
-charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
-charMap2 = "ZB0bYyc1xDdW2wEV3Ff7KkPpL8UuGA4gz-Tme9Nn_tHh5SvXCsIiR6rJjQaqlOoM"
+# For K4PC 1.9.X
+# use routines in alfcrypto:
+#    AES_cbc_encrypt
+#    AES_set_decrypt_key
+#    PKCS5_PBKDF2_HMAC_SHA1
 
-# For kinf approach of K4Mac 1.6.X or later
-# On K4PC charMap5 = "AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
-# For Mac they seem to re-use charMap2 here
-charMap5 = charMap2
+from alfcrypto import AES_CBC, KeyIVGen
 
-# new in K4M 1.9.X
+def UnprotectHeaderData(encryptedData):
+    passwdData = 'header_key_data'
+    salt = 'HEADER.2011'
+    iter = 0x80
+    keylen = 0x100
+    key_iv = KeyIVGen().pbkdf2(passwdData, salt, iter, keylen)
+    key = key_iv[0:32]
+    iv = key_iv[32:48]
+    aes=AES_CBC()
+    aes.set_decrypt_key(key, iv)
+    cleartext = aes.decrypt(encryptedData)
+    return cleartext
+
+
+# simple primes table (<= n) calculator
+def primes(n):
+    if n==2: return [2]
+    elif n<2: return []
+    s=range(3,n+1,2)
+    mroot = n ** 0.5
+    half=(n+1)/2-1
+    i=0
+    m=3
+    while m <= mroot:
+        if s[i]:
+            j=(m*m-3)/2
+            s[j]=0
+            while j<half:
+                s[j]=0
+                j+=m
+        i=i+1
+        m=2*i+3
+    return [2]+[x for x in s if x]
+
+
+# Various character maps used to decrypt kindle info values.
+# Probably supposed to act as obfuscation
+charMap2 = "AaZzB0bYyCc1XxDdW2wEeVv3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_"
+charMap5 = "AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
+# New maps in K4PC 1.9.0
+testMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
+testMap6 = "9YzAb0Cd1Ef2n5Pr6St7Uvh3Jk4M8WxG"
 testMap8 = "YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD"
 
+class DrmException(Exception):
+    pass
 
+# Encode the bytes in data with the characters in map
 def encode(data, map):
     result = ""
     for char in data:
@@ -177,374 +118,154 @@ def decode(data,map):
         result += pack("B",value)
     return result
 
-# For K4M 1.6.X and later
-# generate table of prime number less than or equal to int n
-def primes(n):
-    if n==2: return [2]
-    elif n<2: return []
-    s=range(3,n+1,2)
-    mroot = n ** 0.5
-    half=(n+1)/2-1
-    i=0
-    m=3
-    while m <= mroot:
-        if s[i]:
-            j=(m*m-3)/2
-            s[j]=0
-            while j<half:
-                s[j]=0
-                j+=m
-        i=i+1
-        m=2*i+3
-    return [2]+[x for x in s if x]
+
+# interface with Windows OS Routines
+class DataBlob(Structure):
+    _fields_ = [('cbData', c_uint),
+                ('pbData', c_void_p)]
+DataBlob_p = POINTER(DataBlob)
 
 
-# uses a sub process to get the Hard Drive Serial Number using ioreg
-# returns with the serial number of drive whose BSD Name is "disk0"
+def GetSystemDirectory():
+    GetSystemDirectoryW = kernel32.GetSystemDirectoryW
+    GetSystemDirectoryW.argtypes = [c_wchar_p, c_uint]
+    GetSystemDirectoryW.restype = c_uint
+    def GetSystemDirectory():
+        buffer = create_unicode_buffer(MAX_PATH + 1)
+        GetSystemDirectoryW(buffer, len(buffer))
+        return buffer.value
+    return GetSystemDirectory
+GetSystemDirectory = GetSystemDirectory()
+
 def GetVolumeSerialNumber():
-    sernum = os.getenv('MYSERIALNUMBER')
-    if sernum != None:
-        return sernum
-    cmdline = '/usr/sbin/ioreg -l -S -w 0 -r -c AppleAHCIDiskDriver'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p.communicate()
-    reslst = out1.split('\n')
-    cnt = len(reslst)
-    bsdname = None
-    sernum = None
-    foundIt = False
-    for j in xrange(cnt):
-        resline = reslst[j]
-        pp = resline.find('"Serial Number" = "')
-        if pp >= 0:
-            sernum = resline[pp+19:-1]
-            sernum = sernum.strip()
-        bb = resline.find('"BSD Name" = "')
-        if bb >= 0:
-            bsdname = resline[bb+14:-1]
-            bsdname = bsdname.strip()
-            if (bsdname == 'disk0') and (sernum != None):
-                foundIt = True
-                break
-    if not foundIt:
-        sernum = ''
-    return sernum
-
-def GetUserHomeAppSupKindleDirParitionName():
-    home = os.getenv('HOME')
-    dpath =  home + '/Library'
-    cmdline = '/sbin/mount'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p.communicate()
-    reslst = out1.split('\n')
-    cnt = len(reslst)
-    disk = ''
-    foundIt = False
-    for j in xrange(cnt):
-        resline = reslst[j]
-        if resline.startswith('/dev'):
-            (devpart, mpath) = resline.split(' on ')
-            dpart = devpart[5:]
-            pp = mpath.find('(')
-            if pp >= 0:
-                mpath = mpath[:pp-1]
-            if dpath.startswith(mpath):
-                disk = dpart
-    return disk
-
-# uses a sub process to get the UUID of the specified disk partition using ioreg
-def GetDiskPartitionUUID(diskpart):
-    uuidnum = os.getenv('MYUUIDNUMBER')
-    if uuidnum != None:
-        return uuidnum
-    cmdline = '/usr/sbin/ioreg -l -S -w 0 -r -c AppleAHCIDiskDriver'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p.communicate()
-    reslst = out1.split('\n')
-    cnt = len(reslst)
-    bsdname = None
-    uuidnum = None
-    foundIt = False
-    nest = 0
-    uuidnest = -1
-    partnest = -2
-    for j in xrange(cnt):
-        resline = reslst[j]
-        if resline.find('{') >= 0:
-            nest += 1
-        if resline.find('}') >= 0:
-            nest -= 1
-        pp = resline.find('"UUID" = "')
-        if pp >= 0:
-            uuidnum = resline[pp+10:-1]
-            uuidnum = uuidnum.strip()
-            uuidnest = nest
-            if partnest == uuidnest and uuidnest > 0:
-                foundIt = True
-                break
-        bb = resline.find('"BSD Name" = "')
-        if bb >= 0:
-            bsdname = resline[bb+14:-1]
-            bsdname = bsdname.strip()
-            if (bsdname == diskpart):
-                partnest = nest
-            else :
-                partnest = -2
-            if partnest == uuidnest and partnest > 0:
-                foundIt = True
-                break
-        if nest == 0:
-            partnest = -2
-            uuidnest = -1
-            uuidnum = None
-            bsdname = None
-    if not foundIt:
-        uuidnum = ''
-    return uuidnum
-
-def GetMACAddressMunged():
-    macnum = os.getenv('MYMACNUM')
-    if macnum != None:
-        return macnum
-    cmdline = '/sbin/ifconfig en0'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p.communicate()
-    reslst = out1.split('\n')
-    cnt = len(reslst)
-    macnum = None
-    foundIt = False
-    for j in xrange(cnt):
-        resline = reslst[j]
-        pp = resline.find('ether ')
-        if pp >= 0:
-            macnum = resline[pp+6:-1]
-            macnum = macnum.strip()
-            # print "original mac", macnum
-            # now munge it up the way Kindle app does
-            # by xoring it with 0xa5 and swapping elements 3 and 4
-            maclst = macnum.split(':')
-            n = len(maclst)
-            if n != 6:
-                fountIt = False
-                break
-            for i in range(6):
-                maclst[i] = int('0x' + maclst[i], 0)
-            mlst = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-            mlst[5] = maclst[5] ^ 0xa5
-            mlst[4] = maclst[3] ^ 0xa5
-            mlst[3] = maclst[4] ^ 0xa5
-            mlst[2] = maclst[2] ^ 0xa5
-            mlst[1] = maclst[1] ^ 0xa5
-            mlst[0] = maclst[0] ^ 0xa5
-            macnum = "%0.2x%0.2x%0.2x%0.2x%0.2x%0.2x" % (mlst[0], mlst[1], mlst[2], mlst[3], mlst[4], mlst[5])
-            foundIt = True
-            break
-    if not foundIt:
-        macnum = ''
-    return macnum
-
-
-# uses unix env to get username instead of using sysctlbyname
-def GetUserName():
-    username = os.getenv('USER')
-    return username
-
-def isNewInstall():
-    home = os.getenv('HOME')
-    # soccer game fan anyone
-    dpath = home + '/Library/Application Support/Kindle/storage/.pes2011'
-    # print dpath, os.path.exists(dpath)
-    if os.path.exists(dpath):
-        return True
-    dpath = home + '/Library/Containers/com.amazon.Kindle/Data/Library/Application Support/Kindle/storage/.pes2011'
-    # print dpath, os.path.exists(dpath)
-    if os.path.exists(dpath):
-        return True
-    return False
-
+    GetVolumeInformationW = kernel32.GetVolumeInformationW
+    GetVolumeInformationW.argtypes = [c_wchar_p, c_wchar_p, c_uint,
+                                      POINTER(c_uint), POINTER(c_uint),
+                                      POINTER(c_uint), c_wchar_p, c_uint]
+    GetVolumeInformationW.restype = c_uint
+    def GetVolumeSerialNumber(path = GetSystemDirectory().split('\\')[0] + '\\'):
+        vsn = c_uint(0)
+        GetVolumeInformationW(path, None, 0, byref(vsn), None, None, None, 0)
+        return str(vsn.value)
+    return GetVolumeSerialNumber
+GetVolumeSerialNumber = GetVolumeSerialNumber()
 
 def GetIDString():
-    # K4Mac now has an extensive set of ids strings it uses
-    # in encoding pids and in creating unique passwords
-    # for use in its own version of CryptUnprotectDataV2
+    vsn = GetVolumeSerialNumber()
+    print('Using Volume Serial Number for ID: '+vsn)
+    return vsn
 
-    # BUT Amazon has now become nasty enough to detect when its app
-    # is being run under a debugger and actually changes code paths
-    # including which one of these strings is chosen, all to try
-    # to prevent reverse engineering
+def getLastError():
+    GetLastError = kernel32.GetLastError
+    GetLastError.argtypes = None
+    GetLastError.restype = c_uint
+    def getLastError():
+        return GetLastError()
+    return getLastError
+getLastError = getLastError()
 
-    # Sad really ... they will only hurt their own sales ...
-    # true book lovers really want to keep their books forever
-    # and move them to their devices and DRM prevents that so they
-    # will just buy from someplace else that they can remove
-    # the DRM from
+def GetUserName():
+    GetUserNameW = advapi32.GetUserNameW
+    GetUserNameW.argtypes = [c_wchar_p, POINTER(c_uint)]
+    GetUserNameW.restype = c_uint
+    def GetUserName():
+        buffer = create_unicode_buffer(2)
+        size = c_uint(len(buffer))
+        while not GetUserNameW(buffer, byref(size)):
+            errcd = getLastError()
+            if errcd == 234:
+                # bad wine implementation up through wine 1.3.21
+                return "AlternateUserName"
+            buffer = create_unicode_buffer(len(buffer) * 2)
+            size.value = len(buffer)
+        return buffer.value.encode('utf-16-le')[::2]
+    return GetUserName
+GetUserName = GetUserName()
 
-    # Amazon should know by now that true book lover's are not like
-    # penniless kids that pirate music, we do not pirate books
-
-    if isNewInstall():
-        mungedmac = GetMACAddressMunged()
-        if len(mungedmac) > 7:
-            print('Using Munged MAC Address for ID: '+mungedmac)
-            return mungedmac
-    sernum = GetVolumeSerialNumber()
-    if len(sernum) > 7:
-        print('Using Volume Serial Number for ID: '+sernum)
-        return sernum
-    diskpart = GetUserHomeAppSupKindleDirParitionName()
-    uuidnum = GetDiskPartitionUUID(diskpart)
-    if len(uuidnum) > 7:
-        print('Using Disk Partition UUID for ID: '+uuidnum)
-        return uuidnum
-    mungedmac = GetMACAddressMunged()
-    if len(mungedmac) > 7:
-        print('Using Munged MAC Address for ID: '+mungedmac)
-        return mungedmac
-    print('Using Fixed constant 9999999999 for ID.')
-    return '9999999999'
-
-
-# implements an Pseudo Mac Version of Windows built-in Crypto routine
-# used by Kindle for Mac versions < 1.6.0
-class CryptUnprotectData(object):
-    def __init__(self):
-        sernum = GetVolumeSerialNumber()
-        if sernum == '':
-            sernum = '9999999999'
-        sp = sernum + '!@#' + GetUserName()
-        passwdData = encode(SHA256(sp),charMap1)
-        salt = '16743'
-        self.crp = LibCrypto()
-        iter = 0x3e8
-        keylen = 0x80
-        key_iv = self.crp.keyivgen(passwdData, salt, iter, keylen)
-        self.key = key_iv[0:32]
-        self.iv = key_iv[32:48]
-        self.crp.set_decrypt_key(self.key, self.iv)
-
-    def decrypt(self, encryptedData):
-        cleartext = self.crp.decrypt(encryptedData)
-        cleartext = decode(cleartext,charMap1)
-        return cleartext
+def CryptUnprotectData():
+    _CryptUnprotectData = crypt32.CryptUnprotectData
+    _CryptUnprotectData.argtypes = [DataBlob_p, c_wchar_p, DataBlob_p,
+                                   c_void_p, c_void_p, c_uint, DataBlob_p]
+    _CryptUnprotectData.restype = c_uint
+    def CryptUnprotectData(indata, entropy, flags):
+        indatab = create_string_buffer(indata)
+        indata = DataBlob(len(indata), cast(indatab, c_void_p))
+        entropyb = create_string_buffer(entropy)
+        entropy = DataBlob(len(entropy), cast(entropyb, c_void_p))
+        outdata = DataBlob()
+        if not _CryptUnprotectData(byref(indata), None, byref(entropy),
+                                   None, None, flags, byref(outdata)):
+            # raise DrmException("Failed to Unprotect Data")
+            return 'failed'
+        return string_at(outdata.pbData, outdata.cbData)
+    return CryptUnprotectData
+CryptUnprotectData = CryptUnprotectData()
 
 
-# implements an Pseudo Mac Version of Windows built-in Crypto routine
-# used for Kindle for Mac Versions >= 1.6.0
-class CryptUnprotectDataV2(object):
-    def __init__(self):
-        sp = GetUserName() + ':&%:' + GetIDString()
-        passwdData = encode(SHA256(sp),charMap5)
-        # salt generation as per the code
-        salt = 0x0512981d * 2 * 1 * 1
-        salt = str(salt) + GetUserName()
-        salt = encode(salt,charMap5)
-        self.crp = LibCrypto()
-        iter = 0x800
-        keylen = 0x400
-        key_iv = self.crp.keyivgen(passwdData, salt, iter, keylen)
-        self.key = key_iv[0:32]
-        self.iv = key_iv[32:48]
-        self.crp.set_decrypt_key(self.key, self.iv)
+# Locate all of the kindle-info style files and return as list
+def getKindleInfoFiles():
+    kInfoFiles = []
+    # some 64 bit machines do not have the proper registry key for some reason
+    # or the pythonn interface to the 32 vs 64 bit registry is broken
+    path = ""
+    if 'LOCALAPPDATA' in os.environ.keys():
+        path = os.environ['LOCALAPPDATA']
+    else:
+        # User Shell Folders show take precedent over Shell Folders if present
+        try:
+            regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders\\")
+            path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
+            if not os.path.isdir(path):
+                path = ""
+                try:
+                    regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
+                    path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
+                    if not os.path.isdir(path):
+                        path = ""
+                except RegError:
+                    pass
+        except RegError:
+            pass
 
-    def decrypt(self, encryptedData):
-        cleartext = self.crp.decrypt(encryptedData)
-        cleartext = decode(cleartext, charMap5)
-        return cleartext
-
-
-# unprotect the new header blob in .kinf2011
-# used in Kindle for Mac Version >= 1.9.0
-def UnprotectHeaderData(encryptedData):
-    passwdData = 'header_key_data'
-    salt = 'HEADER.2011'
-    iter = 0x80
-    keylen = 0x100
-    crp = LibCrypto()
-    key_iv = crp.keyivgen(passwdData, salt, iter, keylen)
-    key = key_iv[0:32]
-    iv = key_iv[32:48]
-    crp.set_decrypt_key(key,iv)
-    cleartext = crp.decrypt(encryptedData)
-    return cleartext
-
-
-# implements an Pseudo Mac Version of Windows built-in Crypto routine
-# used for Kindle for Mac Versions >= 1.9.0
-class CryptUnprotectDataV3(object):
-    def __init__(self, entropy):
-        sp = GetUserName() + '+@#$%+' + GetIDString()
-        passwdData = encode(SHA256(sp),charMap2)
-        salt = entropy
-        self.crp = LibCrypto()
-        iter = 0x800
-        keylen = 0x400
-        key_iv = self.crp.keyivgen(passwdData, salt, iter, keylen)
-        self.key = key_iv[0:32]
-        self.iv = key_iv[32:48]
-        self.crp.set_decrypt_key(self.key, self.iv)
-
-    def decrypt(self, encryptedData):
-        cleartext = self.crp.decrypt(encryptedData)
-        cleartext = decode(cleartext, charMap2)
-        return cleartext
-
-
-# Locate the .kindle-info files
-def getKindleInfoFiles(kInfoFiles):
     found = False
-    home = os.getenv('HOME')
-    # search for any .kinf2011 files in new location (Sep 2012)
-    cmdline = 'find "' + home + '/Library/Containers/com.amazon.Kindle/Data/Library/Application Support" -name ".kinf2011"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p1.communicate()
-    reslst = out1.split('\n')
-    for resline in reslst:
-        if os.path.isfile(resline):
-            kInfoFiles.append(resline)
-            print('Found k4Mac kinf2011 file: ' + resline)
+    if path == "":
+        print ('Could not find the folder in which to look for kinfoFiles.')
+    else:
+        print('searching for kinfoFiles in ' + path)
+
+        # first look for older kindle-info files
+        kinfopath = path +'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info'
+        if os.path.isfile(kinfopath):
             found = True
-   # search for any .kinf2011 files
-    cmdline = 'find "' + home + '/Library/Application Support" -name ".kinf2011"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p1.communicate()
-    reslst = out1.split('\n')
-    for resline in reslst:
-        if os.path.isfile(resline):
-            kInfoFiles.append(resline)
-            print('Found k4Mac kinf2011 file: ' + resline)
+            print('Found K4PC kindle.info file: ' + kinfopath)
+            kInfoFiles.append(kinfopath)
+
+        # now look for newer (K4PC 1.5.0 and later rainier.2.1.1.kinf file
+
+        kinfopath = path +'\\Amazon\\Kindle For PC\\storage\\rainier.2.1.1.kinf'
+        if os.path.isfile(kinfopath):
             found = True
-    # search for any .kindle-info files
-    cmdline = 'find "' + home + '/Library/Application Support" -name ".kindle-info"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p1.communicate()
-    reslst = out1.split('\n')
-    kinfopath = 'NONE'
-    for resline in reslst:
-        if os.path.isfile(resline):
-            kInfoFiles.append(resline)
-            print('Found K4Mac kindle-info file: ' + resline)
+            print('Found K4PC 1.5.X kinf file: ' + kinfopath)
+            kInfoFiles.append(kinfopath)
+
+        # now look for even newer (K4PC 1.6.0 and later) rainier.2.1.1.kinf file
+        kinfopath = path +'\\Amazon\\Kindle\\storage\\rainier.2.1.1.kinf'
+        if os.path.isfile(kinfopath):
             found = True
-    # search for any .rainier*-kinf files
-    cmdline = 'find "' + home + '/Library/Application Support" -name ".rainier*-kinf"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p1.communicate()
-    reslst = out1.split('\n')
-    for resline in reslst:
-        if os.path.isfile(resline):
-            kInfoFiles.append(resline)
-            print('Found k4Mac kinf file: ' + resline)
+            print('Found K4PC 1.6.X kinf file: ' + kinfopath)
+            kInfoFiles.append(kinfopath)
+
+        # now look for even newer (K4PC 1.9.0 and later) .kinf2011 file
+        kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
+        if os.path.isfile(kinfopath):
             found = True
+            print('Found K4PC kinf2011 file: ' + kinfopath)
+            kInfoFiles.append(kinfopath)
+
     if not found:
-        print('No k4Mac kindle-info/kinf/kinf2011 files have been found.')
+        print('No K4PC kindle.info/kinf/kinf2011 files have been found.')
     return kInfoFiles
+
 
 # determine type of kindle info provided and return a
 # database of keynames and values
@@ -556,11 +277,10 @@ def getDBfromFile(kInfoFile):
     hdr = infoReader.read(1)
     data = infoReader.read()
 
-    if data.find('[') != -1 :
+    if data.find('{') != -1 :
 
         # older style kindle-info file
-        cud = CryptUnprotectData()
-        items = data.split('[')
+        items = data.split('{')
         for item in items:
             if item != '':
                 keyhash, rawdata = item.split(':')
@@ -572,21 +292,18 @@ def getDBfromFile(kInfoFile):
                 if keyname == "unknown":
                     keyname = keyhash
                 encryptedValue = decode(rawdata,charMap2)
-                cleartext = cud.decrypt(encryptedValue)
-                DB[keyname] = cleartext
+                DB[keyname] = CryptUnprotectData(encryptedValue, "", 0)
                 cnt = cnt + 1
         if cnt == 0:
             DB = None
         return DB
 
     if hdr == '/':
-
-        # else newer style .kinf file used by K4Mac >= 1.6.0
+        # else rainier-2-1-1 .kinf file
         # the .kinf file uses "/" to separate it into records
         # so remove the trailing "/" to make it easy to use split
         data = data[:-1]
         items = data.split('/')
-        cud = CryptUnprotectDataV2()
 
         # loop through the item records until all are processed
         while len(items) > 0:
@@ -597,12 +314,10 @@ def getDBfromFile(kInfoFile):
             # the first 32 chars of the first record of a group
             # is the MD5 hash of the key name encoded by charMap5
             keyhash = item[0:32]
-            keyname = "unknown"
 
-            # the raw keyhash string is also used to create entropy for the actual
+            # the raw keyhash string is used to create entropy for the actual
             # CryptProtectData Blob that represents that keys contents
-            # "entropy" not used for K4Mac only K4PC
-            # entropy = SHA1(keyhash)
+            entropy = SHA1(keyhash)
 
             # the remainder of the first record when decoded with charMap5
             # has the ':' split char followed by the string representation
@@ -625,7 +340,6 @@ def getDBfromFile(kInfoFile):
                     break
             if keyname == "unknown":
                 keyname = keyhash
-
             # the charMap5 encoded contents data has had a length
             # of chars (always odd) cut off of the front and moved
             # to the end to prevent decoding using charMap5 from
@@ -633,49 +347,47 @@ def getDBfromFile(kInfoFile):
             # CryptUnprotectData call from succeeding.
 
             # The offset into the charMap5 encoded contents seems to be:
-            # len(contents) - largest prime number less than or equal to int(len(content)/3)
+            # len(contents)-largest prime number <=  int(len(content)/3)
             # (in other words split "about" 2/3rds of the way through)
 
             # move first offsets chars to end to align for decode by charMap5
             encdata = "".join(edlst)
             contlen = len(encdata)
+            noffset = contlen - primes(int(contlen/3))[-1]
 
             # now properly split and recombine
             # by moving noffset chars from the start of the
             # string to the end of the string
-            noffset = contlen - primes(int(contlen/3))[-1]
             pfx = encdata[0:noffset]
             encdata = encdata[noffset:]
             encdata = encdata + pfx
 
-            # decode using charMap5 to get the CryptProtect Data
+            # decode using Map5 to get the CryptProtect Data
             encryptedValue = decode(encdata,charMap5)
-            cleartext = cud.decrypt(encryptedValue)
-            DB[keyname] = cleartext
+            DB[keyname] = CryptUnprotectData(encryptedValue, entropy, 1)
             cnt = cnt + 1
 
         if cnt == 0:
             DB = None
         return DB
 
-    # the latest .kinf2011 version for K4M 1.9.1
-    # put back the hdr char, it is needed
-    data = hdr + data
-    data = data[:-1]
+    # else newest .kinf2011 style .kinf file
+    # the .kinf file uses "/" to separate it into records
+    # so remove the trailing "/" to make it easy to use split
+    # need to put back the first char read because it it part
+    # of the added entropy blob
+    data = hdr + data[:-1]
     items = data.split('/')
 
-    # the headerblob is the encrypted information needed to build the entropy string
+    # starts with and encoded and encrypted header blob
     headerblob = items.pop(0)
-    encryptedValue = decode(headerblob, charMap1)
+    encryptedValue = decode(headerblob, testMap1)
     cleartext = UnprotectHeaderData(encryptedValue)
-
-    # now extract the pieces in the same way
-    # this version is different from K4PC it scales the build number by multipying by 735
+    # now extract the pieces that form the added entropy
     pattern = re.compile(r'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
     for m in re.finditer(pattern, cleartext):
-        entropy = str(int(m.group(2)) * 0x2df) + m.group(4)
+        added_entropy = m.group(2) + m.group(4)
 
-    cud = CryptUnprotectDataV3(entropy)
 
     # loop through the item records until all are processed
     while len(items) > 0:
@@ -686,11 +398,10 @@ def getDBfromFile(kInfoFile):
         # the first 32 chars of the first record of a group
         # is the MD5 hash of the key name encoded by charMap5
         keyhash = item[0:32]
-        keyname = "unknown"
 
-        # unlike K4PC the keyhash is not used in generating entropy
-        # entropy = SHA1(keyhash) + added_entropy
-        # entropy = added_entropy
+        # the sha1 of raw keyhash string is used to create entropy along
+        # with the added entropy provided above from the headerblob
+        entropy = SHA1(keyhash) + added_entropy
 
         # the remainder of the first record when decoded with charMap5
         # has the ':' split char followed by the string representation
@@ -706,13 +417,12 @@ def getDBfromFile(kInfoFile):
             item = items.pop(0)
             edlst.append(item)
 
+        # key names now use the new testMap8 encoding
         keyname = "unknown"
         for name in names:
             if encodeHash(name,testMap8) == keyhash:
                 keyname = name
                 break
-        if keyname == "unknown":
-            keyname = keyhash
 
         # the testMap8 encoded contents data has had a length
         # of chars (always odd) cut off of the front and moved
@@ -721,26 +431,22 @@ def getDBfromFile(kInfoFile):
         # CryptUnprotectData call from succeeding.
 
         # The offset into the testMap8 encoded contents seems to be:
-        # len(contents) - largest prime number less than or equal to int(len(content)/3)
+        # len(contents)-largest prime number <=  int(len(content)/3)
         # (in other words split "about" 2/3rds of the way through)
 
         # move first offsets chars to end to align for decode by testMap8
-        encdata = "".join(edlst)
-        contlen = len(encdata)
-
-        # now properly split and recombine
         # by moving noffset chars from the start of the
         # string to the end of the string
+        encdata = "".join(edlst)
+        contlen = len(encdata)
         noffset = contlen - primes(int(contlen/3))[-1]
         pfx = encdata[0:noffset]
         encdata = encdata[noffset:]
         encdata = encdata + pfx
 
-        # decode using testMap8 to get the CryptProtect Data
+        # decode using new testMap8 to get the original CryptProtect Data
         encryptedValue = decode(encdata,testMap8)
-        cleartext = cud.decrypt(encryptedValue)
-        # print keyname
-        # print cleartext
+        cleartext = CryptUnprotectData(encryptedValue, entropy, 1)
         DB[keyname] = cleartext
         cnt = cnt + 1
 

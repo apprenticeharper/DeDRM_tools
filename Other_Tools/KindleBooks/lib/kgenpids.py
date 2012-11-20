@@ -255,12 +255,12 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
 
     return pidlst
 
-def getPidList(md1, md2, k4, pids, serials, kInfoFiles):
+def getPidList(md1, md2, k4 = True, serials=[], kInfoFiles=[]):
     pidlst = []
     if kInfoFiles is None:
         kInfoFiles = []
     if k4:
-        kInfoFiles = getKindleInfoFiles(kInfoFiles)
+        kInfoFiles.extend(getKindleInfoFiles())
     for infoFile in kInfoFiles:
         try:
             pidlst = getK4Pids(pidlst, md1, md2, infoFile)
@@ -271,6 +271,4 @@ def getPidList(md1, md2, k4, pids, serials, kInfoFiles):
             pidlst = getKindlePid(pidlst, md1, md2, serialnum)
         except Exception, message:
             print("Error getting PIDs from " + serialnum + ": " + message)
-    for pid in pids:
-        pidlst.append(pid)
     return pidlst

@@ -24,17 +24,17 @@
 	<key>CFBundleExecutable</key>
 	<string>droplet</string>
 	<key>CFBundleGetInfoString</key>
-	<string>DeDRM 5.4. AppleScript written 2010–2012 by Apprentice Alf and others.</string>
+	<string>DeDRM 5.4.1. AppleScript written 2010–2012 by Apprentice Alf and others.</string>
 	<key>CFBundleIconFile</key>
 	<string>DeDRM</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>DeDRM 5.4</string>
+	<string>DeDRM 5.4.1</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>5.4</string>
+	<string>5.4.1</string>
 	<key>CFBundleSignature</key>
 	<string>dplt</string>
 	<key>LSRequiresCarbon</key>

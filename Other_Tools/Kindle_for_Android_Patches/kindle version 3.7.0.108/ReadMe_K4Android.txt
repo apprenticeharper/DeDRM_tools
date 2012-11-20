@@ -11,6 +11,7 @@ Instead of trying to calculate the correct PIDs for each book from this primary 
 
 From the ApprenticeAlf Comments:
 
+
 "Me II" writes:
 
 Since “Me”‘s old method for getting PIDs from Kindle for Android is outdated and no longer works with newer versions of the app, I decided I’d take a stab at bringing it up to date. It took a little fiddling to get everything working, considering how much has changed since the last patch, but I managed to do it. The process is pretty much identical to “Me”‘s original instructions, with a few minor changes.
@@ -24,7 +25,14 @@ You can get the new patch, for version 3.7.0.108, here: http://pastebin.com/6FN2
 
 And here’s a screenshot of the updated menu: http://imgur.com/BbFVF (sorry for the Japanese, I was too lazy to change my phone’s language).
 
+Subsequently, "s" wrote:
 
+For others it would be useful to add the keystore generation command into the help file:
+keytool -genkey -v -keystore kindle.keystore -alias kindle -keyalg RSA -keysize 2048 -validity 10000
+As well as location of prc’s on android being (with sdcard):
+/mnt/sdcard/Android/data/com.amazon.kindle/files/
+
+"s" also reported success with using the patch on version 3.7.1.8, although I recommend using the 3.7.0.108 version just in case.
 
 
 "Me"'s original instructions, from the ApprenticeAlf Comments:

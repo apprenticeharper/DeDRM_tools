@@ -21,7 +21,7 @@ import re
 import simpleprefs
 
 
-__version__ = '5.4'
+__version__ = '5.4.1'
 
 class DrmException(Exception):
     pass

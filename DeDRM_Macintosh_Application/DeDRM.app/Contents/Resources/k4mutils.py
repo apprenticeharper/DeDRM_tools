@@ -31,7 +31,7 @@ def _load_crypto_libcrypto():
     # AES_DECRYPT     0
     # AES_MAXNR 14 (in bytes)
     # AES_BLOCK_SIZE 16 (in bytes)
-    # 
+    #
     # struct aes_key_st {
     #    unsigned long rd_key[4 *(AES_MAXNR + 1)];
     #    int rounds;
@@ -494,56 +494,37 @@ class CryptUnprotectDataV3(object):
 
 
 # Locate the .kindle-info files
-def getKindleInfoFiles(kInfoFiles):
+def getKindleInfoFiles():
+    # file searches can take a long time on some systems, so just look in known specific places.
+    kInfoFiles=[]
     found = False
     home = os.getenv('HOME')
-    # search for any .kinf2011 files in new location (Sep 2012)
-    cmdline = 'find "' + home + '/Library/Containers/com.amazon.Kindle/Data/Library/Application Support" -name ".kinf2011"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p1.communicate()
-    reslst = out1.split('\n')
-    for resline in reslst:
-        if os.path.isfile(resline):
-            kInfoFiles.append(resline)
-            print('Found k4Mac kinf2011 file: ' + resline)
-            found = True
-   # search for any .kinf2011 files
-    cmdline = 'find "' + home + '/Library/Application Support" -name ".kinf2011"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p1.communicate()
-    reslst = out1.split('\n')
-    for resline in reslst:
-        if os.path.isfile(resline):
-            kInfoFiles.append(resline)
-            print('Found k4Mac kinf2011 file: ' + resline)
-            found = True
-    # search for any .kindle-info files
-    cmdline = 'find "' + home + '/Library/Application Support" -name ".kindle-info"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p1.communicate()
-    reslst = out1.split('\n')
-    kinfopath = 'NONE'
-    for resline in reslst:
-        if os.path.isfile(resline):
-            kInfoFiles.append(resline)
-            print('Found K4Mac kindle-info file: ' + resline)
-            found = True
-    # search for any .rainier*-kinf files
-    cmdline = 'find "' + home + '/Library/Application Support" -name ".rainier*-kinf"'
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p1 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
-    out1, out2 = p1.communicate()
-    reslst = out1.split('\n')
-    for resline in reslst:
-        if os.path.isfile(resline):
-            kInfoFiles.append(resline)
-            print('Found k4Mac kinf file: ' + resline)
-            found = True
+    # check for  .kinf2011 file in new location (App Store Kindle for Mac)
+    testpath = home + '/Library/Containers/com.amazon.Kindle/Data/Library/Application Support/Kindle/storage/.kinf2011'
+    if os.path.isfile(testpath):
+        kInfoFiles.append(testpath)
+        print('Found k4Mac kinf2011 file: ' + testpath)
+        found = True
+    # check for  .kinf2011 files
+    testpath = home + '/Library/Application Support/Kindle/storage/.kinf2011'
+    if os.path.isfile(testpath):
+        kInfoFiles.append(testpath)
+        print('Found k4Mac kinf2011 file: ' + testpath)
+        found = True
+    # check for  .rainier-2.1.1-kinf files
+    testpath = home + '/Library/Application Support/Kindle/storage/.rainier-2.1.1-kinf'
+    if os.path.isfile(testpath):
+        kInfoFiles.append(testpath)
+        print('Found k4Mac rainier file: ' + testpath)
+        found = True
+    # check for  .rainier-2.1.1-kinf files
+    testpath = home + '/Library/Application Support/Kindle/storage/.kindle-info'
+    if os.path.isfile(testpath):
+        kInfoFiles.append(testpath)
+        print('Found k4Mac kindle-info file: ' + testpath)
+        found = True
     if not found:
-        print('No k4Mac kindle-info/kinf/kinf2011 files have been found.')
+        print('No k4Mac kindle-info/rainier/kinf2011 files have been found.')
     return kInfoFiles
 
 # determine type of kindle info provided and return a

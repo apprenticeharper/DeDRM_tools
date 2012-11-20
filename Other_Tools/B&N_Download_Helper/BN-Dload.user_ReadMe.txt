@@ -1,0 +1,22 @@
+To obtain unencrypted content from the B&N, you have to download it directly from the website. Unrooted Nook devices will not let you save your content to your PC.
+
+If the downloaded file is encrypted, install and configure the ignoble plugin in Calibre to decrypt that.
+
+Some content is not downloadable from the website, for instance magazines. The Greasemonkey script included in the tools modifies the myNook page of the Barnes and Noble website to show a download button for non-downloadable content. This will work until Barnes & Noble changes their website.
+
+Prerequisites
+1) Firefox: http://getfirefox.com
+2) Greasemokey extension: https://addons.mozilla.org/nl/firefox/addon/greasemonkey/
+
+One time installation
+1) Install Firefox if not already done so;
+2) Follow the above link to GreaseMonkey and click Add to Firefox
+3) Restart Firefox
+4) Go to (link to the script, best hosted somewhere, as .js usually opens in an editor)
+5) A pop up should appear, stating you are about to install a GreaseMonkey user script.
+6) Click on install
+
+Use
+1) Log in into your B&N account
+2) Go to MyNook
+3) An “Alternative download” should apppear next to normally non-downloadable content.

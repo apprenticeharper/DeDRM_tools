@@ -5,8 +5,9 @@
 #
 # Changelog
 #  1.00 - Initial version
+#  1.01 - getPidList interface change
 
-__version__ = '1.00'
+__version__ = '1.01'
 
 import sys
 
@@ -43,15 +44,15 @@ def getK4PCpids(path_to_ebook):
         mb = mobidedrm.MobiBook(path_to_ebook,False)
     else:
         mb = topazextract.TopazBook(path_to_ebook)
-    
+
     md1, md2 = mb.getPIDMetaInfo()
 
-    return kgenpids.getPidList(md1, md2, True, [], [], []) 
+    return kgenpids.getPidList(md1, md2)
 
 
 def main(argv=sys.argv):
     print ('getk4pcpids.py v%(__version__)s. '
-        'Copyright 2012 Apprentic Alf' % globals())
+        'Copyright 2012 Apprentice Alf' % globals())
 
     if len(argv)<2 or len(argv)>3:
         print "Gets the possible book-specific PIDs from K4PC for a particular book"
@@ -70,7 +71,7 @@ def main(argv=sys.argv):
         if len(argv) is 3:
             outfile = argv[2]
             file(outfile, 'w').write(pidstring)
-        
+
     return 0
 
 if __name__ == "__main__":

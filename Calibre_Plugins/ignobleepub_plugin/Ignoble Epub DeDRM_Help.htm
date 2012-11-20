@@ -1,4 +1,8 @@
-<html>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
 <title>Ignoble Epub DeDRM Plugin Configuration</title>
@@ -7,10 +11,10 @@
 <body>
 
 <h1>Ignoble Epub DeDRM Plugin</h1>
-<h3>(version 0.2.3)</h3>
+<h3>(version 0.2.4)</h3>
 <h3> For additional help read the <a href="http://apprenticealf.wordpress.com/2011/01/17/frequently-asked-questions-about-the-drm-removal-tools/" target="_blank">FAQ</a> on <a href="http://apprenticealf.wordpress.com" target="_blank">Apprentice Alf's Blog</a> and ask questions in the comments section of the <a href="http://apprenticealf.wordpress.com/2012/09/10/drm-removal-tools-for-ebooks/" target="_blank">first post</a>.</h3>
 
-<p>All credit given to I &lt;3 Cabbages for the original standalone scripts (I had the much easier job of converting them to a calibre plugin).</p>
+<p>All credit given to I ♥ Cabbages for the original standalone scripts (I had the much easier job of converting them to a calibre plugin).</p>
 
 <p>This plugin is meant to decrypt Barnes & Noble ePubs that are protected with Adobe's Adept encryption. It is meant to function without having to install any dependencies... other than having calibre installed, of course. It will still work if you have Python and PyCrypto already installed, but they aren't necessary.</p>
 
@@ -83,6 +87,8 @@
    0.2.1 - an updated/modified zipfix.py and included zipfilerugged.py
    0.2.2 - added in potential fixes from 0.1.7 that had been missed.
    0.2.3 - fixed possible output/unicode problem
+   0.2.4 - ditched nearly hopeless caselessStrCmp method in favor of uStrCmp.
+         - added ability to rename existing keys.
 </pre>
 </body>
 

@@ -1,7 +1,7 @@
 Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.4 archive.
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.4.1 archive.
 
 The is archive includes tools to remove DRM from:
 
@@ -11,6 +11,7 @@ The is archive includes tools to remove DRM from:
  - Adobe Digital Editions PDFs
  - Mobipocket ebooks
  - eReader PDB books
+ - Scuolabooks (Windows only solution by Hex)
 
 These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
@@ -27,6 +28,7 @@ The original inept and ignoble scripts were by I♥cabbages
 The original mobidedrm and erdr2pml scripts were by The Dark Reverser
 The original topaz DRM removal script was by CMBDTC
 The original topaz format conversion scripts were by some_updates, clarknova and Bart Simpson
+The Scuolabooks tool is by Hex
 
 The calibre plugin conversions were originally by DiapDealer
 The DeDRM AppleScript application was by Apprentice Alf
@@ -49,7 +51,7 @@ DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
 ----------------------------------------------------------------------
 This application combines all the tools into one easy-to-use tool for Mac OS X users.
 
-Drag the "DeDRM 5.4.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
+Drag the "DeDRM 5.4.1.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
 To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM application and it will remove the DRM of the kinds listed above.
 
@@ -65,7 +67,7 @@ DeDRM application for Windows users: (Windows XP through Windows 7)
 
 This application combines all the tools into one easy-to-use tool for Windows users.
 
-Drag the DeDRM_5.4 folder that's in the DeDRM_Applications/Windows folder, to your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_5.4 folder. Double-click on the shortcut and the DeDRM application will run and guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
+Drag the DeDRM_5.4.1 folder that's in the DeDRM_Applications/Windows folder, to your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_5.4.1 folder. Double-click on the shortcut and the DeDRM application will run and guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
 To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM_Drop_Target.bat shortcut and it will remove the DRM of the kinds listed above.
 
@@ -73,14 +75,20 @@ For more detailed instructions, see the DeDRM_ReadMe.txt file in the DeDRM_Appli
 
 
 
+Other_Tools
+-----------
+This folder includes two non-python tools:
+
 Kindle_for_Android_Patches
 --------------------------
 Definitely only for the adventurous, this folder contains information on how to modify the Kindel for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin).
 
+B&N_Download_Helper
+-------------------
+A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Another one only for the adventurous.
 
-Other_Tools
------------
-There are a number of other python based tools that have graphical user interfaces to make them easy to use. To use any of these tools, you need to have Python 2.5, 2.6, or 2.7 for 32 bits installed on your machine as well as a matching PyCrypto or OpenSSL for some tools.
+
+And then there are a number of other python based tools that have graphical user interfaces to make them easy to use. To use any of these tools, you need to have Python 2.5, 2.6, or 2.7 for 32 bits installed on your machine as well as a matching PyCrypto or OpenSSL for some tools.
 
 On Mac OS X (10.5, 10.6 and 10.7), your systems already have the proper Python and OpenSSL installed. So nothing need be done, you can already run these tools by double-clicking on the .pyw python scripts.
 
@@ -102,7 +110,7 @@ The scripts in the Other_Tools folder are organized by type of ebook you need to
 
 by simply opening that folder.
 
-Look for a README inside of the relevant folder to get you started. 
+Look for a README inside of the relevant folder to get you started.
 
 
 
@@ -110,6 +118,10 @@ Additional Tools
 ----------------
 Some additional useful tools **unrelated to DRM** are also provided in the "Additional_Tools" folder inside the "Other_Tools" folder. There are tools for working with finding Topaz ebooks, unpacking Kindle/Mobipocket ebooks (without DRM) to get to the Mobipocket markup language inside, tools to strip source archive from Kindlegen generated mobis, tools to work with Kindle for iPhone/iPad, etc, and tools to dump the contents of mobi headers to see all EXTH (metadata) and related values.
 
+
+Scuolabook_DRM
+-------------
+This is a Windows-only tool produced by Hex and included with permission.
 
 
 Windows and Python
@@ -167,7 +179,7 @@ It is possible to run the Kindle for PC application under Wine.
 cd ~
 cd .wine
 cd drive_c
-echo deadbeef > .windows-serial 
+echo deadbeef > .windows-serial
 
 Replace "deadbeef" with whatever hex value you want but I would stay away from the default setting of "ffffffff" which does not seem to work. BTW: deadbeef is itself a valid possible hex value if you want to use it
 
@@ -189,7 +201,7 @@ If you have not already installed Kindle for PC under wine, follow steps 2 and 3
 cd ~
 cd .wine
 cd drive_c
-echo deadbeef > .windows-serial 
+echo deadbeef > .windows-serial
 
 Replace "deadbeef" with whatever hex value you want but I would stay away from the default setting of "ffffffff" which does not seem to work. BTW: deadbeef is itself a valid possible hex value if you want to use it
 
@@ -221,7 +233,7 @@ Here are the instructions for using the tools with ePub books and Adobe Digital 
 
 1. download the most recent version of wine from winehq.org (1.3.29 in my case)
 
-For debian users: 
+For debian users:
 
 to get a recent version of wine I decited to use aptosid (2011-02, xfce)
 (because I’m used to debian)
@@ -233,7 +245,7 @@ install aptosid and upgrade it (see aptosid site for detaild instructions)
 For debian users:
 
 cd to this dir and install the packages as root:
-‘dpkg -i *.deb’ 
+‘dpkg -i *.deb’
 you will get some error messages, which can be ignored.
 again as root use
 ‘apt-get -f install’ to correct this errors
@@ -265,7 +277,7 @@ d) pycrypto-2.3.win32-py2.7.msi (from: http://www.voidspace.org.uk/python/module
 cd ~/.wine/drive_c/tools_vX.X/Other_Tools/Adobe_ePub_Tools
 
 8. create the adeptkey.der with:
-‘wine python ineptkey_v5.4.pyw’ (only need once!)
+‘wine python ineptkey_v5.4.1.pyw’ (only need once!)
 (key will be here: ~/.wine/drive_c/tools_v4.X/Other_Tools/Adobe_ePub_Tools/adeptkey.der)
 
 9. Use ADE running under Wine to dowload all of your purchased ePub ebooks

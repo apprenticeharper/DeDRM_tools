@@ -272,7 +272,7 @@ class TopazBook:
                 from calibre_plugins.k4mobidedrm import genbook
             else:
                 import genbook
-            
+
             rv = genbook.generateBook(self.outdir, raw, fixedimage)
             if rv == 0:
                 print "\nBook Successfully generated"
@@ -296,7 +296,7 @@ class TopazBook:
                 break
 
         if not bookKey:
-            raise TpzDRMError("Topaz Book. No key found in " + str(len(pidlst)) + " keys tried. Please report this failure for help.")
+            raise TpzDRMError("Topaz Book. No key found in " + str(len(pidlst)) + " keys tried. Read the FAQs at Alf's blog. Only if none apply, report this failure for help.")
 
         self.setBookKey(bookKey)
         self.createBookDirectory()
@@ -306,7 +306,7 @@ class TopazBook:
             from calibre_plugins.k4mobidedrm import genbook
         else:
             import genbook
-        
+
         rv = genbook.generateBook(self.outdir, raw, fixedimage)
         if rv == 0:
             print "\nBook Successfully generated"
@@ -374,7 +374,7 @@ class TopazBook:
         zipUpDir(svgzip, self.outdir, 'svg')
         zipUpDir(svgzip, self.outdir, 'img')
         svgzip.close()
-    
+
     def getXMLZip(self, zipname):
         xmlzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
         targetdir = os.path.join(self.outdir,'xml')
@@ -442,11 +442,11 @@ def main(argv=sys.argv):
     title = tb.getBookTitle()
     print "Processing Book: ", title
     keysRecord, keysRecordRecord = tb.getPIDMetaInfo()
-    pidlst = kgenpids.getPidList(keysRecord, keysRecordRecord, k4, pids, serials, kInfoFiles)
+    pids.extend(kgenpids.getPidList(keysRecord, keysRecordRecord, k4, serials, kInfoFiles))
 
     try:
         print "Decrypting Book"
-        tb.processBook(pidlst)
+        tb.processBook(pids)
 
         print "   Creating HTML ZIP Archive"
         zipname = os.path.join(outdir, bookname + '_nodrm' + '.htmlz')

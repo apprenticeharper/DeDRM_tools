@@ -13,6 +13,7 @@ from calibre.constants import iswindows, isosx
 import sys
 import os
 import re
+import time
 from zipfile import ZipFile
 
 class K4DeDRM(FileTypePlugin):
@@ -20,7 +21,7 @@ class K4DeDRM(FileTypePlugin):
     description         = 'Removes DRM from eInk Kindle, Kindle 4 Mac and Kindle 4 PC ebooks, and from Mobipocket ebooks. Provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, mdlnx, ApprenticeAlf, etc.'
     supported_platforms = ['osx', 'windows', 'linux'] # Platforms this plugin will run on
     author              = 'DiapDealer, SomeUpdates, mdlnx, Apprentice Alf' # The author of this plugin
-    version             = (0, 4, 6)   # The version number of this plugin
+    version             = (0, 4, 7)   # The version number of this plugin
     file_types          = set(['prc','mobi','azw','azw1','azw3','azw4','tpz']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
     priority            = 520  # run this plugin before earlier versions
@@ -51,7 +52,7 @@ class K4DeDRM(FileTypePlugin):
                 f.write(data)
 
     def run(self, path_to_ebook):
-        # add the alfcrypto directory to sys.path so alfcrypto.py 
+        # add the alfcrypto directory to sys.path so alfcrypto.py
         # will be able to locate the custom lib(s) for CDLL import.
         sys.path.insert(0, self.alfdir)
         # Had to move these imports here so the custom libs can be
@@ -73,8 +74,11 @@ class K4DeDRM(FileTypePlugin):
         pids = []
         serials = []
         kInfoFiles = []
+        starttime = time.time()
+        print "K4MobiDeDRM plugin v{0:s}: Starting".format(plug_ver)
+
         self.config()
-        
+
         # Get supplied list of PIDs to try from plugin customization.
         pidstringlistt = self.pids_string.split(',')
         for pid in pidstringlistt:
@@ -84,22 +88,22 @@ class K4DeDRM(FileTypePlugin):
             else:
                 if len(pid) > 0:
                     print "'%s' is not a valid Mobipocket PID." % pid
-                        
+
         # For linux, get PIDs by calling the right routines under WINE
         if sys.platform.startswith('linux'):
             k4 = False
             pids.extend(self.WINEgetPIDs(path_to_ebook))
-            
+
         # Get supplied list of Kindle serial numbers to try from plugin customization.
         serialstringlistt = self.serials_string.split(',')
         for serial in serialstringlistt:
-            serial = str(serial).strip()
+            serial = str(serial).replace(" ","")
             if len(serial) == 16 and serial[0] == 'B':
                 serials.append(serial)
             else:
                 if len(serial) > 0:
                     print "'%s' is not a valid Kindle serial number." % serial
-                    
+
         # Load any kindle info files (*.info) included Calibre's config directory.
         try:
             print 'K4MobiDeDRM v%s: Calibre configuration directory = %s' % (plug_ver, config_dir)
@@ -129,10 +133,11 @@ class K4DeDRM(FileTypePlugin):
 
         title = mb.getBookTitle()
         md1, md2 = mb.getPIDMetaInfo()
-        pidlst = kgenpids.getPidList(md1, md2, k4, pids, serials, kInfoFiles)
+        pids.extend(kgenpids.getPidList(md1, md2, k4, serials, kInfoFiles))
+        print "K4MobiDeDRM plugin v{2:s}: Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(pids),plug_ver)
 
         try:
-            mb.processBook(pidlst)
+            mb.processBook(pids)
 
         except mobidedrm.DrmException, e:
             #if you reached here then no luck raise and exception
@@ -142,7 +147,7 @@ class K4DeDRM(FileTypePlugin):
                 d.show()
                 d.raise_()
                 d.exec_()
-            raise Exception("K4MobiDeDRM plugin v%s Error: %s" % (plug_ver, str(e)))
+            raise Exception("K4MobiDeDRM plugin v{1:s} Error: {2:s} after {0:.1f} seconds".format(time.time()-starttime,plug_ver,str(e)))
         except topazextract.TpzDRMError, e:
             #if you reached here then no luck raise and exception
             if is_ok_to_use_qt():
@@ -151,23 +156,25 @@ class K4DeDRM(FileTypePlugin):
                 d.show()
                 d.raise_()
                 d.exec_()
-            raise Exception("K4MobiDeDRM plugin v%s Error: %s" % (plug_ver, str(e)))
+            raise Exception("K4MobiDeDRM plugin v{1:s} Error: {2:s} after {0:.1f} seconds".format(time.time()-starttime,plug_ver,str(e)))
 
-        print "Success!"
+        print "K4MobiDeDRM plugin v{1:s}: Successfully decrypted book after {0:.1f} seconds".format(time.time()-starttime,plug_ver)
         if mobi:
             if mb.getPrintReplica():
                 of = self.temporary_file(bookname+'.azw4')
-                print 'K4MobiDeDRM v%s: Print Replica format detected.' % plug_ver
+                print 'K4MobiDeDRM plugin v%s: Print Replica format detected.' % plug_ver
             elif mb.getMobiVersion() >= 8:
-                print 'K4MobiDeDRM v%s: Stand-alone KF8 format detected.' % plug_ver
+                print 'K4MobiDeDRM plugin v%s: Stand-alone KF8 format detected.' % plug_ver
                 of = self.temporary_file(bookname+'.azw3')
             else:
                 of = self.temporary_file(bookname+'.mobi')
             mb.getMobiFile(of.name)
+            print "K4MobiDeDRM plugin v{1:s}: Saved decrypted book after {0:.1f} seconds".format(time.time()-starttime,plug_ver)
         else:
             of = self.temporary_file(bookname+'.htmlz')
             mb.getHTMLZip(of.name)
             mb.cleanup()
+            print "K4MobiDeDRM plugin v{1:s}: Saved decrypted Topaz HTMLZ after {0:.1f} seconds".format(time.time()-starttime,plug_ver)
         return of.name
 
     def WINEgetPIDs(self, infile):
@@ -191,7 +198,7 @@ class K4DeDRM(FileTypePlugin):
                   + ' "' + outfile + '"'
 
         env = os.environ
-        
+
         print "My wine_prefix from tweaks is ", self.wine_prefix
 
         if ("WINEPREFIX" in env):
@@ -212,7 +219,7 @@ class K4DeDRM(FileTypePlugin):
             print "WINE subprocess error ", str(e)
             return []
         print "WINE subprocess returned ", result
-        
+
         WINEpids = []
         if os.path.exists(outfile):
             try:
@@ -242,14 +249,14 @@ class K4DeDRM(FileTypePlugin):
         # from the command line
         from calibre_plugins.k4mobidedrm.config import ConfigWidget
         return config.ConfigWidget()
-    
+
     def config(self):
         from calibre_plugins.k4mobidedrm.config import prefs
-        
+
         self.pids_string = prefs['pids']
         self.serials_string = prefs['serials']
         self.wine_prefix = prefs['WINEPREFIX']
-        
+
     def save_settings(self, config_widget):
         '''
         Save the settings specified by the user with config_widget.

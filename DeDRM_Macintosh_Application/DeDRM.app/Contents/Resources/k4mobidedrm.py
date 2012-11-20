@@ -33,6 +33,7 @@ import os, csv, getopt
 import string
 import re
 import traceback
+import time
 
 buildXML = False
 
@@ -79,10 +80,15 @@ def cleanup_name(name):
 def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     global buildXML
 
+
     # handle the obvious cases at the beginning
     if not os.path.isfile(infile):
         print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: Input file does not exist"
         return 1
+
+    starttime = time.time()
+    print "Starting decryptBook routine."
+
 
     mobi = True
     magic3 = file(infile,'rb').read(3)
@@ -100,7 +106,7 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
     print "Processing Book: ", title
     filenametitle = cleanup_name(title)
     outfilename = cleanup_name(bookname)
-    
+
     # generate 'sensible' filename, that will sort with the original name,
     # but is close to the name from the file.
     outlength = len(outfilename)
@@ -120,20 +126,28 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
 
     # build pid list
     md1, md2 = mb.getPIDMetaInfo()
-    pidlst = kgenpids.getPidList(md1, md2, k4, pids, serials, kInfoFiles)
+    pids.extend(kgenpids.getPidList(md1, md2, k4, serials, kInfoFiles))
+
+    print "Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(pids))
+
 
     try:
-        mb.processBook(pidlst)
+        mb.processBook(pids)
 
     except mobidedrm.DrmException, e:
         print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: " + str(e) + "\nDRM Removal Failed.\n"
+        print "Failed to decrypted book after {0:.1f} seconds".format(time.time()-starttime)
         return 1
     except topazextract.TpzDRMError, e:
         print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: " + str(e) + "\nDRM Removal Failed.\n"
+        print "Failed to decrypted book after {0:.1f} seconds".format(time.time()-starttime)
         return 1
     except Exception, e:
         print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: " + str(e) + "\nDRM Removal Failed.\n"
+        print "Failed to decrypted book after {0:.1f} seconds".format(time.time()-starttime)
         return 1
+
+    print "Successfully decrypted book after {0:.1f} seconds".format(time.time()-starttime)
 
     if mobi:
         if mb.getPrintReplica():
@@ -143,6 +157,7 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
         else:
             outfile = os.path.join(outdir, outfilename + '_nodrm' + '.mobi')
         mb.getMobiFile(outfile)
+        print "Saved decrypted book {1:s} after {0:.1f} seconds".format(time.time()-starttime, outfilename + '_nodrm')
         return 0
 
     # topaz:
@@ -161,7 +176,7 @@ def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
 
     # remove internal temporary directory of Topaz pieces
     mb.cleanup()
-
+    print "Saved decrypted Topaz book parts after {0:.1f} seconds".format(time.time()-starttime)
     return 0
 
 

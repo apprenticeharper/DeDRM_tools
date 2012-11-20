@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 
 from __future__ import with_statement
 __license__ = 'GPL v3'
@@ -21,8 +22,8 @@ from calibre.utils.config import dynamic, config_dir, JSONConfig
 from calibre_plugins.ignoble_epub.__init__ import PLUGIN_NAME, PLUGIN_VERSION 
 from calibre_plugins.ignoble_epub.__init__ import RESOURCE_NAME as help_file_name
 from calibre_plugins.ignoble_epub.utilities import (_load_crypto, normalize_name,
-                                generate_keyfile, caselessStrCmp, AddKeyDialog,
-                                DETAILED_MESSAGE, parseCustString)
+                                generate_keyfile, uStrCmp, DETAILED_MESSAGE, parseCustString)
+from calibre_plugins.ignoble_epub.dialogs import AddKeyDialog, RenameKeyDialog
 
 JSON_NAME = PLUGIN_NAME.strip().lower().replace(' ', '_')
 JSON_PATH = 'plugins/' + JSON_NAME + '.json'
@@ -135,6 +136,12 @@ class ConfigWidget(QWidget):
         self._delete_key_button.setIcon(QIcon(I('list_remove.png')))
         self._delete_key_button.clicked.connect(self.delete_key)
         button_layout.addWidget(self._delete_key_button)
+
+        self._rename_key_button = QtGui.QToolButton(self)
+        self._rename_key_button.setToolTip(_('Rename highlighted key'))
+        self._rename_key_button.setIcon(QIcon(I('edit-select-all.png')))
+        self._rename_key_button.clicked.connect(self.rename_key)
+        button_layout.addWidget(self._rename_key_button)
         
         self.export_key_button = QtGui.QToolButton(self)
         self.export_key_button.setToolTip(_('Export highlighted key'))
@@ -171,10 +178,34 @@ class ConfigWidget(QWidget):
         self.listy.clear()
         self.populate_list()
 
+    def rename_key(self):
+        if not self.listy.currentItem():
+            errmsg = '<p>No keyfile selected to export. Highlight a keyfile first.'
+            r = error_dialog(None, PLUGIN_NAME,
+                                    _(errmsg), show=True, show_copy_button=False)
+            return
+        
+        d = RenameKeyDialog(self)
+        d.exec_()
+
+        if d.result() != d.Accepted:
+            # rename cancelled or moot.
+            return
+        keyname = unicode(self.listy.currentItem().text().toUtf8(), 'utf8')
+        if not question_dialog(self, _('Are you sure?'), _('<p>'+
+                    'Do you really want to rename the Ignoble key named <strong>%s</strong> to <strong>%s</strong>?') % (keyname, d.key_name),
+                    show_copy_button=False, default_yes=False):
+            return
+        self.plugin_keys[d.key_name] = self.plugin_keys[keyname]
+        del self.plugin_keys[keyname]
+
+        self.listy.clear()
+        self.populate_list()
+
     def delete_key(self):
         if not self.listy.currentItem():
             return
-        keyname = unicode(self.listy.currentItem().text())
+        keyname = unicode(self.listy.currentItem().text().toUtf8(), 'utf8')
         if not question_dialog(self, _('Are you sure?'), _('<p>'+
                     'Do you really want to delete the Ignoble key named <strong>%s</strong>?') % keyname,
                     show_copy_button=False, default_yes=False):
@@ -214,21 +245,20 @@ class ConfigWidget(QWidget):
                 new_key_name = os.path.splitext(os.path.basename(filename))[0]
                 match = False
                 for key in self.plugin_keys.keys():
-                    if caselessStrCmp(new_key_name, key) == 0:
+                    if uStrCmp(new_key_name, key, True):
+                        skipped += 1
+                        msg = '<p>A key with the name <strong>' + new_key_name + '</strong> already exists! </p>' + \
+                           '<p>Skipping key file named <strong>' + filename + '</strong>.</p>' + \
+                           '<p>Either delete the existing key and re-migrate, or ' + \
+                           'create that key manually with a different name.'
+                        inf = info_dialog(None, _(PLUGIN_NAME + 'info_dlg'),
+                                _(msg), show=True)
                         match = True
                         break
                 if not match:
                     with open(fpath, 'rb') as f:
                         counter += 1
                         self.plugin_keys[unicode(new_key_name)] = f.read()
-                else:
-                    skipped += 1
-                    msg = '<p>A key with the name <strong>' + new_key_name + '</strong> already exists! </p>' + \
-                           '<p>Skipping key file named <strong>' + filename + '</strong>.</p>' + \
-                           '<p>Either delete the existing key and re-migrate, or ' + \
-                           'create that key manually with a different name.'
-                    inf = info_dialog(None, _(PLUGIN_NAME + 'info_dlg'),
-                                _(msg), show=True)
 
             msg = '<p>Done migrating <strong>' + str(counter) + '</strong> ' + \
                                 'key files...</p><p>Skipped <strong>' + str(skipped) + '</strong> key files.'
@@ -249,12 +279,12 @@ class ConfigWidget(QWidget):
                                     _(errmsg), show=True, show_copy_button=False)
             return
         filter = QString('Ignoble Key Files (*.b64)')
-        keyname = unicode(self.listy.currentItem().text())
+        keyname = unicode(self.listy.currentItem().text().toUtf8(), 'utf8')
         if dynamic.get(PLUGIN_NAME + 'save_dir'):
             defaultname = os.path.join(dynamic.get(PLUGIN_NAME + 'save_dir'), keyname + '.b64')
         else:
             defaultname = os.path.join(os.path.expanduser('~'), keyname + '.b64')
-        filename = str(QtGui.QFileDialog.getSaveFileName(self, "Save Ignoble Key File as...", defaultname,
+        filename = unicode(QtGui.QFileDialog.getSaveFileName(self, "Save Ignoble Key File as...", defaultname,
                                             "Ignoble Key Files (*.b64)", filter))
         if filename:
             dynamic[PLUGIN_NAME + 'save_dir'] = os.path.split(filename)[0]
@@ -266,7 +296,7 @@ class ConfigWidget(QWidget):
         filter = QString('Text files (*.txt)')
         default_basefilename = PLUGIN_NAME + ' old customization data.txt'
         defaultname = os.path.join(os.path.expanduser('~'), default_basefilename)
-        filename = str(QtGui.QFileDialog.getSaveFileName(self, "Save old plugin style customization data as...", defaultname,
+        filename = unicode(QtGui.QFileDialog.getSaveFileName(self, "Save old plugin style customization data as...", defaultname,
                                     "Text Files (*.txt)", filter))
         if filename:
             fname = open(filename, 'w')

@@ -1,4 +1,4 @@
-Ignoble Epub DeDRM - ignobleepub_v02.2_plugin.zip
+Ignoble Epub DeDRM - ignobleepub_v02.4_plugin.zip
 
 All credit given to I♥Cabbages for the original standalone scripts.
 I had the much easier job of converting them to a calibre plugin.
@@ -8,7 +8,7 @@ This plugin is meant to decrypt Barnes & Noble Epubs that are protected with Ado
 
 Installation:
 
-Go to calibre's Preferences page.  Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior". Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file  (ignobleepub_v02.2_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+Go to calibre's Preferences page.  Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior". Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file  (ignobleepub_v02.4_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
 
 
 Configuration:

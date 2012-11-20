@@ -6,11 +6,11 @@ from __future__ import with_statement
 # Released under the terms of the GNU General Public Licence, version 3 or
 # later.  <http://www.gnu.org/licenses/>
 
-# PLEASE DO NOT PIRATE EBOOKS! 
+# PLEASE DO NOT PIRATE EBOOKS!
 
 # We want all authors and publishers, and eBook stores to live
-# long and prosperous lives but at the same time  we just want to 
-# be able to read OUR books on whatever device we want and to keep 
+# long and prosperous lives but at the same time  we just want to
+# be able to read OUR books on whatever device we want and to keep
 # readable for a long, long time
 
 # Requires Calibre version 0.7.55 or higher.
@@ -52,11 +52,12 @@ from __future__ import with_statement
 #   0.1   - Initial release
 #   0.1.1 - back port ineptpdf 8.4.X support for increased number of encryption methods
 #   0.1.2 - back port ineptpdf 8.4.X bug fixes
-#   0.1.3 - add in fix for improper rejection of session bookkeys with len(bookkey) = length + 1 
+#   0.1.3 - add in fix for improper rejection of session bookkeys with len(bookkey) = length + 1
 #   0.1.4 - update to the new calibre plugin interface
 #   0.1.5 - synced to ineptpdf 7.11
 #   0.1.6 - Fix for potential problem with PyCrypto
 #   0.1.7 - Fix for potential problem with ADE keys and fix possible output/unicode problem
+#   0.1.8 - Fix for code copying error
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
@@ -104,7 +105,7 @@ def _load_crypto_libcrypto():
     AES_MAXNR = 14
 
     RSA_NO_PADDING = 3
-    
+
     c_char_pp = POINTER(c_char_p)
     c_int_p = POINTER(c_int)
 
@@ -2112,7 +2113,7 @@ class PDFSerializer(object):
         if self.last.isalnum():
             self.write('\n')
         self.write('endobj\n')
-        
+
 def plugin_main(keypath, inpath, outpath):
     with open(inpath, 'rb') as inf:
         try:
@@ -2128,7 +2129,7 @@ def plugin_main(keypath, inpath, outpath):
             except:
                 print "error writing pdf."
                 return 1
-    return 0        
+    return 0
 
 
 from calibre.customize import FileTypePlugin
@@ -2140,14 +2141,14 @@ class IneptPDFDeDRM(FileTypePlugin):
                                 Credit given to I <3 Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
-    version                 = (0, 1, 7)
+    version                 = (0, 1, 8)
     minimum_calibre_version = (0, 7, 55)  # for the new plugin interface
     file_types              = set(['pdf'])
     on_import               = True
-    
+
     def run(self, path_to_ebook):
         from calibre_plugins.ineptpdf import outputfix
-         
+
         if sys.stdout.encoding == None:
             sys.stdout = outputfix.getwriter('utf-8')(sys.stdout)
         else:
@@ -2158,14 +2159,14 @@ class IneptPDFDeDRM(FileTypePlugin):
             sys.stderr = outputfix.getwriter(sys.stderr.encoding)(sys.stderr)
 
         global ARC4, RSA, AES
-        
+
         ARC4, RSA, AES = _load_crypto()
-        
+
         if AES == None or RSA == None or ARC4 == None:
             # Failed to load libcrypto or PyCrypto... Adobe PDFs can\'t be decrypted.'
             raise ADEPTError('IneptPDF: Failed to load crypto libs... Adobe PDFs can\'t be decrypted.')
             return
-        
+
         # Load any keyfiles (*.der) included Calibre's config directory.
         userkeys = []
 
@@ -2189,13 +2190,13 @@ class IneptPDFDeDRM(FileTypePlugin):
             except IOError:
                 print 'IneptPDF: Error reading keyfiles from config directory.'
                 pass
-        
+
         if not foundDefault:
             # Try to find key from ADE install and save the key in
             # Calibre's configuration directory for future use.
             if iswindows or isosx:
                 # ADE key retrieval script included in respective OS folder.
-                from calibre_plugins.ineptepub.ineptkey import retrieve_keys
+                from calibre_plugins.ineptpdf.ineptkey import retrieve_keys
                 try:
                     keys = retrieve_keys()
                     for i,key in enumerate(keys):
@@ -2211,7 +2212,7 @@ class IneptPDFDeDRM(FileTypePlugin):
             # No user keys found... bail out.
             raise ADEPTError('IneptPDF - No keys found. Check keyfile(s)/ADE install')
             return None
-        
+
         # Attempt to decrypt pdf with each encryption key found.
         for userkey in userkeys:
             # Create a TemporaryPersistent file to work with.
@@ -2219,11 +2220,11 @@ class IneptPDFDeDRM(FileTypePlugin):
             kf = self.temporary_file('.der')
             with open(kf.name, 'wb') as f:
                 f.write(userkey)
-        
+
             # Give the user keyfile, ebook and TemporaryPersistent file to the plugin_main function.
             print "Ready to start decrypting."
             result = plugin_main(kf.name, path_to_ebook, of.name)
-        
+
             # Decryption was successful return the modified PersistentTemporary
             # file to Calibre's import process.
             if  result == 0:
@@ -2234,7 +2235,7 @@ class IneptPDFDeDRM(FileTypePlugin):
             else:
                 print 'IneptPDF: Encryption key invalid... trying others.'
                 of.close()
-        
+
         # Something went wrong with decryption.
         # Import the original unmolested pdf.
         of.close

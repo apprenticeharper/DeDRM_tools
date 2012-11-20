@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
+# -*- coding: utf-8 -*-
 
 from __future__ import with_statement
 __license__   = 'GPL v3'
@@ -11,7 +12,7 @@ __docformat__ = 'restructuredtext en'
 #
 # Requires Calibre version 0.7.55 or higher.
 #
-# All credit given to I <3 Cabbages for the original standalone scripts.
+# All credit given to I ♥ Cabbages for the original standalone scripts.
 # I had the much easier job of converting them to Calibre a plugin.
 #
 # This plugin is meant to decrypt Barnes & Noble Epubs that are protected
@@ -40,13 +41,15 @@ __docformat__ = 'restructuredtext en'
 #   0.2.1 - an updated/modified zipfix.py and included zipfilerugged.py
 #   0.2.2 - added in potential fixes from 0.1.7 that had been missed.
 #   0.2.3 - fixed possible output/unicode problem
+#   0.2.4 - ditched nearly hopeless caselessStrCmp method in favor of uStrCmp.
+#         - added ability to rename existing keys.
 
 """
 Decrypt Barnes & Noble ADEPT encrypted EPUB books.
 """
 
 PLUGIN_NAME = 'Ignoble Epub DeDRM'
-PLUGIN_VERSION_TUPLE = (0, 2, 3)
+PLUGIN_VERSION_TUPLE = (0, 2, 4)
 PLUGIN_VERSION = '.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -225,7 +228,7 @@ from calibre.gui2 import is_ok_to_use_qt
 
 class IgnobleDeDRM(FileTypePlugin):
     name                    = PLUGIN_NAME
-    description             = 'Removes DRM from secure Barnes & Noble epub files. Credit given to I <3 Cabbages for the original stand-alone scripts.'
+    description             = 'Removes DRM from secure Barnes & Noble epub files. Credit given to I ♥ Cabbages for the original stand-alone scripts.'
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = 'DiapDealer'
     version                 = PLUGIN_VERSION_TUPLE
@@ -258,10 +261,12 @@ class IgnobleDeDRM(FileTypePlugin):
         import calibre_plugins.ignoble_epub.config as cfg
         if not cfg.prefs['configured']:
             titlemsg = '%s v%s' % (PLUGIN_NAME, PLUGIN_VERSION)
-            errmsg = 'Plugin not configured! Decryption unsuccessful.\n' + \
-                    '\nThis may be the first time you\'ve used this plugin\n' + \
-                    '(or the first time since upgrading this plugin).\n' + \
-                    '\nYou\'ll need to open the customization dialog (Preferences->Plugins->File type plugins).'
+            errmsg = titlemsg + ' not (properly) configured!\n' + \
+                    '\nThis may be the first time you\'ve used this plugin' + \
+                    ' (or the first time since upgrading this plugin).' + \
+                    ' You\'ll need to open the customization dialog (Preferences->Plugins->File type plugins)' + \
+                    ' and follow the instructions there.\n' + \
+                    '\nIf you don\'t use the ' + PLUGIN_NAME + ' plugin, you should disable or uninstall it.'
             if is_ok_to_use_qt():
                 from PyQt4.Qt import QMessageBox
                 d = QMessageBox(QMessageBox.Warning, titlemsg, errmsg )

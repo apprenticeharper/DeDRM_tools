@@ -203,7 +203,8 @@ CryptUnprotectData = CryptUnprotectData()
 
 
 # Locate all of the kindle-info style files and return as list
-def getKindleInfoFiles(kInfoFiles):
+def getKindleInfoFiles():
+    kInfoFiles = []
     # some 64 bit machines do not have the proper registry key for some reason
     # or the pythonn interface to the 32 vs 64 bit registry is broken
     path = ""
@@ -226,34 +227,34 @@ def getKindleInfoFiles(kInfoFiles):
         except RegError:
             pass
 
-    found = False    
+    found = False
     if path == "":
         print ('Could not find the folder in which to look for kinfoFiles.')
     else:
         print('searching for kinfoFiles in ' + path)
-    
+
         # first look for older kindle-info files
         kinfopath = path +'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info'
         if os.path.isfile(kinfopath):
             found = True
             print('Found K4PC kindle.info file: ' + kinfopath)
             kInfoFiles.append(kinfopath)
-    
+
         # now look for newer (K4PC 1.5.0 and later rainier.2.1.1.kinf file
-    
+
         kinfopath = path +'\\Amazon\\Kindle For PC\\storage\\rainier.2.1.1.kinf'
         if os.path.isfile(kinfopath):
             found = True
             print('Found K4PC 1.5.X kinf file: ' + kinfopath)
             kInfoFiles.append(kinfopath)
-    
+
         # now look for even newer (K4PC 1.6.0 and later) rainier.2.1.1.kinf file
         kinfopath = path +'\\Amazon\\Kindle\\storage\\rainier.2.1.1.kinf'
         if os.path.isfile(kinfopath):
             found = True
             print('Found K4PC 1.6.X kinf file: ' + kinfopath)
             kInfoFiles.append(kinfopath)
-    
+
         # now look for even newer (K4PC 1.9.0 and later) .kinf2011 file
         kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
         if os.path.isfile(kinfopath):
