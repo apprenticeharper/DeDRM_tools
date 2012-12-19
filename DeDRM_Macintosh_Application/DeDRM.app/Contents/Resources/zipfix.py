@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import sys
 import zlib
@@ -27,14 +28,10 @@ class fixZip:
         self.ztype = 'zip'
         if zinput.lower().find('.epub') >= 0 :
             self.ztype = 'epub'
-        print "opening input"
         self.inzip = zipfilerugged.ZipFile(zinput,'r')
-        print "opening outout"
         self.outzip = zipfilerugged.ZipFile(zoutput,'w')
-        print "opening input as raw file"
         # open the input zip for reading only as a raw file
         self.bzf = file(zinput,'rb')
-        print "finished initialising"
 
     def getlocalname(self, zi):
         local_header_offset = zi.header_offset

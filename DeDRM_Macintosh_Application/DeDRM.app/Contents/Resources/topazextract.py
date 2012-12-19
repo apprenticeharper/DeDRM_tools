@@ -1,43 +1,90 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-class Unbuffered:
+# topazextract.py, version ?
+# Mostly written by some_updates based on code from many others
+
+__version__ = '4.8'
+
+import sys
+import os, csv, getopt
+import zlib, zipfile, tempfile, shutil
+import traceback
+from struct import pack
+from struct import unpack
+from alfcrypto import Topaz_Cipher
+
+class SafeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
     def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
-import sys
+iswindows = sys.platform.startswith('win')
+isosx = sys.platform.startswith('darwin')
+
+def unicode_argv():
+    if iswindows:
+        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+        # strings.
+
+        # Versions 2.x of Python don't support Unicode in sys.argv on
+        # Windows, with the underlying Windows API instead replacing multi-byte
+        # characters with '?'.
+
+
+        from ctypes import POINTER, byref, cdll, c_int, windll
+        from ctypes.wintypes import LPCWSTR, LPWSTR
+
+        GetCommandLineW = cdll.kernel32.GetCommandLineW
+        GetCommandLineW.argtypes = []
+        GetCommandLineW.restype = LPCWSTR
+
+        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
+        CommandLineToArgvW.restype = POINTER(LPWSTR)
+
+        cmd = GetCommandLineW()
+        argc = c_int(0)
+        argv = CommandLineToArgvW(cmd, byref(argc))
+        if argc.value > 0:
+            # Remove Python executable and commands if present
+            start = argc.value - len(sys.argv)
+            return [argv[i] for i in
+                    xrange(start, argc.value)]
+        # if we don't have any arguments at all, just pass back script name
+        # this should never happen
+        return [u"mobidedrm.py"]
+    else:
+        argvencoding = sys.stdin.encoding
+        if argvencoding == None:
+            argvencoding = 'utf-8'
+        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
 
 if 'calibre' in sys.modules:
     inCalibre = True
-else:
-    inCalibre = False
-
-buildXML = False
-
-import os, csv, getopt
-import zlib, zipfile, tempfile, shutil
-from struct import pack
-from struct import unpack
-from alfcrypto import Topaz_Cipher
-
-class TpzDRMError(Exception):
-    pass
-
-
-# local support routines
-if inCalibre:
     from calibre_plugins.k4mobidedrm import kgenpids
 else:
+    inCalibre = False
     import kgenpids
+
+
+class DrmException(Exception):
+    pass
+
 
 # recursive zip creation support routine
 def zipUpDir(myzip, tdir, localname):
     currentdir = tdir
-    if localname != "":
+    if localname != u"":
         currentdir = os.path.join(currentdir,localname)
     list = os.listdir(currentdir)
     for file in list:
@@ -73,7 +120,7 @@ def bookReadEncodedNumber(fo):
 # Get a length prefixed string from file
 def bookReadString(fo):
     stringLength = bookReadEncodedNumber(fo)
-    return unpack(str(stringLength)+"s",fo.read(stringLength))[0]
+    return unpack(str(stringLength)+'s',fo.read(stringLength))[0]
 
 #
 # crypto routines
@@ -112,13 +159,13 @@ def decryptRecord(data,PID):
 # Try to decrypt a dkey record (contains the bookPID)
 def decryptDkeyRecord(data,PID):
     record = decryptRecord(data,PID)
-    fields = unpack("3sB8sB8s3s",record)
-    if fields[0] != "PID" or fields[5] != "pid" :
-        raise TpzDRMError("Didn't find PID magic numbers in record")
+    fields = unpack('3sB8sB8s3s',record)
+    if fields[0] != 'PID' or fields[5] != 'pid' :
+        raise DrmException(u"Didn't find PID magic numbers in record")
     elif fields[1] != 8 or fields[3] != 8 :
-        raise TpzDRMError("Record didn't contain correct length fields")
+        raise DrmException(u"Record didn't contain correct length fields")
     elif fields[2] != PID :
-        raise TpzDRMError("Record didn't contain PID")
+        raise DrmException(u"Record didn't contain PID")
     return fields[4]
 
 # Decrypt all dkey records (contain the book PID)
@@ -131,11 +178,11 @@ def decryptDkeyRecords(data,PID):
         try:
             key = decryptDkeyRecord(data[1:length+1],PID)
             records.append(key)
-        except TpzDRMError:
+        except DrmException:
             pass
         data = data[1+length:]
     if len(records) == 0:
-        raise TpzDRMError("BookKey Not Found")
+        raise DrmException(u"BookKey Not Found")
     return records
 
 
@@ -148,9 +195,9 @@ class TopazBook:
         self.bookHeaderRecords = {}
         self.bookMetadata = {}
         self.bookKey = None
-        magic = unpack("4s",self.fo.read(4))[0]
+        magic = unpack('4s',self.fo.read(4))[0]
         if magic != 'TPZ0':
-            raise TpzDRMError("Parse Error : Invalid Header, not a Topaz file")
+            raise DrmException(u"Parse Error : Invalid Header, not a Topaz file")
         self.parseTopazHeaders()
         self.parseMetadata()
 
@@ -167,7 +214,7 @@ class TopazBook:
             # Read and parse one header record at the current book file position and return the associated data
             # [[offset,decompressedLength,compressedLength],...]
             if ord(self.fo.read(1)) != 0x63:
-                raise TpzDRMError("Parse Error : Invalid Header")
+                raise DrmException(u"Parse Error : Invalid Header")
             tag = bookReadString(self.fo)
             record = bookReadHeaderRecordData()
             return [tag,record]
@@ -177,15 +224,15 @@ class TopazBook:
             # print result[0], result[1]
             self.bookHeaderRecords[result[0]] = result[1]
         if ord(self.fo.read(1))  != 0x64 :
-            raise TpzDRMError("Parse Error : Invalid Header")
+            raise DrmException(u"Parse Error : Invalid Header")
         self.bookPayloadOffset = self.fo.tell()
 
     def parseMetadata(self):
         # Parse the metadata record from the book payload and return a list of [key,values]
-        self.fo.seek(self.bookPayloadOffset + self.bookHeaderRecords["metadata"][0][0])
+        self.fo.seek(self.bookPayloadOffset + self.bookHeaderRecords['metadata'][0][0])
         tag = bookReadString(self.fo)
-        if tag != "metadata" :
-            raise TpzDRMError("Parse Error : Record Names Don't Match")
+        if tag != 'metadata' :
+            raise DrmException(u"Parse Error : Record Names Don't Match")
         flags = ord(self.fo.read(1))
         nbRecords = ord(self.fo.read(1))
         # print nbRecords
@@ -210,7 +257,7 @@ class TopazBook:
         title = ''
         if 'Title' in self.bookMetadata:
             title = self.bookMetadata['Title']
-        return title
+        return title.decode('utf-8')
 
     def setBookKey(self, key):
         self.bookKey = key
@@ -223,13 +270,13 @@ class TopazBook:
         try:
             recordOffset = self.bookHeaderRecords[name][index][0]
         except:
-            raise TpzDRMError("Parse Error : Invalid Record, record not found")
+            raise DrmException("Parse Error : Invalid Record, record not found")
 
         self.fo.seek(self.bookPayloadOffset + recordOffset)
 
         tag = bookReadString(self.fo)
         if tag != name :
-            raise TpzDRMError("Parse Error : Invalid Record, record name doesn't match")
+            raise DrmException("Parse Error : Invalid Record, record name doesn't match")
 
         recordIndex = bookReadEncodedNumber(self.fo)
         if recordIndex < 0 :
@@ -237,7 +284,7 @@ class TopazBook:
             recordIndex = -recordIndex -1
 
         if recordIndex != index :
-            raise TpzDRMError("Parse Error : Invalid Record, index doesn't match")
+            raise DrmException("Parse Error : Invalid Record, index doesn't match")
 
         if (self.bookHeaderRecords[name][index][2] > 0):
             compressed = True
@@ -250,7 +297,7 @@ class TopazBook:
                 ctx = topazCryptoInit(self.bookKey)
                 record = topazCryptoDecrypt(record,ctx)
             else :
-                raise TpzDRMError("Error: Attempt to decrypt without bookKey")
+                raise DrmException("Error: Attempt to decrypt without bookKey")
 
         if compressed:
             record = zlib.decompress(record)
@@ -262,12 +309,12 @@ class TopazBook:
         fixedimage=True
         try:
             keydata = self.getBookPayloadRecord('dkey', 0)
-        except TpzDRMError, e:
-            print "no dkey record found, book may not be encrypted"
-            print "attempting to extrct files without a book key"
+        except DrmException, e:
+            print u"no dkey record found, book may not be encrypted"
+            print u"attempting to extrct files without a book key"
             self.createBookDirectory()
             self.extractFiles()
-            print "Successfully Extracted Topaz contents"
+            print u"Successfully Extracted Topaz contents"
             if inCalibre:
                 from calibre_plugins.k4mobidedrm import genbook
             else:
@@ -275,7 +322,7 @@ class TopazBook:
 
             rv = genbook.generateBook(self.outdir, raw, fixedimage)
             if rv == 0:
-                print "\nBook Successfully generated"
+                print u"Book Successfully generated."
             return rv
 
         # try each pid to decode the file
@@ -283,25 +330,25 @@ class TopazBook:
         for pid in pidlst:
             # use 8 digit pids here
             pid = pid[0:8]
-            print "\nTrying: ", pid
+            print u"Trying: {0}".format(pid)
             bookKeys = []
             data = keydata
             try:
                 bookKeys+=decryptDkeyRecords(data,pid)
-            except TpzDRMError, e:
+            except DrmException, e:
                 pass
             else:
                 bookKey = bookKeys[0]
-                print "Book Key Found!"
+                print u"Book Key Found! ({0})".format(bookKey.encode('hex'))
                 break
 
         if not bookKey:
-            raise TpzDRMError("Topaz Book. No key found in " + str(len(pidlst)) + " keys tried. Read the FAQs at Alf's blog. Only if none apply, report this failure for help.")
+            raise DrmException(u"No key found in {0:d} keys tried. Read the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(len(pidlst)))
 
         self.setBookKey(bookKey)
         self.createBookDirectory()
         self.extractFiles()
-        print "Successfully Extracted Topaz contents"
+        print u"Successfully Extracted Topaz contents"
         if inCalibre:
             from calibre_plugins.k4mobidedrm import genbook
         else:
@@ -309,7 +356,7 @@ class TopazBook:
 
         rv = genbook.generateBook(self.outdir, raw, fixedimage)
         if rv == 0:
-            print "\nBook Successfully generated"
+            print u"Book Successfully generated"
         return rv
 
     def createBookDirectory(self):
@@ -317,16 +364,16 @@ class TopazBook:
         # create output directory structure
         if not os.path.exists(outdir):
             os.makedirs(outdir)
-        destdir =  os.path.join(outdir,'img')
+        destdir =  os.path.join(outdir,u"img")
         if not os.path.exists(destdir):
             os.makedirs(destdir)
-        destdir =  os.path.join(outdir,'color_img')
+        destdir =  os.path.join(outdir,u"color_img")
         if not os.path.exists(destdir):
             os.makedirs(destdir)
-        destdir =  os.path.join(outdir,'page')
+        destdir =  os.path.join(outdir,u"page")
         if not os.path.exists(destdir):
             os.makedirs(destdir)
-        destdir =  os.path.join(outdir,'glyphs')
+        destdir =  os.path.join(outdir,u"glyphs")
         if not os.path.exists(destdir):
             os.makedirs(destdir)
 
@@ -334,149 +381,148 @@ class TopazBook:
         outdir = self.outdir
         for headerRecord in self.bookHeaderRecords:
             name = headerRecord
-            if name != "dkey" :
-                ext = '.dat'
-                if name == 'img' : ext = '.jpg'
-                if name == 'color' : ext = '.jpg'
-                print "\nProcessing Section: %s " % name
+            if name != 'dkey':
+                ext = u".dat"
+                if name == 'img': ext = u".jpg"
+                if name == 'color' : ext = u".jpg"
+                print u"Processing Section: {0}\n. . .".format(name),
                 for index in range (0,len(self.bookHeaderRecords[name])) :
-                    fnum = "%04d" % index
-                    fname = name + fnum + ext
+                    fname = u"{0}{1:04d}{2}".format(name,index,ext)
                     destdir = outdir
                     if name == 'img':
-                        destdir =  os.path.join(outdir,'img')
+                        destdir =  os.path.join(outdir,u"img")
                     if name == 'color':
-                        destdir =  os.path.join(outdir,'color_img')
+                        destdir =  os.path.join(outdir,u"color_img")
                     if name == 'page':
-                        destdir =  os.path.join(outdir,'page')
+                        destdir =  os.path.join(outdir,u"page")
                     if name == 'glyphs':
-                        destdir =  os.path.join(outdir,'glyphs')
+                        destdir =  os.path.join(outdir,u"glyphs")
                     outputFile = os.path.join(destdir,fname)
-                    print ".",
+                    print u".",
                     record = self.getBookPayloadRecord(name,index)
                     if record != '':
                         file(outputFile, 'wb').write(record)
-        print " "
+                print u" "
 
-    def getHTMLZip(self, zipname):
+    def getFile(self, zipname):
         htmlzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-        htmlzip.write(os.path.join(self.outdir,'book.html'),'book.html')
-        htmlzip.write(os.path.join(self.outdir,'book.opf'),'book.opf')
-        if os.path.isfile(os.path.join(self.outdir,'cover.jpg')):
-            htmlzip.write(os.path.join(self.outdir,'cover.jpg'),'cover.jpg')
-        htmlzip.write(os.path.join(self.outdir,'style.css'),'style.css')
-        zipUpDir(htmlzip, self.outdir, 'img')
+        htmlzip.write(os.path.join(self.outdir,u"book.html"),u"book.html")
+        htmlzip.write(os.path.join(self.outdir,u"book.opf"),u"book.opf")
+        if os.path.isfile(os.path.join(self.outdir,u"cover.jpg")):
+            htmlzip.write(os.path.join(self.outdir,u"cover.jpg"),u"cover.jpg")
+        htmlzip.write(os.path.join(self.outdir,u"style.css"),u"style.css")
+        zipUpDir(htmlzip, self.outdir, u"img")
         htmlzip.close()
+
+    def getBookType(self):
+        return u"Topaz"
+
+    def getBookExtension(self):
+        return u".htmlz"
 
     def getSVGZip(self, zipname):
         svgzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-        svgzip.write(os.path.join(self.outdir,'index_svg.xhtml'),'index_svg.xhtml')
-        zipUpDir(svgzip, self.outdir, 'svg')
-        zipUpDir(svgzip, self.outdir, 'img')
+        svgzip.write(os.path.join(self.outdir,u"index_svg.xhtml"),u"index_svg.xhtml")
+        zipUpDir(svgzip, self.outdir, u"svg")
+        zipUpDir(svgzip, self.outdir, u"img")
         svgzip.close()
-
-    def getXMLZip(self, zipname):
-        xmlzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
-        targetdir = os.path.join(self.outdir,'xml')
-        zipUpDir(xmlzip, targetdir, '')
-        zipUpDir(xmlzip, self.outdir, 'img')
-        xmlzip.close()
 
     def cleanup(self):
         if os.path.isdir(self.outdir):
             shutil.rmtree(self.outdir, True)
 
 def usage(progname):
-    print "Removes DRM protection from Topaz ebooks and extract the contents"
-    print "Usage:"
-    print "    %s [-k <kindle.info>] [-p <pidnums>] [-s <kindleSerialNumbers>] <infile> <outdir>  " % progname
-
+    print u"Removes DRM protection from Topaz ebooks and extracts the contents"
+    print u"Usage:"
+    print u"    {0} [-k <kindle.info>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname)
 
 # Main
-def main(argv=sys.argv):
-    global buildXML
+def cli_main(argv=unicode_argv()):
     progname = os.path.basename(argv[0])
-    k4 = False
-    pids = []
-    serials = []
-    kInfoFiles = []
+    print u"TopazExtract v{0}.".format(__version__)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "k:p:s:")
+        opts, args = getopt.getopt(sys.argv[1:], "k:p:s:x")
     except getopt.GetoptError, err:
-        print str(err)
+        print u"Error in options or arguments: {0}".format(err.args[0])
         usage(progname)
         return 1
     if len(args)<2:
         usage(progname)
         return 1
 
-    for o, a in opts:
-        if o == "-k":
-            if a == None :
-                print "Invalid parameter for -k"
-                return 1
-            kInfoFiles.append(a)
-        if o == "-p":
-            if a == None :
-                print "Invalid parameter for -p"
-                return 1
-            pids = a.split(',')
-        if o == "-s":
-            if a == None :
-                print "Invalid parameter for -s"
-                return 1
-            serials = a.split(',')
-    k4 = True
-
     infile = args[0]
     outdir = args[1]
-
     if not os.path.isfile(infile):
-        print "Input File Does Not Exist"
+        print u"Input File {0} Does Not Exist.".format(infile)
         return 1
+
+    if not os.path.exists(outdir):
+        print u"Output Directory {0} Does Not Exist.".format(outdir)
+        return 1
+
+    kInfoFiles = []
+    serials = []
+    pids = []
+
+    for o, a in opts:
+        if o == '-k':
+            if a == None :
+                raise DrmException("Invalid parameter for -k")
+            kInfoFiles.append(a)
+        if o == '-p':
+            if a == None :
+                raise DrmException("Invalid parameter for -p")
+            pids = a.split(',')
+        if o == '-s':
+            if a == None :
+                raise DrmException("Invalid parameter for -s")
+            serials = [serial.replace(" ","") for serial in a.split(',')]
 
     bookname = os.path.splitext(os.path.basename(infile))[0]
 
     tb = TopazBook(infile)
     title = tb.getBookTitle()
-    print "Processing Book: ", title
-    keysRecord, keysRecordRecord = tb.getPIDMetaInfo()
-    pids.extend(kgenpids.getPidList(keysRecord, keysRecordRecord, k4, serials, kInfoFiles))
+    print u"Processing Book: {0}".format(title)
+    md1, md2 = tb.getPIDMetaInfo()
+    pids.extend(kgenpids.getPidList(md1, md2, serials, kInfoFiles))
 
     try:
-        print "Decrypting Book"
+        print u"Decrypting Book"
         tb.processBook(pids)
 
-        print "   Creating HTML ZIP Archive"
-        zipname = os.path.join(outdir, bookname + '_nodrm' + '.htmlz')
-        tb.getHTMLZip(zipname)
+        print u"   Creating HTML ZIP Archive"
+        zipname = os.path.join(outdir, bookname + u"_nodrm.htmlz")
+        tb.getFile(zipname)
 
-        print "   Creating SVG ZIP Archive"
-        zipname = os.path.join(outdir, bookname + '_SVG' + '.zip')
+        print u"   Creating SVG ZIP Archive"
+        zipname = os.path.join(outdir, bookname + u"_SVG.zip")
         tb.getSVGZip(zipname)
-
-        if buildXML:
-            print "   Creating XML ZIP Archive"
-            zipname = os.path.join(outdir, bookname + '_XML' + '.zip')
-            tb.getXMLZip(zipname)
 
         # removing internal temporary directory of pieces
         tb.cleanup()
 
-    except TpzDRMError, e:
-        print str(e)
-        # tb.cleanup()
+    except DrmException, e:
+        print u"Decryption failed\n{0}".format(traceback.format_exc())
+
+        try:
+            tb.cleanup()
+        except:
+            pass
         return 1
 
     except Exception, e:
-        print str(e)
-        # tb.cleanup
+        print u"Decryption failed\m{0}".format(traceback.format_exc())
+        try:
+            tb.cleanup()
+        except:
+            pass
         return 1
 
     return 0
 
 
 if __name__ == '__main__':
-    sys.stdout=Unbuffered(sys.stdout)
-    sys.exit(main())
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
+    sys.exit(cli_main())

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
+# -*- coding: utf-8 -*-
 
 # eReaderPDB2PML_plugin.py
-# Released under the terms of the GNU General Public Licence, version 3 or
-# later.  <http://www.gnu.org/licenses/>
+# Released under the terms of the GNU General Public Licence, version 3
+# <http://www.gnu.org/licenses/>
 #
 # All credit given to The Dark Reverser for the original standalone script.
 # I had the much easier job of converting it to Calibre a plugin.
@@ -11,7 +11,7 @@
 # This plugin is meant to convert secure Ereader files (PDB) to unsecured PMLZ files.
 # Calibre can then convert it to whatever format you desire.
 # It is meant to function without having to install any dependencies...
-# other than having Calibre installed, of course. 
+# other than having Calibre installed, of course.
 #
 # Installation:
 # Go to Calibre's Preferences page... click on the Plugins button. Use the file
@@ -36,6 +36,11 @@
 #   0.0.5 - updated to the new calibre plugin interface
 #   0.0.6 - unknown changes
 #   0.0.7 - improved config dialog processing and fix possible output/unicode problem
+#   0.0.8 - Proper fix for unicode problems, separate out erdr2pml from plugin
+
+PLUGIN_NAME = u"eReader PDB 2 PML"
+PLUGIN_VERSION_TUPLE = (0, 0, 8)
+PLUGIN_VERSION = '.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 
 import sys, os
 
@@ -43,113 +48,77 @@ from calibre.customize import FileTypePlugin
 from calibre.ptempfile import PersistentTemporaryDirectory
 from calibre.constants import iswindows, isosx
 
+# Wrap a stream so that output gets flushed immediately
+# and also make sure that any unicode strings get
+# encoded using "replace" before writing them.
+class SafeUnbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
+    def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+
 class eRdrDeDRM(FileTypePlugin):
-    name                = 'eReader PDB 2 PML' # Name of the plugin
-    description         = 'Removes DRM from secure pdb files. \
-                            Credit given to The Dark Reverser for the original standalone script.'
+    name                = PLUGIN_NAME
+    description         = u"Removes DRM from secure pdb files. Credit given to The Dark Reverser for the original standalone script."
     supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
-    author              = 'DiapDealer' # The author of this plugin
-    version             = (0, 0, 7)   # The version number of this plugin
+    author              = u"DiapDealer, Apprentice Alf and The Dark Reverser"
+    version             = PLUGIN_VERSION_TUPLE
     file_types          = set(['pdb']) # The file types that this plugin will be applied to
     on_import           = True # Run this plugin during the import
     minimum_calibre_version = (0, 7, 55)
+    priority            = 100
 
     def run(self, path_to_ebook):
-        from calibre_plugins.erdrpdb2pml import erdr2pml, outputfix
-         
-        if sys.stdout.encoding == None:
-            sys.stdout = outputfix.getwriter('utf-8')(sys.stdout)
-        else:
-            sys.stdout = outputfix.getwriter(sys.stdout.encoding)(sys.stdout)
-        if sys.stderr.encoding == None:
-            sys.stderr = outputfix.getwriter('utf-8')(sys.stderr)
-        else:
-            sys.stderr = outputfix.getwriter(sys.stderr.encoding)(sys.stderr)
-        
-        global bookname, erdr2pml
-        
+
+        # make sure any unicode output gets converted safely with 'replace'
+        sys.stdout=SafeUnbuffered(sys.stdout)
+        sys.stderr=SafeUnbuffered(sys.stderr)
+
+        print u"{0} v{1}: Trying to decrypt {2}.".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook))
+
         infile = path_to_ebook
         bookname = os.path.splitext(os.path.basename(infile))[0]
         outdir = PersistentTemporaryDirectory()
         pmlzfile = self.temporary_file(bookname + '.pmlz')
-        
+
         if self.site_customization:
+            from calibre_plugins.erdrpdb2pml import erdr2pml
+
             keydata = self.site_customization
             ar = keydata.split(':')
             for i in ar:
                 try:
                     name, cc = i.split(',')
-                    #remove spaces at start or end of name, and anywhere in CC
-                    name = name.strip()
-                    cc = cc.replace(" ","")
+                    user_key = erdr2pml.getuser_key(name,cc)
                 except ValueError:
-                    print '   Error parsing user supplied data.'
+                    print u"{0} v{1}: Error parsing user supplied data.".format(PLUGIN_NAME, PLUGIN_VERSION)
                     return path_to_ebook
-                
+
                 try:
-                    print "Processing..."
+                    print u"{0} v{1}: Processing...".format(PLUGIN_NAME, PLUGIN_VERSION)
                     import time
                     start_time = time.time()
-                    pmlfilepath = self.convertEreaderToPml(infile, name, cc, outdir)
-                    
-                    if pmlfilepath and pmlfilepath != 1:
-                        import zipfile
-                        print "   Creating PMLZ file"
-                        myZipFile = zipfile.ZipFile(pmlzfile.name,'w',zipfile.ZIP_STORED, False)
-                        list = os.listdir(outdir)
-                        for file in list:
-                            localname = file
-                            filePath = os.path.join(outdir,file)
-                            if os.path.isfile(filePath):
-                                myZipFile.write(filePath, localname)
-                            elif os.path.isdir(filePath):
-                                imageList = os.listdir(filePath)
-                                localimgdir = os.path.basename(filePath)
-                                for image in imageList:
-                                    localname = os.path.join(localimgdir,image)
-                                    imagePath = os.path.join(filePath,image)
-                                    if os.path.isfile(imagePath):
-                                        myZipFile.write(imagePath, localname)
-                        myZipFile.close()
-                        end_time = time.time()
-                        search_time = end_time - start_time
-                        print 'elapsed time: %.2f seconds' % (search_time, ) 
-                        print "done"
+                    if erdr2pml.decryptBook(infile,pmlzfile.name,True,user_key) == 0:
+                        print u"{0} v{1}: Elapsed time: {2:.2f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-start_time)
                         return pmlzfile.name
                     else:
-                        raise ValueError('Error Creating PML file.')
+                        raise ValueError(u"{0} v{1}: Error Creating PML file.".format(PLUGIN_NAME, PLUGIN_VERSION))
                 except ValueError, e:
-                        print "Error: %s" % e
+                        print u"{0} v{1}: Error: {2}".format(PLUGIN_NAME, PLUGIN_VERSION,e.args[0])
                         pass
-            raise Exception('Couldn\'t decrypt pdb file.')
+            raise Exception(u"{0} v{1}: Couldn\'t decrypt pdb file. See Apprentice Alf's blog for help.".format(PLUGIN_NAME, PLUGIN_VERSION))
         else:
-            raise Exception('No name and CC# provided.')
-        
-    def convertEreaderToPml(self, infile, name, cc, outdir):
+            raise Exception(u"{0} v{1}: No name and CC# provided.".format(PLUGIN_NAME, PLUGIN_VERSION))
 
-        print "   Decoding File"
-        sect = erdr2pml.Sectionizer(infile, 'PNRdPPrs')
-        er = erdr2pml.EreaderProcessor(sect, name, cc)
 
-        if er.getNumImages() > 0:
-            print "   Extracting images"
-            #imagedir = bookname + '_img/'
-            imagedir = 'images/'
-            imagedirpath = os.path.join(outdir,imagedir)
-            if not os.path.exists(imagedirpath):
-                os.makedirs(imagedirpath)
-            for i in xrange(er.getNumImages()):
-                name, contents = er.getImage(i)
-                file(os.path.join(imagedirpath, name), 'wb').write(contents)
-
-        print "   Extracting pml"
-        pml_string = er.getText()
-        pmlfilename = bookname + ".pml"
-        try:
-            file(os.path.join(outdir, pmlfilename),'wb').write(erdr2pml.cleanPML(pml_string))
-            return os.path.join(outdir, pmlfilename)
-        except:
-            return 1
- 
     def customization_help(self, gui=False):
-        return 'Enter Account Name & Last 8 digits of Credit Card number (separate with a comma)'
+        return u"Enter Account Name & Last 8 digits of Credit Card number (separate with a comma, multiple pairs with a colon)"

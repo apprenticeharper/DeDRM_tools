@@ -35,7 +35,7 @@ def main(argv=sys.argv):
             except ValueError:
                 print '   Error parsing user supplied social drm data.'
                 return 1
-            rv = erdr2pml.decryptBook(infile, outdir, name, cc8, True)
+            rv = erdr2pml.decryptBook(infile, outdir, True, erdr2pml.getuser_key(name, cc8) )
             if rv == 0:
                 break
     return rv

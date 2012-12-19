@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # standlone set of Mac OSX specific routines needed for KindleBooks
 
 from __future__ import with_statement
@@ -22,7 +25,7 @@ def _load_crypto_libcrypto():
 
     libcrypto = find_library('crypto')
     if libcrypto is None:
-        raise DrmException('libcrypto not found')
+        raise DrmException(u"libcrypto not found")
     libcrypto = CDLL(libcrypto)
 
     # From OpenSSL's crypto aes header
@@ -80,14 +83,14 @@ def _load_crypto_libcrypto():
         def set_decrypt_key(self, userkey, iv):
             self._blocksize = len(userkey)
             if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                raise DrmException('AES improper key used')
+                raise DrmException(u"AES improper key used")
                 return
             keyctx = self._keyctx = AES_KEY()
             self._iv = iv
             self._userkey = userkey
             rv = AES_set_decrypt_key(userkey, len(userkey) * 8, keyctx)
             if rv < 0:
-                raise DrmException('Failed to initialize AES key')
+                raise DrmException(u"Failed to initialize AES key")
 
         def decrypt(self, data):
             out = create_string_buffer(len(data))
@@ -95,7 +98,7 @@ def _load_crypto_libcrypto():
             keyctx = self._keyctx
             rv = AES_cbc_encrypt(data, out, len(data), keyctx, mutable_iv, 0)
             if rv == 0:
-                raise DrmException('AES decryption failed')
+                raise DrmException(u"AES decryption failed")
             return out.raw
 
         def keyivgen(self, passwd, salt, iter, keylen):
@@ -139,20 +142,20 @@ def SHA256(message):
     return ctx.digest()
 
 # Various character maps used to decrypt books. Probably supposed to act as obfuscation
-charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
-charMap2 = "ZB0bYyc1xDdW2wEV3Ff7KkPpL8UuGA4gz-Tme9Nn_tHh5SvXCsIiR6rJjQaqlOoM"
+charMap1 = 'n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M'
+charMap2 = 'ZB0bYyc1xDdW2wEV3Ff7KkPpL8UuGA4gz-Tme9Nn_tHh5SvXCsIiR6rJjQaqlOoM'
 
 # For kinf approach of K4Mac 1.6.X or later
-# On K4PC charMap5 = "AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
+# On K4PC charMap5 = 'AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE'
 # For Mac they seem to re-use charMap2 here
 charMap5 = charMap2
 
 # new in K4M 1.9.X
-testMap8 = "YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD"
+testMap8 = 'YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD'
 
 
 def encode(data, map):
-    result = ""
+    result = ''
     for char in data:
         value = ord(char)
         Q = (value ^ 0x80) // len(map)
@@ -167,14 +170,14 @@ def encodeHash(data,map):
 
 # Decode the string in data with the characters in map. Returns the decoded bytes
 def decode(data,map):
-    result = ""
+    result = ''
     for i in range (0,len(data)-1,2):
         high = map.find(data[i])
         low = map.find(data[i+1])
         if (high == -1) or (low == -1) :
             break
         value = (((high * len(map)) ^ 0x80) & 0xFF) + low
-        result += pack("B",value)
+        result += pack('B',value)
     return result
 
 # For K4M 1.6.X and later
@@ -200,7 +203,7 @@ def primes(n):
 
 
 # uses a sub process to get the Hard Drive Serial Number using ioreg
-# returns with the serial number of drive whose BSD Name is "disk0"
+# returns with the serial number of drive whose BSD Name is 'disk0'
 def GetVolumeSerialNumber():
     sernum = os.getenv('MYSERIALNUMBER')
     if sernum != None:
@@ -216,11 +219,11 @@ def GetVolumeSerialNumber():
     foundIt = False
     for j in xrange(cnt):
         resline = reslst[j]
-        pp = resline.find('"Serial Number" = "')
+        pp = resline.find('\"Serial Number\" = \"')
         if pp >= 0:
             sernum = resline[pp+19:-1]
             sernum = sernum.strip()
-        bb = resline.find('"BSD Name" = "')
+        bb = resline.find('\"BSD Name\" = \"')
         if bb >= 0:
             bsdname = resline[bb+14:-1]
             bsdname = bsdname.strip()
@@ -277,7 +280,7 @@ def GetDiskPartitionUUID(diskpart):
             nest += 1
         if resline.find('}') >= 0:
             nest -= 1
-        pp = resline.find('"UUID" = "')
+        pp = resline.find('\"UUID\" = \"')
         if pp >= 0:
             uuidnum = resline[pp+10:-1]
             uuidnum = uuidnum.strip()
@@ -285,7 +288,7 @@ def GetDiskPartitionUUID(diskpart):
             if partnest == uuidnest and uuidnest > 0:
                 foundIt = True
                 break
-        bb = resline.find('"BSD Name" = "')
+        bb = resline.find('\"BSD Name\" = \"')
         if bb >= 0:
             bsdname = resline[bb+14:-1]
             bsdname = bsdname.strip()
@@ -323,7 +326,7 @@ def GetMACAddressMunged():
         if pp >= 0:
             macnum = resline[pp+6:-1]
             macnum = macnum.strip()
-            # print "original mac", macnum
+            # print 'original mac', macnum
             # now munge it up the way Kindle app does
             # by xoring it with 0xa5 and swapping elements 3 and 4
             maclst = macnum.split(':')
@@ -340,7 +343,7 @@ def GetMACAddressMunged():
             mlst[2] = maclst[2] ^ 0xa5
             mlst[1] = maclst[1] ^ 0xa5
             mlst[0] = maclst[0] ^ 0xa5
-            macnum = "%0.2x%0.2x%0.2x%0.2x%0.2x%0.2x" % (mlst[0], mlst[1], mlst[2], mlst[3], mlst[4], mlst[5])
+            macnum = '%0.2x%0.2x%0.2x%0.2x%0.2x%0.2x' % (mlst[0], mlst[1], mlst[2], mlst[3], mlst[4], mlst[5])
             foundIt = True
             break
     if not foundIt:
@@ -367,6 +370,19 @@ def isNewInstall():
     return False
 
 
+class Memoize:
+    """Memoize(fn) - an instance which acts like fn but memoizes its arguments
+       Will only work on functions with non-mutable arguments
+    """
+    def __init__(self, fn):
+        self.fn = fn
+        self.memo = {}
+    def __call__(self, *args):
+        if not self.memo.has_key(args):
+            self.memo[args] = self.fn(*args)
+        return self.memo[args]
+
+@Memoize
 def GetIDString():
     # K4Mac now has an extensive set of ids strings it uses
     # in encoding pids and in creating unique passwords
@@ -530,7 +546,8 @@ def getKindleInfoFiles():
 # determine type of kindle info provided and return a
 # database of keynames and values
 def getDBfromFile(kInfoFile):
-    names = ["kindle.account.tokens","kindle.cookie.item","eulaVersionAccepted","login_date","kindle.token.item","login","kindle.key.item","kindle.name.info","kindle.device.info", "MazamaRandomNumber", "max_date", "SIGVERIF"]
+
+    names = ['kindle.account.tokens','kindle.cookie.item','eulaVersionAccepted','login_date','kindle.token.item','login','kindle.key.item','kindle.name.info','kindle.device.info', 'MazamaRandomNumber', 'max_date', 'SIGVERIF']
     DB = {}
     cnt = 0
     infoReader = open(kInfoFile, 'r')
@@ -545,12 +562,12 @@ def getDBfromFile(kInfoFile):
         for item in items:
             if item != '':
                 keyhash, rawdata = item.split(':')
-                keyname = "unknown"
+                keyname = 'unknown'
                 for name in names:
                     if encodeHash(name,charMap2) == keyhash:
                         keyname = name
                         break
-                if keyname == "unknown":
+                if keyname == 'unknown':
                     keyname = keyhash
                 encryptedValue = decode(rawdata,charMap2)
                 cleartext = cud.decrypt(encryptedValue)
@@ -563,8 +580,8 @@ def getDBfromFile(kInfoFile):
     if hdr == '/':
 
         # else newer style .kinf file used by K4Mac >= 1.6.0
-        # the .kinf file uses "/" to separate it into records
-        # so remove the trailing "/" to make it easy to use split
+        # the .kinf file uses '/' to separate it into records
+        # so remove the trailing '/' to make it easy to use split
         data = data[:-1]
         items = data.split('/')
         cud = CryptUnprotectDataV2()
@@ -578,11 +595,11 @@ def getDBfromFile(kInfoFile):
             # the first 32 chars of the first record of a group
             # is the MD5 hash of the key name encoded by charMap5
             keyhash = item[0:32]
-            keyname = "unknown"
+            keyname = 'unknown'
 
             # the raw keyhash string is also used to create entropy for the actual
             # CryptProtectData Blob that represents that keys contents
-            # "entropy" not used for K4Mac only K4PC
+            # 'entropy' not used for K4Mac only K4PC
             # entropy = SHA1(keyhash)
 
             # the remainder of the first record when decoded with charMap5
@@ -599,12 +616,12 @@ def getDBfromFile(kInfoFile):
                 item = items.pop(0)
                 edlst.append(item)
 
-            keyname = "unknown"
+            keyname = 'unknown'
             for name in names:
                 if encodeHash(name,charMap5) == keyhash:
                     keyname = name
                     break
-            if keyname == "unknown":
+            if keyname == 'unknown':
                 keyname = keyhash
 
             # the charMap5 encoded contents data has had a length
@@ -615,10 +632,10 @@ def getDBfromFile(kInfoFile):
 
             # The offset into the charMap5 encoded contents seems to be:
             # len(contents) - largest prime number less than or equal to int(len(content)/3)
-            # (in other words split "about" 2/3rds of the way through)
+            # (in other words split 'about' 2/3rds of the way through)
 
             # move first offsets chars to end to align for decode by charMap5
-            encdata = "".join(edlst)
+            encdata = ''.join(edlst)
             contlen = len(encdata)
 
             # now properly split and recombine
@@ -667,7 +684,7 @@ def getDBfromFile(kInfoFile):
         # the first 32 chars of the first record of a group
         # is the MD5 hash of the key name encoded by charMap5
         keyhash = item[0:32]
-        keyname = "unknown"
+        keyname = 'unknown'
 
         # unlike K4PC the keyhash is not used in generating entropy
         # entropy = SHA1(keyhash) + added_entropy
@@ -687,12 +704,12 @@ def getDBfromFile(kInfoFile):
             item = items.pop(0)
             edlst.append(item)
 
-        keyname = "unknown"
+        keyname = 'unknown'
         for name in names:
             if encodeHash(name,testMap8) == keyhash:
                 keyname = name
                 break
-        if keyname == "unknown":
+        if keyname == 'unknown':
             keyname = keyhash
 
         # the testMap8 encoded contents data has had a length
@@ -703,10 +720,10 @@ def getDBfromFile(kInfoFile):
 
         # The offset into the testMap8 encoded contents seems to be:
         # len(contents) - largest prime number less than or equal to int(len(content)/3)
-        # (in other words split "about" 2/3rds of the way through)
+        # (in other words split 'about' 2/3rds of the way through)
 
         # move first offsets chars to end to align for decode by testMap8
-        encdata = "".join(edlst)
+        encdata = ''.join(edlst)
         contlen = len(encdata)
 
         # now properly split and recombine

@@ -1,10 +1,17 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# crypto library mainly by some_updates
+
+# pbkdf2.py pbkdf2 code taken from pbkdf2.py
+# pbkdf2.py Copyright © 2004 Matt Johnston <matt @ ucc asn au>
+# pbkdf2.py Copyright © 2009 Daniel Holth <dholth@fastmail.fm>
+# pbkdf2.py This code may be freely used and modified for any purpose.
 
 import sys, os
 import hmac
 from struct import pack
 import hashlib
-
 
 # interface to needed routines libalfcrypto
 def _load_libalfcrypto():
@@ -26,8 +33,8 @@ def _load_libalfcrypto():
             name_of_lib = 'libalfcrypto32.so'
         else:
             name_of_lib = 'libalfcrypto64.so'
-    
-    libalfcrypto = sys.path[0] + os.sep + name_of_lib
+
+    libalfcrypto = os.path.join(sys.path[0],name_of_lib)
 
     if not os.path.isfile(libalfcrypto):
         raise Exception('libalfcrypto not found')
@@ -55,7 +62,7 @@ def _load_libalfcrypto():
     #
     # int AES_set_decrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key);
     #
-    # 
+    #
     # void AES_cbc_encrypt(const unsigned char *in, unsigned char *out,
     # const unsigned long length, const AES_KEY *key,
     # unsigned char *ivec, const int enc);
@@ -147,7 +154,7 @@ def _load_libalfcrypto():
             topazCryptoDecrypt(ctx, data, out, len(data))
             return out.raw
 
-    print "Using Library AlfCrypto DLL/DYLIB/SO"
+    print u"Using Library AlfCrypto DLL/DYLIB/SO"
     return (AES_CBC, Pukall_Cipher, Topaz_Cipher)
 
 
@@ -164,8 +171,7 @@ def _load_python_alfcrypto():
             sum2 = 0;
             keyXorVal = 0;
             if len(key)!=16:
-                print "Bad key length!"
-                return None
+                raise Exception('Pukall_Cipher: Bad key length.')
             wkey = []
             for i in xrange(8):
                 wkey.append(ord(key[i*2])<<8 | ord(key[i*2+1]))
@@ -234,6 +240,7 @@ def _load_python_alfcrypto():
             cleartext = self.aes.decrypt(iv + data)
             return cleartext
 
+    print u"Using Library AlfCrypto Python"
     return (AES_CBC, Pukall_Cipher, Topaz_Cipher)
 
 

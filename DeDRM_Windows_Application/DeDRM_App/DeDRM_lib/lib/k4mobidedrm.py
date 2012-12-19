@@ -1,6 +1,10 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+
+# ignobleepub.pyw, version 3.6
+# Copyright © 2009-2012 by DiapDealer et al.
 
 # engine to remove drm from Kindle for Mac and Kindle for PC books
 # for personal use for archiving and converting your ebooks
@@ -12,30 +16,51 @@ from __future__ import with_statement
 # be able to read OUR books on whatever device we want and to keep
 # readable for a long, long time
 
-#  This borrows very heavily from works by CMBDTC, IHeartCabbages, skindle,
+# This borrows very heavily from works by CMBDTC, IHeartCabbages, skindle,
 #    unswindle, DarkReverser, ApprenticeAlf, DiapDealer, some_updates
 #    and many many others
+# Special thanks to The Dark Reverser for MobiDeDrm and CMBDTC for cmbdtc_dump
+# from which this script borrows most unashamedly.
 
 
-__version__ = '4.4'
+# Changelog
+#  1.0 - Name change to k4mobidedrm. Adds Mac support, Adds plugin code
+#  1.1 - Adds support for additional kindle.info files
+#  1.2 - Better error handling for older Mobipocket
+#  1.3 - Don't try to decrypt Topaz books
+#  1.7 - Add support for Topaz books and Kindle serial numbers. Split code.
+#  1.9 - Tidy up after Topaz, minor exception changes
+#  2.1 - Topaz fix and filename sanitizing
+#  2.2 - Topaz Fix and minor Mac code fix
+#  2.3 - More Topaz fixes
+#  2.4 - K4PC/Mac key generation fix
+#  2.6 - Better handling of non-K4PC/Mac ebooks
+#  2.7 - Better trailing bytes handling in mobidedrm
+#  2.8 - Moved parsing of kindle.info files to mac & pc util files.
+#  3.1 - Updated for new calibre interface. Now __init__ in plugin.
+#  3.5 - Now support Kindle for PC/Mac 1.6
+#  3.6 - Even better trailing bytes handling in mobidedrm
+#  3.7 - Add support for Amazon Print Replica ebooks.
+#  3.8 - Improved Topaz support
+#  4.1 - Improved Topaz support and faster decryption with alfcrypto
+#  4.2 - Added support for Amazon's KF8 format ebooks
+#  4.4 - Linux calls to Wine added, and improved configuration dialog
+#  4.5 - Linux works again without Wine. Some Mac key file search changes
+#  4.6 - First attempt to handle unicode properly
+#  4.7 - Added timing reports, and changed search for Mac key files
+#  4.8 - Much better unicode handling, matching the updated inept and ignoble scripts
+#      - Moved back into plugin, __init__ in plugin now only contains plugin code.
 
-class Unbuffered:
-    def __init__(self, stream):
-        self.stream = stream
-    def write(self, data):
-        self.stream.write(data)
-        self.stream.flush()
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
+__version__ = '4.8'
 
-import sys
-import os, csv, getopt
-import string
+
+import sys, os, re
+import csv
+import getopt
 import re
 import traceback
 import time
-
-buildXML = False
+import htmlentitydefs
 
 class DrmException(Exception):
     pass
@@ -54,160 +79,202 @@ else:
     import topazextract
     import kgenpids
 
+# Wrap a stream so that output gets flushed immediately
+# and also make sure that any unicode strings get
+# encoded using "replace" before writing them.
+class SafeUnbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
+    def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
 
-# cleanup bytestring filenames
+iswindows = sys.platform.startswith('win')
+isosx = sys.platform.startswith('darwin')
+
+def unicode_argv():
+    if iswindows:
+        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+        # strings.
+
+        # Versions 2.x of Python don't support Unicode in sys.argv on
+        # Windows, with the underlying Windows API instead replacing multi-byte
+        # characters with '?'.
+
+
+        from ctypes import POINTER, byref, cdll, c_int, windll
+        from ctypes.wintypes import LPCWSTR, LPWSTR
+
+        GetCommandLineW = cdll.kernel32.GetCommandLineW
+        GetCommandLineW.argtypes = []
+        GetCommandLineW.restype = LPCWSTR
+
+        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
+        CommandLineToArgvW.restype = POINTER(LPWSTR)
+
+        cmd = GetCommandLineW()
+        argc = c_int(0)
+        argv = CommandLineToArgvW(cmd, byref(argc))
+        if argc.value > 0:
+            # Remove Python executable and commands if present
+            start = argc.value - len(sys.argv)
+            return [argv[i] for i in
+                    xrange(start, argc.value)]
+        # if we don't have any arguments at all, just pass back script name
+        # this should never happen
+        return [u"mobidedrm.py"]
+    else:
+        argvencoding = sys.stdin.encoding
+        if argvencoding == None:
+            argvencoding = "utf-8"
+        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+
+# cleanup unicode filenames
 # borrowed from calibre from calibre/src/calibre/__init__.py
-# added in removal of non-printing chars
-# and removal of . at start
-# convert underscores to spaces (we're OK with spaces in file names)
+# added in removal of control (<32) chars
+# and removal of . at start and end
+# and with some (heavily edited) code from Paul Durrant's kindlenamer.py
 def cleanup_name(name):
-    _filename_sanitize = re.compile(r'[\xae\0\\|\?\*<":>\+/]')
-    substitute='_'
-    one = ''.join(char for char in name if char in string.printable)
-    one = _filename_sanitize.sub(substitute, one)
-    one = re.sub(r'\s', ' ', one).strip()
-    one = re.sub(r'^\.+$', '_', one)
-    one = one.replace('..', substitute)
-    # Windows doesn't like path components that end with a period
-    if one.endswith('.'):
-        one = one[:-1]+substitute
-    # Mac and Unix don't like file names that begin with a full stop
-    if len(one) > 0 and one[0] == '.':
-        one = substitute+one[1:]
-    one = one.replace('_',' ')
-    return one
+    # substitute filename unfriendly characters
+    name = name.replace(u"<",u"[").replace(u">",u"]").replace(u" : ",u" – ").replace(u": ",u" – ").replace(u":",u"—").replace(u"/",u"_").replace(u"\\",u"_").replace(u"|",u"_").replace(u"\"",u"\'")
+    # delete control characters
+    name = u"".join(char for char in name if ord(char)>=32)
+    # white space to single space, delete leading and trailing while space
+    name = re.sub(ur"\s", u" ", name).strip()
+    # remove leading dots
+    while len(name)>0 and name[0] == u".":
+        name = name[1:]
+    # remove trailing dots (Windows doesn't like them)
+    if name.endswith(u'.'):
+        name = name[:-1]
+    return name
 
-def decryptBook(infile, outdir, k4, kInfoFiles, serials, pids):
-    global buildXML
+# must be passed unicode
+def unescape(text):
+    def fixup(m):
+        text = m.group(0)
+        if text[:2] == u"&#":
+            # character reference
+            try:
+                if text[:3] == u"&#x":
+                    return unichr(int(text[3:-1], 16))
+                else:
+                    return unichr(int(text[2:-1]))
+            except ValueError:
+                pass
+        else:
+            # named entity
+            try:
+                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+            except KeyError:
+                pass
+        return text # leave as is
+    return re.sub(u"&#?\w+;", fixup, text)
 
-
+def GetDecryptedBook(infile, kInfoFiles, serials, pids, starttime = time.time()):
     # handle the obvious cases at the beginning
     if not os.path.isfile(infile):
-        print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: Input file does not exist"
-        return 1
-
-    starttime = time.time()
-    print "Starting decryptBook routine."
-
+        raise DRMException (u"Input file does not exist.")
 
     mobi = True
     magic3 = file(infile,'rb').read(3)
     if magic3 == 'TPZ':
         mobi = False
 
-    bookname = os.path.splitext(os.path.basename(infile))[0]
-
     if mobi:
         mb = mobidedrm.MobiBook(infile)
     else:
         mb = topazextract.TopazBook(infile)
 
-    title = mb.getBookTitle()
-    print "Processing Book: ", title
-    filenametitle = cleanup_name(title)
-    outfilename = cleanup_name(bookname)
+    bookname = unescape(mb.getBookTitle())
+    print u"Decrypting {1} ebook: {0}".format(bookname, mb.getBookType())
 
-    # generate 'sensible' filename, that will sort with the original name,
-    # but is close to the name from the file.
-    outlength = len(outfilename)
-    comparelength = min(8,min(outlength,len(filenametitle)))
-    copylength = min(max(outfilename.find(' '),8),len(outfilename))
-    if outlength==0:
-        outfilename = filenametitle
-    elif comparelength > 0:
-    	if outfilename[:comparelength] == filenametitle[:comparelength]:
-        	outfilename = filenametitle
-        else:
-        	outfilename = outfilename[:copylength] + " " + filenametitle
+    # extend PID list with book-specific PIDs
+    md1, md2 = mb.getPIDMetaInfo()
+    pids.extend(kgenpids.getPidList(md1, md2, serials, kInfoFiles))
+    print u"Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(pids))
+
+    try:
+        mb.processBook(pids)
+    except:
+        mb.cleanup
+        raise
+
+    print u"Decryption succeeded after {0:.1f} seconds".format(time.time()-starttime)
+    return mb
+
+
+# infile, outdir and kInfoFiles should be unicode strings
+def decryptBook(infile, outdir, kInfoFiles, serials, pids):
+    starttime = time.time()
+    print "Starting decryptBook routine."
+    try:
+        book = GetDecryptedBook(infile, kInfoFiles, serials, pids, starttime)
+    except Exception, e:
+        print u"Error decrypting book after {1:.1f} seconds: {0}".format(e.args[0],time.time()-starttime)
+        return 1
+
+    # if we're saving to the same folder as the original, use file name_
+    # if to a different folder, use book name
+    if os.path.normcase(os.path.normpath(outdir)) == os.path.normcase(os.path.normpath(os.path.dirname(infile))):
+        outfilename = os.path.splitext(os.path.basename(infile))[0]
+    else:
+        outfilename = cleanup_name(book.getBookTitle())
 
     # avoid excessively long file names
     if len(outfilename)>150:
         outfilename = outfilename[:150]
 
-    # build pid list
-    md1, md2 = mb.getPIDMetaInfo()
-    pids.extend(kgenpids.getPidList(md1, md2, k4, serials, kInfoFiles))
+    outfilename = outfilename+u"_nodrm"
+    outfile = os.path.join(outdir, outfilename + book.getBookExtension())
 
-    print "Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(pids))
+    book.getFile(outfile)
+    print u"Saved decrypted book {1:s} after {0:.1f} seconds".format(time.time()-starttime, outfilename)
 
-
-    try:
-        mb.processBook(pids)
-
-    except mobidedrm.DrmException, e:
-        print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: " + str(e) + "\nDRM Removal Failed.\n"
-        print "Failed to decrypted book after {0:.1f} seconds".format(time.time()-starttime)
-        return 1
-    except topazextract.TpzDRMError, e:
-        print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: " + str(e) + "\nDRM Removal Failed.\n"
-        print "Failed to decrypted book after {0:.1f} seconds".format(time.time()-starttime)
-        return 1
-    except Exception, e:
-        print >>sys.stderr, ('K4MobiDeDrm v%(__version__)s\n' % globals()) + "Error: " + str(e) + "\nDRM Removal Failed.\n"
-        print "Failed to decrypted book after {0:.1f} seconds".format(time.time()-starttime)
-        return 1
-
-    print "Successfully decrypted book after {0:.1f} seconds".format(time.time()-starttime)
-
-    if mobi:
-        if mb.getPrintReplica():
-            outfile = os.path.join(outdir, outfilename + '_nodrm' + '.azw4')
-        elif mb.getMobiVersion() >= 8:
-            outfile = os.path.join(outdir, outfilename + '_nodrm' + '.azw3')
-        else:
-            outfile = os.path.join(outdir, outfilename + '_nodrm' + '.mobi')
-        mb.getMobiFile(outfile)
-        print "Saved decrypted book {1:s} after {0:.1f} seconds".format(time.time()-starttime, outfilename + '_nodrm')
-        return 0
-
-    # topaz:
-    print "   Creating NoDRM HTMLZ Archive"
-    zipname = os.path.join(outdir, outfilename + '_nodrm' + '.htmlz')
-    mb.getHTMLZip(zipname)
-
-    print "   Creating SVG ZIP Archive"
-    zipname = os.path.join(outdir, outfilename + '_SVG' + '.zip')
-    mb.getSVGZip(zipname)
-
-    if buildXML:
-        print "   Creating XML ZIP Archive"
-        zipname = os.path.join(outdir, outfilename + '_XML' + '.zip')
-        mb.getXMLZip(zipname)
+    if book.getBookType()==u"Topaz":
+        zipname = os.path.join(outdir, outfilename + u"_SVG.zip")
+        book.getSVGZip(zipname)
+        print u"Saved SVG ZIP Archive for {1:s} after {0:.1f} seconds".format(time.time()-starttime, outfilename)
 
     # remove internal temporary directory of Topaz pieces
-    mb.cleanup()
-    print "Saved decrypted Topaz book parts after {0:.1f} seconds".format(time.time()-starttime)
-    return 0
+    book.cleanup()
 
 
 def usage(progname):
-    print "Removes DRM protection from K4PC/M, Kindle, Mobi and Topaz ebooks"
-    print "Usage:"
-    print "    %s [-k <kindle.info>] [-p <pidnums>] [-s <kindleSerialNumbers>] <infile> <outdir>  " % progname
+    print u"Removes DRM protection from Mobipocket, Amazon KF8, Amazon Print Replica and Amazon Topaz ebooks"
+    print u"Usage:"
+    print u"    {0} [-k <kindle.info>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname)
 
 #
 # Main
 #
-def main(argv=sys.argv):
+def cli_main(argv=unicode_argv()):
     progname = os.path.basename(argv[0])
-
-    k4 = False
-    kInfoFiles = []
-    serials = []
-    pids = []
-
-    print ('K4MobiDeDrm v%(__version__)s '
-           'provided by the work of many including DiapDealer, SomeUpdates, IHeartCabbages, CMBDTC, Skindle, DarkReverser, ApprenticeAlf, etc .' % globals())
+    print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2012 The Dark Reverser et al.".format(__version__)
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "k:p:s:")
     except getopt.GetoptError, err:
-        print str(err)
+        print u"Error in options or arguments: {0}".format(err.args[0])
         usage(progname)
         sys.exit(2)
     if len(args)<2:
         usage(progname)
         sys.exit(2)
+
+    infile = args[0]
+    outdir = args[1]
+    kInfoFiles = []
+    serials = []
+    pids = []
 
     for o, a in opts:
         if o == "-k":
@@ -223,16 +290,13 @@ def main(argv=sys.argv):
                 raise DrmException("Invalid parameter for -s")
             serials = a.split(',')
 
-    # try with built in Kindle Info files
-    k4 = True
-    if sys.platform.startswith('linux'):
-        k4 = False
-        kInfoFiles = None
-    infile = args[0]
-    outdir = args[1]
-    return decryptBook(infile, outdir, k4, kInfoFiles, serials, pids)
+    # try with built in Kindle Info files if not on Linux
+    k4 = not sys.platform.startswith('linux')
+
+    return decryptBook(infile, outdir, kInfoFiles, serials, pids)
 
 
 if __name__ == '__main__':
-    sys.stdout=Unbuffered(sys.stdout)
-    sys.exit(main())
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
+    sys.exit(cli_main())

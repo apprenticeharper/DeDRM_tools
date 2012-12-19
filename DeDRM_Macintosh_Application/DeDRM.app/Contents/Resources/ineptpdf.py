@@ -1,13 +1,25 @@
-#! /usr/bin/env python
-# ineptpdf.pyw, version 7.11
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
 
 from __future__ import with_statement
 
-# To run this program install Python 2.6 from http://www.python.org/download/
-# and OpenSSL (already installed on Mac OS X and Linux) OR
-# PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
-# (make sure to install the version for Python 2.6).  Save this script file as
-# ineptpdf.pyw and double-click on it to run it.
+# ineptpdf.pyw, version 7.11
+# Copyright © 2009-2010 by i♥cabbages
+
+# Released under the terms of the GNU General Public Licence, version 3
+# <http://www.gnu.org/licenses/>
+
+# Modified 2010–2012 by some_updates, DiapDealer and Apprentice Alf
+
+# Windows users: Before running this program, you must first install Python 2.6
+#   from <http://www.python.org/download/> and PyCrypto from
+#   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
+#   install the version for Python 2.6).  Save this script file as
+#   ineptepub.pyw and double-click on it to run it.
+#
+# Mac OS X users: Save this script file as ineptepub.pyw.  You can run this
+#   program from the command line (pythonw ineptepub.pyw) or by double-clicking
+#   it when it has been associated with PythonLauncher.
 
 # Revision history:
 #   1 - Initial release
@@ -36,12 +48,14 @@ from __future__ import with_statement
 #   7.9 - Bug fix for some session key errors when len(bookkey) > length required
 #   7.10 - Various tweaks to fix minor problems.
 #   7.11 - More tweaks to fix minor problems.
+#   7.12 - Revised to allow use in calibre plugins to eliminate need for duplicate code
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
+__version__ = "7.12"
 
 import sys
 import os
@@ -51,10 +65,63 @@ import struct
 import hashlib
 from itertools import chain, islice
 import xml.etree.ElementTree as etree
-import Tkinter
-import Tkconstants
-import tkFileDialog
-import tkMessageBox
+
+# Wrap a stream so that output gets flushed immediately
+# and also make sure that any unicode strings get
+# encoded using "replace" before writing them.
+class SafeUnbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
+    def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+iswindows = sys.platform.startswith('win')
+isosx = sys.platform.startswith('darwin')
+
+def unicode_argv():
+    if iswindows:
+        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+        # strings.
+
+        # Versions 2.x of Python don't support Unicode in sys.argv on
+        # Windows, with the underlying Windows API instead replacing multi-byte
+        # characters with '?'.
+
+
+        from ctypes import POINTER, byref, cdll, c_int, windll
+        from ctypes.wintypes import LPCWSTR, LPWSTR
+
+        GetCommandLineW = cdll.kernel32.GetCommandLineW
+        GetCommandLineW.argtypes = []
+        GetCommandLineW.restype = LPCWSTR
+
+        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
+        CommandLineToArgvW.restype = POINTER(LPWSTR)
+
+        cmd = GetCommandLineW()
+        argc = c_int(0)
+        argv = CommandLineToArgvW(cmd, byref(argc))
+        if argc.value > 0:
+            # Remove Python executable and commands if present
+            start = argc.value - len(sys.argv)
+            return [argv[i] for i in
+                    xrange(start, argc.value)]
+        return [u"ineptepub.py"]
+    else:
+        argvencoding = sys.stdin.encoding
+        if argvencoding == None:
+            argvencoding = "utf-8"
+        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+
 
 class ADEPTError(Exception):
     pass
@@ -1520,9 +1587,7 @@ class PDFDocument(object):
 
     def initialize_ebx(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
-        with open(password, 'rb') as f:
-            keyder = f.read()
-        rsa = RSA(keyder)
+        rsa = RSA(password)
         length = int_value(param.get('Length', 0)) / 8
         rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
         rights = zlib.decompress(rights, -15)
@@ -1907,14 +1972,14 @@ class PDFObjStrmParser(PDFParser):
 ### My own code, for which there is none else to blame
 
 class PDFSerializer(object):
-    def __init__(self, inf, keypath):
+    def __init__(self, inf, userkey):
         global GEN_XREF_STM, gen_xref_stm
         gen_xref_stm = GEN_XREF_STM > 1
         self.version = inf.read(8)
         inf.seek(0)
         self.doc = doc = PDFDocument()
         parser = PDFParser(doc, inf)
-        doc.initialize(keypath)
+        doc.initialize(userkey)
         self.objids = objids = set()
         for xref in reversed(doc.xrefs):
             trailer = xref.trailer
@@ -2097,142 +2162,144 @@ class PDFSerializer(object):
         self.write('endobj\n')
 
 
-class DecryptionDialog(Tkinter.Frame):
-    def __init__(self, root):
-        Tkinter.Frame.__init__(self, root, border=5)
-        ltext='Select file for decryption\n'
-        self.status = Tkinter.Label(self, text=ltext)
-        self.status.pack(fill=Tkconstants.X, expand=1)
-        body = Tkinter.Frame(self)
-        body.pack(fill=Tkconstants.X, expand=1)
-        sticky = Tkconstants.E + Tkconstants.W
-        body.grid_columnconfigure(1, weight=2)
-        Tkinter.Label(body, text='Key file').grid(row=0)
-        self.keypath = Tkinter.Entry(body, width=30)
-        self.keypath.grid(row=0, column=1, sticky=sticky)
-        if os.path.exists('adeptkey.der'):
-            self.keypath.insert(0, 'adeptkey.der')
-        button = Tkinter.Button(body, text="...", command=self.get_keypath)
-        button.grid(row=0, column=2)
-        Tkinter.Label(body, text='Input file').grid(row=1)
-        self.inpath = Tkinter.Entry(body, width=30)
-        self.inpath.grid(row=1, column=1, sticky=sticky)
-        button = Tkinter.Button(body, text="...", command=self.get_inpath)
-        button.grid(row=1, column=2)
-        Tkinter.Label(body, text='Output file').grid(row=2)
-        self.outpath = Tkinter.Entry(body, width=30)
-        self.outpath.grid(row=2, column=1, sticky=sticky)
-        button = Tkinter.Button(body, text="...", command=self.get_outpath)
-        button.grid(row=2, column=2)
-        buttons = Tkinter.Frame(self)
-        buttons.pack()
 
 
-        botton = Tkinter.Button(
-            buttons, text="Decrypt", width=10, command=self.decrypt)
-        botton.pack(side=Tkconstants.LEFT)
-        Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
-        button = Tkinter.Button(
-            buttons, text="Quit", width=10, command=self.quit)
-        button.pack(side=Tkconstants.RIGHT)
-
-
-    def get_keypath(self):
-        keypath = tkFileDialog.askopenfilename(
-            parent=None, title='Select ADEPT key file',
-            defaultextension='.der', filetypes=[('DER-encoded files', '.der'),
-                                                ('All Files', '.*')])
-        if keypath:
-            keypath = os.path.normpath(os.path.realpath(keypath))
-            self.keypath.delete(0, Tkconstants.END)
-            self.keypath.insert(0, keypath)
-        return
-
-    def get_inpath(self):
-        inpath = tkFileDialog.askopenfilename(
-            parent=None, title='Select ADEPT encrypted PDF file to decrypt',
-            defaultextension='.pdf', filetypes=[('PDF files', '.pdf'),
-                                                 ('All files', '.*')])
-        if inpath:
-            inpath = os.path.normpath(os.path.realpath(inpath))
-            self.inpath.delete(0, Tkconstants.END)
-            self.inpath.insert(0, inpath)
-        return
-
-    def get_outpath(self):
-        outpath = tkFileDialog.asksaveasfilename(
-            parent=None, title='Select unencrypted PDF file to produce',
-            defaultextension='.pdf', filetypes=[('PDF files', '.pdf'),
-                                                 ('All files', '.*')])
-        if outpath:
-            outpath = os.path.normpath(os.path.realpath(outpath))
-            self.outpath.delete(0, Tkconstants.END)
-            self.outpath.insert(0, outpath)
-        return
-
-    def decrypt(self):
-        keypath = self.keypath.get()
-        inpath = self.inpath.get()
-        outpath = self.outpath.get()
-        if not keypath or not os.path.exists(keypath):
-            # keyfile doesn't exist
-            self.status['text'] = 'Specified Adept key file does not exist'
-            return
-        if not inpath or not os.path.exists(inpath):
-            self.status['text'] = 'Specified input file does not exist'
-            return
-        if not outpath:
-            self.status['text'] = 'Output file not specified'
-            return
-        if inpath == outpath:
-            self.status['text'] = 'Must have different input and output files'
-            return
-        # patch for non-ascii characters
-        argv = [sys.argv[0], keypath, inpath, outpath]
-        self.status['text'] = 'Processing ...'
-        try:
-            cli_main(argv)
-        except Exception, a:
-            self.status['text'] = 'Error: ' + str(a)
-            return
-        self.status['text'] = 'File successfully decrypted.\n'+\
-                              'Close this window or decrypt another pdf file.'
-        return
-
-
-def decryptBook(keypath, inpath, outpath):
+def decryptBook(userkey, inpath, outpath):
+    if RSA is None:
+        raise ADEPTError(u"PyCrypto or OpenSSL must be installed.")
     with open(inpath, 'rb') as inf:
         try:
-            serializer = PDFSerializer(inf, keypath)
+            serializer = PDFSerializer(inf, userkey)
         except:
-            print "Error serializing pdf. Probably wrong key."
-            return 1
+            print u"Error serializing pdf {0}. Probably wrong key.".format(os.path.basename(inpath))
+            return 2
         # hope this will fix the 'bad file descriptor' problem
         with open(outpath, 'wb') as outf:
-        # help construct to make sure the method runs to the end
+            # help construct to make sure the method runs to the end
             try:
                 serializer.dump(outf)
-            except:
-                print "error writing pdf."
-                return 1
+            except Exception, e:
+                print u"error writing pdf: {0}".format(e.args[0])
+                return 2
     return 0
 
 
-def cli_main(argv=sys.argv):
+def cli_main(argv=unicode_argv()):
     progname = os.path.basename(argv[0])
-    if RSA is None:
-        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
-              "separately.  Read the top-of-script comment for details." % \
-              (progname,)
-        return 1
     if len(argv) != 4:
-        print "usage: %s KEYFILE INBOOK OUTBOOK" % (progname,)
+        print u"usage: {0} <keyfile.der> <inbook.pdf> <outbook.pdf>".format(progname)
         return 1
     keypath, inpath, outpath = argv[1:]
-    return decryptBook(keypath, inpath, outpath)
+    userkey = open(keypath,'rb').read()
+    result = decryptBook(userkey, inpath, outpath)
+    if result == 0:
+        print u"Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath))
+    return result
 
 
 def gui_main():
+    import Tkinter
+    import Tkconstants
+    import tkFileDialog
+    import tkMessageBox
+
+    class DecryptionDialog(Tkinter.Frame):
+        def __init__(self, root):
+            Tkinter.Frame.__init__(self, root, border=5)
+            self.status = Tkinter.Label(self, text=u"Select files for decryption")
+            self.status.pack(fill=Tkconstants.X, expand=1)
+            body = Tkinter.Frame(self)
+            body.pack(fill=Tkconstants.X, expand=1)
+            sticky = Tkconstants.E + Tkconstants.W
+            body.grid_columnconfigure(1, weight=2)
+            Tkinter.Label(body, text=u"Key file").grid(row=0)
+            self.keypath = Tkinter.Entry(body, width=30)
+            self.keypath.grid(row=0, column=1, sticky=sticky)
+            if os.path.exists(u"adeptkey.der"):
+                self.keypath.insert(0, u"adeptkey.der")
+            button = Tkinter.Button(body, text=u"...", command=self.get_keypath)
+            button.grid(row=0, column=2)
+            Tkinter.Label(body, text=u"Input file").grid(row=1)
+            self.inpath = Tkinter.Entry(body, width=30)
+            self.inpath.grid(row=1, column=1, sticky=sticky)
+            button = Tkinter.Button(body, text=u"...", command=self.get_inpath)
+            button.grid(row=1, column=2)
+            Tkinter.Label(body, text=u"Output file").grid(row=2)
+            self.outpath = Tkinter.Entry(body, width=30)
+            self.outpath.grid(row=2, column=1, sticky=sticky)
+            button = Tkinter.Button(body, text=u"...", command=self.get_outpath)
+            button.grid(row=2, column=2)
+            buttons = Tkinter.Frame(self)
+            buttons.pack()
+            botton = Tkinter.Button(
+                buttons, text=u"Decrypt", width=10, command=self.decrypt)
+            botton.pack(side=Tkconstants.LEFT)
+            Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
+            button = Tkinter.Button(
+                buttons, text=u"Quit", width=10, command=self.quit)
+            button.pack(side=Tkconstants.RIGHT)
+
+        def get_keypath(self):
+            keypath = tkFileDialog.askopenfilename(
+                parent=None, title=u"Select Adobe Adept \'.der\' key file",
+                defaultextension=u".der",
+                filetypes=[('Adobe Adept DER-encoded files', '.der'),
+                           ('All Files', '.*')])
+            if keypath:
+                keypath = os.path.normpath(keypath)
+                self.keypath.delete(0, Tkconstants.END)
+                self.keypath.insert(0, keypath)
+            return
+
+        def get_inpath(self):
+            inpath = tkFileDialog.askopenfilename(
+                parent=None, title=u"Select ADEPT-encrypted PDF file to decrypt",
+                defaultextension=u".pdf", filetypes=[('PDF files', '.pdf')])
+            if inpath:
+                inpath = os.path.normpath(inpath)
+                self.inpath.delete(0, Tkconstants.END)
+                self.inpath.insert(0, inpath)
+            return
+
+        def get_outpath(self):
+            outpath = tkFileDialog.asksaveasfilename(
+                parent=None, title=u"Select unencrypted PDF file to produce",
+                defaultextension=u".pdf", filetypes=[('PDF files', '.pdf')])
+            if outpath:
+                outpath = os.path.normpath(outpath)
+                self.outpath.delete(0, Tkconstants.END)
+                self.outpath.insert(0, outpath)
+            return
+
+        def decrypt(self):
+            keypath = self.keypath.get()
+            inpath = self.inpath.get()
+            outpath = self.outpath.get()
+            if not keypath or not os.path.exists(keypath):
+                self.status['text'] = u"Specified key file does not exist"
+                return
+            if not inpath or not os.path.exists(inpath):
+                self.status['text'] = u"Specified input file does not exist"
+                return
+            if not outpath:
+                self.status['text'] = u"Output file not specified"
+                return
+            if inpath == outpath:
+                self.status['text'] = u"Must have different input and output files"
+                return
+            userkey = open(keypath,'rb').read()
+            self.status['text'] = u"Decrypting..."
+            try:
+                decrypt_status = decryptBook(userkey, inpath, outpath)
+            except Exception, e:
+                self.status['text'] = u"Error; {0}".format(e.args[0])
+                return
+            if decrypt_status == 0:
+                self.status['text'] = u"File successfully decrypted"
+            else:
+                self.status['text'] = u"The was an error decrypting the file."
+
+
     root = Tkinter.Tk()
     if RSA is None:
         root.withdraw()
@@ -2241,7 +2308,7 @@ def gui_main():
             "This script requires OpenSSL or PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
-    root.title('INEPT PDF Decrypter')
+    root.title(u"Adobe Adept PDF Decrypter v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(370, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
@@ -2251,5 +2318,7 @@ def gui_main():
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
+        sys.stdout=SafeUnbuffered(sys.stdout)
+        sys.stderr=SafeUnbuffered(sys.stderr)
         sys.exit(cli_main())
     sys.exit(gui_main())

@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from PyQt4.Qt import QWidget, QVBoxLayout, QLabel, QLineEdit
 
 from calibre.utils.config import JSONConfig

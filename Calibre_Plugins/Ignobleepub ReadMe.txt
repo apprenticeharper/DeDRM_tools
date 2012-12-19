@@ -1,17 +1,19 @@
-Ignoble Epub DeDRM - ignobleepub_v02.4_plugin.zip
+Ignoble Epub DeDRM - ignobleepub_v02.5_plugin.zip
+=================================================
 
-All credit given to I♥Cabbages for the original standalone scripts.
-I had the much easier job of converting them to a calibre plugin.
+All credit given to i♥cabbages for the original standalone scripts. I had the much easier job of converting them to a calibre plugin.
 
 This plugin is meant to decrypt Barnes & Noble Epubs that are protected with Adobe's Adept encryption. It is meant to function without having to install any dependencies... other than having calibre installed, of course. It will still work if you have Python and PyCrypto already installed, but they aren't necessary.
 
 
-Installation:
+Installation
+------------
 
-Go to calibre's Preferences page.  Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior". Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file  (ignobleepub_v02.4_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (ignobleepub_v02.5_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
 
 
-Configuration:
+Customization
+-------------
 
 Upon first installing the plugin (or upgrading from a version earlier than 0.2.0), the plugin will be unconfigured. Until you create at least one B&N key—or migrate your existing key(s)/data from an earlier version of the plugin—the plugin will not function. When unconfigured (no saved keys)... an error message will occur whenever ePubs are imported to calibre. To eliminate the error message, open the plugin's customization dialog and create/import/migrate a key (or disable/uninstall the plugin). You can get to the plugin's customization dialog by opening calibre's Preferences dialog, and clicking Plugins (under the Advanced section). Once in the Plugin Preferences, expand the "File type plugins" section and look for the "Ignoble Epub DeDRM" plugin. Highlight that plugin and click the "Customize plugin" button.
 
@@ -46,7 +48,8 @@ At the bottom-left of the plugin's customization dialog, you will see a button l
 
 Once done creating/importing/exporting/deleting decryption keys; click "OK" to exit the customization dialogue (the cancel button will actually work the same way here ... at this point all data/changes are committed already, so take your pick).
 
-Troubleshooting:
+Troubleshooting
+---------------
 
 If you find that it's not working for you (imported ebooks still have DRM), you can save a lot of time and trouble by first deleting the DRMed ebook from calibre and then trying to add the ebook to calibre with the command line tools. This will print out a lot of helpful debugging info that can be copied into any online help requests. I'm going to ask you to do it first, anyway, so you might as well get used to it. ;)
 
@@ -64,4 +67,4 @@ Now copy the output from the terminal window.
 On Windows, you must use the window menu (little icon at left of window bar) to select all the text and then to copy it.
 On Macintosh and Linux, just use the normal text select and copy commands.
 
-Paste the information into a comment at my blog, describing your problem.
+Paste the information into a comment at my blog, http://apprenticealf.wordpress.com/ describing your problem.

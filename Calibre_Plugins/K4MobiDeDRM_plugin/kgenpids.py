@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from __future__ import with_statement
 import sys
@@ -17,26 +18,24 @@ global charMap4
 
 if 'calibre' in sys.modules:
     inCalibre = True
-else:
-    inCalibre = False
-
-if inCalibre:
-    if sys.platform.startswith('win'):
+    from calibre.constants import iswindows, isosx
+    if iswindows:
         from calibre_plugins.k4mobidedrm.k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
-
-    if sys.platform.startswith('darwin'):
+    if isosx:
         from calibre_plugins.k4mobidedrm.k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
 else:
-    if sys.platform.startswith('win'):
+    inCalibre = False
+    iswindows = sys.platform.startswith('win')
+    isosx = sys.platform.startswith('darwin')
+    if iswindows:
         from k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
-
-    if sys.platform.startswith('darwin'):
+    if isosx:
         from k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
 
 
-charMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
-charMap3 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-charMap4 = "ABCDEFGHIJKLMNPQRSTUVWXYZ123456789"
+charMap1 = 'n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M'
+charMap3 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+charMap4 = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
 
 # crypto digestroutines
 import hashlib
@@ -54,7 +53,7 @@ def SHA1(message):
 
 # Encode the bytes in data with the characters in map
 def encode(data, map):
-    result = ""
+    result = ''
     for char in data:
         value = ord(char)
         Q = (value ^ 0x80) // len(map)
@@ -69,14 +68,14 @@ def encodeHash(data,map):
 
 # Decode the string in data with the characters in map. Returns the decoded bytes
 def decode(data,map):
-    result = ""
+    result = ''
     for i in range (0,len(data)-1,2):
         high = map.find(data[i])
         low = map.find(data[i+1])
         if (high == -1) or (low == -1) :
             break
         value = (((high * len(map)) ^ 0x80) & 0xFF) + low
-        result += pack("B",value)
+        result += pack('B',value)
     return result
 
 #
@@ -98,7 +97,7 @@ def getSixBitsFromBitField(bitField,offset):
 # 8 bits to six bits encoding from hash to generate PID string
 def encodePID(hash):
     global charMap3
-    PID = ""
+    PID = ''
     for position in range (0,8):
         PID += charMap3[getSixBitsFromBitField(hash,position)]
     return PID
@@ -129,7 +128,7 @@ def generatePidSeed(table,dsn) :
 def generateDevicePID(table,dsn,nbRoll):
     global charMap4
     seed = generatePidSeed(table,dsn)
-    pidAscii = ""
+    pidAscii = ''
     pid = [(seed >>24) &0xFF,(seed >> 16) &0xff,(seed >> 8) &0xFF,(seed) & 0xFF,(seed>>24) & 0xFF,(seed >> 16) &0xff,(seed >> 8) &0xFF,(seed) & 0xFF]
     index = 0
     for counter in range (0,nbRoll):
@@ -176,28 +175,31 @@ def pidFromSerial(s, l):
 
 
 # Parse the EXTH header records and use the Kindle serial number to calculate the book pid.
-def getKindlePid(pidlst, rec209, token, serialnum):
+def getKindlePids(rec209, token, serialnum):
+    pids=[]
+
     # Compute book PID
     pidHash = SHA1(serialnum+rec209+token)
     bookPID = encodePID(pidHash)
     bookPID = checksumPid(bookPID)
-    pidlst.append(bookPID)
+    pids.append(bookPID)
 
     # compute fixed pid for old pre 2.5 firmware update pid as well
-    bookPID = pidFromSerial(serialnum, 7) + "*"
-    bookPID = checksumPid(bookPID)
-    pidlst.append(bookPID)
+    kindlePID = pidFromSerial(serialnum, 7) + "*"
+    kindlePID = checksumPid(kindlePID)
+    pids.append(kindlePID)
 
-    return pidlst
+    return pids
 
 
 # parse the Kindleinfo file to calculate the book pid.
 
-keynames = ["kindle.account.tokens","kindle.cookie.item","eulaVersionAccepted","login_date","kindle.token.item","login","kindle.key.item","kindle.name.info","kindle.device.info", "MazamaRandomNumber"]
+keynames = ['kindle.account.tokens','kindle.cookie.item','eulaVersionAccepted','login_date','kindle.token.item','login','kindle.key.item','kindle.name.info','kindle.device.info', 'MazamaRandomNumber']
 
-def getK4Pids(pidlst, rec209, token, kInfoFile):
+def getK4Pids(rec209, token, kInfoFile):
     global charMap1
     kindleDatabase = None
+    pids = []
     try:
         kindleDatabase = getDBfromFile(kInfoFile)
     except Exception, message:
@@ -206,17 +208,17 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
         pass
 
     if kindleDatabase == None :
-        return pidlst
+        return pids
 
     try:
         # Get the Mazama Random number
-        MazamaRandomNumber = kindleDatabase["MazamaRandomNumber"]
+        MazamaRandomNumber = kindleDatabase['MazamaRandomNumber']
 
         # Get the kindle account token
-        kindleAccountToken = kindleDatabase["kindle.account.tokens"]
+        kindleAccountToken = kindleDatabase['kindle.account.tokens']
     except KeyError:
-        print "Keys not found in " + kInfoFile
-        return pidlst
+        print u"Keys not found in {0}".format(os.path.basename(kInfoFile))
+        return pids
 
     # Get the ID string used
     encodedIDString = encodeHash(GetIDString(),charMap1)
@@ -231,7 +233,7 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
     table =  generatePidEncryptionTable()
     devicePID = generateDevicePID(table,DSN,4)
     devicePID = checksumPid(devicePID)
-    pidlst.append(devicePID)
+    pids.append(devicePID)
 
     # Compute book PIDs
 
@@ -239,36 +241,38 @@ def getK4Pids(pidlst, rec209, token, kInfoFile):
     pidHash = SHA1(DSN+kindleAccountToken+rec209+token)
     bookPID = encodePID(pidHash)
     bookPID = checksumPid(bookPID)
-    pidlst.append(bookPID)
+    pids.append(bookPID)
 
     # variant 1
     pidHash = SHA1(kindleAccountToken+rec209+token)
     bookPID = encodePID(pidHash)
     bookPID = checksumPid(bookPID)
-    pidlst.append(bookPID)
+    pids.append(bookPID)
 
     # variant 2
     pidHash = SHA1(DSN+rec209+token)
     bookPID = encodePID(pidHash)
     bookPID = checksumPid(bookPID)
-    pidlst.append(bookPID)
+    pids.append(bookPID)
 
-    return pidlst
+    return pids
 
-def getPidList(md1, md2, k4 = True, serials=[], kInfoFiles=[]):
+def getPidList(md1, md2, serials=[], kInfoFiles=[]):
     pidlst = []
     if kInfoFiles is None:
         kInfoFiles = []
-    if k4:
+    if serials is None:
+        serials = []
+    if iswindows or isosx:
         kInfoFiles.extend(getKindleInfoFiles())
     for infoFile in kInfoFiles:
         try:
-            pidlst = getK4Pids(pidlst, md1, md2, infoFile)
-        except Exception, message:
-            print("Error getting PIDs from " + infoFile + ": " + message)
+            pidlst.extend(getK4Pids(md1, md2, infoFile))
+        except Exception, e:
+            print u"Error getting PIDs from {0}: {1}".format(os.path.basename(infoFile),e.args[0])
     for serialnum in serials:
         try:
-            pidlst = getKindlePid(pidlst, md1, md2, serialnum)
+            pidlst.extend(getKindlePids(md1, md2, serialnum))
         except Exception, message:
-            print("Error getting PIDs from " + serialnum + ": " + message)
+            print u"Error getting PIDs from serial number {0}: {1}".format(serialnum ,e.args[0])
     return pidlst

@@ -6,8 +6,8 @@ from __future__ import with_statement
 # ineptkey.pyw, version 5.6
 # Copyright © 2009-2010 i♥cabbages
 
-# Released under the terms of the GNU General Public Licence, version 3 or
-# later.  <http://www.gnu.org/licenses/>
+# Released under the terms of the GNU General Public Licence, version 3
+# <http://www.gnu.org/licenses/>
 
 # Windows users: Before running this program, you must first install Python 2.6
 #   from <http://www.python.org/download/> and PyCrypto from
@@ -37,7 +37,7 @@ from __future__ import with_statement
 #   5.3 - On Windows try PyCrypto first, OpenSSL next
 #   5.4 - Modify interface to allow use of import
 #   5.5 - Fix for potential problem with PyCrypto
-#   5.6 - Revise to allow use in Plugins to eliminate need for duplicate code
+#   5.6 - Revised to allow use in Plugins to eliminate need for duplicate code
 
 """
 Retrieve Adobe ADEPT user key.
@@ -49,11 +49,64 @@ import sys
 import os
 import struct
 
+# Wrap a stream so that output gets flushed immediately
+# and also make sure that any unicode strings get
+# encoded using "replace" before writing them.
+class SafeUnbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
+    def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
 try:
     from calibre.constants import iswindows, isosx
 except:
     iswindows = sys.platform.startswith('win')
     isosx = sys.platform.startswith('darwin')
+
+def unicode_argv():
+    if iswindows:
+        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+        # strings.
+
+        # Versions 2.x of Python don't support Unicode in sys.argv on
+        # Windows, with the underlying Windows API instead replacing multi-byte
+        # characters with '?'.
+
+
+        from ctypes import POINTER, byref, cdll, c_int, windll
+        from ctypes.wintypes import LPCWSTR, LPWSTR
+
+        GetCommandLineW = cdll.kernel32.GetCommandLineW
+        GetCommandLineW.argtypes = []
+        GetCommandLineW.restype = LPCWSTR
+
+        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
+        CommandLineToArgvW.restype = POINTER(LPWSTR)
+
+        cmd = GetCommandLineW()
+        argc = c_int(0)
+        argv = CommandLineToArgvW(cmd, byref(argc))
+        if argc.value > 0:
+            # Remove Python executable and commands if present
+            start = argc.value - len(sys.argv)
+            return [argv[i] for i in
+                    xrange(start, argc.value)]
+        return [u"ineptkey.py"]
+    else:
+        argvencoding = sys.stdin.encoding
+        if argvencoding == None:
+            argvencoding = "utf-8"
+        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
 
 class ADEPTError(Exception):
     pass
@@ -80,13 +133,13 @@ if iswindows:
             _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
                         ('rounds', c_int)]
         AES_KEY_p = POINTER(AES_KEY)
-    
+
         def F(restype, name, argtypes):
             func = getattr(libcrypto, name)
             func.restype = restype
             func.argtypes = argtypes
             return func
-    
+
         AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
                                 [c_char_p, c_int, AES_KEY_p])
         AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
@@ -308,9 +361,9 @@ if iswindows:
         cuser = winreg.HKEY_CURRENT_USER
         try:
             regkey = winreg.OpenKey(cuser, DEVICE_KEY_PATH)
+            device = winreg.QueryValueEx(regkey, 'key')[0]
         except WindowsError:
             raise ADEPTError("Adobe Digital Editions not activated")
-        device = winreg.QueryValueEx(regkey, 'key')[0]
         keykey = CryptUnprotectData(device, entropy)
         userkey = None
         keys = []
@@ -343,7 +396,7 @@ if iswindows:
         if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')
         return keys
-        
+
 
 elif isosx:
     import xml.etree.ElementTree as etree
@@ -386,7 +439,7 @@ else:
     def retrieve_keys(keypath):
         raise ADEPTError("This script only supports Windows and Mac OS X.")
         return []
-        
+
 def retrieve_key(keypath):
     keys = retrieve_keys()
     with open(keypath, 'wb') as f:
@@ -397,22 +450,22 @@ def extractKeyfile(keypath):
     try:
         success = retrieve_key(keypath)
     except ADEPTError, e:
-        print "Key generation Error: " + str(e)
+        print u"Key generation Error: {0}".format(e.args[0])
         return 1
     except Exception, e:
-        print "General Error: " + str(e)
+        print "General Error: {0}".format(e.args[0])
         return 1
     if not success:
         return 1
     return 0
 
 
-def cli_main(argv=sys.argv):
+def cli_main(argv=unicode_argv()):
     keypath = argv[1]
     return extractKeyfile(keypath)
 
 
-def main(argv=sys.argv):
+def gui_main(argv=unicode_argv()):
     import Tkinter
     import Tkconstants
     import tkMessageBox
@@ -421,24 +474,24 @@ def main(argv=sys.argv):
     class ExceptionDialog(Tkinter.Frame):
         def __init__(self, root, text):
             Tkinter.Frame.__init__(self, root, border=5)
-            label = Tkinter.Label(self, text="Unexpected error:",
+            label = Tkinter.Label(self, text=u"Unexpected error:",
                                   anchor=Tkconstants.W, justify=Tkconstants.LEFT)
             label.pack(fill=Tkconstants.X, expand=0)
             self.text = Tkinter.Text(self)
             self.text.pack(fill=Tkconstants.BOTH, expand=1)
-    
+
             self.text.insert(Tkconstants.END, text)
 
 
     root = Tkinter.Tk()
     root.withdraw()
-    progname = os.path.basename(argv[0])
-    keypath = os.path.abspath("adeptkey.der")
+    keypath, progname = os.path.split(argv[0])
+    keypath = os.path.join(keypath, u"adeptkey.der")
     success = False
     try:
         success = retrieve_key(keypath)
     except ADEPTError, e:
-        tkMessageBox.showerror("ADEPT Key", "Error: " + str(e))
+        tkMessageBox.showerror(u"ADEPT Key", "Error: {0}".format(e.args[0]))
     except Exception:
         root.wm_state('normal')
         root.title('ADEPT Key')
@@ -448,10 +501,12 @@ def main(argv=sys.argv):
     if not success:
         return 1
     tkMessageBox.showinfo(
-        "ADEPT Key", "Key successfully retrieved to %s" % (keypath))
+        u"ADEPT Key", u"Key successfully retrieved to {0}".format(keypath))
     return 0
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
+        sys.stdout=SafeUnbuffered(sys.stdout)
+        sys.stderr=SafeUnbuffered(sys.stderr)
         sys.exit(cli_main())
-    sys.exit(main())
+    sys.exit(gui_main())

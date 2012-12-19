@@ -3,11 +3,13 @@
 
 from __future__ import with_statement
 
-# ineptepub.pyw, version 5.6
-# Copyright © 2009-2010 i♥cabbages
+# ineptepub.pyw, version 5.8
+# Copyright © 2009-2010 by i♥cabbages
 
-# Released under the terms of the GNU General Public Licence, version 3 or
-# later.  <http://www.gnu.org/licenses/>
+# Released under the terms of the GNU General Public Licence, version 3
+# <http://www.gnu.org/licenses/>
+
+# Modified 2010–2012 by some_updates, DiapDealer and Apprentice Alf
 
 # Windows users: Before running this program, you must first install Python 2.6
 #   from <http://www.python.org/download/> and PyCrypto from
@@ -31,24 +33,83 @@ from __future__ import with_statement
 #   5.5 - On Windows try PyCrypto first, OpenSSL next
 #   5.6 - Modify interface to allow use with import
 #   5.7 - Fix for potential problem with PyCrypto
+#   5.8 - Revised to allow use in calibre plugins to eliminate need for duplicate code
 
 """
-Decrypt Adobe ADEPT-encrypted EPUB books.
+Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
+__version__ = "5.8"
 
 import sys
 import os
+import traceback
 import zlib
 import zipfile
 from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
 from contextlib import closing
 import xml.etree.ElementTree as etree
-import Tkinter
-import Tkconstants
-import tkFileDialog
-import tkMessageBox
+
+# Wrap a stream so that output gets flushed immediately
+# and also make sure that any unicode strings get
+# encoded using "replace" before writing them.
+class SafeUnbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
+    def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+try:
+    from calibre.constants import iswindows, isosx
+except:
+    iswindows = sys.platform.startswith('win')
+    isosx = sys.platform.startswith('darwin')
+
+def unicode_argv():
+    if iswindows:
+        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+        # strings.
+
+        # Versions 2.x of Python don't support Unicode in sys.argv on
+        # Windows, with the underlying Windows API instead replacing multi-byte
+        # characters with '?'.
+
+
+        from ctypes import POINTER, byref, cdll, c_int, windll
+        from ctypes.wintypes import LPCWSTR, LPWSTR
+
+        GetCommandLineW = cdll.kernel32.GetCommandLineW
+        GetCommandLineW.argtypes = []
+        GetCommandLineW.restype = LPCWSTR
+
+        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
+        CommandLineToArgvW.restype = POINTER(LPWSTR)
+
+        cmd = GetCommandLineW()
+        argc = c_int(0)
+        argv = CommandLineToArgvW(cmd, byref(argc))
+        if argc.value > 0:
+            # Remove Python executable and commands if present
+            start = argc.value - len(sys.argv)
+            return [argv[i] for i in
+                    xrange(start, argc.value)]
+        return [u"ineptepub.py"]
+    else:
+        argvencoding = sys.stdin.encoding
+        if argvencoding == None:
+            argvencoding = "utf-8"
+        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+
 
 class ADEPTError(Exception):
     pass
@@ -58,7 +119,7 @@ def _load_crypto_libcrypto():
         Structure, c_ulong, create_string_buffer, cast
     from ctypes.util import find_library
 
-    if sys.platform.startswith('win'):
+    if iswindows:
         libcrypto = find_library('libeay32')
     else:
         libcrypto = find_library('crypto')
@@ -272,6 +333,7 @@ def _load_crypto():
         except (ImportError, ADEPTError):
             pass
     return (AES, RSA)
+
 AES, RSA = _load_crypto()
 
 META_NAMES = ('mimetype', 'META-INF/rights.xml', 'META-INF/encryption.xml')
@@ -314,158 +376,181 @@ class Decryptor(object):
             data = self.decompress(data)
         return data
 
-
-class DecryptionDialog(Tkinter.Frame):
-    def __init__(self, root):
-        Tkinter.Frame.__init__(self, root, border=5)
-        self.status = Tkinter.Label(self, text='Select files for decryption')
-        self.status.pack(fill=Tkconstants.X, expand=1)
-        body = Tkinter.Frame(self)
-        body.pack(fill=Tkconstants.X, expand=1)
-        sticky = Tkconstants.E + Tkconstants.W
-        body.grid_columnconfigure(1, weight=2)
-        Tkinter.Label(body, text='Key file').grid(row=0)
-        self.keypath = Tkinter.Entry(body, width=30)
-        self.keypath.grid(row=0, column=1, sticky=sticky)
-        if os.path.exists('adeptkey.der'):
-            self.keypath.insert(0, 'adeptkey.der')
-        button = Tkinter.Button(body, text="...", command=self.get_keypath)
-        button.grid(row=0, column=2)
-        Tkinter.Label(body, text='Input file').grid(row=1)
-        self.inpath = Tkinter.Entry(body, width=30)
-        self.inpath.grid(row=1, column=1, sticky=sticky)
-        button = Tkinter.Button(body, text="...", command=self.get_inpath)
-        button.grid(row=1, column=2)
-        Tkinter.Label(body, text='Output file').grid(row=2)
-        self.outpath = Tkinter.Entry(body, width=30)
-        self.outpath.grid(row=2, column=1, sticky=sticky)
-        button = Tkinter.Button(body, text="...", command=self.get_outpath)
-        button.grid(row=2, column=2)
-        buttons = Tkinter.Frame(self)
-        buttons.pack()
-        botton = Tkinter.Button(
-            buttons, text="Decrypt", width=10, command=self.decrypt)
-        botton.pack(side=Tkconstants.LEFT)
-        Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
-        button = Tkinter.Button(
-            buttons, text="Quit", width=10, command=self.quit)
-        button.pack(side=Tkconstants.RIGHT)
-
-    def get_keypath(self):
-        keypath = tkFileDialog.askopenfilename(
-            parent=None, title='Select ADEPT key file',
-            defaultextension='.der', filetypes=[('DER-encoded files', '.der'),
-                                                ('All Files', '.*')])
-        if keypath:
-            keypath = os.path.normpath(keypath)
-            self.keypath.delete(0, Tkconstants.END)
-            self.keypath.insert(0, keypath)
-        return
-
-    def get_inpath(self):
-        inpath = tkFileDialog.askopenfilename(
-            parent=None, title='Select ADEPT-encrypted EPUB file to decrypt',
-            defaultextension='.epub', filetypes=[('EPUB files', '.epub'),
-                                                 ('All files', '.*')])
-        if inpath:
-            inpath = os.path.normpath(inpath)
-            self.inpath.delete(0, Tkconstants.END)
-            self.inpath.insert(0, inpath)
-        return
-
-    def get_outpath(self):
-        outpath = tkFileDialog.asksaveasfilename(
-            parent=None, title='Select unencrypted EPUB file to produce',
-            defaultextension='.epub', filetypes=[('EPUB files', '.epub'),
-                                                 ('All files', '.*')])
-        if outpath:
-            outpath = os.path.normpath(outpath)
-            self.outpath.delete(0, Tkconstants.END)
-            self.outpath.insert(0, outpath)
-        return
-
-    def decrypt(self):
-        keypath = self.keypath.get()
-        inpath = self.inpath.get()
-        outpath = self.outpath.get()
-        if not keypath or not os.path.exists(keypath):
-            self.status['text'] = 'Specified key file does not exist'
-            return
-        if not inpath or not os.path.exists(inpath):
-            self.status['text'] = 'Specified input file does not exist'
-            return
-        if not outpath:
-            self.status['text'] = 'Output file not specified'
-            return
-        if inpath == outpath:
-            self.status['text'] = 'Must have different input and output files'
-            return
-        argv = [sys.argv[0], keypath, inpath, outpath]
-        self.status['text'] = 'Decrypting...'
-        try:
-            cli_main(argv)
-        except Exception, e:
-            self.status['text'] = 'Error: ' + str(e)
-            return
-        self.status['text'] = 'File successfully decrypted'
-
-
-def decryptBook(keypath, inpath, outpath):
-    with open(keypath, 'rb') as f:
-        keyder = f.read()
-    rsa = RSA(keyder)
+# check file to make check whether it's probably an Adobe Adept encrypted ePub
+def adeptBook(inpath):
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
         namelist = set(inf.namelist())
         if 'META-INF/rights.xml' not in namelist or \
            'META-INF/encryption.xml' not in namelist:
-            raise ADEPTError('%s: not an ADEPT EPUB' % (inpath,))
+            return False
+        try:
+            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+            expr = './/%s' % (adept('encryptedKey'),)
+            bookkey = ''.join(rights.findtext(expr))
+            if len(bookkey) == 172:
+                return True
+        except:
+            # if we couldn't check, assume it is
+            return True
+    return False
+
+def decryptBook(userkey, inpath, outpath):
+    if AES is None:
+        raise ADEPTError(u"PyCrypto or OpenSSL must be installed.")
+    rsa = RSA(userkey)
+    with closing(ZipFile(open(inpath, 'rb'))) as inf:
+        namelist = set(inf.namelist())
+        if 'META-INF/rights.xml' not in namelist or \
+           'META-INF/encryption.xml' not in namelist:
+            print u"{0:s} is DRM-free.".format(os.path.basename(inpath))
+            return 1
         for name in META_NAMES:
             namelist.remove(name)
-        rights = etree.fromstring(inf.read('META-INF/rights.xml'))
-        adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
-        expr = './/%s' % (adept('encryptedKey'),)
-        bookkey = ''.join(rights.findtext(expr))
-        bookkey = rsa.decrypt(bookkey.decode('base64'))
-        # Padded as per RSAES-PKCS1-v1_5
-        if bookkey[-17] != '\x00':
-            raise ADEPTError('problem decrypting session key')
-        encryption = inf.read('META-INF/encryption.xml')
-        decryptor = Decryptor(bookkey[-16:], encryption)
-        kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
-        with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
-            zi = ZipInfo('mimetype', compress_type=ZIP_STORED)
-            outf.writestr(zi, inf.read('mimetype'))
-            for path in namelist:
-                data = inf.read(path)
-                outf.writestr(path, decryptor.decrypt(path, data))
+        try:
+            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+            expr = './/%s' % (adept('encryptedKey'),)
+            bookkey = ''.join(rights.findtext(expr))
+            if len(bookkey) != 172:
+                print u"{0:s} is not a secure Adobe Adept ePub.".format(os.path.basename(inpath))
+                return 1
+            bookkey = rsa.decrypt(bookkey.decode('base64'))
+            # Padded as per RSAES-PKCS1-v1_5
+            if bookkey[-17] != '\x00':
+                print u"Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath))
+                return 2
+            encryption = inf.read('META-INF/encryption.xml')
+            decryptor = Decryptor(bookkey[-16:], encryption)
+            kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
+            with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
+                zi = ZipInfo('mimetype', compress_type=ZIP_STORED)
+                outf.writestr(zi, inf.read('mimetype'))
+                for path in namelist:
+                    data = inf.read(path)
+                    outf.writestr(path, decryptor.decrypt(path, data))
+        except:
+            print u"Could not decrypt {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc())
+            return 2
     return 0
 
 
-def cli_main(argv=sys.argv):
+def cli_main(argv=unicode_argv()):
     progname = os.path.basename(argv[0])
-    if AES is None:
-        print "%s: This script requires OpenSSL or PyCrypto, which must be" \
-              " installed separately.  Read the top-of-script comment for" \
-              " details." % (progname,)
-        return 1
     if len(argv) != 4:
-        print "usage: %s KEYFILE INBOOK OUTBOOK" % (progname,)
+        print u"usage: {0} <keyfile.der> <inbook.epub> <outbook.epub>".format(progname)
         return 1
     keypath, inpath, outpath = argv[1:]
-    return decryptBook(keypath, inpath, outpath)
-
+    userkey = open(keypath,'rb').read()
+    result = decryptBook(userkey, inpath, outpath)
+    if result == 0:
+        print u"Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath))
+    return result
 
 def gui_main():
+    import Tkinter
+    import Tkconstants
+    import tkFileDialog
+    import traceback
+
+    class DecryptionDialog(Tkinter.Frame):
+        def __init__(self, root):
+            Tkinter.Frame.__init__(self, root, border=5)
+            self.status = Tkinter.Label(self, text=u"Select files for decryption")
+            self.status.pack(fill=Tkconstants.X, expand=1)
+            body = Tkinter.Frame(self)
+            body.pack(fill=Tkconstants.X, expand=1)
+            sticky = Tkconstants.E + Tkconstants.W
+            body.grid_columnconfigure(1, weight=2)
+            Tkinter.Label(body, text=u"Key file").grid(row=0)
+            self.keypath = Tkinter.Entry(body, width=30)
+            self.keypath.grid(row=0, column=1, sticky=sticky)
+            if os.path.exists(u"adeptkey.der"):
+                self.keypath.insert(0, u"adeptkey.der")
+            button = Tkinter.Button(body, text=u"...", command=self.get_keypath)
+            button.grid(row=0, column=2)
+            Tkinter.Label(body, text=u"Input file").grid(row=1)
+            self.inpath = Tkinter.Entry(body, width=30)
+            self.inpath.grid(row=1, column=1, sticky=sticky)
+            button = Tkinter.Button(body, text=u"...", command=self.get_inpath)
+            button.grid(row=1, column=2)
+            Tkinter.Label(body, text=u"Output file").grid(row=2)
+            self.outpath = Tkinter.Entry(body, width=30)
+            self.outpath.grid(row=2, column=1, sticky=sticky)
+            button = Tkinter.Button(body, text=u"...", command=self.get_outpath)
+            button.grid(row=2, column=2)
+            buttons = Tkinter.Frame(self)
+            buttons.pack()
+            botton = Tkinter.Button(
+                buttons, text=u"Decrypt", width=10, command=self.decrypt)
+            botton.pack(side=Tkconstants.LEFT)
+            Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
+            button = Tkinter.Button(
+                buttons, text=u"Quit", width=10, command=self.quit)
+            button.pack(side=Tkconstants.RIGHT)
+
+        def get_keypath(self):
+            keypath = tkFileDialog.askopenfilename(
+                parent=None, title=u"Select Adobe Adept \'.der\' key file",
+                defaultextension=u".der",
+                filetypes=[('Adobe Adept DER-encoded files', '.der'),
+                           ('All Files', '.*')])
+            if keypath:
+                keypath = os.path.normpath(keypath)
+                self.keypath.delete(0, Tkconstants.END)
+                self.keypath.insert(0, keypath)
+            return
+
+        def get_inpath(self):
+            inpath = tkFileDialog.askopenfilename(
+                parent=None, title=u"Select ADEPT-encrypted ePub file to decrypt",
+                defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
+            if inpath:
+                inpath = os.path.normpath(inpath)
+                self.inpath.delete(0, Tkconstants.END)
+                self.inpath.insert(0, inpath)
+            return
+
+        def get_outpath(self):
+            outpath = tkFileDialog.asksaveasfilename(
+                parent=None, title=u"Select unencrypted ePub file to produce",
+                defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
+            if outpath:
+                outpath = os.path.normpath(outpath)
+                self.outpath.delete(0, Tkconstants.END)
+                self.outpath.insert(0, outpath)
+            return
+
+        def decrypt(self):
+            keypath = self.keypath.get()
+            inpath = self.inpath.get()
+            outpath = self.outpath.get()
+            if not keypath or not os.path.exists(keypath):
+                self.status['text'] = u"Specified key file does not exist"
+                return
+            if not inpath or not os.path.exists(inpath):
+                self.status['text'] = u"Specified input file does not exist"
+                return
+            if not outpath:
+                self.status['text'] = u"Output file not specified"
+                return
+            if inpath == outpath:
+                self.status['text'] = u"Must have different input and output files"
+                return
+            userkey = open(keypath,'rb').read()
+            self.status['text'] = u"Decrypting..."
+            try:
+                decrypt_status = decryptBook(userkey, inpath, outpath)
+            except Exception, e:
+                self.status['text'] = u"Error; {0}".format(e)
+                return
+            if decrypt_status == 0:
+                self.status['text'] = u"File successfully decrypted"
+            else:
+                self.status['text'] = u"The was an error decrypting the file."
+
     root = Tkinter.Tk()
-    if AES is None:
-        root.withdraw()
-        tkMessageBox.showerror(
-            "INEPT EPUB Decrypter",
-            "This script requires OpenSSL or PyCrypto, which must be"
-            " installed separately.  Read the top-of-script comment for"
-            " details.")
-        return 1
-    root.title('INEPT EPUB Decrypter')
+    root.title(u"Adobe Adept ePub Decrypter v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(300, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
@@ -474,5 +559,7 @@ def gui_main():
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
+        sys.stdout=SafeUnbuffered(sys.stdout)
+        sys.stderr=SafeUnbuffered(sys.stderr)
         sys.exit(cli_main())
     sys.exit(gui_main())

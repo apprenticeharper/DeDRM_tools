@@ -230,6 +230,7 @@ class PageParser(object):
         'empty'          : (1, 'snippets', 1, 0),
 
         'page'           : (1, 'snippets', 1, 0),
+        'page.class'     : (1, 'scalar_text', 0, 0),
         'page.pageid'    : (1, 'scalar_text', 0, 0),
         'page.pagelabel' : (1, 'scalar_text', 0, 0),
         'page.type'      : (1, 'scalar_text', 0, 0),
@@ -238,11 +239,13 @@ class PageParser(object):
         'page.startID' : (1, 'scalar_number', 0, 0),
 
         'group'           : (1, 'snippets', 1, 0),
+        'group.class'     : (1, 'scalar_text', 0, 0),
         'group.type'      : (1, 'scalar_text', 0, 0),
         'group._tag'      : (1, 'scalar_text', 0, 0),
         'group.orientation': (1, 'scalar_text', 0, 0),
 
         'region'           : (1, 'snippets', 1, 0),
+        'region.class'     : (1, 'scalar_text', 0, 0),
         'region.type'      : (1, 'scalar_text', 0, 0),
         'region.x'         : (1, 'scalar_number', 0, 0),
         'region.y'         : (1, 'scalar_number', 0, 0),

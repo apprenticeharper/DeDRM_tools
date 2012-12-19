@@ -1,9 +1,9 @@
-ReadMe_DeDRM_v5.4.1_WinApp
------------------------
+ReadMe_DeDRM_v5.5_WinApp
+========================
 
-DeDRM_v5.4.1_WinApp is a pure python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto the DeDRM_Drop_Target to have the DRM removed.  It repackages the"tools" python software in one easy to use program that remembers preferences and settings.
+DeDRM_v5.5_WinApp is a pure python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto the DeDRM_Drop_Target to have the DRM removed.  It repackages all the "tools" python software in one easy to use program that remembers preferences and settings.
 
-It should work out of the box with Kindle for PC ebooks and Adobe Adept epub and pdf ebooks.
+It will work without manual configuration for Kindle for PC ebooks and Adobe Adept epub and pdf ebooks.
 
 To remove the DRM from standalone Kindle ebooks, eReader pdb ebooks, Barnes and Noble epubs, and Mobipocket ebooks requires the user to double-click the DeDRM_Drop_Target and set some additional Preferences including:
 
@@ -16,14 +16,16 @@ Once these preferences have been set, the user can simply drag and drop ebooks o
 
 This program requires that a 32 bit version of Python 2.X (tested with Python 2.5 through Python 2.7) and PyCrypto be installed on your computer before it will work.  See below for where to get theese programs for Windows.
 
+NB Although the individual scripts have been updated to work with unicode file names, the Windows DeDRM script has not yet been updated for technical reasons. Therefore, if you try to use it with paths or file names that contain non-ASCII characters, it might not work.
+
 Installation
 ------------
 
 0. If you don't already have a correct version of Python and PyCrypto installed, follow the "Installing Python on Windows" and "Installing PyCrypto on Windows" sections below before continuing.
 
-1. Drag the DeDRM_5.4.1 folder from tools_v5.4.1/DeDRM_Applications/Windows to your "My Documents" folder.
+1. Drag the DeDRM_5.5 folder from tools_v5.5/DeDRM_Applications/Windows to your "My Documents" folder.
 
-2. Open the DeDRM_5.4.1 folder you've just dragged, and make a short-cut of the DeDRM_Drop_Target.bat file (right-click/Create Shortcut). Drag the shortcut file onto your Desktop.
+2. Open the DeDRM_5.5 folder you've just dragged, and make a short-cut of the DeDRM_Drop_Target.bat file (right-click/Create Shortcut). Drag the shortcut file onto your Desktop.
 
 3. To set the preferences simply double-click on your just created short-cut.
 

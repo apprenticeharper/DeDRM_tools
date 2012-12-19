@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-# vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
+# -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+
 __license__ = 'GPL v3'
 
 # Standard Python modules.
@@ -19,11 +20,11 @@ from calibre.gui2 import (error_dialog, question_dialog, info_dialog, open_url,
 from calibre.utils.config import dynamic, config_dir, JSONConfig
 
 # modules from this plugin's zipfile.
-from calibre_plugins.ignoble_epub.__init__ import PLUGIN_NAME, PLUGIN_VERSION 
-from calibre_plugins.ignoble_epub.__init__ import RESOURCE_NAME as help_file_name
-from calibre_plugins.ignoble_epub.utilities import (_load_crypto, normalize_name,
-                                generate_keyfile, uStrCmp, DETAILED_MESSAGE, parseCustString)
-from calibre_plugins.ignoble_epub.dialogs import AddKeyDialog, RenameKeyDialog
+from calibre_plugins.ignobleepub.__init__ import PLUGIN_NAME, PLUGIN_VERSION
+from calibre_plugins.ignobleepub.__init__ import RESOURCE_NAME as help_file_name
+from calibre_plugins.ignobleepub.utilities import (uStrCmp, DETAILED_MESSAGE, parseCustString)
+from calibre_plugins.ignobleepub.dialogs import AddKeyDialog, RenameKeyDialog
+from calibre_plugins.ignobleepub.ignoblekeygen import generate_key
 
 JSON_NAME = PLUGIN_NAME.strip().lower().replace(' ', '_')
 JSON_PATH = 'plugins/' + JSON_NAME + '.json'
@@ -40,7 +41,7 @@ prefs.defaults['configured'] = False
 class ConfigWidget(QWidget):
     def __init__(self, help_file_data):
         QWidget.__init__(self)
-        
+
         self.help_file_data = help_file_data
         self.plugin_keys = prefs['keys']
 
@@ -88,7 +89,7 @@ class ConfigWidget(QWidget):
                 val = sc.pop(PLUGIN_NAME, None)
                 if val is not None:
                     config['plugin_customization'] = sc
-                    
+
         # First time run since upgrading to new key storage method, or 0 keys configured.
         # Prompt to import pre-existing key files.
         if not prefs['configured']:
@@ -102,7 +103,7 @@ class ConfigWidget(QWidget):
         # Start Qt Gui dialog layout
         layout = QVBoxLayout(self)
         self.setLayout(layout)
-        
+
         help_layout = QHBoxLayout()
         layout.addLayout(help_layout)
         # Add hyperlink to a help file at the right. We will replace the correct name when it is clicked.
@@ -111,12 +112,12 @@ class ConfigWidget(QWidget):
         help_label.setAlignment(Qt.AlignRight)
         help_label.linkActivated.connect(self.help_link_activated)
         help_layout.addWidget(help_label)
-        
+
         keys_group_box = QGroupBox(_('Configured Ignoble Keys:'), self)
         layout.addWidget(keys_group_box)
         keys_group_box_layout = QHBoxLayout()
         keys_group_box.setLayout(keys_group_box_layout)
-        
+
         self.listy = QListWidget(self)
         self.listy.setToolTip(_('<p>Stored Ignoble keys that will be used for decryption'))
         self.listy.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -130,7 +131,7 @@ class ConfigWidget(QWidget):
         self._add_key_button.setIcon(QIcon(I('plus.png')))
         self._add_key_button.clicked.connect(self.add_key)
         button_layout.addWidget(self._add_key_button)
-        
+
         self._delete_key_button = QtGui.QToolButton(self)
         self._delete_key_button.setToolTip(_('Delete highlighted key'))
         self._delete_key_button.setIcon(QIcon(I('list_remove.png')))
@@ -142,7 +143,7 @@ class ConfigWidget(QWidget):
         self._rename_key_button.setIcon(QIcon(I('edit-select-all.png')))
         self._rename_key_button.clicked.connect(self.rename_key)
         button_layout.addWidget(self._rename_key_button)
-        
+
         self.export_key_button = QtGui.QToolButton(self)
         self.export_key_button.setToolTip(_('Export highlighted key'))
         self.export_key_button.setIcon(QIcon(I('save.png')))
@@ -150,7 +151,7 @@ class ConfigWidget(QWidget):
         button_layout.addWidget(self.export_key_button)
         spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         button_layout.addItem(spacerItem)
-        
+
         layout.addSpacing(20)
         migrate_layout = QHBoxLayout()
         layout.addLayout(migrate_layout)
@@ -159,7 +160,7 @@ class ConfigWidget(QWidget):
         self.migrate_btn.clicked.connect(self.migrate_wrapper)
         migrate_layout.setAlignment(Qt.AlignLeft)
         migrate_layout.addWidget(self.migrate_btn)
-        
+
         self.resize(self.sizeHint())
 
     def populate_list(self):
@@ -173,7 +174,7 @@ class ConfigWidget(QWidget):
         if d.result() != d.Accepted:
             # New key generation cancelled.
             return
-        self.plugin_keys[d.key_name] = generate_keyfile(d.user_name, d.cc_number)
+        self.plugin_keys[d.key_name] = generate_key(d.user_name, d.cc_number)
 
         self.listy.clear()
         self.populate_list()
@@ -184,7 +185,7 @@ class ConfigWidget(QWidget):
             r = error_dialog(None, PLUGIN_NAME,
                                     _(errmsg), show=True, show_copy_button=False)
             return
-        
+
         d = RenameKeyDialog(self)
         d.exec_()
 
@@ -211,10 +212,10 @@ class ConfigWidget(QWidget):
                     show_copy_button=False, default_yes=False):
             return
         del self.plugin_keys[keyname]
-        
+
         self.listy.clear()
         self.populate_list()
-  
+
     def help_link_activated(self, url):
         def get_help_file_resource():
             # Copy the HTML helpfile to the plugin directory each time the
@@ -225,7 +226,7 @@ class ConfigWidget(QWidget):
             return file_path
         url = 'file:///' + get_help_file_resource()
         open_url(QUrl(url))
-        
+
     def save_settings(self):
         prefs['keys'] = self.plugin_keys
         if prefs['keys']:

@@ -13,6 +13,7 @@ global BNKeyGenTool
 global BNePubTool
 global AdobeKeyGenTool
 global AdobeePubTool
+global ePubTestTool
 global AdobePDFTool
 global ZipFixTool
 global ProgressApp
@@ -42,7 +43,7 @@ on writetolog(logstring)
 	try
 		set fileRef to open for access logFilePath with write permission
 		write logstring & "
-" to fileRef starting at eof
+" to fileRef starting at eof as «class utf8»
 		close access fileRef
 	end try
 end writetolog
@@ -68,11 +69,7 @@ on readtemp()
 	try
 		set fileRef to open for access tempfilepath
 		if (get eof fileRef) > 0 then
-			set tempContentsLines to (read fileRef from 1 using delimiter (character id 10))
-			set oldTIDs to AppleScript's text item delimiters
-			set AppleScript's text item delimiters to (character id 13)
-			set tempContents to tempContentsLines as string
-			set AppleScript's text item delimiters to oldTIDs
+			set tempContents to read fileRef from 1 as «class utf8»
 		end if
 		close access fileRef
 	end try
@@ -155,6 +152,7 @@ on GetTools()
 	set BNePubTool to POSIX path of (path to resource "ignobleepub.py")
 	set AdobeKeyGenTool to POSIX path of (path to resource "ineptkey.py")
 	set AdobeePubTool to POSIX path of (path to resource "ineptepub.py")
+	set ePubTestTool to POSIX path of (path to resource "epubtest.py")
 	set AdobePDFTool to POSIX path of (path to resource "ineptpdf.py")
 	set ZipFixTool to POSIX path of (path to resource "zipfix.py")
 	set ProgressApp to POSIX path of (path to resource "DeDRM Progress.app")
@@ -204,6 +202,12 @@ on GetTools()
 	end if
 	if not fileexists(AdobeePubTool) then
 		set dialogresult to (display dialog "The Adobe ePub script (ineptepub.py) is missing from this package. Get a fresh copy." buttons {"Quit", "Continue Anyway"} default button 1 with title "DeDRM" with icon stop)
+		if button returned of dialogresult is "Quit" then
+			return false
+		end if
+	end if
+	if not fileexists(ePubTestTool) then
+		set dialogresult to (display dialog "The ePub encryption test script (epubtesttool.py) is missing from this package. Get a fresh copy." buttons {"Quit", "Continue Anyway"} default button 1 with title "DeDRM" with icon stop)
 		if button returned of dialogresult is "Quit" then
 			return false
 		end if
@@ -278,7 +282,8 @@ on unlockmobifile(encryptedFile)
 	writetolog("shellresult: " & shellresult & " " & ErrorText)
 	try
 		repeat
-			if (not DecodingError) or (totalebooks > 1) or (offset of "No key found" in ErrorText) is 0 then
+			if (totalebooks > 1) or (offset of "No key found" in shellresult) is 0 then
+				--display dialog (totalebooks as text) & shellresult
 				exit repeat
 			end if
 			-- ask for another PID as we're only doing one ebook
@@ -311,8 +316,7 @@ on unlockmobifile(encryptedFile)
 		end repeat
 		if DecodingError then
 			set ErrorCount to ErrorCount + 1
-			set ErrorList to ErrorList & fileName & fileExtension & " couldn't be decoded:
-" & (ErrorText as text) & "
+			set ErrorList to ErrorList & fileName & fileExtension & " couldn't be decrypted.
 "
 		else if (offset of "not encrypted" in shellresult) > 0 then
 			set WarningCount to WarningCount + 1
@@ -512,34 +516,66 @@ on unlockepubfile(encryptedFile)
 	set shellresult to "no keys"
 	set ErrorText to ""
 	
-	-- first we'll try the Barnes & Noble keys
-	repeat with BNKey in bnKeys
-		
-		set keyfilepath to third item of BNKey
-		if length of keyfilepath > 0 then
-			set shellcommand to python & (quoted form of BNePubTool) & " " & (quoted form of keyfilepath) & " " & (quoted form of fixedFilePath) & " " & (quoted form of unlockedFilePath)
-			set shellcommand to shellcommand & " > " & quotedtemppath()
-			--display dialog "shellcommand: " & shellcommand buttons {"OK"} default button 1 giving up after 10
-			writetolog("shellcommand: " & shellcommand)
-			cleartemp()
-			set DecodingError to false
-			set ErrorText to ""
-			try
-				do shell script shellcommand
-			on error ErrorText
-				set DecodingError to true
-			end try
-			set shellresult to readtemp()
-			writetolog("shellresult: " & shellresult & " " & ErrorText)
-			--display dialog shellresult
-			if not DecodingError then
-				set decoded to "YES"
-				exit repeat
-			end if
+	-- get encryption type
+	set TryBandNePub to true
+	set TryAdobeePub to true
+	set shellcommand to python & (quoted form of ePubTestTool) & " " & (quoted form of fixedFilePath)
+	set shellcommand to shellcommand & " > " & quotedtemppath()
+	--display dialog "shellcommand: " & shellcommand buttons {"OK"} default button 1 giving up after 10
+	writetolog("shellcommand: " & shellcommand)
+	cleartemp()
+	set TestError to false
+	set ErrorText to ""
+	try
+		do shell script shellcommand
+	on error ErrorText
+		set TestError to true
+	end try
+	set shellresult to readtemp()
+	writetolog("shellresult: " & shellresult & " " & ErrorText)
+	--display dialog shellresult
+	if not TestError then
+		if (offset of "B&N" in shellresult) > 0 then
+			set TryAdobeePub to false
+		else if (offset of "Adobe" in shellresult) > 0 then
+			set TryBandNePub to false
+		else if (offset of "Unencrypted" in shellresult) > 0 then
+			set TryAdobeePub to false
+			set TryBandNePub to false
 		end if
-	end repeat
+	end if
 	
-	if decoded is "NO" then
+	
+	-- first we'll try the Barnes & Noble keys
+	if TryBandNePub then
+		repeat with BNKey in bnKeys
+			
+			set keyfilepath to third item of BNKey
+			if length of keyfilepath > 0 then
+				set shellcommand to python & (quoted form of BNePubTool) & " " & (quoted form of keyfilepath) & " " & (quoted form of fixedFilePath) & " " & (quoted form of unlockedFilePath)
+				set shellcommand to shellcommand & " > " & quotedtemppath()
+				--display dialog "shellcommand: " & shellcommand buttons {"OK"} default button 1 giving up after 10
+				writetolog("shellcommand: " & shellcommand)
+				cleartemp()
+				set DecodingError to false
+				set ErrorText to ""
+				try
+					do shell script shellcommand
+				on error ErrorText
+					set DecodingError to true
+				end try
+				set shellresult to readtemp()
+				writetolog("shellresult: " & shellresult & " " & ErrorText)
+				--display dialog shellresult
+				if not DecodingError then
+					set decoded to "YES"
+					exit repeat
+				end if
+			end if
+		end repeat
+	end if
+	
+	if decoded is "NO" and TryAdobeePub then
 		-- now try Adobe ePub
 		repeat with AdeptKey in AdeptKeyList
 			set shellcommand to python & (quoted form of AdobeePubTool) & " " & (quoted form of AdeptKey) & " " & (quoted form of fixedFilePath) & " " & (quoted form of unlockedFilePath)
@@ -567,13 +603,13 @@ on unlockepubfile(encryptedFile)
 	if decoded is "YES" then
 		set CompletedCount to CompletedCount + 1
 		set CompletedList to CompletedList & fileName & fileExtension & paraend
+	else if not TryAdobeePub and not TryBandNePub then
+		set WarningCount to WarningCount + 1
+		set WarningList to (WarningList & fileName & " doesn't seem to be encrypted.
+")
 	else if shellresult is "no keys" then
 		set ErrorCount to ErrorCount + 1
 		set ErrorList to (ErrorList & fileName & fileExtension & " couldn't be decoded: no keys.
-")
-	else if (offset of "not an ADEPT EPUB" in shellresult) is not 0 then
-		set WarningCount to WarningCount + 1
-		set WarningList to (WarningList & fileName & " doesn't seem to be encrypted.
 ")
 	else
 		set ErrorCount to ErrorCount + 1
@@ -942,7 +978,7 @@ Enter any additional Kindle Serial Numbers one at a time:"
 		if button returned of dialogresult is "Add" then
 			set Serial to text returned of dialogresult
 			set Seriallength to length of Serial
-			if Seriallength is 16 and (first character of Serial) is "B" then
+			if Seriallength is 16 and ((first character of Serial) is "B" or (first character of Serial) is "9") then
 				set KindleSerialList to KindleSerialList & Serial
 				set Serial to ""
 			else
@@ -1528,7 +1564,7 @@ For full information about the licence, please see http://unlicense.org/
 The application icon is adapted from the Authors Against DRM logo at
 http://readersbillofrights.info/AAD and is under the Creative Commons Attribution-ShareAlike licence.
 The included Python scripts are all free to use, but have a variety of licences. See the individual files for details.
-" with title "DeDRM 5.2 by Apprentice Alf" buttons {"Close", "Select Ebook…                                      ", "Configure…                                      "} default button 1 with icon note
+" with title "DeDRM by Apprentice Alf" buttons {"Close", "Select Ebook…                                      ", "Configure…                                      "} default button 1 with icon note
 		ReadPrefs()
 		clearlog()
 		GetAdeptKey(false)

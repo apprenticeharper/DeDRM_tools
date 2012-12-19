@@ -8,8 +8,8 @@ from PyQt4.Qt import (Qt, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
                       QGroupBox, QDialog, QDialogButtonBox)
 from calibre.gui2 import error_dialog
 
-from calibre_plugins.ignoble_epub.__init__ import PLUGIN_NAME, PLUGIN_VERSION
-from calibre_plugins.ignoble_epub.utilities import uStrCmp
+from calibre_plugins.ignobleepub.__init__ import PLUGIN_NAME, PLUGIN_VERSION
+from calibre_plugins.ignobleepub.utilities import uStrCmp
 
 class AddKeyDialog(QDialog):
     def __init__(self, parent=None,):
@@ -23,7 +23,7 @@ class AddKeyDialog(QDialog):
         layout.addWidget(data_group_box)
         data_group_box_layout = QVBoxLayout()
         data_group_box.setLayout(data_group_box_layout)
-        
+
         key_group = QHBoxLayout()
         data_group_box_layout.addLayout(key_group)
         key_group.addWidget(QLabel('Unique Key Name:', self))
@@ -50,7 +50,7 @@ class AddKeyDialog(QDialog):
         name_disclaimer_label = QLabel(_('Will not be stored/saved in configuration data:'), self)
         name_disclaimer_label.setAlignment(Qt.AlignHCenter)
         data_group_box_layout.addWidget(name_disclaimer_label)
-    
+
         ccn_group = QHBoxLayout()
         data_group_box_layout.addLayout(ccn_group)
         ccn_group.addWidget(QLabel('Credit Card#:', self))
@@ -103,10 +103,10 @@ class AddKeyDialog(QDialog):
     @property
     def user_name(self):
         return unicode(self.name_ledit.text().toUtf8(), 'utf8').strip().lower().replace(' ','')
-    @property        
+    @property
     def cc_number(self):
         return unicode(self.cc_ledit.text().toUtf8(), 'utf8').strip().replace(' ', '').replace('-','')
-    @property        
+    @property
     def key_name(self):
         return unicode(self.key_ledit.text().toUtf8(), 'utf8')
 
@@ -122,7 +122,7 @@ class RenameKeyDialog(QDialog):
         layout.addWidget(data_group_box)
         data_group_box_layout = QVBoxLayout()
         data_group_box.setLayout(data_group_box_layout)
-        
+
         data_group_box_layout.addWidget(QLabel('Key Name:', self))
         self.key_ledit = QLineEdit(self.parent.listy.currentItem().text(), self)
         self.key_ledit.setToolTip(_('<p>Enter a new name for this existing Ignoble key.'))
@@ -155,6 +155,6 @@ class RenameKeyDialog(QDialog):
                                     _(errmsg), show=True, show_copy_button=False)
         QDialog.accept(self)
 
-    @property        
+    @property
     def key_name(self):
         return unicode(self.key_ledit.text().toUtf8(), 'utf8')

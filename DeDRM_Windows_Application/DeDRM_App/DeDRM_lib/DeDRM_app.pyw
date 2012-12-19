@@ -1,9 +1,12 @@
 #!/usr/bin/env python
-# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+# -*- coding: utf-8 -*-
+
+# DeDRM.pyw, version 5.5
+# By some_updates and Apprentice Alf
 
 import sys
 import os, os.path
-sys.path.append(sys.path[0]+os.sep+'lib')
+sys.path.append(os.path.join(sys.path[0],"lib"))
 os.environ['PYTHONIOENCODING'] = "utf-8"
 
 import shutil
@@ -21,7 +24,7 @@ import re
 import simpleprefs
 
 
-__version__ = '5.4.1'
+__version__ = '5.5'
 
 class DrmException(Exception):
     pass
@@ -327,7 +330,7 @@ class ConvDialog(Toplevel):
         self.running = 'inactive'
         self.numgood = 0
         self.numbad = 0
-        self.log = ''
+        self.log = u""
         self.status = Tkinter.Label(self, text='DeDRM processing...')
         self.status.pack(fill=Tkconstants.X, expand=1)
         body = Tkinter.Frame(self)
@@ -375,18 +378,16 @@ class ConvDialog(Toplevel):
             if len(self.filenames) > 0:
                 filename = self.filenames.pop(0)
             if filename == None:
-                msg = '\nComplete:  '
-                msg += 'Successes: %d, ' % self.numgood
-                msg += 'Failures: %d\n' % self.numbad
+                msg = u"\nComplete:   Successes: {0}, Failures: {1}\n".format(self.numgood,self.numbad)
                 self.showCmdOutput(msg)
                 if self.numbad == 0:
                     self.after(2000,self.conversion_done())
                 logfile = os.path.join(rscpath,'dedrm.log')
-                file(logfile,'w').write(self.log)
+                file(logfile,'w').write(self.log.encode('utf8'))
                 return
             infile = filename
             bname = os.path.basename(infile)
-            msg = 'Processing: ' + bname + ' ... '
+            msg = u"Processing: {0} ... ".format(bname)
             self.log += msg
             self.showCmdOutput(msg)
             outdir = os.path.dirname(filename)
@@ -400,7 +401,7 @@ class ConvDialog(Toplevel):
                 self.running = 'active'
                 self.processPipe()
             else:
-                msg = 'Unknown File: ' + bname + '\n'
+                msg = u"Unknown File: {0}\n".format(bname)
                 self.log += msg
                 self.showCmdOutput(msg)
                 self.numbad += 1
@@ -433,18 +434,17 @@ class ConvDialog(Toplevel):
         if poll != None:
             self.bar.stop()
             if poll == 0:
-                msg = 'Success\n'
+                msg = u"\nSuccess\n"
                 self.numgood += 1
-                text = self.p2.read()
-                text += self.p2.readerr()
+                text = self.p2.read().decode('utf8')
+                text += self.p2.readerr().decode('utf8')
                 self.log += text
                 self.log += msg
-            if poll != 0:
-                msg = 'Failed\n'
-                text = self.p2.read()
-                text += self.p2.readerr()
+            else:
+                text = self.p2.read().decode('utf8')
+                text += self.p2.readerr().decode('utf8')
                 msg += text
-                msg += '\n'
+                msg += u"\nFailed\n"
                 self.numbad += 1
                 self.log += msg
             self.showCmdOutput(msg)
@@ -491,7 +491,7 @@ def runit(apphome, ncmd, nparms):
     #        cmdline = pengine + ' "' + os.path.join(apphome, ncmd) + '" '
     cmdline += nparms
     cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p2 = subasyncio.Process(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
+    p2 = subasyncio.Process(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False, env = os.environ)
     return p2
 
 def processK4MOBI(apphome, infile, outdir, rscpath):
