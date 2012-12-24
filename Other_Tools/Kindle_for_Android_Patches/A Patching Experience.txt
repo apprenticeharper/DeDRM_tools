@@ -1,0 +1,39 @@
+Comment at Apprentice Alf's Blog by cestmoicestmoi, 21st December, 2012.
+========================================================================
+
+just to share my experience in patching the kindle.apk
+
+first thanks to all of you guys for this great site & tools, keep going
+
+following instructions in latest readme.txt
+successfully patched Android Kindle 3.7.0.108, Android 2.3.4 Xperia Arc unrooted;
+key painful snags encountered in my case (+ had never coded java/built any apk! .apk = app on Android) (just sums up here the tip of the iceberg):
+on phone :
+to get the app kindle.apk (invisible in unrooted phones) :
+use MyAppShare (free), but this required old Kindle.apk version (for patching) won’t probably be in your phone anymore (latest today 3.8.1.11, with new updates almost everyday !)
+anyway in any-case turnoff the Play-Store auto update
+otherwise/then look for a 3.7.0.108 on the web (or try patch a newer one ?)
+reminder: .apk are just containers = zip files… to check just add an extra .zip and unzip kindle.apk, but don’t play with that… patching wouldn’t work; however all names of kindle.apk can be completely freely changed : kindle2patchedJojo.apk, com.amazon.kindle.apk, etc.
+on your PC (XP):
+rather long & tricky expert process for any non-android-app maker
+(basics is to use the cmd.exe very old DOS style command line with the tricky path and directories changes, forward and back slash etc etc !)
+pb to obtain all the necessary .exe tools (then you call them as a ‘command’ in cdm.exe)
+to make things easier, put copy of everything in same folder anywhere:
+kindle.apk, cmd.exe (from XP), apktool.jar+apktool.bat+aapt.exe (from http://code.google.com/p/android-apktool/), patch.exe (from http://gnuwin32.sourceforge.net/packages/patch.htm), keytool.exe+jarsign.exe(from http://www.oracle.com/technetwork/java/javase/downloads/ download JDK+JRE same recent version, in my case v6038; start with keytool then jarsign; keep these .exe in their java/…/bin files, make shortcuts, copy them in your “work” folder, then do the path thing in cmd.exe in just copying the paths in the properties of the shortcuts)
+then, key points:
+download/use apktool.jar v143 not v150 (version seen in calling from cdm.exe)
+do not “apktool if…” (frameworks)
+besides all cmd.exe commands given in the readme.txt (read both .txt the old and the newer, even if same name) are perfectly ok (except in keytool: a typo: -valkeidity is -validity; and -genkey preferably -genkeypair)
+(for the tricky keytool then jarsign stuff better read for ex. https://www.owasp.org/index.php/Signing_jar_files_with_jarsigner)
+(almost1) finally move your patched & signed new kindle.apk anywhere to phone sd card, and then from within android just like possibly for any .apk move to it with any file manager and click it, it installs by itself (mine didn’t want to install over the non-patched kindle app, so I had to desinstall the latter 1st from within the settings, but it’s probably because my phone ram was full !)
+(almost2) finally you get your famous PIDs at the bottom of the info in the kindle.apk: don’t worry, in my test case (just 1 book yet), there were 11 PIDs, but 5 were redundant, and the last is a weird large neg number -obviously not a 10 max char. PID, so forget it-).
+then thanks to Android 2.3.4 now you can screenshot (press power button then back button), then from my PC i got this screen pict with all these PIDs, which I even OCRised (stupidly without checking… so I mixed up some “O” and “0″ etc !),
+(almost3) finally then I implemented these PIDs in deDRM v541, …and it didn’t work, long error message, but, finally, at last, worked in deDRM v531 !
+
+conclusion:
+the idea and work behind this patch is brilliant… but I have the bad feeling that most of this/my rather crazy work above to do myself the whole patching thing was more for glory, like climbing some kind of Everest without any training, than anything else…
+must precise that I have only an old mac-ppc + this Android phone; ppc has no kindle.app available*; ppc has no java 1.6 so no possible apktool etc. (nor eclipse Android plugin etc.) (possible with very old versions ?), luckily I had an old version of VPC(virtualpc)/XP (extremely slow!), so I could try all this java stuff at least in a normal XP window/virtual machine, on my mac-ppc; i didn’t try any XP-Android link through USB or else, had only my usual Mac-Android wifi ftp (great direct drag’n drop with cyberduck).
+But when i see all these/my efforts described above for a non-specialist (like 1 week work vs. 1-2 hours for you apk developers !), I wonder if this patched apk shouldn’t/couldn’t be made directly available for most other average joes, no ? just like deDRM ? (or maybe i don’t see the problems here ?);
+besides, i didn’t check, but i have the strong feeling that in using kindle directly on XP to buy my books, this great app deDRM would have found directly these PIDs or other keys automatically (as it does for me on my mac-ppc for some ebook purchased and downloaded directly from other vendors; i.e. “stupid me”… on XP, the deDRM app would have worked in 1 sec… vs. 1 week work above for patching Android, + the crazy procedure just to get these pids, screenshot + ocr + etc. ! well, it should be much faster now, of course !).
+
+*reminder: there is a solution for a mac-ppc only guy who want to buy & read Kindle books for very cheap, and accept to read them online in a browser : little advertised “Kindle cloud reader” which used to work even with rather old Safari versions (didn’t check recently if it still works)… (looks a lot like the ‘Google play’ book reader) texts are very little protected/not encrypted there apparently (journalists even said at launch 2-3 years ago that Amazon was abandoning DRMs, just like Apple did with music a while ago) : texts can more or less easily be copied piece by piece/ by page with a few astute clicks (same for Google; but formatting is gone; and who want to recopy a 300 p. book page by page !); tried to reverse engineer a bit for fun this browser reader to see where and how the text was stored, etc. but (as mentioned I think by another in another comment) the text is downloaded only by pieces, not all at once (don’t remember what if browser turned “offline” ?), and stored here and there, in caches… maybe there are tools for capturing auto these books sent to browsers ? didn’t check ? (not for my mac-ppc at the time in any case; but possibly Windows).

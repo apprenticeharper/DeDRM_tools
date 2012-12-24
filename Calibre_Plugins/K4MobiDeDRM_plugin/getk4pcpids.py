@@ -41,7 +41,7 @@ def getK4PCpids(path_to_ebook):
         mobi = False
 
     if mobi:
-        mb = mobidedrm.MobiBook(path_to_ebook,False)
+        mb = mobidedrm.MobiBook(path_to_ebook)
     else:
         mb = topazextract.TopazBook(path_to_ebook)
 
