@@ -11,15 +11,21 @@ __version__ = '1.01'
 
 import sys
 
-class Unbuffered:
+class SafeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
     def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
-sys.stdout=Unbuffered(sys.stdout)
+sys.stdout=SafeUnbuffered(sys.stdout)
+sys.stderr=SafeUnbuffered(sys.stderr)
 
 import os
 import struct
