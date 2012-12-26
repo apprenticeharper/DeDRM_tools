@@ -21,13 +21,14 @@ __docformat__ = 'restructuredtext en'
 #   0.4.10 - Another Topaz Fix (class added to page and group and region)
 #   0.4.11 - Fixed Linux support of K4PC
 #   0.4.12 - More Linux Wine fixes
+#   0.4.13 - Ancient Mobipocket files fix
 
 """
 Decrypt Amazon Kindle and Mobipocket encrypted ebooks.
 """
 
 PLUGIN_NAME = u"Kindle and Mobipocket DeDRM"
-PLUGIN_VERSION_TUPLE = (0, 4, 12)
+PLUGIN_VERSION_TUPLE = (0, 4, 13)
 PLUGIN_VERSION = '.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 
 import sys, os, re

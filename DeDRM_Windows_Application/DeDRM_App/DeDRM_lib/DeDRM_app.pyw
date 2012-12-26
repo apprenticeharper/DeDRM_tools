@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# DeDRM.pyw, version 5.5
+# DeDRM.pyw, version 5.5.3
 # By some_updates and Apprentice Alf
 
 import sys
@@ -24,7 +24,7 @@ import re
 import simpleprefs
 
 
-__version__ = '5.5'
+__version__ = '5.5.3'
 
 class DrmException(Exception):
     pass
@@ -441,10 +441,10 @@ class ConvDialog(Toplevel):
                 self.log += text
                 self.log += msg
             else:
+                msg = u"\nFailed\n"
                 text = self.p2.read().decode('utf8')
                 text += self.p2.readerr().decode('utf8')
                 msg += text
-                msg += u"\nFailed\n"
                 self.numbad += 1
                 self.log += msg
             self.showCmdOutput(msg)

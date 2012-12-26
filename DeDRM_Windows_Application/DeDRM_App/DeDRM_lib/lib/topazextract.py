@@ -69,6 +69,9 @@ def unicode_argv():
             argvencoding = 'utf-8'
         return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
 
+#global switch
+debug = False
+
 if 'calibre' in sys.modules:
     inCalibre = True
     from calibre_plugins.k4mobidedrm import kgenpids
@@ -206,6 +209,7 @@ class TopazBook:
             # Read and return the data of one header record at the current book file position
             # [[offset,decompressedLength,compressedLength],...]
             nbValues = bookReadEncodedNumber(self.fo)
+            if debug: print "%d records in header " % nbValues,
             values = []
             for i in range (0,nbValues):
                 values.append([bookReadEncodedNumber(self.fo),bookReadEncodedNumber(self.fo),bookReadEncodedNumber(self.fo)])
@@ -219,9 +223,10 @@ class TopazBook:
             record = bookReadHeaderRecordData()
             return [tag,record]
         nbRecords = bookReadEncodedNumber(self.fo)
+        if debug: print "Headers: %d" % nbRecords
         for i in range (0,nbRecords):
             result = parseTopazHeaderRecord()
-            # print result[0], result[1]
+            if debug: print result[0], ": ", result[1]
             self.bookHeaderRecords[result[0]] = result[1]
         if ord(self.fo.read(1))  != 0x64 :
             raise DrmException(u"Parse Error : Invalid Header")
@@ -235,12 +240,12 @@ class TopazBook:
             raise DrmException(u"Parse Error : Record Names Don't Match")
         flags = ord(self.fo.read(1))
         nbRecords = ord(self.fo.read(1))
-        # print nbRecords
+        if debug: print "Metadata Records: %d" % nbRecords
         for i in range (0,nbRecords) :
             keyval = bookReadString(self.fo)
             content = bookReadString(self.fo)
-            # print keyval
-            # print content
+            if debug: print keyval
+            if debug: print content
             self.bookMetadata[keyval] = content
         return self.bookMetadata
 
