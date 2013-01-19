@@ -1,0 +1,8 @@
+ineptpdf 8.4.51
+---------------
+
+This is a version of the ineptpdf script produced by TetraChroma that can remove, on Windows, "FileOpen" DRM.
+
+No support for this script is offered at Apprentice Alf's blog.
+
+Trtrachroma's blog is http://tetrachroma.wordpress.com/

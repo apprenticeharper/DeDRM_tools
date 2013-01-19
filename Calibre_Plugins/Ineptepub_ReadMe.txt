@@ -1,15 +1,16 @@
-Inept PDF Plugin - ineptpdf_v01.9_plugin.zip
-============================================
+Inept Epub DeDRM - ineptepub_v02.1_plugin.zip
+=============================================
 
 All credit given to i♥cabbages for the original standalone scripts. I had the much easier job of converting them to a Calibre plugin.
 
-This plugin is meant to decrypt Adobe Digital Edition PDFs that are protected with Adobe's Adept encryption. It is meant to function without having to install any dependencies... other than having Calibre installed, of course. It will still work if you have Python, PyCrypto and/or OpenSSL already installed, but they aren't necessary.
+This plugin is meant to decrypt Adobe Digital Edition Epubs that are protected with Adobe's Adept encryption. It is meant to function without having to install any dependencies... other than having Calibre installed, of course. It will still work if you have Python and PyCrypto already installed, but they aren't necessary.
 
 
 Installation
 ------------
 
-Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (ineptpdf_v01.9_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (ineptepub_v02.1_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+
 
 
 Customization
@@ -19,14 +20,14 @@ When first run, the plugin will attempt to find your Adobe Digital Editions inst
 
 So if you have Adobe Digital Editions installation installed on the same machine as Calibre... you are ready to go. If not... keep reading.
 
-If you already have keyfiles generated with i♥cabbages' ineptkey.pyw script, you can put those keyfiles in Calibre's configuration directory. The easiest way to find the correct directory is to go to Calibre's Preferences page... click on the 'Miscellaneous' button (looks like a gear),  and then click the 'Open Calibre configuration directory' button. Paste your keyfiles in there. Just make sure that
-they have different names and are saved with the '.der' extension (like the ineptkey script produces). This directory isn't touched when upgrading Calibre, so it's quite safe to leave them there.
+If you already have keyfiles generated with i♥cabbages' ineptkey.pyw script, you can put those keyfiles in Calibre's configuration directory. The easiest way to find the correct directory is to go to Calibre's Preferences page... click on the 'Miscellaneous' button (looks like a gear),  and then click the 'Open Calibre configuration directory' button. Paste your keyfiles in there. Just make sure that they have different names and are saved with the '.der' extension (like the ineptkey script produces). This directory isn't touched when upgrading Calibre, so it's quite safe to leave them there.
 
 Since there is no Linux version of Adobe Digital Editions, Linux users will have to obtain a keyfile through other methods and put the file in Calibre's configuration directory.
 
 All keyfiles with a '.der' extension found in Calibre's configuration directory will be used to attempt to decrypt a book.
 
-** NOTE ** There is no plugin customization data for the Inept PDF plugin.
+
+** NOTE ** There is no plugin customization data for the Inept Epub DeDRM plugin.
 
 
 Troubleshooting
@@ -51,10 +52,10 @@ On Macintosh and Linux, just use the normal text select and copy commands.
 Paste the information into a comment at my blog, http://apprenticealf.wordpress.com/ describing your problem.
 
 
-Linux and Adobe Digital Editions PDFs
+Linux and Adobe Digital Editions ePubs
 --------------------------------------
 
-Here are the instructions for using the tools with ePub books and Adobe Digital Editions on Linux under Wine. (Thank you mclien!)
+Here are the instructions for using the tools with ePub books and Adobe Digital Editions on Linux under Wine. (Thank you mclien and Fadel!)
 
 
 1. download the most recent version of wine from winehq.org (1.3.29 in my case)
@@ -80,8 +81,7 @@ again as root use
 
 'apt-get install python-tk’
 
-4. all programms need to be installed as normal user. All these programm are installed the same way:
-‘wine ‘
+4. all programms need to be installed as normal user. The .exe files are installed using ‘wine <filename>’ but .msi files must be installed using ‘wine start <filename>’
 we need:
 a) Adobe Digital Edition 1.7.2(from: http://kb2.adobe.com/cps/403/kb403051.html)
 (there is a “can’t install ADE” site, where the setup.exe hides)

@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# DeDRM.pyw, version 5.5.3
+# DeDRM.pyw, version 5.6
 # By some_updates and Apprentice Alf
 
 import sys
 import os, os.path
 sys.path.append(os.path.join(sys.path[0],"lib"))
-os.environ['PYTHONIOENCODING'] = "utf-8"
+import sys, os
+import codecs
+
+from argv_utils import add_cp65001_codec, set_utf8_default_encoding, utf8_argv
+add_cp65001_codec()
+set_utf8_default_encoding()
+
 
 import shutil
 import Tkinter
@@ -16,15 +22,35 @@ import Tkconstants
 import tkFileDialog
 from scrolltextwidget import ScrolledText
 from activitybar import ActivityBar
-import subprocess
-from subprocess import Popen, PIPE, STDOUT
-import subasyncio
-from subasyncio import Process
 import re
 import simpleprefs
 
+from Queue import Full
+from Queue import Empty
+from multiprocessing import Process, Queue
 
-__version__ = '5.5.3'
+from scriptinterface import decryptepub, decryptpdb, decryptpdf, decryptk4mobi
+
+
+# Wrap a stream so that output gets flushed immediately
+# and appended to shared queue
+class QueuedStream:
+    def __init__(self, stream, q):
+        self.stream = stream
+        self.encoding = stream.encoding
+        self.q = q
+        if self.encoding == None:
+            self.encoding = "utf-8"
+    def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
+        self.q.put(data)
+        # self.stream.write(data)
+        # self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+__version__ = '5.6'
 
 class DrmException(Exception):
     pass
@@ -35,6 +61,7 @@ class MainApp(Tk):
         self.withdraw()
         self.dnd = dnd
         self.apphome = apphome
+
         # preference settings
         # [dictionary key, file in preferences directory where info is stored]
         description = [ ['pids'   , 'pidlist.txt'   ],
@@ -152,7 +179,7 @@ class PrefsDialog(Toplevel):
             self.pidnums.set(self.prefs_array['pids'])
         self.pidinfo.grid(row=3, column=1, sticky=sticky)
 
-        Tkinter.Label(body, text='eInk Kindle Serial Number list\n(16 characters, first character B, comma separated)').grid(row=4, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='eInk Kindle Serial Number list\n(16 characters, comma separated)').grid(row=4, sticky=Tkconstants.E)
         self.sernums = Tkinter.StringVar()
         self.serinfo = Tkinter.Entry(body, width=50, textvariable=self.sernums)
         if 'serials' in self.prefs_array:
@@ -327,10 +354,11 @@ class ConvDialog(Toplevel):
         self.filenames = filenames
         self.interval = 50
         self.p2 = None
+        self.q = Queue()
         self.running = 'inactive'
         self.numgood = 0
         self.numbad = 0
-        self.log = u""
+        self.log = ''
         self.status = Tkinter.Label(self, text='DeDRM processing...')
         self.status.pack(fill=Tkconstants.X, expand=1)
         body = Tkinter.Frame(self)
@@ -378,16 +406,18 @@ class ConvDialog(Toplevel):
             if len(self.filenames) > 0:
                 filename = self.filenames.pop(0)
             if filename == None:
-                msg = u"\nComplete:   Successes: {0}, Failures: {1}\n".format(self.numgood,self.numbad)
+                msg = '\nComplete:  '
+                msg += 'Successes: %d, ' % self.numgood
+                msg += 'Failures: %d\n' % self.numbad
                 self.showCmdOutput(msg)
                 if self.numbad == 0:
                     self.after(2000,self.conversion_done())
                 logfile = os.path.join(rscpath,'dedrm.log')
-                file(logfile,'w').write(self.log.encode('utf8'))
+                file(logfile,'wb').write(self.log)
                 return
             infile = filename
             bname = os.path.basename(infile)
-            msg = u"Processing: {0} ... ".format(bname)
+            msg = 'Processing: ' + bname + ' ... '
             self.log += msg
             self.showCmdOutput(msg)
             outdir = os.path.dirname(filename)
@@ -399,9 +429,9 @@ class ConvDialog(Toplevel):
             if rv == 0:
                 self.bar.start()
                 self.running = 'active'
-                self.processPipe()
+                self.processQueue()
             else:
-                msg = u"Unknown File: {0}\n".format(bname)
+                msg = 'Unknown File: ' + bname + '\n'
                 self.log += msg
                 self.showCmdOutput(msg)
                 self.numbad += 1
@@ -410,7 +440,7 @@ class ConvDialog(Toplevel):
         # kill any still running subprocess
         self.running = 'stopped'
         if self.p2 != None:
-            if (self.p2.wait('nowait') == None):
+            if (self.p2.exitcode == None):
                 self.p2.terminate()
         self.conversion_done()
 
@@ -426,130 +456,127 @@ class ConvDialog(Toplevel):
     # read from subprocess pipe without blocking
     # invoked every interval via the widget "after"
     # option being used, so need to reset it for the next time
-    def processPipe(self):
+    def processQueue(self):
         if self.p2 == None:
             # nothing to wait for so just return
             return
-        poll = self.p2.wait('nowait')
+        poll = self.p2.exitcode
         if poll != None:
             self.bar.stop()
             if poll == 0:
-                msg = u"\nSuccess\n"
+                msg = 'Success\n'
                 self.numgood += 1
-                text = self.p2.read().decode('utf8')
-                text += self.p2.readerr().decode('utf8')
+                done = False
+                text = ''
+                while not done:
+                    try:
+                        data = self.q.get_nowait()
+                        text += data
+                    except Empty:
+                        done = True
+                        pass
                 self.log += text
                 self.log += msg
-            else:
-                msg = u"\nFailed\n"
-                text = self.p2.read().decode('utf8')
-                text += self.p2.readerr().decode('utf8')
-                msg += text
-                self.numbad += 1
+            if poll != 0:
+                msg = 'Failed\n'
+                done = False
+                text = ''
+                while not done:
+                    try:
+                        data = self.q.get_nowait()
+                        text += data
+                    except Empty:
+                        done = True
+                        pass
+                msg += '\n'
+                self.log += text
                 self.log += msg
+                self.numbad += 1
+            self.p2.join()
             self.showCmdOutput(msg)
             self.p2 = None
             self.running = 'inactive'
             self.after(50,self.processBooks)
             return
+        try:
+            text = self.q.get_nowait()
+        except Empty:
+            text = ''
+            pass
+        if text != '':
+            self.log += text
         # make sure we get invoked again by event loop after interval
-        self.stext.after(self.interval,self.processPipe)
+        self.stext.after(self.interval,self.processQueue)
         return
 
     def decrypt_ebook(self, infile, outdir, rscpath):
-        apphome = self.apphome
+        q = self.q
         rv = 1
         name, ext = os.path.splitext(os.path.basename(infile))
         ext = ext.lower()
         if ext == '.epub':
-            self.p2 = processEPUB(apphome, infile, outdir, rscpath)
+            self.p2 = Process(target=processEPUB, args=(q, infile, outdir, rscpath))
+            self.p2.start()
             return 0
         if ext == '.pdb':
-            self.p2 = processPDB(apphome, infile, outdir, rscpath)
+            self.p2 = Process(target=processPDB, args=(q, infile, outdir, rscpath))
+            self.p2.start()
             return 0
         if ext in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.tpz']:
-            self.p2 = processK4MOBI(apphome, infile, outdir, rscpath)
+            self.p2 = Process(target=processK4MOBI,args=(q, infile, outdir, rscpath))
+            self.p2.start()
             return 0
         if ext == '.pdf':
-            self.p2 = processPDF(apphome, infile, outdir, rscpath)
+            self.p2 = Process(target=processPDF, args=(q, infile, outdir, rscpath))
+            self.p2.start()
             return 0
         return rv
 
 
-# run as a subprocess via pipes and collect stdout, stderr, and return value
-def runit(apphome, ncmd, nparms):
-    pengine = sys.executable
-    if pengine is None or pengine == '':
-        pengine = 'python'
-    pengine = os.path.normpath(pengine)
-    cmdline = pengine + ' "' + os.path.join(apphome, ncmd) + '" '
-    # if sys.platform.startswith('win'):
-    #     search_path = os.environ['PATH']
-    #     search_path = search_path.lower()
-    #     if search_path.find('python') < 0:
-    #        # if no python hope that win registry finds what is associated with py extension
-    #        cmdline = pengine + ' "' + os.path.join(apphome, ncmd) + '" '
-    cmdline += nparms
-    cmdline = cmdline.encode(sys.getfilesystemencoding())
-    p2 = subasyncio.Process(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False, env = os.environ)
-    return p2
+# child process starts here
+def processK4MOBI(q, infile, outdir, rscpath):
+    add_cp65001_codec()
+    set_utf8_default_encoding()
+    sys.stdout = QueuedStream(sys.stdout, q)
+    sys.stderr = QueuedStream(sys.stderr, q)
+    rv = decryptk4mobi(infile, outdir, rscpath)
+    sys.exit(rv)
 
-def processK4MOBI(apphome, infile, outdir, rscpath):
-    cmd = os.path.join('lib','k4mobidedrm.py')
-    parms = ''
-    pidnums = ''
-    pidspath = os.path.join(rscpath,'pidlist.txt')
-    if os.path.exists(pidspath):
-        pidnums = file(pidspath,'r').read()
-        pidnums = pidnums.rstrip(os.linesep)
-    if pidnums != '':
-        parms += '-p "' + pidnums + '" '
-    serialnums = ''
-    serialnumspath = os.path.join(rscpath,'seriallist.txt')
-    if os.path.exists(serialnumspath):
-        serialnums = file(serialnumspath,'r').read()
-        serialnums = serialnums.rstrip(os.linesep)
-    if serialnums != '':
-        parms += '-s "' + serialnums + '" '
+# child process starts here
+def processPDF(q, infile, outdir, rscpath):
+    add_cp65001_codec()
+    set_utf8_default_encoding()
+    sys.stdout = QueuedStream(sys.stdout, q)
+    sys.stderr = QueuedStream(sys.stderr, q)
+    rv = decryptpdf(infile, outdir, rscpath)
+    sys.exit(rv)
 
-    files = os.listdir(rscpath)
-    filefilter = re.compile("\.info$|\.kinf$", re.IGNORECASE)
-    files = filter(filefilter.search, files)
-    if files:
-        for filename in files:
-            dpath = os.path.join(rscpath,filename)
-            parms += '-k "' + dpath + '" '
-    parms += '"' + infile +'" "' + outdir + '"'
-    p2 = runit(apphome, cmd, parms)
-    return p2
+# child process starts here
+def processEPUB(q, infile, outdir, rscpath):
+    add_cp65001_codec()
+    set_utf8_default_encoding()
+    sys.stdout = QueuedStream(sys.stdout, q)
+    sys.stderr = QueuedStream(sys.stderr, q)
+    rv = decryptepub(infile, outdir, rscpath)
+    sys.exit(rv)
 
-def processPDF(apphome, infile, outdir, rscpath):
-    cmd = os.path.join('lib','decryptpdf.py')
-    parms =  '"' + infile + '" "' + outdir + '" "' + rscpath + '"'
-    p2 = runit(apphome, cmd, parms)
-    return p2
-
-def processEPUB(apphome, infile, outdir, rscpath):
-    # invoke routine to check both Adept and Barnes and Noble
-    cmd = os.path.join('lib','decryptepub.py')
-    parms = '"' + infile + '" "' + outdir + '" "' + rscpath + '"'
-    p2 = runit(apphome, cmd, parms)
-    return p2
-
-def processPDB(apphome, infile, outdir, rscpath):
-    cmd = os.path.join('lib','decryptpdb.py')
-    parms = '"' + infile + '" "' + outdir + '" "' + rscpath + '"'
-    p2 = runit(apphome, cmd, parms)
-    return p2
+# child process starts here
+def processPDB(q, infile, outdir, rscpath):
+    add_cp65001_codec()
+    set_utf8_default_encoding()
+    sys.stdout = QueuedStream(sys.stdout, q)
+    sys.stderr = QueuedStream(sys.stderr, q)
+    rv = decryptpdb(infile, outdir, rscpath)
+    sys.exit(rv)
 
 
-def main(argv=sys.argv):
-    apphome = os.path.dirname(sys.argv[0])
+def main(argv=utf8_argv()):
+    apphome = os.path.dirname(argv[0])
     apphome = os.path.abspath(apphome)
 
     # windows may pass a spurious quoted null string as argv[1] from bat file
     # simply work around this until we can figure out a better way to handle things
-    if len(argv) == 2:
+    if sys.platform.startswith('win') and len(argv) == 2:
         temp = argv[1]
         temp = temp.strip('"')
         temp = temp.strip()
@@ -563,11 +590,10 @@ def main(argv=sys.argv):
     else : # processing books via drag and drop
         dnd = True
         # build a list of the files to be processed
+        # note all filenames and paths have been utf-8 encoded
         infilelst = argv[1:]
         filenames = []
         for infile in infilelst:
-            infile = infile.decode(sys.getfilesystemencoding())
-            print infile
             infile = infile.replace('"','')
             infile = os.path.abspath(infile)
             if os.path.isdir(infile):

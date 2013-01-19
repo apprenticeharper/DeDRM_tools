@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
@@ -542,7 +542,7 @@ def gui_main():
             try:
                 decrypt_status = decryptBook(userkey, inpath, outpath)
             except Exception, e:
-                self.status['text'] = u"Error; {0}".format(e)
+                self.status['text'] = u"Error: {0}".format(e.args[0])
                 return
             if decrypt_status == 0:
                 self.status['text'] = u"File successfully decrypted"

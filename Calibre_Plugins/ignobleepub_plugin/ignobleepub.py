@@ -1,420 +1,98 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 
-from __future__ import with_statement
+<html xmlns="http://www.w3.org/1999/xhtml">
 
-# ignobleepub.pyw, version 3.6
-# Copyright © 2009-2010 by i♥cabbages
+<head>
+<title>Ignoble Epub DeDRM Plugin Configuration</title>
+</head>
 
-# Released under the terms of the GNU General Public Licence, version 3
-# <http://www.gnu.org/licenses/>
+<body>
 
-# Modified 2010–2012 by some_updates, DiapDealer and Apprentice Alf
+<h1>Ignoble Epub DeDRM Plugin</h1>
+<h3>(version 0.2.6)</h3>
+<h3> For additional help read the <a href="http://apprenticealf.wordpress.com/2011/01/17/frequently-asked-questions-about-the-drm-removal-tools/" target="_blank">FAQ</a> on <a href="http://apprenticealf.wordpress.com" target="_blank">Apprentice Alf's Blog</a> and ask questions in the comments section of the <a href="http://apprenticealf.wordpress.com/2012/09/10/drm-removal-tools-for-ebooks/" target="_blank">first post</a>.</h3>
 
-# Windows users: Before running this program, you must first install Python 2.6
-#   from <http://www.python.org/download/> and PyCrypto from
-#   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
-#   install the version for Python 2.6).  Save this script file as
-#   ineptepub.pyw and double-click on it to run it.
-#
-# Mac OS X users: Save this script file as ineptepub.pyw.  You can run this
-#   program from the command line (pythonw ineptepub.pyw) or by double-clicking
-#   it when it has been associated with PythonLauncher.
+<p>All credit given to I ♥ Cabbages for the original standalone scripts (I had the much easier job of converting them to a calibre plugin).</p>
 
-# Revision history:
-#   1 - Initial release
-#   2 - Added OS X support by using OpenSSL when available
-#   3 - screen out improper key lengths to prevent segfaults on Linux
-#   3.1 - Allow Windows versions of libcrypto to be found
-#   3.2 - add support for encoding to 'utf-8' when building up list of files to cecrypt from encryption.xml
-#   3.3 - On Windows try PyCrypto first and OpenSSL next
-#   3.4 - Modify interace to allow use with import
-#   3.5 - Fix for potential problem with PyCrypto
-#   3.6 - Revised to allow use in calibre plugins to eliminate need for duplicate code
+<p>This plugin is meant to decrypt Barnes & Noble ePubs that are protected with Adobe's Adept encryption. It is meant to function without having to install any dependencies... other than having calibre installed, of course. It will still work if you have Python and PyCrypto already installed, but they aren't necessary.</p>
 
-"""
-Decrypt Barnes & Noble encrypted ePub books.
-"""
+<p>This help file is always available from within the plugin's customization dialog in calibre (when installed, of course). The "Plugin Help" link can be found in the upper-right portion of the customization dialog.</p> 
 
-__license__ = 'GPL v3'
-__version__ = "3.6"
+<h3>Installation:</h3>
 
-import sys
-import os
-import traceback
-import zlib
-import zipfile
-from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
-from contextlib import closing
-import xml.etree.ElementTree as etree
-
-# Wrap a stream so that output gets flushed immediately
-# and also make sure that any unicode strings get
-# encoded using "replace" before writing them.
-class SafeUnbuffered:
-    def __init__(self, stream):
-        self.stream = stream
-        self.encoding = stream.encoding
-        if self.encoding == None:
-            self.encoding = "utf-8"
-    def write(self, data):
-        if isinstance(data,unicode):
-            data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
-
-try:
-    from calibre.constants import iswindows, isosx
-except:
-    iswindows = sys.platform.startswith('win')
-    isosx = sys.platform.startswith('darwin')
-
-def unicode_argv():
-    if iswindows:
-        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-        # strings.
-
-        # Versions 2.x of Python don't support Unicode in sys.argv on
-        # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.
+<p>Go to calibre's Preferences page.  Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior". Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file  (ignobleepub_v02.3_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog. <b><u>Now restart calibre</u></b>.</p>
 
 
-        from ctypes import POINTER, byref, cdll, c_int, windll
-        from ctypes.wintypes import LPCWSTR, LPWSTR
+<h3>Configuration:</h3>
 
-        GetCommandLineW = cdll.kernel32.GetCommandLineW
-        GetCommandLineW.argtypes = []
-        GetCommandLineW.restype = LPCWSTR
+<p>Upon first installing the plugin (or upgrading from a version earlier than 0.2.0), the plugin will be unconfigured. Until you create at least one B&amp;N key&mdash;or migrate your existing key(s)/data from an earlier version of the plugin&mdash;the plugin will not function. When unconfigured (no saved keys)... an error message will occur whenever ePubs are imported to calibre. To eliminate the error message, open the plugin's customization dialog and create/import/migrate a key (or disable/uninstall the plugin). You can get to the plugin's customization dialog by opening calibre's Preferences dialog, and clicking Plugins (under the Advanced section). Once in the Plugin Preferences, expand the "File type plugins" section and look for the "Ignoble Epub DeDRM" plugin. Highlight that plugin and click the "Customize plugin" button.</p>
 
-        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-        CommandLineToArgvW.restype = POINTER(LPWSTR)
+<p>If you are upgrading from an earlier version of this plugin and have provided your name(s) and credit card number(s) as part of the old plugin's customization string, you will be prompted to migrate this data to the plugin's new, more secure, key storage method when you open the customization dialog for the first time. If you choose NOT to migrate that data, you will be prompted to save that data as a text file in a location of your choosing. Either way, this plugin will no longer be storing names and credit card numbers in plain sight (or anywhere for that matter) on your computer or in calibre. If you don't choose to migrate OR save the data, that data will be lost. You have been warned!!</p>
 
-        cmd = GetCommandLineW()
-        argc = c_int(0)
-        argv = CommandLineToArgvW(cmd, byref(argc))
-        if argc.value > 0:
-            # Remove Python executable and commands if present
-            start = argc.value - len(sys.argv)
-            return [argv[i] for i in
-                    xrange(start, argc.value)]
-        return [u"ineptepub.py"]
-    else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+<p>Upon configuring for the first time, you may also be asked if you wish to import your existing *.b64 keyfiles (if you use them) to the plugin's new key storage method. The new plugin no longer looks for keyfiles in calibre's configuration directory, so it's highly recommended that you import any existing keyfiles when prompted ... but you <i>always</i> have the ability to import existing keyfiles anytime you might need/want to.</p>
 
+<p>If you have upgraded from an earlier version of the plugin, the above instructions may be all you need to do to get the new plugin up and running. Continue reading for new-key generation and existing-key management instructions.</p>
 
-class IGNOBLEError(Exception):
-    pass
+<h4 style="margin-left: 1.0em;"><u>Creating New Keys:</u></h4>
 
-def _load_crypto_libcrypto():
-    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
-        Structure, c_ulong, create_string_buffer, cast
-    from ctypes.util import find_library
+<p style="margin-left: 1.0em">On the right-hand side of the plugin's customization dialog, you will see a button with an icon that looks like a green plus sign (+). Clicking this button will open a new dialog for entering the necessary data to generate a new key.</p>
+<ul style="margin-left: 2.0em;">
+<li><b>Unique Key Name:</b> this is a unique name you choose to help you identify the key after it's created. This name will show in the list of configured keys. Choose something that will help you remember the data (name, cc#) it was created with.</i>
+<li style="margin-top: 0.5em;"><b>Your Name:</b> Your name as set in your Barnes & Noble account, My Account page, directly under PERSONAL INFORMATION. It is usually just your first name and last name separated by a space. This name will not be stored anywhere on your computer or in calibre. It will only be used in the creation of the one-way hash/key that's stored in the preferences.</i>
+<li style="margin-top: 0.5em;"><b>Credit Card#:</b> this is the default credit card number that was on file with Barnes & Noble at the time of download of the ebook to be de-DRMed. Nothing fancy here; no dashes or spaces ... just the 16 (15 for American Express) digits. Again... this number will not be stored anywhere on your computer or in calibre. It will only be used in the creation of the one-way hash/key that's stored in the preferences.</i> 
+</ul> 
 
-    if iswindows:
-        libcrypto = find_library('libeay32')
-    else:
-        libcrypto = find_library('crypto')
+<p style="margin-left: 1.0em;">Click the 'OK" button to create and store the generated key. Or Cancel if you didn't want to create a key.</p>
 
-    if libcrypto is None:
-        raise IGNOBLEError('libcrypto not found')
-    libcrypto = CDLL(libcrypto)
+<h4 style="margin-left: 1.0em;"><u>Deleting Keys:</u></h4>
 
-    AES_MAXNR = 14
+<p style="margin-left: 1.0em;">On the right-hand side of the plugin's customization dialog, you will see a button with an icon that looks like a red "X". Clicking this button will delete the highlighted key in the list. You will be prompted once to be sure that's what you truly mean to do. Once gone, it's permanently gone.</p>
 
-    c_char_pp = POINTER(c_char_p)
-    c_int_p = POINTER(c_int)
+<h4 style="margin-left: 1.0em;"><u>Exporting Keys:</u></h4>
 
-    class AES_KEY(Structure):
-        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
-                    ('rounds', c_int)]
-    AES_KEY_p = POINTER(AES_KEY)
+<p style="margin-left: 1.0em;">On the right-hand side of the plugin's customization dialog, you will see a button with an icon that looks like a computer's hard-drive. Use this button to export the highlighted key to a file (*.b64). Used for backup purposes or to migrate key data to other computers/calibre installations. The dialog will prompt you for a place to save the file.</p>
 
-    def F(restype, name, argtypes):
-        func = getattr(libcrypto, name)
-        func.restype = restype
-        func.argtypes = argtypes
-        return func
+<h4 style="margin-left: 1.0em;"><u>Importing Existing Keyfiles:</u></h4>
 
-    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
-                            [c_char_p, c_int, AES_KEY_p])
-    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
-                        [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
-                         c_int])
+<p style="margin-left: 1.0em;">At the bottom-left of the plugin's customization dialog, you will see a button labeled "Import Existing Keyfiles". Use this button to import existing *.b64 keyfiles. Used for migrating keyfiles from older versions of the plugin (or keys generated with the original I &lt;3 Cabbages script), or moving keyfiles from computer to computer, or restoring a backup. Some very basic validation is done to try to avoid overwriting already configured keys with incoming, imported keyfiles with the same base file name, but I'm sure that could be broken if someone tried hard. Just take care when importing.</p>
 
-    class AES(object):
-        def __init__(self, userkey):
-            self._blocksize = len(userkey)
-            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                raise IGNOBLEError('AES improper key used')
-                return
-            key = self._key = AES_KEY()
-            rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
-            if rv < 0:
-                raise IGNOBLEError('Failed to initialize AES key')
+<p>Once done creating/importing/exporting/deleting decryption keys; click "OK" to exit the customization dialogue (the cancel button will actually work the same way here ... at this point all data/changes are committed already, so take your pick).</p>
 
-        def decrypt(self, data):
-            out = create_string_buffer(len(data))
-            iv = ("\x00" * self._blocksize)
-            rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
-            if rv == 0:
-                raise IGNOBLEError('AES decryption failed')
-            return out.raw
+<h3>Troubleshooting:</h3>
 
-    return AES
+<p style="margin-top: 0.5em;">If you find that it's not working for you (imported Barnes & Noble epubs still have DRM), you can save a lot of time and trouble by trying to add the epub to Calibre with the command line tools. This will print out a lot of helpful debugging info that can be copied into any online help requests. I'm going to ask you to do it first, anyway, so you might as well get used to it. ;)</p>
 
-def _load_crypto_pycrypto():
-    from Crypto.Cipher import AES as _AES
+<p>Open a command prompt (terminal) and change to the directory where the ebook you're trying to import resides. Then type the command "calibredb add your_ebook.epub" **. Don't type the quotes and obviously change the 'your_ebook.epub' to whatever the filename of your book is. Copy the resulting output and paste it into any online help request you make.</p>
 
-    class AES(object):
-        def __init__(self, key):
-            self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
+<p>Another way to debug (perhaps easier if you're not all that comfortable with command-line stuff) is to launch calibre in debug mode. Open a command prompt (terminal) and type "calibre-debug -g" (again without the quotes). Calibre will launch, and you can can add the problem book(s) using the normal gui method. The debug info will be output to the original command prompt (terminal window). Copy the resulting output and paste it into any online help request you make.</p>
+<p>&nbsp;</p>
+<p>** Note: the Mac version of Calibre doesn't install the command line tools by default. If you go to the 'Preferences' page and click on the miscellaneous button, you'll see the option to install the command line tools.</p>
 
-        def decrypt(self, data):
-            return self._aes.decrypt(data)
+<p>&nbsp;</p>
+<h4>Revision history:</h4>
+<pre>
+   0.1.0 - Initial release
+   0.1.1 - Allow Windows users to make use of openssl if they have it installed.
+          - Incorporated SomeUpdates zipfix routine.
+   0.1.2 - bug fix for non-ascii file names in encryption.xml
+   0.1.3 - Try PyCrypto on Windows first
+   0.1.4 - update zipfix to deal with mimetype not in correct place
+   0.1.5 - update zipfix to deal with completely missing mimetype files
+   0.1.6 - update to the new calibre plugin interface
+   0.1.7 - Fix for potential problem with PyCrypto
+   0.1.8 - an updated/modified zipfix.py and included zipfilerugged.py
+   0.2.0 - Completely overhauled plugin configuration dialog and key management/storage
+   0.2.1 - an updated/modified zipfix.py and included zipfilerugged.py
+   0.2.2 - added in potential fixes from 0.1.7 that had been missed.
+   0.2.3 - fixed possible output/unicode problem
+   0.2.4 - ditched nearly hopeless caselessStrCmp method in favor of uStrCmp.
+         - added ability to rename existing keys.
+   0.2.5 - Major code change to use unaltered ignobleepub.py 3.6 and
+         - ignoblekeygen 2.4 and later.
+   0.2.6 - Modified to alleviate the issue with having both the ignoble and inept epub plugins installed/enabled
+</pre>
+</body>
 
-    return AES
-
-def _load_crypto():
-    AES = None
-    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
-    if sys.platform.startswith('win'):
-        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
-    for loader in cryptolist:
-        try:
-            AES = loader()
-            break
-        except (ImportError, IGNOBLEError):
-            pass
-    return AES
-
-AES = _load_crypto()
-
-META_NAMES = ('mimetype', 'META-INF/rights.xml', 'META-INF/encryption.xml')
-NSMAP = {'adept': 'http://ns.adobe.com/adept',
-         'enc': 'http://www.w3.org/2001/04/xmlenc#'}
-
-class ZipInfo(zipfile.ZipInfo):
-    def __init__(self, *args, **kwargs):
-        if 'compress_type' in kwargs:
-            compress_type = kwargs.pop('compress_type')
-        super(ZipInfo, self).__init__(*args, **kwargs)
-        self.compress_type = compress_type
-
-class Decryptor(object):
-    def __init__(self, bookkey, encryption):
-        enc = lambda tag: '{%s}%s' % (NSMAP['enc'], tag)
-        self._aes = AES(bookkey)
-        encryption = etree.fromstring(encryption)
-        self._encrypted = encrypted = set()
-        expr = './%s/%s/%s' % (enc('EncryptedData'), enc('CipherData'),
-                               enc('CipherReference'))
-        for elem in encryption.findall(expr):
-            path = elem.get('URI', None)
-            if path is not None:
-                path = path.encode('utf-8')
-                encrypted.add(path)
-
-    def decompress(self, bytes):
-        dc = zlib.decompressobj(-15)
-        bytes = dc.decompress(bytes)
-        ex = dc.decompress('Z') + dc.flush()
-        if ex:
-            bytes = bytes + ex
-        return bytes
-
-    def decrypt(self, path, data):
-        if path in self._encrypted:
-            data = self._aes.decrypt(data)[16:]
-            data = data[:-ord(data[-1])]
-            data = self.decompress(data)
-        return data
-
-# check file to make check whether it's probably an Adobe Adept encrypted ePub
-def ignobleBook(inpath):
-    with closing(ZipFile(open(inpath, 'rb'))) as inf:
-        namelist = set(inf.namelist())
-        if 'META-INF/rights.xml' not in namelist or \
-           'META-INF/encryption.xml' not in namelist:
-            return False
-        try:
-            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
-            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
-            expr = './/%s' % (adept('encryptedKey'),)
-            bookkey = ''.join(rights.findtext(expr))
-            if len(bookkey) == 64:
-                return True
-        except:
-            # if we couldn't check, assume it is
-            return True
-    return False
-
-# return error code and error message duple
-def decryptBook(keyb64, inpath, outpath):
-    if AES is None:
-        # 1 means don't try again
-        return (1, u"PyCrypto or OpenSSL must be installed.")
-    key = keyb64.decode('base64')[:16]
-    aes = AES(key)
-    with closing(ZipFile(open(inpath, 'rb'))) as inf:
-        namelist = set(inf.namelist())
-        if 'META-INF/rights.xml' not in namelist or \
-           'META-INF/encryption.xml' not in namelist:
-            return (1, u"Not a secure Barnes & Noble ePub.")
-        for name in META_NAMES:
-            namelist.remove(name)
-        try:
-            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
-            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
-            expr = './/%s' % (adept('encryptedKey'),)
-            bookkey = ''.join(rights.findtext(expr))
-            if len(bookkey) != 64:
-                return (1, u"Not a secure Barnes & Noble ePub.")
-            bookkey = aes.decrypt(bookkey.decode('base64'))
-            bookkey = bookkey[:-ord(bookkey[-1])]
-            encryption = inf.read('META-INF/encryption.xml')
-            decryptor = Decryptor(bookkey[-16:], encryption)
-            kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
-            with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
-                zi = ZipInfo('mimetype', compress_type=ZIP_STORED)
-                outf.writestr(zi, inf.read('mimetype'))
-                for path in namelist:
-                    data = inf.read(path)
-                    outf.writestr(path, decryptor.decrypt(path, data))
-        except Exception, e:
-            return (2, u"{0}.".format(e.args[0]))
-    return (0, u"Success")
-
-
-def cli_main(argv=unicode_argv()):
-    progname = os.path.basename(argv[0])
-    if len(argv) != 4:
-        print u"usage: {0} <keyfile.der> <inbook.epub> <outbook.epub>".format(progname)
-        return 1
-    keypath, inpath, outpath = argv[1:]
-    userkey = open(keypath,'rb').read()
-    result = decryptBook(userkey, inpath, outpath)
-    print result[1]
-    return result[0]
-
-def gui_main():
-    import Tkinter
-    import Tkconstants
-    import tkFileDialog
-    import traceback
-
-    class DecryptionDialog(Tkinter.Frame):
-        def __init__(self, root):
-            Tkinter.Frame.__init__(self, root, border=5)
-            self.status = Tkinter.Label(self, text=u"Select files for decryption")
-            self.status.pack(fill=Tkconstants.X, expand=1)
-            body = Tkinter.Frame(self)
-            body.pack(fill=Tkconstants.X, expand=1)
-            sticky = Tkconstants.E + Tkconstants.W
-            body.grid_columnconfigure(1, weight=2)
-            Tkinter.Label(body, text=u"Key file").grid(row=0)
-            self.keypath = Tkinter.Entry(body, width=30)
-            self.keypath.grid(row=0, column=1, sticky=sticky)
-            if os.path.exists(u"bnepubkey.b64"):
-                self.keypath.insert(0, u"bnepubkey.b64")
-            button = Tkinter.Button(body, text=u"...", command=self.get_keypath)
-            button.grid(row=0, column=2)
-            Tkinter.Label(body, text=u"Input file").grid(row=1)
-            self.inpath = Tkinter.Entry(body, width=30)
-            self.inpath.grid(row=1, column=1, sticky=sticky)
-            button = Tkinter.Button(body, text=u"...", command=self.get_inpath)
-            button.grid(row=1, column=2)
-            Tkinter.Label(body, text=u"Output file").grid(row=2)
-            self.outpath = Tkinter.Entry(body, width=30)
-            self.outpath.grid(row=2, column=1, sticky=sticky)
-            button = Tkinter.Button(body, text=u"...", command=self.get_outpath)
-            button.grid(row=2, column=2)
-            buttons = Tkinter.Frame(self)
-            buttons.pack()
-            botton = Tkinter.Button(
-                buttons, text=u"Decrypt", width=10, command=self.decrypt)
-            botton.pack(side=Tkconstants.LEFT)
-            Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
-            button = Tkinter.Button(
-                buttons, text=u"Quit", width=10, command=self.quit)
-            button.pack(side=Tkconstants.RIGHT)
-
-        def get_keypath(self):
-            keypath = tkFileDialog.askopenfilename(
-                parent=None, title=u"Select Barnes & Noble \'.b64\' key file",
-                defaultextension=u".b64",
-                filetypes=[('base64-encoded files', '.b64'),
-                           ('All Files', '.*')])
-            if keypath:
-                keypath = os.path.normpath(keypath)
-                self.keypath.delete(0, Tkconstants.END)
-                self.keypath.insert(0, keypath)
-            return
-
-        def get_inpath(self):
-            inpath = tkFileDialog.askopenfilename(
-                parent=None, title=u"Select B&N-encrypted ePub file to decrypt",
-                defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
-            if inpath:
-                inpath = os.path.normpath(inpath)
-                self.inpath.delete(0, Tkconstants.END)
-                self.inpath.insert(0, inpath)
-            return
-
-        def get_outpath(self):
-            outpath = tkFileDialog.asksaveasfilename(
-                parent=None, title=u"Select unencrypted ePub file to produce",
-                defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
-            if outpath:
-                outpath = os.path.normpath(outpath)
-                self.outpath.delete(0, Tkconstants.END)
-                self.outpath.insert(0, outpath)
-            return
-
-        def decrypt(self):
-            keypath = self.keypath.get()
-            inpath = self.inpath.get()
-            outpath = self.outpath.get()
-            if not keypath or not os.path.exists(keypath):
-                self.status['text'] = u"Specified key file does not exist"
-                return
-            if not inpath or not os.path.exists(inpath):
-                self.status['text'] = u"Specified input file does not exist"
-                return
-            if not outpath:
-                self.status['text'] = u"Output file not specified"
-                return
-            if inpath == outpath:
-                self.status['text'] = u"Must have different input and output files"
-                return
-            userkey = open(keypath,'rb').read()
-            self.status['text'] = u"Decrypting..."
-            try:
-                decrypt_status = decryptBook(userkey, inpath, outpath)
-            except Exception, e:
-                self.status['text'] = u"Error: {0}".format(e.args[0])
-                return
-            if decrypt_status[0] == 0:
-                self.status['text'] = u"File successfully decrypted"
-            else:
-                self.status['text'] = decrypt_status[1]
-
-    root = Tkinter.Tk()
-    root.title(u"Barnes & Noble ePub Decrypter v.{0}".format(__version__))
-    root.resizable(True, False)
-    root.minsize(300, 0)
-    DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
-    root.mainloop()
-    return 0
-
-if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        sys.stdout=SafeUnbuffered(sys.stdout)
-        sys.stderr=SafeUnbuffered(sys.stderr)
-        sys.exit(cli_main())
-    sys.exit(gui_main())
+</html>

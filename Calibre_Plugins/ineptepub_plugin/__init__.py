@@ -6,8 +6,8 @@ __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
 
 
-# Released under the terms of the GNU General Public Licence, version 3 or
-# later.  <http://www.gnu.org/licenses/>
+# Released under the terms of the GNU General Public Licence, version 3
+# <http://www.gnu.org/licenses/>
 #
 # Requires Calibre version 0.7.55 or higher.
 #
@@ -58,10 +58,11 @@ __docformat__ = 'restructuredtext en'
 #   0.1.8 - Fix for potential problem with PyCrypto
 #   0.1.9 - Fix for potential problem with ADE keys and fix possible output/unicode problem
 #   0.2.0 - Major code change to use unaltered ineptepub.py file 5.8 or later.
+#   0.2.1 - Tweaked to eliminate issue with both ignoble and inept calibre plugins installed/enabled at once
 
 
 PLUGIN_NAME = u"Inept Epub DeDRM"
-PLUGIN_VERSION_TUPLE = (0, 2, 0)
+PLUGIN_VERSION_TUPLE = (0, 2, 1)
 PLUGIN_VERSION = u'.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 
 import sys, os, re
@@ -118,16 +119,14 @@ class IneptDeDRM(FileTypePlugin):
             fr = zipfix.fixZip(path_to_ebook, inf.name)
             fr.fix()
         except Exception, e:
-            print u"{0} v{1}: Error when checking zip archive.".format(PLUGIN_NAME, PLUGIN_VERSION)
+            print u"{0} v{1}: Error \'{2}\' when checking zip archive.".format(PLUGIN_NAME, PLUGIN_VERSION, e.args[0])
             raise Exception(e)
             return
 
         #check the book
         from calibre_plugins.ineptepub import ineptepub
         if not ineptepub.adeptBook(inf.name):
-            print u"{0} v{1}: {2} is not a secure Adobe Adept ePub.".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook))
-            # return the original file, so that no error message is generated in the GUI
-            return path_to_ebook
+            raise ADEPTError(u"{0} v{1}: {2} is not a secure Adobe Adept ePub.".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
 
         # Load any keyfiles (*.der) included Calibre's config directory.
         userkeys = []
@@ -181,30 +180,23 @@ class IneptDeDRM(FileTypePlugin):
 
         # Attempt to decrypt epub with each encryption key found.
         for userkeyinfo in userkeys:
-            print u"{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, userkeyinfo[1])
+            userkey,keyname = userkeyinfo
+            print u"{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname)
             of = self.temporary_file(u".epub")
 
             # Give the user key, ebook and TemporaryPersistent file to the decryption function.
-            result = ineptepub.decryptBook(userkeyinfo[0], inf.name, of.name)
+            result = ineptepub.decryptBook(userkey, inf.name, of.name)
 
-            # Ebook is not an Adobe Adept epub... do nothing and pass it on.
-            # This allows a non-encrypted epub to be imported without error messages.
-            if  result == 1:
-                print u"{0} v{1}: {2} is not a secure Adobe Adept ePub.".format(PLUGIN_NAME, PLUGIN_VERSION,os.path.basename(path_to_ebook))
-                of.close()
-                return path_to_ebook
-                break
+            of.close()
 
             # Decryption was successful return the modified PersistentTemporary
             # file to Calibre's import process.
             if  result == 0:
                 print u"{0} v{1}: Encryption successfully removed.".format(PLUGIN_NAME, PLUGIN_VERSION)
-                of.close()
                 return of.name
                 break
 
             print u"{0} v{1}: Encryption key incorrect.".format(PLUGIN_NAME, PLUGIN_VERSION)
-            of.close
 
         # Something went wrong with decryption.
         # Import the original unmolested epub.

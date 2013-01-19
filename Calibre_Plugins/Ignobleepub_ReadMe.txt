@@ -1,4 +1,4 @@
-Ignoble Epub DeDRM - ignobleepub_v02.5_plugin.zip
+Ignoble Epub DeDRM - ignobleepub_v02.6_plugin.zip
 =================================================
 
 All credit given to i♥cabbages for the original standalone scripts. I had the much easier job of converting them to a calibre plugin.
@@ -9,7 +9,7 @@ This plugin is meant to decrypt Barnes & Noble Epubs that are protected with Ado
 Installation
 ------------
 
-Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (ignobleepub_v02.5_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (ignobleepub_v02.6_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
 
 
 Customization
@@ -30,7 +30,7 @@ Creating New Keys:
 On the right-hand side of the plugin's customization dialog, you will see a button with an icon that looks like a green plus sign (+). Clicking this button will open a new dialog for entering the necessary data to generate a new key.
 
 * Unique Key Name: this is a unique name you choose to help you identify the key after it's created. This name will show in the list of configured keys. Choose something that will help you remember the data (name, cc#) it was created with.
-* Your Name: Your name as set in your Barnes & Noble account, My Account page, directly under PERSONAL INFORMATION. It is usually just your first name and last name separated by a space. This name will not be stored anywhere on your computer or in calibre. It will only be used in the creation of the one-way hash/key that's stored in the preferences.
+* Your Name: Your name as set in your Barnes & Noble account, My Account page, directly under PERSONAL INFORMATION. It is usually just your first name and last name separated by a space. This name will not be stored anywhere on your computer or in calibre. It will only be used in the creation of the one-way hash/key that's stored in the preferences. For some B&N accounts, the name to use is the name used in the default shipping address. For some B&N accounts, the name to use is the name used for the default Credit Card.
 * Credit Card number: this is the credit card number that was set as default with Barnes & Noble at the time of download. Nothing fancy here; no dashes or spaces ... just the 16 (15?) digits. Again... this number will not be stored anywhere on your computer or in calibre. It will only be used in the creation of the one-way hash/key that's stored in the preferences.
 Click the 'OK" button to create and store the generated key. Or Cancel if you didn't want to create a key.
 

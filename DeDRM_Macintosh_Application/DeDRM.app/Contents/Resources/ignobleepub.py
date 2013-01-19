@@ -3,7 +3,7 @@
 
 from __future__ import with_statement
 
-# ignobleepub.pyw, version 3.6
+# ignobleepub.pyw, version 3.7
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
@@ -26,18 +26,19 @@ from __future__ import with_statement
 #   2 - Added OS X support by using OpenSSL when available
 #   3 - screen out improper key lengths to prevent segfaults on Linux
 #   3.1 - Allow Windows versions of libcrypto to be found
-#   3.2 - add support for encoding to 'utf-8' when building up list of files to cecrypt from encryption.xml
-#   3.3 - On Windows try PyCrypto first and OpenSSL next
-#   3.4 - Modify interace to allow use with import
+#   3.2 - add support for encoding to 'utf-8' when building up list of files to decrypt from encryption.xml
+#   3.3 - On Windows try PyCrypto first, OpenSSL next
+#   3.4 - Modify interface to allow use with import
 #   3.5 - Fix for potential problem with PyCrypto
 #   3.6 - Revised to allow use in calibre plugins to eliminate need for duplicate code
+#   3.7 - Tweaked to match ineptepub more closely
 
 """
 Decrypt Barnes & Noble encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "3.6"
+__version__ = "3.7"
 
 import sys
 import os
@@ -254,18 +255,17 @@ def ignobleBook(inpath):
             return True
     return False
 
-# return error code and error message duple
 def decryptBook(keyb64, inpath, outpath):
     if AES is None:
-        # 1 means don't try again
-        return (1, u"PyCrypto or OpenSSL must be installed.")
+        raise IGNOBLEError(u"PyCrypto or OpenSSL must be installed.")
     key = keyb64.decode('base64')[:16]
     aes = AES(key)
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
         namelist = set(inf.namelist())
         if 'META-INF/rights.xml' not in namelist or \
            'META-INF/encryption.xml' not in namelist:
-            return (1, u"Not a secure Barnes & Noble ePub.")
+            print u"{0:s} is DRM-free.".format(os.path.basename(inpath))
+            return 1
         for name in META_NAMES:
             namelist.remove(name)
         try:
@@ -274,7 +274,8 @@ def decryptBook(keyb64, inpath, outpath):
             expr = './/%s' % (adept('encryptedKey'),)
             bookkey = ''.join(rights.findtext(expr))
             if len(bookkey) != 64:
-                return (1, u"Not a secure Barnes & Noble ePub.")
+                print u"{0:s} is not a secure Barnes & Noble ePub.".format(os.path.basename(inpath))
+                return 1
             bookkey = aes.decrypt(bookkey.decode('base64'))
             bookkey = bookkey[:-ord(bookkey[-1])]
             encryption = inf.read('META-INF/encryption.xml')
@@ -286,21 +287,23 @@ def decryptBook(keyb64, inpath, outpath):
                 for path in namelist:
                     data = inf.read(path)
                     outf.writestr(path, decryptor.decrypt(path, data))
-        except Exception, e:
-            return (2, u"{0}.".format(e.args[0]))
-    return (0, u"Success")
+        except:
+            print u"Could not decrypt {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc())
+            return 2
+    return 0
 
 
 def cli_main(argv=unicode_argv()):
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
-        print u"usage: {0} <keyfile.der> <inbook.epub> <outbook.epub>".format(progname)
+        print u"usage: {0} <keyfile.b64> <inbook.epub> <outbook.epub>".format(progname)
         return 1
     keypath, inpath, outpath = argv[1:]
     userkey = open(keypath,'rb').read()
     result = decryptBook(userkey, inpath, outpath)
-    print result[1]
-    return result[0]
+    if result == 0:
+        print u"Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath))
+    return result
 
 def gui_main():
     import Tkinter
@@ -399,10 +402,10 @@ def gui_main():
             except Exception, e:
                 self.status['text'] = u"Error: {0}".format(e.args[0])
                 return
-            if decrypt_status[0] == 0:
+            if decrypt_status == 0:
                 self.status['text'] = u"File successfully decrypted"
             else:
-                self.status['text'] = decrypt_status[1]
+                self.status['text'] = u"The was an error decrypting the file."
 
     root = Tkinter.Tk()
     root.title(u"Barnes & Noble ePub Decrypter v.{0}".format(__version__))

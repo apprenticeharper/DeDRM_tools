@@ -22,13 +22,18 @@ __docformat__ = 'restructuredtext en'
 #   0.4.11 - Fixed Linux support of K4PC
 #   0.4.12 - More Linux Wine fixes
 #   0.4.13 - Ancient Mobipocket files fix
+#   0.4.14 - Error on invalid character in book names fix
+#   0.4.15 - Another Topaz fix
+#   0.4.16 - Yet another Topaz fix
+#   0.4.17 - Manage to include the actual fix.
+#   0.4.18 - More Topaz fixes
 
 """
 Decrypt Amazon Kindle and Mobipocket encrypted ebooks.
 """
 
 PLUGIN_NAME = u"Kindle and Mobipocket DeDRM"
-PLUGIN_VERSION_TUPLE = (0, 4, 13)
+PLUGIN_VERSION_TUPLE = (0, 4, 18)
 PLUGIN_VERSION = '.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 
 import sys, os, re
@@ -170,7 +175,7 @@ class K4DeDRM(FileTypePlugin):
 
         print u"{0} v{1}: Successfully decrypted book after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-starttime)
 
-        of = self.temporary_file(k4mobidedrm.cleanup_name(k4mobidedrm.unescape(book.getBookTitle()))+book.getBookExtension())
+        of = self.temporary_file(u"decrypted_ebook.{0}".format(book.getBookExtension()))
         book.getFile(of.name)
         book.cleanup()
         return of.name

@@ -50,8 +50,9 @@ from __future__ import with_statement
 #  4.7 - Added timing reports, and changed search for Mac key files
 #  4.8 - Much better unicode handling, matching the updated inept and ignoble scripts
 #      - Moved back into plugin, __init__ in plugin now only contains plugin code.
+#  4.9 - Missed some invalid characters in cleanup_name
 
-__version__ = '4.8'
+__version__ = '4.9'
 
 
 import sys, os, re
@@ -144,7 +145,7 @@ def unicode_argv():
 # and with some (heavily edited) code from Paul Durrant's kindlenamer.py
 def cleanup_name(name):
     # substitute filename unfriendly characters
-    name = name.replace(u"<",u"[").replace(u">",u"]").replace(u" : ",u" – ").replace(u": ",u" – ").replace(u":",u"—").replace(u"/",u"_").replace(u"\\",u"_").replace(u"|",u"_").replace(u"\"",u"\'")
+    name = name.replace(u"<",u"[").replace(u">",u"]").replace(u" : ",u" – ").replace(u": ",u" – ").replace(u":",u"—").replace(u"/",u"_").replace(u"\\",u"_").replace(u"|",u"_").replace(u"\"",u"\'").replace(u"*",u"_").replace(u"?",u"")
     # delete control characters
     name = u"".join(char for char in name if ord(char)>=32)
     # white space to single space, delete leading and trailing while space
@@ -220,6 +221,7 @@ def decryptBook(infile, outdir, kInfoFiles, serials, pids):
         book = GetDecryptedBook(infile, kInfoFiles, serials, pids, starttime)
     except Exception, e:
         print u"Error decrypting book after {1:.1f} seconds: {0}".format(e.args[0],time.time()-starttime)
+        traceback.print_exc()
         return 1
 
     # if we're saving to the same folder as the original, use file name_
@@ -246,6 +248,7 @@ def decryptBook(infile, outdir, kInfoFiles, serials, pids):
 
     # remove internal temporary directory of Topaz pieces
     book.cleanup()
+    return 0
 
 
 def usage(progname):

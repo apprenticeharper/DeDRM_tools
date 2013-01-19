@@ -1,4 +1,4 @@
-Kindle and Mobipocket Plugin - K4MobiDeDRM_v04.10_plugin.zip
+Kindle and Mobipocket Plugin - K4MobiDeDRM_v04.18_plugin.zip
 ============================================================
 
 Credit given to The Dark Reverser for the original standalone script. Credit also to the many people who have updated and expanded that script since then.
@@ -13,7 +13,7 @@ This plugin is meant to remove the DRM from .prc, .mobi, .azw, .azw1, .azw3, .az
 Installation
 ------------
 
-Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (K4MobiDeDRM_v04.10_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (K4MobiDeDRM_v04.18_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
 
 Make sure that you delete any old versions of the plugin. They might interfere with the operation of the new one.
 

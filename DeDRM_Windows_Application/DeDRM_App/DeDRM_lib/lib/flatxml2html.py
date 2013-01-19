@@ -387,10 +387,14 @@ class DocParser(object):
                 ws_last = int(argres)
 
             elif name.endswith('word.class'):
-                (cname, space) = argres.split('-',1)
-                if space == '' : space = '0'
-                if (cname == 'spaceafter') and (int(space) > 0) :
-                    word_class = 'sa'
+                # we only handle spaceafter word class
+                try:
+                    (cname, space) = argres.split('-',1)
+                    if space == '' : space = '0'
+                    if (cname == 'spaceafter') and (int(space) > 0) :
+                        word_class = 'sa'
+                except:
+                    pass
 
             elif name.endswith('word.img.src'):
                 result.append(('img' + word_class, int(argres)))

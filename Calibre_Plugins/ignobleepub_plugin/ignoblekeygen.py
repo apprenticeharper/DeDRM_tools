@@ -3,7 +3,7 @@
 
 from __future__ import with_statement
 
-# ignoblekeygen.pyw, version 2.5
+# ignobleepub.pyw, version 3.7
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
@@ -15,31 +15,39 @@ from __future__ import with_statement
 #   from <http://www.python.org/download/> and PyCrypto from
 #   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
 #   install the version for Python 2.6).  Save this script file as
-#   ignoblekeygen.pyw and double-click on it to run it.
+#   ineptepub.pyw and double-click on it to run it.
 #
-# Mac OS X users: Save this script file as ignoblekeygen.pyw.  You can run this
-#   program from the command line (pythonw ignoblekeygen.pyw) or by double-clicking
+# Mac OS X users: Save this script file as ineptepub.pyw.  You can run this
+#   program from the command line (pythonw ineptepub.pyw) or by double-clicking
 #   it when it has been associated with PythonLauncher.
 
 # Revision history:
 #   1 - Initial release
-#   2 - Add OS X support by using OpenSSL when available (taken/modified from ineptepub v5)
-#   2.1 - Allow Windows versions of libcrypto to be found
-#   2.2 - On Windows try PyCrypto first and then OpenSSL next
-#   2.3 - Modify interface to allow use of import
-#   2.4 - Improvements to UI and now works in plugins
-#   2.5 - Additional improvement for unicode and plugin support
+#   2 - Added OS X support by using OpenSSL when available
+#   3 - screen out improper key lengths to prevent segfaults on Linux
+#   3.1 - Allow Windows versions of libcrypto to be found
+#   3.2 - add support for encoding to 'utf-8' when building up list of files to decrypt from encryption.xml
+#   3.3 - On Windows try PyCrypto first, OpenSSL next
+#   3.4 - Modify interface to allow use with import
+#   3.5 - Fix for potential problem with PyCrypto
+#   3.6 - Revised to allow use in calibre plugins to eliminate need for duplicate code
+#   3.7 - Tweaked to match ineptepub more closely
 
 """
-Generate Barnes & Noble EPUB user key from name and credit card number.
+Decrypt Barnes & Noble encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "2.5"
+__version__ = "3.7"
 
 import sys
 import os
-import hashlib
+import traceback
+import zlib
+import zipfile
+from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
+from contextlib import closing
+import xml.etree.ElementTree as etree
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -58,8 +66,11 @@ class SafeUnbuffered:
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
-iswindows = sys.platform.startswith('win')
-isosx = sys.platform.startswith('darwin')
+try:
+    from calibre.constants import iswindows, isosx
+except:
+    iswindows = sys.platform.startswith('win')
+    isosx = sys.platform.startswith('darwin')
 
 def unicode_argv():
     if iswindows:
@@ -90,9 +101,7 @@ def unicode_argv():
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
                     xrange(start, argc.value)]
-        # if we don't have any arguments at all, just pass back script name
-        # this should never happen
-        return [u"ignoblekeygen.py"]
+        return [u"ineptepub.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
@@ -133,26 +142,29 @@ def _load_crypto_libcrypto():
         func.argtypes = argtypes
         return func
 
-    AES_set_encrypt_key = F(c_int, 'AES_set_encrypt_key',
+    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
                             [c_char_p, c_int, AES_KEY_p])
     AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
                         [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
                          c_int])
 
     class AES(object):
-        def __init__(self, userkey, iv):
+        def __init__(self, userkey):
             self._blocksize = len(userkey)
-            self._iv = iv
+            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
+                raise IGNOBLEError('AES improper key used')
+                return
             key = self._key = AES_KEY()
-            rv = AES_set_encrypt_key(userkey, len(userkey) * 8, key)
+            rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
             if rv < 0:
-                raise IGNOBLEError('Failed to initialize AES Encrypt key')
+                raise IGNOBLEError('Failed to initialize AES key')
 
-        def encrypt(self, data):
+        def decrypt(self, data):
             out = create_string_buffer(len(data))
-            rv = AES_cbc_encrypt(data, out, len(data), self._key, self._iv, 1)
+            iv = ("\x00" * self._blocksize)
+            rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
             if rv == 0:
-                raise IGNOBLEError('AES encryption failed')
+                raise IGNOBLEError('AES decryption failed')
             return out.raw
 
     return AES
@@ -161,11 +173,11 @@ def _load_crypto_pycrypto():
     from Crypto.Cipher import AES as _AES
 
     class AES(object):
-        def __init__(self, key, iv):
-            self._aes = _AES.new(key, _AES.MODE_CBC, iv)
+        def __init__(self, key):
+            self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
 
-        def encrypt(self, data):
-            return self._aes.encrypt(data)
+        def decrypt(self, data):
+            return self._aes.decrypt(data)
 
     return AES
 
@@ -184,78 +196,151 @@ def _load_crypto():
 
 AES = _load_crypto()
 
-def normalize_name(name):
-    return ''.join(x for x in name.lower() if x != ' ')
+META_NAMES = ('mimetype', 'META-INF/rights.xml', 'META-INF/encryption.xml')
+NSMAP = {'adept': 'http://ns.adobe.com/adept',
+         'enc': 'http://www.w3.org/2001/04/xmlenc#'}
 
+class ZipInfo(zipfile.ZipInfo):
+    def __init__(self, *args, **kwargs):
+        if 'compress_type' in kwargs:
+            compress_type = kwargs.pop('compress_type')
+        super(ZipInfo, self).__init__(*args, **kwargs)
+        self.compress_type = compress_type
 
-def generate_key(name, ccn):
-    # remove spaces and case from name and CC numbers.
-    if type(name)==unicode:
-        name = name.encode('utf-8')
-    if type(ccn)==unicode:
-        ccn = ccn.encode('utf-8')
+class Decryptor(object):
+    def __init__(self, bookkey, encryption):
+        enc = lambda tag: '{%s}%s' % (NSMAP['enc'], tag)
+        self._aes = AES(bookkey)
+        encryption = etree.fromstring(encryption)
+        self._encrypted = encrypted = set()
+        expr = './%s/%s/%s' % (enc('EncryptedData'), enc('CipherData'),
+                               enc('CipherReference'))
+        for elem in encryption.findall(expr):
+            path = elem.get('URI', None)
+            if path is not None:
+                path = path.encode('utf-8')
+                encrypted.add(path)
 
-    name = normalize_name(name) + '\x00'
-    ccn = normalize_name(ccn) + '\x00'
+    def decompress(self, bytes):
+        dc = zlib.decompressobj(-15)
+        bytes = dc.decompress(bytes)
+        ex = dc.decompress('Z') + dc.flush()
+        if ex:
+            bytes = bytes + ex
+        return bytes
 
-    name_sha = hashlib.sha1(name).digest()[:16]
-    ccn_sha = hashlib.sha1(ccn).digest()[:16]
-    both_sha = hashlib.sha1(name + ccn).digest()
-    aes = AES(ccn_sha, name_sha)
-    crypt = aes.encrypt(both_sha + ('\x0c' * 0x0c))
-    userkey = hashlib.sha1(crypt).digest()
-    return userkey.encode('base64')
+    def decrypt(self, path, data):
+        if path in self._encrypted:
+            data = self._aes.decrypt(data)[16:]
+            data = data[:-ord(data[-1])]
+            data = self.decompress(data)
+        return data
 
+# check file to make check whether it's probably an Adobe Adept encrypted ePub
+def ignobleBook(inpath):
+    with closing(ZipFile(open(inpath, 'rb'))) as inf:
+        namelist = set(inf.namelist())
+        if 'META-INF/rights.xml' not in namelist or \
+           'META-INF/encryption.xml' not in namelist:
+            return False
+        try:
+            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+            expr = './/%s' % (adept('encryptedKey'),)
+            bookkey = ''.join(rights.findtext(expr))
+            if len(bookkey) == 64:
+                return True
+        except:
+            # if we couldn't check, assume it is
+            return True
+    return False
 
+def decryptBook(keyb64, inpath, outpath):
+    if AES is None:
+        raise IGNOBLEError(u"PyCrypto or OpenSSL must be installed.")
+    key = keyb64.decode('base64')[:16]
+    aes = AES(key)
+    with closing(ZipFile(open(inpath, 'rb'))) as inf:
+        namelist = set(inf.namelist())
+        if 'META-INF/rights.xml' not in namelist or \
+           'META-INF/encryption.xml' not in namelist:
+            print u"{0:s} is DRM-free.".format(os.path.basename(inpath))
+            return 1
+        for name in META_NAMES:
+            namelist.remove(name)
+        try:
+            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+            expr = './/%s' % (adept('encryptedKey'),)
+            bookkey = ''.join(rights.findtext(expr))
+            if len(bookkey) != 64:
+                print u"{0:s} is not a secure Barnes & Noble ePub.".format(os.path.basename(inpath))
+                return 1
+            bookkey = aes.decrypt(bookkey.decode('base64'))
+            bookkey = bookkey[:-ord(bookkey[-1])]
+            encryption = inf.read('META-INF/encryption.xml')
+            decryptor = Decryptor(bookkey[-16:], encryption)
+            kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
+            with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
+                zi = ZipInfo('mimetype', compress_type=ZIP_STORED)
+                outf.writestr(zi, inf.read('mimetype'))
+                for path in namelist:
+                    data = inf.read(path)
+                    outf.writestr(path, decryptor.decrypt(path, data))
+        except:
+            print u"Could not decrypt {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc())
+            return 2
+    return 0
 
 
 def cli_main(argv=unicode_argv()):
     progname = os.path.basename(argv[0])
-    if AES is None:
-        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
-              "separately.  Read the top-of-script comment for details." % \
-              (progname,)
-        return 1
     if len(argv) != 4:
-        print u"usage: {0} <Name> <CC#> <keyfileout.b64>".format(progname)
+        print u"usage: {0} <keyfile.b64> <inbook.epub> <outbook.epub>".format(progname)
         return 1
-    name, ccn, keypath = argv[1:]
-    userkey = generate_key(name, ccn)
-    open(keypath,'wb').write(userkey)
-    return 0
-
+    keypath, inpath, outpath = argv[1:]
+    userkey = open(keypath,'rb').read()
+    result = decryptBook(userkey, inpath, outpath)
+    if result == 0:
+        print u"Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath))
+    return result
 
 def gui_main():
     import Tkinter
     import Tkconstants
     import tkFileDialog
-    import tkMessageBox
+    import traceback
 
     class DecryptionDialog(Tkinter.Frame):
         def __init__(self, root):
             Tkinter.Frame.__init__(self, root, border=5)
-            self.status = Tkinter.Label(self, text=u"Enter parameters")
+            self.status = Tkinter.Label(self, text=u"Select files for decryption")
             self.status.pack(fill=Tkconstants.X, expand=1)
             body = Tkinter.Frame(self)
             body.pack(fill=Tkconstants.X, expand=1)
             sticky = Tkconstants.E + Tkconstants.W
             body.grid_columnconfigure(1, weight=2)
-            Tkinter.Label(body, text=u"Account Name").grid(row=0)
-            self.name = Tkinter.Entry(body, width=40)
-            self.name.grid(row=0, column=1, sticky=sticky)
-            Tkinter.Label(body, text=u"CC#").grid(row=1)
-            self.ccn = Tkinter.Entry(body, width=40)
-            self.ccn.grid(row=1, column=1, sticky=sticky)
-            Tkinter.Label(body, text=u"Output file").grid(row=2)
-            self.keypath = Tkinter.Entry(body, width=40)
-            self.keypath.grid(row=2, column=1, sticky=sticky)
-            self.keypath.insert(2, u"bnepubkey.b64")
+            Tkinter.Label(body, text=u"Key file").grid(row=0)
+            self.keypath = Tkinter.Entry(body, width=30)
+            self.keypath.grid(row=0, column=1, sticky=sticky)
+            if os.path.exists(u"bnepubkey.b64"):
+                self.keypath.insert(0, u"bnepubkey.b64")
             button = Tkinter.Button(body, text=u"...", command=self.get_keypath)
+            button.grid(row=0, column=2)
+            Tkinter.Label(body, text=u"Input file").grid(row=1)
+            self.inpath = Tkinter.Entry(body, width=30)
+            self.inpath.grid(row=1, column=1, sticky=sticky)
+            button = Tkinter.Button(body, text=u"...", command=self.get_inpath)
+            button.grid(row=1, column=2)
+            Tkinter.Label(body, text=u"Output file").grid(row=2)
+            self.outpath = Tkinter.Entry(body, width=30)
+            self.outpath.grid(row=2, column=1, sticky=sticky)
+            button = Tkinter.Button(body, text=u"...", command=self.get_outpath)
             button.grid(row=2, column=2)
             buttons = Tkinter.Frame(self)
             buttons.pack()
             botton = Tkinter.Button(
-                buttons, text=u"Generate", width=10, command=self.generate)
+                buttons, text=u"Decrypt", width=10, command=self.decrypt)
             botton.pack(side=Tkconstants.LEFT)
             Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
             button = Tkinter.Button(
@@ -263,8 +348,8 @@ def gui_main():
             button.pack(side=Tkconstants.RIGHT)
 
         def get_keypath(self):
-            keypath = tkFileDialog.asksaveasfilename(
-                parent=None, title=u"Select B&N ePub key file to produce",
+            keypath = tkFileDialog.askopenfilename(
+                parent=None, title=u"Select Barnes & Noble \'.b64\' key file",
                 defaultextension=u".b64",
                 filetypes=[('base64-encoded files', '.b64'),
                            ('All Files', '.*')])
@@ -274,37 +359,56 @@ def gui_main():
                 self.keypath.insert(0, keypath)
             return
 
-        def generate(self):
-            name = self.name.get()
-            ccn = self.ccn.get()
+        def get_inpath(self):
+            inpath = tkFileDialog.askopenfilename(
+                parent=None, title=u"Select B&N-encrypted ePub file to decrypt",
+                defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
+            if inpath:
+                inpath = os.path.normpath(inpath)
+                self.inpath.delete(0, Tkconstants.END)
+                self.inpath.insert(0, inpath)
+            return
+
+        def get_outpath(self):
+            outpath = tkFileDialog.asksaveasfilename(
+                parent=None, title=u"Select unencrypted ePub file to produce",
+                defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
+            if outpath:
+                outpath = os.path.normpath(outpath)
+                self.outpath.delete(0, Tkconstants.END)
+                self.outpath.insert(0, outpath)
+            return
+
+        def decrypt(self):
             keypath = self.keypath.get()
-            if not name:
-                self.status['text'] = u"Name not specified"
+            inpath = self.inpath.get()
+            outpath = self.outpath.get()
+            if not keypath or not os.path.exists(keypath):
+                self.status['text'] = u"Specified key file does not exist"
                 return
-            if not ccn:
-                self.status['text'] = u"Credit card number not specified"
+            if not inpath or not os.path.exists(inpath):
+                self.status['text'] = u"Specified input file does not exist"
                 return
-            if not keypath:
-                self.status['text'] = u"Output keyfile path not specified"
+            if not outpath:
+                self.status['text'] = u"Output file not specified"
                 return
-            self.status['text'] = u"Generating..."
+            if inpath == outpath:
+                self.status['text'] = u"Must have different input and output files"
+                return
+            userkey = open(keypath,'rb').read()
+            self.status['text'] = u"Decrypting..."
             try:
-                userkey = generate_key(name, ccn)
+                decrypt_status = decryptBook(userkey, inpath, outpath)
             except Exception, e:
-                self.status['text'] = u"Error: (0}".format(e.args[0])
+                self.status['text'] = u"Error: {0}".format(e.args[0])
                 return
-            open(keypath,'wb').write(userkey)
-            self.status['text'] = u"Keyfile successfully generated"
+            if decrypt_status == 0:
+                self.status['text'] = u"File successfully decrypted"
+            else:
+                self.status['text'] = u"The was an error decrypting the file."
 
     root = Tkinter.Tk()
-    if AES is None:
-        root.withdraw()
-        tkMessageBox.showerror(
-            "Ignoble EPUB Keyfile Generator",
-            "This script requires OpenSSL or PyCrypto, which must be installed "
-            "separately.  Read the top-of-script comment for details.")
-        return 1
-    root.title(u"Barnes & Noble ePub Keyfile Generator v.{0}".format(__version__))
+    root.title(u"Barnes & Noble ePub Decrypter v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(300, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)

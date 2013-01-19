@@ -117,7 +117,7 @@ class Dictionary(object):
             self.pos = val
             return self.stable[self.pos]
         else:
-            print "Error - %d outside of string table limits" % val
+            print "Error: %d outside of string table limits" % val
             raise TpzDRMError('outside or string table limits')
             # sys.exit(-1)
     def getSize(self):

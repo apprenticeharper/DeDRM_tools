@@ -255,13 +255,15 @@ class PageParser(object):
 
         'empty_text_region' : (1, 'snippets', 1, 0),
 
-        'img'           : (1, 'snippets', 1, 0),
-        'img.x'         : (1, 'scalar_number', 0, 0),
-        'img.y'         : (1, 'scalar_number', 0, 0),
-        'img.h'         : (1, 'scalar_number', 0, 0),
-        'img.w'         : (1, 'scalar_number', 0, 0),
-        'img.src'       : (1, 'scalar_number', 0, 0),
-        'img.color_src' : (1, 'scalar_number', 0, 0),
+        'img'                   : (1, 'snippets', 1, 0),
+        'img.x'                 : (1, 'scalar_number', 0, 0),
+        'img.y'                 : (1, 'scalar_number', 0, 0),
+        'img.h'                 : (1, 'scalar_number', 0, 0),
+        'img.w'                 : (1, 'scalar_number', 0, 0),
+        'img.src'               : (1, 'scalar_number', 0, 0),
+        'img.color_src'         : (1, 'scalar_number', 0, 0),
+        'img.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
+        'img.gridEndCenter'     : (1, 'scalar_number', 0, 0),
 
         'paragraph'           : (1, 'snippets', 1, 0),
         'paragraph.class'     : (1, 'scalar_text', 0, 0),
@@ -307,6 +309,7 @@ class PageParser(object):
         'span.gridEndCenter' : (1, 'scalar_number', 0, 0),
 
         'extratokens'            : (1, 'snippets', 1, 0),
+        'extratokens.class'      : (1, 'scalar_text', 0, 0),
         'extratokens.type'       : (1, 'scalar_text', 0, 0),
         'extratokens.firstGlyph' : (1, 'scalar_number', 0, 0),
         'extratokens.lastGlyph'  : (1, 'scalar_number', 0, 0),

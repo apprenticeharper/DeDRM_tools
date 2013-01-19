@@ -44,13 +44,14 @@ __docformat__ = 'restructuredtext en'
 #         - added ability to rename existing keys.
 #   0.2.5 - Major code change to use unaltered ignobleepub.py 3.6 and
 #         - ignoblekeygen 2.4 and later.
+#   0.2.6 - Tweaked to eliminate issue with both ignoble and inept calibre plugins installed/enabled at once
 
 """
 Decrypt Barnes & Noble ADEPT encrypted EPUB books.
 """
 
 PLUGIN_NAME = u"Ignoble Epub DeDRM"
-PLUGIN_VERSION_TUPLE = (0, 2, 5)
+PLUGIN_VERSION_TUPLE = (0, 2, 6)
 PLUGIN_VERSION = '.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -138,10 +139,7 @@ class IgnobleDeDRM(FileTypePlugin):
         #check the book
         from calibre_plugins.ignobleepub import ignobleepub
         if not ignobleepub.ignobleBook(inf.name):
-            print u"{0} v{1}: {2} is not a secure Barnes & Noble ePub.".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook))
-            # return the original file, so that no error message is generated in the GUI
-            return path_to_ebook
-
+            raise IGNOBLEError(u"{0} v{1}: {2} is not a secure Barnes & Noble ePub.".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
 
         # Attempt to decrypt epub with each encryption key (generated or provided).
         for keyname, userkey in cfg.prefs['keys'].items():
@@ -152,30 +150,21 @@ class IgnobleDeDRM(FileTypePlugin):
             # Give the user key, ebook and TemporaryPersistent file to the decryption function.
             result = ignobleepub.decryptBook(userkey, inf.name, of.name)
 
-            # Ebook is not a B&N epub... do nothing and pass it on.
-            # This allows a non-encrypted epub to be imported without error messages.
-            if  result[0] == 1:
-                print u"{0} v{1}: {2}".format(PLUGIN_NAME, PLUGIN_VERSION, result[1])
-                of.close()
-                return path_to_ebook
-                break
+            of.close()
 
             # Decryption was successful return the modified PersistentTemporary
             # file to Calibre's import process.
-            if  result[0] == 0:
+            if  result == 0:
                 print u"{0} v{1}: Encryption successfully removed.".format(PLUGIN_NAME, PLUGIN_VERSION)
-                of.close()
                 return of.name
                 break
 
-            print u"{0} v{1}: {2}".format(PLUGIN_NAME, PLUGIN_VERSION, result[1])
-            of.close()
-
+            print u"{0} v{1}: Encryption key incorrect.".format(PLUGIN_NAME, PLUGIN_VERSION)
 
         # Something went wrong with decryption.
         # Import the original unmolested epub.
-        print(u"{0} v{1}: Ultimately failed to decrypt".format(PLUGIN_NAME, PLUGIN_VERSION))
-        return path_to_ebook
+        raise IGNOBLEError(u"{0} v{1}: Ultimately failed to decrypt".format(PLUGIN_NAME, PLUGIN_VERSION))
+        return
 
     def is_customizable(self):
         # return true to allow customization via the Plugin->Preferences.
