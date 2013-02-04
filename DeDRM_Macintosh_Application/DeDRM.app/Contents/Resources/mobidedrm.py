@@ -66,9 +66,10 @@
 #  0.36 - fixed problem with TEXtREAd and getBookTitle interface
 #  0.37 - Fixed double announcement for stand-alone operation
 #  0.38 - Unicode used wherever possible, cope with absent alfcrypto
+#  0.39 - Fixed problem with TEXtREAd and getBookType interface
 
 
-__version__ = u"0.38"
+__version__ = u"0.39"
 
 import sys
 import os
@@ -268,19 +269,22 @@ class MobiBook:
         self.records, = struct.unpack('>H', self.sect[0x8:0x8+2])
         self.compression, = struct.unpack('>H', self.sect[0x0:0x0+2])
 
+        # det default values before PalmDoc test
+        self.print_replica = False
+        self.extra_data_flags = 0
+        self.meta_array = {}
+        self.mobi_length = 0
+        self.mobi_codepage = 1252
+        self.mobi_version = -1
+
         if self.magic == 'TEXtREAd':
             print u"PalmDoc format book detected."
-            self.extra_data_flags = 0
-            self.mobi_length = 0
-            self.mobi_codepage = 1252
-            self.mobi_version = -1
-            self.meta_array = {}
             return
+
         self.mobi_length, = struct.unpack('>L',self.sect[0x14:0x18])
         self.mobi_codepage, = struct.unpack('>L',self.sect[0x1c:0x20])
         self.mobi_version, = struct.unpack('>L',self.sect[0x68:0x6C])
         print u"MOBI header version {0:d}, header length {1:d}".format(self.mobi_version, self.mobi_length)
-        self.extra_data_flags = 0
         if (self.mobi_length >= 0xE4) and (self.mobi_version >= 5):
             self.extra_data_flags, = struct.unpack('>H', self.sect[0xF2:0xF4])
             print u"Extra Data Flags: {0:d}".format(self.extra_data_flags)
@@ -290,7 +294,6 @@ class MobiBook:
             self.extra_data_flags &= 0xFFFE
 
         # if exth region exists parse it for metadata array
-        self.meta_array = {}
         try:
             exth_flag, = struct.unpack('>L', self.sect[0x80:0x84])
             exth = ''
@@ -313,9 +316,7 @@ class MobiBook:
                     # print type, size, content, content.encode('hex')
                     pos += size
         except:
-            self.meta_array = {}
             pass
-        self.print_replica = False
 
     def getBookTitle(self):
         codec_map = {
@@ -406,7 +407,9 @@ class MobiBook:
             return u"Print Replica"
         if self.mobi_version >= 8:
             return u"Kindle Format 8"
-        return u"Mobipocket"
+        if self.mobi_version >= 0:
+            return u"Mobipocket {0:d}".format(self.mobi_version)
+        return u"PalmDoc"
 
     def getBookExtension(self):
         if self.print_replica:

@@ -8,6 +8,7 @@
 #  0.2 Added support for generating PID for iPhone (thanks to mbp)
 #  0.3 changed to autoflush stdout, fixed return code usage
 #  0.3 updated for unicode
+#  0.4 Added support for serial numbers starting with '9', fixed unicode bugs.
 
 import sys
 import binascii
@@ -63,7 +64,7 @@ def unicode_argv():
                     xrange(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"mobidedrm.py"]
+        return [u"kindlepid.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
@@ -92,7 +93,6 @@ def checksumPid(s):
 
     return res
 
-
 def pidFromSerial(s, l):
     crc = crc32(s)
 
@@ -113,27 +113,27 @@ def pidFromSerial(s, l):
 
 def cli_main(argv=unicode_argv()):
     print u"Mobipocket PID calculator for Amazon Kindle. Copyright © 2007, 2009 Igor Skochinsky"
-    if len(sys.argv)==2:
-        serial = sys.argv[1]
+    if len(argv)==2:
+        serial = argv[1]
     else:
         print u"Usage: kindlepid.py <Kindle Serial Number>/<iPhone/iPod Touch UDID>"
         return 1
     if len(serial)==16:
-        if serial.startswith("B"):
+        if serial.startswith("B") or serial.startswith("9"):
             print u"Kindle serial number detected"
         else:
             print u"Warning: unrecognized serial number. Please recheck input."
             return 1
         pid = pidFromSerial(serial.encode("utf-8"),7)+'*'
-        print u"Mobipocket PID for Kindle serial#{0} is {1} ".format(serial,checksumPid(pid))
+        print u"Mobipocket PID for Kindle serial#{0} is {1}".format(serial,checksumPid(pid))
         return 0
     elif len(serial)==40:
         print u"iPhone serial number (UDID) detected"
         pid = pidFromSerial(serial.encode("utf-8"),8)
-        print u"Mobipocket PID for iPhone serial#{0} is {1} ".format(serial,checksumPid(pid))
+        print u"Mobipocket PID for iPhone serial#{0} is {1}".format(serial,checksumPid(pid))
         return 0
     print u"Warning: unrecognized serial number. Please recheck input."
-     return 1
+    return 1
 
 
 if __name__ == "__main__":

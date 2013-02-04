@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# DeDRM.pyw, version 5.6
+# DeDRM.pyw, version 5.6.1
 # By some_updates and Apprentice Alf
 
 import sys
@@ -34,23 +34,19 @@ from scriptinterface import decryptepub, decryptpdb, decryptpdf, decryptk4mobi
 
 # Wrap a stream so that output gets flushed immediately
 # and appended to shared queue
-class QueuedStream:
+class QueuedUTF8Stream:
     def __init__(self, stream, q):
         self.stream = stream
-        self.encoding = stream.encoding
+        self.encoding = 'utf-8'
         self.q = q
-        if self.encoding == None:
-            self.encoding = "utf-8"
     def write(self, data):
         if isinstance(data,unicode):
-            data = data.encode(self.encoding,"replace")
+            data = data.encode('utf-8',"replace")
         self.q.put(data)
-        # self.stream.write(data)
-        # self.stream.flush()
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
-__version__ = '5.6'
+__version__ = '5.6.1'
 
 class DrmException(Exception):
     pass
@@ -280,7 +276,7 @@ class PrefsDialog(Toplevel):
     def get_altinfopath(self):
         cpath = self.altinfopath.get()
         altinfopath = tkFileDialog.askopenfilename(parent=None, title='Select Alternative kindle.info or .kinf File',
-            defaultextension='.info', filetypes=[('Kindle Info', '.info'),('Kindle KInf','.kinf')('All Files', '.*')],
+            defaultextension='.info', filetypes=[('Kindle Info', '.info'),('Kindle KInf','.kinf'),('All Files', '.*')],
             initialdir=cpath)
         if altinfopath:
             altinfopath = os.path.normpath(altinfopath)
@@ -291,17 +287,17 @@ class PrefsDialog(Toplevel):
     def get_bookpath(self):
         cpath = self.bookpath.get()
         bookpath = tkFileDialog.askopenfilename(parent=None, title='Select eBook for DRM Removal',
-            filetypes=[('ePub Files','.epub'),
-                       ('Kindle','.azw'),
-                       ('Kindle','.azw1'),
-                       ('Kindle','.azw3'),
-                       ('Kindle','.azw4'),
-                       ('Kindle','.tpz'),
-                       ('Kindle','.mobi'),
-                       ('Kindle','.prc'),
-                       ('eReader','.pdb'),
-                       ('PDF','.pdf'),
-                       ('All Files', '.*')],
+            filetypes=[('All Files', '.*'),
+                    ('ePub Files','.epub'),
+                    ('Kindle','.azw'),
+                    ('Kindle','.azw1'),
+                    ('Kindle','.azw3'),
+                    ('Kindle','.azw4'),
+                    ('Kindle','.tpz'),
+                    ('Kindle','.mobi'),
+                    ('Kindle','.prc'),
+                    ('eReader','.pdb'),
+                    ('PDF','.pdf')],
             initialdir=cpath)
         if bookpath:
             bookpath = os.path.normpath(bookpath)
@@ -412,8 +408,9 @@ class ConvDialog(Toplevel):
                 self.showCmdOutput(msg)
                 if self.numbad == 0:
                     self.after(2000,self.conversion_done())
-                logfile = os.path.join(rscpath,'dedrm.log')
-                file(logfile,'wb').write(self.log)
+                logfile = os.path.join(os.path.expanduser('~'),'DeDRM.log')
+                file(logfile,'w').write(self.log)
+                self.log=''
                 return
             infile = filename
             bname = os.path.basename(infile)
@@ -537,8 +534,8 @@ class ConvDialog(Toplevel):
 def processK4MOBI(q, infile, outdir, rscpath):
     add_cp65001_codec()
     set_utf8_default_encoding()
-    sys.stdout = QueuedStream(sys.stdout, q)
-    sys.stderr = QueuedStream(sys.stderr, q)
+    sys.stdout = QueuedUTF8Stream(sys.stdout, q)
+    sys.stderr = QueuedUTF8Stream(sys.stderr, q)
     rv = decryptk4mobi(infile, outdir, rscpath)
     sys.exit(rv)
 
@@ -546,8 +543,8 @@ def processK4MOBI(q, infile, outdir, rscpath):
 def processPDF(q, infile, outdir, rscpath):
     add_cp65001_codec()
     set_utf8_default_encoding()
-    sys.stdout = QueuedStream(sys.stdout, q)
-    sys.stderr = QueuedStream(sys.stderr, q)
+    sys.stdout = QueuedUTF8Stream(sys.stdout, q)
+    sys.stderr = QueuedUTF8Stream(sys.stderr, q)
     rv = decryptpdf(infile, outdir, rscpath)
     sys.exit(rv)
 
@@ -555,8 +552,8 @@ def processPDF(q, infile, outdir, rscpath):
 def processEPUB(q, infile, outdir, rscpath):
     add_cp65001_codec()
     set_utf8_default_encoding()
-    sys.stdout = QueuedStream(sys.stdout, q)
-    sys.stderr = QueuedStream(sys.stderr, q)
+    sys.stdout = QueuedUTF8Stream(sys.stdout, q)
+    sys.stderr = QueuedUTF8Stream(sys.stderr, q)
     rv = decryptepub(infile, outdir, rscpath)
     sys.exit(rv)
 
@@ -564,8 +561,8 @@ def processEPUB(q, infile, outdir, rscpath):
 def processPDB(q, infile, outdir, rscpath):
     add_cp65001_codec()
     set_utf8_default_encoding()
-    sys.stdout = QueuedStream(sys.stdout, q)
-    sys.stderr = QueuedStream(sys.stderr, q)
+    sys.stdout = QueuedUTF8Stream(sys.stdout, q)
+    sys.stderr = QueuedUTF8Stream(sys.stderr, q)
     rv = decryptpdb(infile, outdir, rscpath)
     sys.exit(rv)
 

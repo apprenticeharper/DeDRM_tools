@@ -34,10 +34,14 @@ def _load_libalfcrypto():
         else:
             name_of_lib = 'libalfcrypto64.so'
 
+    # hard code to local location for libalfcrypto
     libalfcrypto = os.path.join(sys.path[0],name_of_lib)
-
     if not os.path.isfile(libalfcrypto):
-        raise Exception('libalfcrypto not found')
+        libalfcrypto = os.path.join(sys.path[0], 'lib', name_of_lib)
+    if not os.path.isfile(libalfcrypto):
+        libalfcrypto = os.path.join('.',name_of_lib)
+    if not os.path.isfile(libalfcrypto):
+        raise Exception('libalfcrypto not found at %s' % libalfcrypto)
 
     libalfcrypto = CDLL(libalfcrypto)
 

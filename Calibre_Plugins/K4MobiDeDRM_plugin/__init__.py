@@ -27,13 +27,14 @@ __docformat__ = 'restructuredtext en'
 #   0.4.16 - Yet another Topaz fix
 #   0.4.17 - Manage to include the actual fix.
 #   0.4.18 - More Topaz fixes
+#   0.4.19 - MobiDeDRM PalmDoc fix
 
 """
 Decrypt Amazon Kindle and Mobipocket encrypted ebooks.
 """
 
 PLUGIN_NAME = u"Kindle and Mobipocket DeDRM"
-PLUGIN_VERSION_TUPLE = (0, 4, 18)
+PLUGIN_VERSION_TUPLE = (0, 4, 19)
 PLUGIN_VERSION = '.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 
 import sys, os, re

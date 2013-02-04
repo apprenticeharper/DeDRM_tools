@@ -248,6 +248,7 @@ def decryptBook(infile, outdir, kInfoFiles, serials, pids):
 
     # remove internal temporary directory of Topaz pieces
     book.cleanup()
+    return 0
 
 
 def usage(progname):

@@ -208,7 +208,7 @@ CryptUnprotectData = CryptUnprotectData()
 def getKindleInfoFiles():
     kInfoFiles = []
     # some 64 bit machines do not have the proper registry key for some reason
-    # or the pythonn interface to the 32 vs 64 bit registry is broken
+    # or the python interface to the 32 vs 64 bit registry is broken
     path = ""
     if 'LOCALAPPDATA' in os.environ.keys():
         path = os.environ['LOCALAPPDATA']
@@ -217,17 +217,17 @@ def getKindleInfoFiles():
         try:
             regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders\\")
             path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
+        except WindowsError:
+            pass
+        if not os.path.isdir(path):
+            path = ""
+            try:
+                regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
+                path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
+            except WindowsError:
+                pass
             if not os.path.isdir(path):
                 path = ""
-                try:
-                    regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
-                    path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
-                    if not os.path.isdir(path):
-                        path = ""
-                except RegError:
-                    pass
-        except RegError:
-            pass
 
     found = False
     if path == "":
