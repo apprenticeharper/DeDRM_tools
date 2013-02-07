@@ -6,12 +6,15 @@ import locale
 import codecs
 
 # get sys.argv arguments and encode them into utf-8
-def utf8_argv():
+def unicode_argv():
     if sys.platform.startswith('win'):
+        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+        # strings.
+
         # Versions 2.x of Python don't support Unicode in sys.argv on
         # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.  So use shell32.GetCommandLineArgvW to get sys.argv 
-        # as a list of Unicode strings and encode them as utf-8
+        # characters with '?'.
+
 
         from ctypes import POINTER, byref, cdll, c_int, windll
         from ctypes.wintypes import LPCWSTR, LPWSTR
@@ -30,23 +33,16 @@ def utf8_argv():
         if argc.value > 0:
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
-            return [argv[i].encode('utf-8') for i in
+            return [argv[i] for i in
                     xrange(start, argc.value)]
+        # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return None
+        return [u"DeDRM.py"]
     else:
-        argv = []
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
-            argvencoding = sys.getfilesystemencoding()
-        if argvencoding == None:
-            argvencoding = 'utf-8'
-        for arg in sys.argv:
-            if type(arg) == unicode:
-                argv.append(arg.encode('utf-8'))
-            else:
-                argv.append(arg.decode(argvencoding).encode('utf-8'))
-        return argv
+            argvencoding = "utf-8"
+        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
 
 
 def add_cp65001_codec():

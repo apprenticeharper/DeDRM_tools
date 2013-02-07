@@ -59,14 +59,15 @@ __license__   = 'GPL v3'
 #   0.1.6 - Fix for potential problem with PyCrypto
 #   0.1.7 - Fix for potential problem with ADE keys and fix possible output/unicode problem
 #   0.1.8 - Fix for code copying error
-#   0.1.9 - Major code change to use unaltered ineptepub.py
+#   0.1.9 - Major code change to use unaltered ineptpdf.py
+#   0.2.0 - Fix erroneous dependency on ineptepub plugin
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 PLUGIN_NAME = u"Inept PDF DeDRM"
-PLUGIN_VERSION_TUPLE = (0, 1, 9)
+PLUGIN_VERSION_TUPLE = (0, 2, 0)
 PLUGIN_VERSION = u'.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 
 import sys
@@ -151,7 +152,7 @@ class IneptPDFDeDRM(FileTypePlugin):
                 warnings.filterwarnings('ignore', category=FutureWarning)
 
                 # ADE key retrieval script included in respective OS folder.
-                from calibre_plugins.ineptepub.ineptkey import retrieve_keys
+                from calibre_plugins.ineptpdf.ineptkey import retrieve_keys
                 try:
                     keys = retrieve_keys()
                     for i,key in enumerate(keys):

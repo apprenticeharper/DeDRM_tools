@@ -1,4 +1,1 @@
-echo off
-set PWD=%~dp0
-cd /d %PWD%DeDRM_lib && start /min python DeDRM_app.pyw %*
-exit
+chcp 65001 > nul && set PWD=%~dp0 && cd /d %~dp0DeDRM_lib && start /min python DeDRM_app.pyw %*

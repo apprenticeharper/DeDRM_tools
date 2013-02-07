@@ -15,10 +15,10 @@ from __future__ import with_statement
 #   from <http://www.python.org/download/> and PyCrypto from
 #   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
 #   install the version for Python 2.6).  Save this script file as
-#   ineptepub.pyw and double-click on it to run it.
+#   ineptpdf.pyw and double-click on it to run it.
 #
-# Mac OS X users: Save this script file as ineptepub.pyw.  You can run this
-#   program from the command line (pythonw ineptepub.pyw) or by double-clicking
+# Mac OS X users: Save this script file as ineptpdf.pyw.  You can run this
+#   program from the command line (pythonw ineptpdf.pyw) or by double-clicking
 #   it when it has been associated with PythonLauncher.
 
 # Revision history:
@@ -49,13 +49,14 @@ from __future__ import with_statement
 #   7.10 - Various tweaks to fix minor problems.
 #   7.11 - More tweaks to fix minor problems.
 #   7.12 - Revised to allow use in calibre plugins to eliminate need for duplicate code
+#   7.13 - Fixed erroneous mentions of ineptepub
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "7.12"
+__version__ = "7.13"
 
 import sys
 import os
@@ -115,7 +116,7 @@ def unicode_argv():
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
                     xrange(start, argc.value)]
-        return [u"ineptepub.py"]
+        return [u"ineptpdf.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:

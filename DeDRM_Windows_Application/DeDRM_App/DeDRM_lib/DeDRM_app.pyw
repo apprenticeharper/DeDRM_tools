@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# DeDRM.pyw, version 5.6.1
+# DeDRM.pyw, version 5.6.2
 # By some_updates and Apprentice Alf
 
 import sys
@@ -10,7 +10,7 @@ sys.path.append(os.path.join(sys.path[0],"lib"))
 import sys, os
 import codecs
 
-from argv_utils import add_cp65001_codec, set_utf8_default_encoding, utf8_argv
+from argv_utils import add_cp65001_codec, set_utf8_default_encoding, unicode_argv
 add_cp65001_codec()
 set_utf8_default_encoding()
 
@@ -46,7 +46,7 @@ class QueuedUTF8Stream:
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
-__version__ = '5.6.1'
+__version__ = '5.6.2'
 
 class DrmException(Exception):
     pass
@@ -567,7 +567,7 @@ def processPDB(q, infile, outdir, rscpath):
     sys.exit(rv)
 
 
-def main(argv=utf8_argv()):
+def main(argv=unicode_argv()):
     apphome = os.path.dirname(argv[0])
     apphome = os.path.abspath(apphome)
 

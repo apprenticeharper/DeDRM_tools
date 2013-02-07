@@ -1,4 +1,4 @@
-Inept PDF Plugin - ineptpdf_v01.9_plugin.zip
+Inept PDF Plugin - ineptpdf_v02.0_plugin.zip
 ============================================
 
 All credit given to i♥cabbages for the original standalone scripts. I had the much easier job of converting them to a Calibre plugin.
@@ -9,7 +9,7 @@ This plugin is meant to decrypt Adobe Digital Edition PDFs that are protected wi
 Installation
 ------------
 
-Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (ineptpdf_v01.9_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "official" calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (ineptpdf_v02.0_plugin.zip) and click the 'Add' button. Click 'Yes' in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
 
 
 Customization
@@ -54,7 +54,7 @@ Paste the information into a comment at my blog, http://apprenticealf.wordpress.
 Linux and Adobe Digital Editions PDFs
 --------------------------------------
 
-Here are the instructions for using the tools with ePub books and Adobe Digital Editions on Linux under Wine. (Thank you mclien and Fadel!)
+Here are the instructions for using the tools with PDF books and Adobe Digital Editions on Linux under Wine. (Thank you mclien and Fadel!)
 
 
 1. download the most recent version of wine from winehq.org (1.3.29 in my case)
@@ -105,9 +105,9 @@ cd ~/.wine/drive_c/tools_vX.X/Other_Tools/
 ‘wine python ineptkey.py’ (only need once!)
 (key will be here: ~/.wine/drive_c/tools_vX.X/Other_Tools/adeptkey.der)
 
-9. Use ADE running under Wine to dowload all of your purchased ePub ebooks
+9. Use ADE running under Wine to dowload all of your purchased PDF ebooks
 
-10. install the ineptepub and ineptpdf plugins from the tools as discribed in the readmes.
+10. install the ineptpdf plugins from the tools as discribed in the readmes.
 
 11. copy the adeptkey.der into the config dir of calibre (~/.config/calibre in debian). Your ADE books imported to calibre will automatically be freed from DRM.
 

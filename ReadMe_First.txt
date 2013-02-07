@@ -1,7 +1,7 @@
 Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.6 archive.
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.6.2 archive.
 
 The is archive includes tools to remove DRM from:
 
@@ -51,7 +51,7 @@ DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
 ----------------------------------------------------------------------
 This application combines all the tools into one easy-to-use tool for Mac OS X users.
 
-Drag the "DeDRM 5.6.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
+Drag the "DeDRM 5.6.2.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
 To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM application and it will remove the DRM of the kinds listed above.
 
@@ -67,7 +67,7 @@ DeDRM application for Windows users: (Windows XP through Windows 8)
 
 This application combines all the tools into one easy-to-use tool for Windows users.
 
-Drag the DeDRM_5.6 folder that's in the DeDRM_Applications/Windows folder, to your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_5.6 folder. Double-click on the shortcut and the DeDRM application will run and guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
+Drag the DeDRM_5.6.2 folder that's in the DeDRM_Applications/Windows folder, to your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_5.6.2 folder. Double-click on the shortcut and the DeDRM application will run and guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
 To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM_Drop_Target.bat shortcut and it will remove the DRM of the kinds listed above.
 
@@ -132,20 +132,21 @@ Once Windows users have installed Python 2.X for 32 bits, and the matching OpenS
 Apple's iBooks FairPlay DRM
 ---------------------------
 
-The only tool that removed Apple's iBooks Fairplay DRM was Requiem by Brahms version 3.3.x. Requiem is NOT included in this tools package. It is under active development because Apple constantly updates its DRM scheme to stop Requiem from working.
-The latest version that worked was 3.3.5 and worked with iTunes 10.5 and above. Requiem 4.0 and later do not remove DRM from ebooks.
+The only tool that removes Apple's iBooks Fairplay DRM is Requiem by Brahms version 3.3.6 and works with iTunes 10.5. Requiem 4.0 and later do not remove DRM from ebooks.
 
 Requiem has a Tor website: http://tag3ulp55xczs3pn.onion. To reach the site using Tor, you will need to install Tor (http://www.torproject.org). If you're willing to sacrifice your anonymity, you can use the regular web with tor2web. Just go to http://tag3ulp55xczs3pn.tor2web.com.
 
-Alternatively, you can download the 3.3.5 version from the following locationss:
+Alternatively, you can download it from these download links:
 
-Requiem Windows application: http://www.datafilehost.com/download-b015485b.html
-MD5: 954f9ecf42635fae77afbc3a24489004
+Requiem 3.3.6 for Windows: http://www.datafilehost.com/download-f7916922.html
+MD5: 10ab191f2d86c692d57f6a07b4622cf8
 
-Requiem Mac OS X application: http://www.datafilehost.com/download-50608ba6.html
-MD5: 4e7dc46ad7e0b54bea6182c5ad024ffe
+Requiem 3.3.6 for Mac OS X: http://www.datafilehost.com/download-47fce8b7.html
+MD5: 6d4167d47e6982ddbb8528212198b520
 
-Requiem source code: http://www.datafilehost.com/download-af8f91a1.html
-MD5: e175560590a154859c0344e30870ac73
+Requiem 3.3.6 source code: http://www.datafilehost.com/download-172920e9.html
+MD5: 1636862796d573c693d56bcc526b60bd
+
+If you have any problems with Requiem, I suggest you contact Brahms directly through their Tor website.
 
 No support for requiem is provided at Apprentice Alf's blog.
