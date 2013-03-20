@@ -3,13 +3,13 @@
 
 from __future__ import with_statement
 
-# ignobleepub.pyw, version 3.7
+# ignobleepub.pyw, version 3.8
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
-# Modified 2010–2012 by some_updates, DiapDealer and Apprentice Alf
+# Modified 2010–2013 by some_updates, DiapDealer and Apprentice Alf
 
 # Windows users: Before running this program, you must first install Python 2.6
 #   from <http://www.python.org/download/> and PyCrypto from
@@ -32,20 +32,21 @@ from __future__ import with_statement
 #   3.5 - Fix for potential problem with PyCrypto
 #   3.6 - Revised to allow use in calibre plugins to eliminate need for duplicate code
 #   3.7 - Tweaked to match ineptepub more closely
+#   3.8 - Fixed to retain zip file metadata (e.g. file modification date)
 
 """
 Decrypt Barnes & Noble encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "3.7"
+__version__ = "3.8"
 
 import sys
 import os
 import traceback
 import zlib
 import zipfile
-from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
+from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
 from contextlib import closing
 import xml.etree.ElementTree as etree
 
@@ -200,13 +201,6 @@ META_NAMES = ('mimetype', 'META-INF/rights.xml', 'META-INF/encryption.xml')
 NSMAP = {'adept': 'http://ns.adobe.com/adept',
          'enc': 'http://www.w3.org/2001/04/xmlenc#'}
 
-class ZipInfo(zipfile.ZipInfo):
-    def __init__(self, *args, **kwargs):
-        if 'compress_type' in kwargs:
-            compress_type = kwargs.pop('compress_type')
-        super(ZipInfo, self).__init__(*args, **kwargs)
-        self.compress_type = compress_type
-
 class Decryptor(object):
     def __init__(self, bookkey, encryption):
         enc = lambda tag: '{%s}%s' % (NSMAP['enc'], tag)
@@ -282,11 +276,40 @@ def decryptBook(keyb64, inpath, outpath):
             decryptor = Decryptor(bookkey[-16:], encryption)
             kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
             with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
-                zi = ZipInfo('mimetype', compress_type=ZIP_STORED)
+                zi = ZipInfo('mimetype')
+                zi.compress_type=ZIP_STORED
+                try:
+                    # if the mimetype is present, get its info, including time-stamp
+                    oldzi = inf.getinfo('mimetype')
+                    # copy across fields to be preserved
+                    zi.date_time = oldzi.date_time
+                    zi.comment = oldzi.comment
+                    zi.extra = oldzi.extra
+                    zi.internal_attr = oldzi.internal_attr
+                    # external attributes are dependent on the create system, so copy both.
+                    zi.external_attr = oldzi.external_attr
+                    zi.create_system = oldzi.create_system
+                except:
+                    pass
                 outf.writestr(zi, inf.read('mimetype'))
                 for path in namelist:
                     data = inf.read(path)
-                    outf.writestr(path, decryptor.decrypt(path, data))
+                    zi = ZipInfo(path)
+                    zi.compress_type=ZIP_DEFLATED
+                    try:
+                        # get the file info, including time-stamp
+                        oldzi = inf.getinfo(path)
+                        # copy across useful fields
+                        zi.date_time = oldzi.date_time
+                        zi.comment = oldzi.comment
+                        zi.extra = oldzi.extra
+                        zi.internal_attr = oldzi.internal_attr
+                        # external attributes are dependent on the create system, so copy both.
+                        zi.external_attr = oldzi.external_attr
+                        zi.create_system = oldzi.create_system
+                    except:
+                        pass
+                    outf.writestr(zi, decryptor.decrypt(path, data))
         except:
             print u"Could not decrypt {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc())
             return 2

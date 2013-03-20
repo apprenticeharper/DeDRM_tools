@@ -70,7 +70,7 @@
 __version__='0.22'
 
 import sys, re
-import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile
+import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile, traceback
 
 if 'calibre' in sys.modules:
     inCalibre = True
@@ -139,28 +139,28 @@ Des = None
 if iswindows:
     # first try with pycrypto
     if inCalibre:
-        from calibre_plugins.erdrpdb2pml import pycrypto_des
+        from calibre_plugins.dedrm import pycrypto_des
     else:
         import pycrypto_des
     Des = pycrypto_des.load_pycrypto()
     if Des == None:
         # they try with openssl
         if inCalibre:
-            from calibre_plugins.erdrpdb2pml import openssl_des
+            from calibre_plugins.dedrm import openssl_des
         else:
             import openssl_des
         Des = openssl_des.load_libcrypto()
 else:
     # first try with openssl
     if inCalibre:
-        from calibre_plugins.erdrpdb2pml import openssl_des
+        from calibre_plugins.dedrm import openssl_des
     else:
         import openssl_des
     Des = openssl_des.load_libcrypto()
     if Des == None:
         # then try with pycrypto
         if inCalibre:
-            from calibre_plugins.erdrpdb2pml import pycrypto_des
+            from calibre_plugins.dedrm import pycrypto_des
         else:
             import pycrypto_des
         Des = pycrypto_des.load_pycrypto()
@@ -169,7 +169,7 @@ else:
 # of DES and try to speed it up with Psycho
 if Des == None:
     if inCalibre:
-        from calibre_plugins.erdrpdb2pml import python_des
+        from calibre_plugins.dedrm import python_des
     else:
         import python_des
     Des = python_des.Des
@@ -522,7 +522,8 @@ def decryptBook(infile, outpath, make_pmlz, user_key):
             print u"Output is in {0}".format(outdir)
         print "done"
     except ValueError, e:
-        print u"Error: {0}".format(e.args[0])
+        print u"Error: {0}".format(e)
+        traceback.print_exc()
         return 1
     return 0
 

@@ -4,21 +4,23 @@
 from __future__ import with_statement
 
 # ignoblekeygen.pyw, version 2.5
-# Copyright © 2009-2010 by i♥cabbages
+# Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
-# Modified 2010–2012 by some_updates, DiapDealer and Apprentice Alf
+# Modified 2010–2013 by some_updates, DiapDealer and Apprentice Alf
 
-# Windows users: Before running this program, you must first install Python 2.6
-#   from <http://www.python.org/download/> and PyCrypto from
-#   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
-#   install the version for Python 2.6).  Save this script file as
-#   ignoblekeygen.pyw and double-click on it to run it.
+# Windows users: Before running this program, you must first install Python.
+#   We recommend ActiveState Python 2.7.X for Windows (x86) from
+#   http://www.activestate.com/activepython/downloads.
+#   You must also install PyCrypto from
+#   http://www.voidspace.org.uk/python/modules.shtml#pycrypto
+#   (make certain to install the version for Python 2.7).
+#   Then save this script file as ignoblekeygen.pyw and double-click on it to run it.
 #
 # Mac OS X users: Save this script file as ignoblekeygen.pyw.  You can run this
-#   program from the command line (pythonw ignoblekeygen.pyw) or by double-clicking
+#   program from the command line (python ignoblekeygen.pyw) or by double-clicking
 #   it when it has been associated with PythonLauncher.
 
 # Revision history:
@@ -58,8 +60,11 @@ class SafeUnbuffered:
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
-iswindows = sys.platform.startswith('win')
-isosx = sys.platform.startswith('darwin')
+try:
+    from calibre.constants import iswindows, isosx
+except:
+    iswindows = sys.platform.startswith('win')
+    isosx = sys.platform.startswith('darwin')
 
 def unicode_argv():
     if iswindows:
@@ -68,8 +73,8 @@ def unicode_argv():
 
         # Versions 2.x of Python don't support Unicode in sys.argv on
         # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.
-
+        # characters with '?'.  So use shell32.GetCommandLineArgvW to get sys.argv
+        # as a list of Unicode strings and encode them as utf-8
 
         from ctypes import POINTER, byref, cdll, c_int, windll
         from ctypes.wintypes import LPCWSTR, LPWSTR

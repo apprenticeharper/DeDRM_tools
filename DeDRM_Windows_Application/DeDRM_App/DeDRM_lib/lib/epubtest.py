@@ -7,8 +7,8 @@
 #  1.00 - Initial version, with code from various other scripts
 #  1.01 - Moved authorship announcement to usage section.
 #
-# Changelog drmcheck
-#  1.00 - Cut to drmtest.py, testing ePub files only by Apprentice Alf
+# Changelog epubtest
+#  1.00 - Cut to epubtest.py, testing ePub files only by Apprentice Alf
 #
 # Written in 2011 by Paul Durrant
 # Released with unlicense. See http://unlicense.org/

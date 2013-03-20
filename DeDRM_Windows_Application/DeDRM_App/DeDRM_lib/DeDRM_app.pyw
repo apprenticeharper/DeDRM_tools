@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# DeDRM.pyw, version 5.6.2
+# DeDRM.pyw, version 6.0.0
 # By some_updates and Apprentice Alf
 
 import sys
@@ -22,8 +22,11 @@ import Tkconstants
 import tkFileDialog
 from scrolltextwidget import ScrolledText
 from activitybar import ActivityBar
+if sys.platform.startswith("win"):
+    from askfolder_ed import AskFolder
 import re
 import simpleprefs
+import traceback
 
 from Queue import Full
 from Queue import Empty
@@ -46,7 +49,7 @@ class QueuedUTF8Stream:
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
-__version__ = '5.6.2'
+__version__ = '6.0.0'
 
 class DrmException(Exception):
     pass
@@ -78,12 +81,20 @@ class MainApp(Tk):
     def getPreferences(self):
         prefs = self.po.getPreferences()
         prefdir = prefs['dir']
-        keyfile = os.path.join(prefdir,'adeptkey.der')
-        if not os.path.exists(keyfile):
-            import ineptkey
+        adeptkeyfile = os.path.join(prefdir,'adeptkey.der')
+        if not os.path.exists(adeptkeyfile):
+            import adobekey
             try:
-                ineptkey.extractKeyfile(keyfile)
+                adobekey.getkey(adeptkeyfile)
             except:
+                pass
+        kindlekeyfile = os.path.join(prefdir,'kindlekey.k4i')
+        if not os.path.exists(kindlekeyfile):
+            import kindlekey
+            try:
+                kindlekey.getkey(kindlekeyfile)
+            except:
+                traceback.print_exc()
                 pass
         return prefs
 
@@ -131,7 +142,7 @@ class PrefsDialog(Toplevel):
         sticky = Tkconstants.E + Tkconstants.W
         body.grid_columnconfigure(1, weight=2)
 
-        Tkinter.Label(body, text='Adept Key file (adeptkey.der)').grid(row=0, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='Adobe Key file (adeptkey.der)').grid(row=0, sticky=Tkconstants.E)
         self.adkpath = Tkinter.Entry(body, width=50)
         self.adkpath.grid(row=0, column=1, sticky=sticky)
         prefdir = self.prefs_array['dir']
@@ -142,30 +153,26 @@ class PrefsDialog(Toplevel):
         button = Tkinter.Button(body, text="...", command=self.get_adkpath)
         button.grid(row=0, column=2)
 
-        Tkinter.Label(body, text='Barnes and Noble Key file (bnepubkey.b64)').grid(row=1, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='Kindle Key file (kindlekey.k4i)').grid(row=1, sticky=Tkconstants.E)
+        self.kkpath = Tkinter.Entry(body, width=50)
+        self.kkpath.grid(row=1, column=1, sticky=sticky)
+        prefdir = self.prefs_array['dir']
+        keyfile = os.path.join(prefdir,'kindlekey.k4i')
+        if os.path.isfile(keyfile):
+            path = keyfile
+            self.kkpath.insert(1, path)
+        button = Tkinter.Button(body, text="...", command=self.get_kkpath)
+        button.grid(row=1, column=2)
+
+        Tkinter.Label(body, text='Barnes and Noble Key file (bnepubkey.b64)').grid(row=2, sticky=Tkconstants.E)
         self.bnkpath = Tkinter.Entry(body, width=50)
-        self.bnkpath.grid(row=1, column=1, sticky=sticky)
+        self.bnkpath.grid(row=2, column=1, sticky=sticky)
         prefdir = self.prefs_array['dir']
         keyfile = os.path.join(prefdir,'bnepubkey.b64')
         if os.path.isfile(keyfile):
             path = keyfile
-            self.bnkpath.insert(0, path)
+            self.bnkpath.insert(2, path)
         button = Tkinter.Button(body, text="...", command=self.get_bnkpath)
-        button.grid(row=1, column=2)
-
-        Tkinter.Label(body, text='Additional kindle.info or .kinf file').grid(row=2, sticky=Tkconstants.E)
-        self.altinfopath = Tkinter.Entry(body, width=50)
-        self.altinfopath.grid(row=2, column=1, sticky=sticky)
-        prefdir = self.prefs_array['dir']
-        path = ''
-        infofile = os.path.join(prefdir,'kindle.info')
-        ainfofile = os.path.join(prefdir,'.kinf')
-        if os.path.isfile(infofile):
-            path = infofile
-        elif os.path.isfile(ainfofile):
-            path = ainfofile
-        self.altinfopath.insert(0, path)
-        button = Tkinter.Button(body, text="...", command=self.get_altinfopath)
         button.grid(row=2, column=2)
 
         Tkinter.Label(body, text='Mobipocket PID list\n(8 or 10 characters, comma separated)').grid(row=3, sticky=Tkconstants.E)
@@ -244,9 +251,16 @@ class PrefsDialog(Toplevel):
 
     def get_outpath(self):
         cpath = self.outpath.get()
-        outpath = tkFileDialog.askdirectory(
-            parent=None, title='Folder to Store Unencrypted file(s) into',
-            initialdir=cpath, initialfile=None)
+        if sys.platform.startswith("win"):
+            # tk_chooseDirectory is horribly broken for unicode paths
+            # on windows - bug has been reported but not fixed for years
+            # workaround by using our own unicode aware version
+            outpath = AskFolder(message="Choose the folder for DRM-free ebooks",
+                defaultLocation=cpath)
+        else:
+            outpath = tkFileDialog.askdirectory(
+                parent=None, title='Choose the folder for DRM-free ebooks',
+                initialdir=cpath, initialfile=None)
         if outpath:
             outpath = os.path.normpath(outpath)
             self.outpath.delete(0, Tkconstants.END)
@@ -263,6 +277,16 @@ class PrefsDialog(Toplevel):
             self.adkpath.insert(0, adkpath)
         return
 
+    def get_kkpath(self):
+        cpath = self.kkpath.get()
+        kkpath = tkFileDialog.askopenfilename(initialdir = cpath, parent=None, title='Select Kindle Key file',
+            defaultextension='.k4i', filetypes=[('Kindle Key file', '.k4i'), ('All Files', '.*')])
+        if kkpath:
+            kkpath = os.path.normpath(kkpath)
+            self.kkpath.delete(0, Tkconstants.END)
+            self.kkpath.insert(0, kkpath)
+        return
+
     def get_bnkpath(self):
         cpath = self.bnkpath.get()
         bnkpath = tkFileDialog.askopenfilename(initialdir = cpath, parent=None, title='Select Barnes and Noble Key file',
@@ -271,17 +295,6 @@ class PrefsDialog(Toplevel):
             bnkpath = os.path.normpath(bnkpath)
             self.bnkpath.delete(0, Tkconstants.END)
             self.bnkpath.insert(0, bnkpath)
-        return
-
-    def get_altinfopath(self):
-        cpath = self.altinfopath.get()
-        altinfopath = tkFileDialog.askopenfilename(parent=None, title='Select Alternative kindle.info or .kinf File',
-            defaultextension='.info', filetypes=[('Kindle Info', '.info'),('Kindle KInf','.kinf'),('All Files', '.*')],
-            initialdir=cpath)
-        if altinfopath:
-            altinfopath = os.path.normpath(altinfopath)
-            self.altinfopath.delete(0, Tkconstants.END)
-            self.altinfopath.insert(0, altinfopath)
         return
 
     def get_bookpath(self):
@@ -323,10 +336,15 @@ class PrefsDialog(Toplevel):
         bnkpath = self.bnkpath.get()
         if os.path.dirname(bnkpath) != prefdir:
             new_prefs['bnkfile'] = bnkpath
-        altinfopath = self.altinfopath.get()
-        if os.path.dirname(altinfopath) != prefdir:
-            new_prefs['kinfofile'] = altinfopath
+        kkpath = self.kkpath.get()
+        if os.path.dirname(kkpath) != prefdir:
+            new_prefs['kindlefile'] = kkpath
         self.master.setPreferences(new_prefs)
+        # and update internal copies
+        self.prefs_array['pids'] = new_prefs['pids']
+        self.prefs_array['serials'] = new_prefs['serials']
+        self.prefs_array['sdrms'] = new_prefs['sdrms']
+        self.prefs_array['outdir'] = new_prefs['outdir']
 
     def doit(self):
         self.disablebuttons()
@@ -458,37 +476,26 @@ class ConvDialog(Toplevel):
             # nothing to wait for so just return
             return
         poll = self.p2.exitcode
+        print "processing", poll
         if poll != None:
             self.bar.stop()
+            done = False
+            text = ''
+            while not done:
+                try:
+                    data = self.q.get_nowait()
+                    text += data
+                except Empty:
+                    done = True
+            self.log += text
             if poll == 0:
                 msg = 'Success\n'
                 self.numgood += 1
-                done = False
-                text = ''
-                while not done:
-                    try:
-                        data = self.q.get_nowait()
-                        text += data
-                    except Empty:
-                        done = True
-                        pass
-                self.log += text
                 self.log += msg
-            if poll != 0:
+            else:
                 msg = 'Failed\n'
-                done = False
-                text = ''
-                while not done:
-                    try:
-                        data = self.q.get_nowait()
-                        text += data
-                    except Empty:
-                        done = True
-                        pass
-                msg += '\n'
-                self.log += text
-                self.log += msg
                 self.numbad += 1
+                self.log += msg
             self.p2.join()
             self.showCmdOutput(msg)
             self.p2 = None

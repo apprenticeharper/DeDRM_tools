@@ -354,7 +354,7 @@ class ZipInfo (object):
     def _decodeFilename(self):
         if self.flag_bits & 0x800:
             try:
-                print "decoding filename",self.filename
+                #print "decoding filename",self.filename
                 return self.filename.decode('utf-8')
             except:
                 return self.filename

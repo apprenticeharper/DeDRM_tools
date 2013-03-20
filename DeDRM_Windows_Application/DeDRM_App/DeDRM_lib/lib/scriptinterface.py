@@ -11,6 +11,7 @@ import zipfix
 import ineptpdf
 import erdr2pml
 import k4mobidedrm
+import traceback
 
 def decryptepub(infile, outdir, rscpath):
     errlog = ''
@@ -29,44 +30,48 @@ def decryptepub(infile, outdir, rscpath):
 
     rv = 1
     # first try with the Adobe adept epub
-    # try with any keyfiles (*.der) in the rscpath
-    files = os.listdir(rscpath)
-    filefilter = re.compile("\.der$", re.IGNORECASE)
-    files = filter(filefilter.search, files)
-    if files:
-        for filename in files:
-            keypath = os.path.join(rscpath, filename)
-            userkey = open(keypath,'rb').read()
-            try:
-                rv = ineptepub.decryptBook(userkey, zippath, outfile)
-                if rv == 0:
-                    break
-            except Exception, e:
-                errlog += str(e)
-                rv = 1
-                pass
-    if rv == 0:
-        os.remove(zippath)
-        return 0
+    if  ineptepub.adeptBook(zippath):
+        # try with any keyfiles (*.der) in the rscpath
+        files = os.listdir(rscpath)
+        filefilter = re.compile("\.der$", re.IGNORECASE)
+        files = filter(filefilter.search, files)
+        if files:
+            for filename in files:
+                keypath = os.path.join(rscpath, filename)
+                userkey = open(keypath,'rb').read()
+                try:
+                    rv = ineptepub.decryptBook(userkey, zippath, outfile)
+                    if rv == 0:
+                        break
+                except Exception, e:
+                    errlog += traceback.format_exc()
+                    errlog += str(e)
+                    rv = 1
 
-    # still no luck
+        if rv == 0:
+            os.remove(zippath)
+            return 0
+
     # now try with ignoble epub
-    # try with any keyfiles (*.b64) in the rscpath
-    files = os.listdir(rscpath)
-    filefilter = re.compile("\.b64$", re.IGNORECASE)
-    files = filter(filefilter.search, files)
-    if files:
-        for filename in files:
-            keypath = os.path.join(rscpath, filename)
-            userkey = open(keypath,'rb').read()
-            try:
-                rv = ignobleepub.decryptBook(userkey, zippath, outfile)
-                if rv == 0:
-                    break
-            except Exception, e:
-                errlog += str(e)
-                rv = 1
-                pass
+    if  ignobleepub.ignobleBook(zippath):
+        # try with any keyfiles (*.b64) in the rscpath
+        files = os.listdir(rscpath)
+        filefilter = re.compile("\.b64$", re.IGNORECASE)
+        files = filter(filefilter.search, files)
+        if files:
+            for filename in files:
+                keypath = os.path.join(rscpath, filename)
+                userkey = open(keypath,'r').read()
+                print userkey
+                try:
+                    rv = ignobleepub.decryptBook(userkey, zippath, outfile)
+                    if rv == 0:
+                        break
+                except Exception, e:
+                    errlog += traceback.format_exc()
+                    errlog += str(e)
+                    rv = 1
+
     os.remove(zippath)
     if rv != 0:
         print errlog
@@ -94,9 +99,10 @@ def decryptpdf(infile, outdir, rscpath):
                 if rv == 0:
                     break
             except Exception, e:
+                errlog += traceback.format_exc()
                 errlog += str(e)
                 rv = 1
-                pass
+
     if rv != 0:
         print errlog
     return rv
@@ -117,7 +123,13 @@ def decryptpdb(infile, outdir, rscpath):
             except ValueError:
                 print '   Error parsing user supplied social drm data.'
                 return 1
-            rv = erdr2pml.decryptBook(infile, outpath, True, erdr2pml.getuser_key(name, cc8))
+            try:
+                rv = erdr2pml.decryptBook(infile, outpath, True, erdr2pml.getuser_key(name, cc8))
+            except Exception, e:
+                errlog += traceback.format_exc()
+                errlog += str(e)
+                rv = 1
+
             if rv == 0:
                 break
     return rv
@@ -141,13 +153,19 @@ def decryptk4mobi(infile, outdir, rscpath):
         serialstr = serialstr.strip()
         if serialstr != '':
             serialnums = serialstr.split(',')
-    kInfoFiles = []
+    kDatabaseFiles = []
     files = os.listdir(rscpath)
-    filefilter = re.compile("\.info$|\.kinf$", re.IGNORECASE)
+    filefilter = re.compile("\.k4i$", re.IGNORECASE)
     files = filter(filefilter.search, files)
     if files:
         for filename in files:
             dpath = os.path.join(rscpath,filename)
-            kInfoFiles.append(dpath)
-    rv = k4mobidedrm.decryptBook(infile, outdir, kInfoFiles, serialnums, pidnums)
+            kDatabaseFiles.append(dpath)
+    try:
+        rv = k4mobidedrm.decryptBook(infile, outdir, kDatabaseFiles, serialnums, pidnums)
+    except Exception, e:
+        errlog += traceback.format_exc()
+        errlog += str(e)
+        rv = 1
+
     return rv

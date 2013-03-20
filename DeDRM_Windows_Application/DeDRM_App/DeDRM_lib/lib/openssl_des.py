@@ -65,7 +65,7 @@ def load_libcrypto():
     class DES(object):
         def __init__(self, key):
             if len(key) != 8 :
-                raise Error('DES improper key used')
+                raise Exception('DES improper key used')
                 return
             self.key = key
             self.keyschedule = DES_KEY_SCHEDULE()

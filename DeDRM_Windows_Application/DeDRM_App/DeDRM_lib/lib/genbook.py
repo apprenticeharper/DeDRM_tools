@@ -29,10 +29,10 @@ else:
     inCalibre = False
 
 if inCalibre :
-    from calibre_plugins.k4mobidedrm import convert2xml
-    from calibre_plugins.k4mobidedrm import flatxml2html
-    from calibre_plugins.k4mobidedrm import flatxml2svg
-    from calibre_plugins.k4mobidedrm import stylexml2css
+    from calibre_plugins.dedrm import convert2xml
+    from calibre_plugins.dedrm import flatxml2html
+    from calibre_plugins.dedrm import flatxml2svg
+    from calibre_plugins.dedrm import stylexml2css
 else :
     import convert2xml
     import flatxml2html

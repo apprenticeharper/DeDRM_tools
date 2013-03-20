@@ -74,7 +74,7 @@ debug = False
 
 if 'calibre' in sys.modules:
     inCalibre = True
-    from calibre_plugins.k4mobidedrm import kgenpids
+    from calibre_plugins.dedrm import kgenpids
 else:
     inCalibre = False
     import kgenpids
@@ -321,7 +321,7 @@ class TopazBook:
             self.extractFiles()
             print u"Successfully Extracted Topaz contents"
             if inCalibre:
-                from calibre_plugins.k4mobidedrm import genbook
+                from calibre_plugins.dedrm import genbook
             else:
                 import genbook
 
@@ -355,7 +355,7 @@ class TopazBook:
         self.extractFiles()
         print u"Successfully Extracted Topaz contents"
         if inCalibre:
-            from calibre_plugins.k4mobidedrm import genbook
+            from calibre_plugins.dedrm import genbook
         else:
             import genbook
 
@@ -439,7 +439,7 @@ class TopazBook:
 def usage(progname):
     print u"Removes DRM protection from Topaz ebooks and extracts the contents"
     print u"Usage:"
-    print u"    {0} [-k <kindle.info>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname)
+    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname)
 
 # Main
 def cli_main(argv=unicode_argv()):
@@ -466,7 +466,7 @@ def cli_main(argv=unicode_argv()):
         print u"Output Directory {0} Does Not Exist.".format(outdir)
         return 1
 
-    kInfoFiles = []
+    kDatabaseFiles = []
     serials = []
     pids = []
 
@@ -474,7 +474,7 @@ def cli_main(argv=unicode_argv()):
         if o == '-k':
             if a == None :
                 raise DrmException("Invalid parameter for -k")
-            kInfoFiles.append(a)
+            kDatabaseFiles.append(a)
         if o == '-p':
             if a == None :
                 raise DrmException("Invalid parameter for -p")
@@ -490,7 +490,7 @@ def cli_main(argv=unicode_argv()):
     title = tb.getBookTitle()
     print u"Processing Book: {0}".format(title)
     md1, md2 = tb.getPIDMetaInfo()
-    pids.extend(kgenpids.getPidList(md1, md2, serials, kInfoFiles))
+    pids.extend(kgenpids.getPidList(md1, md2, serials, kDatabaseFiles))
 
     try:
         print u"Decrypting Book"

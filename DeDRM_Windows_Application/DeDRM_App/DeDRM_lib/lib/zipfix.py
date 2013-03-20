@@ -1,6 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# zipfix.py, version 1.1
+# Copyright © 2010-2013 by some_updates, DiapDealer and Apprentice Alf
+
+# Released under the terms of the GNU General Public Licence, version 3
+# <http://www.gnu.org/licenses/>
+
+# Revision history:
+#   1.0 - Initial release
+#   1.1 - Updated to handle zip file metadata correctly
+
+"""
+Re-write zip (or ePub) fixing problems with file names (and mimetype entry).
+"""
+
+__license__ = 'GPL v3'
+__version__ = "1.1"
+
 import sys
 import zlib
 import zipfilerugged
@@ -96,25 +113,41 @@ class fixZip:
 
         # if epub write mimetype file first, with no compression
         if self.ztype == 'epub':
-            nzinfo = ZipInfo('mimetype', compress_type=zipfilerugged.ZIP_STORED)
-            self.outzip.writestr(nzinfo, _MIMETYPE)
+            # first get a ZipInfo with current time and no compression
+            mimeinfo = ZipInfo('mimetype',compress_type=zipfilerugged.ZIP_STORED)
+            mimeinfo.internal_attr = 1 # text file
+            try:
+                # if the mimetype is present, get its info, including time-stamp
+                oldmimeinfo = self.inzip.getinfo('mimetype')
+                # copy across useful fields
+                mimeinfo.date_time = oldmimeinfo.date_time
+                mimeinfo.comment = oldmimeinfo.comment
+                mimeinfo.extra = oldmimeinfo.extra
+                mimeinfo.internal_attr = oldmimeinfo.internal_attr
+                mimeinfo.external_attr = oldmimeinfo.external_attr
+                mimeinfo.create_system = oldmimeinfo.create_system
+            except:
+                pass
+            self.outzip.writestr(mimeinfo, _MIMETYPE)
 
         # write the rest of the files
         for zinfo in self.inzip.infolist():
-            if zinfo.filename != "mimetype" or self.ztype == '.zip':
+            if zinfo.filename != "mimetype" or self.ztype != 'epub':
                 data = None
-                nzinfo = zinfo
                 try:
                     data = self.inzip.read(zinfo.filename)
                 except zipfilerugged.BadZipfile or zipfilerugged.error:
                     local_name = self.getlocalname(zinfo)
                     data = self.getfiledata(zinfo)
-                    nzinfo.filename = local_name
+                    zinfo.filename = local_name
 
-                nzinfo.date_time = zinfo.date_time
-                nzinfo.compress_type = zinfo.compress_type
-                nzinfo.flag_bits = 0
-                nzinfo.internal_attr = 0
+                # create new ZipInfo with only the useful attributes from the old info
+                nzinfo = ZipInfo(zinfo.filename, zinfo.date_time, compress_type=zinfo.compress_type)
+                nzinfo.comment=zinfo.comment
+                nzinfo.extra=zinfo.extra
+                nzinfo.internal_attr=zinfo.internal_attr
+                nzinfo.external_attr=zinfo.external_attr
+                nzinfo.create_system=zinfo.create_system
                 self.outzip.writestr(nzinfo,data)
 
         self.bzf.close()

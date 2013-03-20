@@ -51,8 +51,10 @@ from __future__ import with_statement
 #  4.8 - Much better unicode handling, matching the updated inept and ignoble scripts
 #      - Moved back into plugin, __init__ in plugin now only contains plugin code.
 #  4.9 - Missed some invalid characters in cleanup_name
+#  5.0 - Extraction of info from Kindle for PC/Mac moved into kindlekey.py
+#      - tweaked GetDecryptedBook interface to leave passed parameters unchanged
 
-__version__ = '4.9'
+__version__ = '5.0'
 
 
 import sys, os, re
@@ -62,6 +64,7 @@ import re
 import traceback
 import time
 import htmlentitydefs
+import json
 
 class DrmException(Exception):
     pass
@@ -72,9 +75,9 @@ else:
     inCalibre = False
 
 if inCalibre:
-    from calibre_plugins.k4mobidedrm import mobidedrm
-    from calibre_plugins.k4mobidedrm import topazextract
-    from calibre_plugins.k4mobidedrm import kgenpids
+    from calibre_plugins.dedrm import mobidedrm
+    from calibre_plugins.dedrm import topazextract
+    from calibre_plugins.dedrm import kgenpids
 else:
     import mobidedrm
     import topazextract
@@ -180,13 +183,13 @@ def unescape(text):
         return text # leave as is
     return re.sub(u"&#?\w+;", fixup, text)
 
-def GetDecryptedBook(infile, kInfoFiles, serials, pids, starttime = time.time()):
+def GetDecryptedBook(infile, kDatabases, serials, pids, starttime = time.time()):
     # handle the obvious cases at the beginning
     if not os.path.isfile(infile):
         raise DRMException (u"Input file does not exist.")
 
     mobi = True
-    magic3 = file(infile,'rb').read(3)
+    magic3 = open(infile,'rb').read(3)
     if magic3 == 'TPZ':
         mobi = False
 
@@ -198,13 +201,15 @@ def GetDecryptedBook(infile, kInfoFiles, serials, pids, starttime = time.time())
     bookname = unescape(mb.getBookTitle())
     print u"Decrypting {1} ebook: {0}".format(bookname, mb.getBookType())
 
+    # copy list of pids
+    totalpids = list(pids)
     # extend PID list with book-specific PIDs
     md1, md2 = mb.getPIDMetaInfo()
-    pids.extend(kgenpids.getPidList(md1, md2, serials, kInfoFiles))
-    print u"Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(pids))
+    totalpids.extend(kgenpids.getPidList(md1, md2, serials, kDatabases))
+    print u"Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(totalpids))
 
     try:
-        mb.processBook(pids)
+        mb.processBook(totalpids)
     except:
         mb.cleanup
         raise
@@ -213,12 +218,24 @@ def GetDecryptedBook(infile, kInfoFiles, serials, pids, starttime = time.time())
     return mb
 
 
-# infile, outdir and kInfoFiles should be unicode strings
-def decryptBook(infile, outdir, kInfoFiles, serials, pids):
+# kDatabaseFiles is a list of files created by kindlekey
+def decryptBook(infile, outdir, kDatabaseFiles, serials, pids):
     starttime = time.time()
-    print "Starting decryptBook routine."
+    kDatabases = []
+    for dbfile in kDatabaseFiles:
+        kindleDatabase = {}
+        try:
+            with open(dbfile, 'r') as keyfilein:
+                kindleDatabase = json.loads(keyfilein.read())
+            kDatabases.append([dbfile,kindleDatabase])
+        except Exception, e:
+            print u"Error getting database from file {0:s}: {1:s}".format(dbfile,e)
+            traceback.print_exc()
+
+
+
     try:
-        book = GetDecryptedBook(infile, kInfoFiles, serials, pids, starttime)
+        book = GetDecryptedBook(infile, kDatabases, serials, pids, starttime)
     except Exception, e:
         print u"Error decrypting book after {1:.1f} seconds: {0}".format(e.args[0],time.time()-starttime)
         traceback.print_exc()
@@ -254,14 +271,14 @@ def decryptBook(infile, outdir, kInfoFiles, serials, pids):
 def usage(progname):
     print u"Removes DRM protection from Mobipocket, Amazon KF8, Amazon Print Replica and Amazon Topaz ebooks"
     print u"Usage:"
-    print u"    {0} [-k <kindle.info>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname)
+    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname)
 
 #
 # Main
 #
 def cli_main(argv=unicode_argv()):
     progname = os.path.basename(argv[0])
-    print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2012 The Dark Reverser et al.".format(__version__)
+    print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2013 The Dark Reverser et al.".format(__version__)
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], "k:p:s:")
@@ -275,7 +292,7 @@ def cli_main(argv=unicode_argv()):
 
     infile = args[0]
     outdir = args[1]
-    kInfoFiles = []
+    kDatabaseFiles = []
     serials = []
     pids = []
 
@@ -283,7 +300,7 @@ def cli_main(argv=unicode_argv()):
         if o == "-k":
             if a == None :
                 raise DrmException("Invalid parameter for -k")
-            kInfoFiles.append(a)
+            kDatabaseFiles.append(a)
         if o == "-p":
             if a == None :
                 raise DrmException("Invalid parameter for -p")
@@ -296,7 +313,7 @@ def cli_main(argv=unicode_argv()):
     # try with built in Kindle Info files if not on Linux
     k4 = not sys.platform.startswith('linux')
 
-    return decryptBook(infile, outdir, kInfoFiles, serials, pids)
+    return decryptBook(infile, outdir, kDatabaseFiles, serials, pids)
 
 
 if __name__ == '__main__':

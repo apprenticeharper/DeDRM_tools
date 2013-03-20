@@ -8,6 +8,7 @@ import binascii
 import zlib
 import re
 from struct import pack, unpack, unpack_from
+import traceback
 
 class DrmException(Exception):
     pass
@@ -15,22 +16,6 @@ class DrmException(Exception):
 global charMap1
 global charMap3
 global charMap4
-
-if 'calibre' in sys.modules:
-    inCalibre = True
-    from calibre.constants import iswindows, isosx
-    if iswindows:
-        from calibre_plugins.k4mobidedrm.k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
-    if isosx:
-        from calibre_plugins.k4mobidedrm.k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
-else:
-    inCalibre = False
-    iswindows = sys.platform.startswith('win')
-    isosx = sys.platform.startswith('darwin')
-    if iswindows:
-        from k4pcutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
-    if isosx:
-        from k4mutils import getKindleInfoFiles, getDBfromFile, GetUserName, GetIDString
 
 
 charMap1 = 'n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M'
@@ -178,6 +163,9 @@ def pidFromSerial(s, l):
 def getKindlePids(rec209, token, serialnum):
     pids=[]
 
+    if isinstance(serialnum,unicode):
+        serialnum = serialnum.encode('ascii')
+
     # Compute book PID
     pidHash = SHA1(serialnum+rec209+token)
     bookPID = encodePID(pidHash)
@@ -196,35 +184,32 @@ def getKindlePids(rec209, token, serialnum):
 
 keynames = ['kindle.account.tokens','kindle.cookie.item','eulaVersionAccepted','login_date','kindle.token.item','login','kindle.key.item','kindle.name.info','kindle.device.info', 'MazamaRandomNumber']
 
-def getK4Pids(rec209, token, kInfoFile):
+def getK4Pids(rec209, token, kindleDatabase):
     global charMap1
-    kindleDatabase = None
     pids = []
-    try:
-        kindleDatabase = getDBfromFile(kInfoFile)
-    except Exception, message:
-        print(message)
-        kindleDatabase = None
-        pass
-
-    if kindleDatabase == None :
-        return pids
 
     try:
         # Get the Mazama Random number
-        MazamaRandomNumber = kindleDatabase['MazamaRandomNumber']
+        MazamaRandomNumber = (kindleDatabase[1])['MazamaRandomNumber'].decode('hex').encode('ascii')
 
         # Get the kindle account token
-        kindleAccountToken = kindleDatabase['kindle.account.tokens']
+        kindleAccountToken = (kindleDatabase[1])['kindle.account.tokens'].decode('hex').encode('ascii')
+
+        # Get the IDString used to decode the Kindle Info file
+        IDString = (kindleDatabase[1])['IDString'].decode('hex').encode('ascii')
+
+        # Get the UserName stored when the Kindle Info file was decoded
+        UserName = (kindleDatabase[1])['UserName'].decode('hex').encode('ascii')
+
     except KeyError:
-        print u"Keys not found in {0}".format(os.path.basename(kInfoFile))
+        print u"Keys not found in the database {0}.".format(kindleDatabase[0])
         return pids
 
     # Get the ID string used
-    encodedIDString = encodeHash(GetIDString(),charMap1)
+    encodedIDString = encodeHash(IDString,charMap1)
 
     # Get the current user name
-    encodedUsername = encodeHash(GetUserName(),charMap1)
+    encodedUsername = encodeHash(UserName,charMap1)
 
     # concat, hash and encode to calculate the DSN
     DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
@@ -257,22 +242,26 @@ def getK4Pids(rec209, token, kInfoFile):
 
     return pids
 
-def getPidList(md1, md2, serials=[], kInfoFiles=[]):
+def getPidList(md1, md2, serials=[], kDatabases=[]):
     pidlst = []
-    if kInfoFiles is None:
-        kInfoFiles = []
+
+    if kDatabases is None:
+        kDatabases = []
     if serials is None:
         serials = []
-    if iswindows or isosx:
-        kInfoFiles.extend(getKindleInfoFiles())
-    for infoFile in kInfoFiles:
+
+    for kDatabase in kDatabases:
         try:
-            pidlst.extend(getK4Pids(md1, md2, infoFile))
+            pidlst.extend(getK4Pids(md1, md2, kDatabase))
         except Exception, e:
-            print u"Error getting PIDs from {0}: {1}".format(os.path.basename(infoFile),e.args[0])
+            print u"Error getting PIDs from database {0}: {1}".format(kDatabase[0],e.args[0])
+            traceback.print_exc()
+
     for serialnum in serials:
         try:
             pidlst.extend(getKindlePids(md1, md2, serialnum))
-        except Exception, message:
+        except Exception, e:
             print u"Error getting PIDs from serial number {0}: {1}".format(serialnum ,e.args[0])
+            traceback.print_exc()
+
     return pidlst

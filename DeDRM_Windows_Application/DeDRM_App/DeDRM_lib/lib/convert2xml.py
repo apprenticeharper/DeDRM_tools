@@ -264,6 +264,7 @@ class PageParser(object):
         'img.color_src'         : (1, 'scalar_number', 0, 0),
         'img.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
         'img.gridEndCenter'     : (1, 'scalar_number', 0, 0),
+        'img.image_type'        : (1, 'scalar_number', 0, 0),
 
         'paragraph'           : (1, 'snippets', 1, 0),
         'paragraph.class'     : (1, 'scalar_text', 0, 0),
@@ -272,9 +273,9 @@ class PageParser(object):
         'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
         'paragraph.gridSize'  : (1, 'scalar_number', 0, 0),
         'paragraph.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
-        'paragraph.gridTopCenter' : (1, 'scalar_number', 0, 0),
-        'paragraph.gridBeginCenter' : (1, 'scalar_number', 0, 0),
-        'paragraph.gridEndCenter' : (1, 'scalar_number', 0, 0),
+        'paragraph.gridTopCenter'     : (1, 'scalar_number', 0, 0),
+        'paragraph.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
+        'paragraph.gridEndCenter'     : (1, 'scalar_number', 0, 0),
 
 
         'word_semantic'           : (1, 'snippets', 1, 1),
@@ -282,6 +283,10 @@ class PageParser(object):
         'word_semantic.class'     : (1, 'scalar_text', 0, 0),
         'word_semantic.firstWord' : (1, 'scalar_number', 0, 0),
         'word_semantic.lastWord'  : (1, 'scalar_number', 0, 0),
+        'word_semantic.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        'word_semantic.gridTopCenter'     : (1, 'scalar_number', 0, 0),
+        'word_semantic.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
+        'word_semantic.gridEndCenter'     : (1, 'scalar_number', 0, 0),
 
         'word'            : (1, 'snippets', 1, 0),
         'word.type'       : (1, 'scalar_text', 0, 0),

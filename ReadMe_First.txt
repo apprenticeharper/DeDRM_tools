@@ -1,7 +1,7 @@
 Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v5.6.2 archive.
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.0.0 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
 
 The is archive includes tools to remove DRM from:
 
@@ -19,9 +19,7 @@ These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 About the tools
 ---------------
 These tools have been updated and maintained by Apprentice Alf, DiapDealer and some_updates.
-
 You can find the latest updates and get support at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
-
 If you re-post these tools, a link to the blog would be appreciated.
 
 The original inept and ignoble scripts were by i♥cabbages
@@ -29,35 +27,33 @@ The original mobidedrm and erdr2pml scripts were by The Dark Reverser
 The original topaz DRM removal script was by CMBDTC
 The original topaz format conversion scripts were by some_updates, clarknova and Bart Simpson
 The Scuolabooks tool is by Hex
-
 The calibre plugin conversions were originally by DiapDealer
-The DeDRM AppleScript application was by Apprentice Alf
-The DeDRM python GUI was by some_updates
 
-Many fixes, updates and enhancements to the scripts and applicatons have been by Apprentice Alf, some_updates and DiapDealer.
+The DeDRM plugin is by Apprentice Alf
+The DeDRM AppleScript application is by Apprentice Alf
+The DeDRM python GUI is by some_updates and Apprentice Alf
+
+Many fixes, updates and enhancements to the scripts and applicatons have been by Apprentice Alf, some_updates and DiapDealer and others.
 
 
 Calibre Users (Mac OS X, Windows, and Linux)
 --------------------------------------------
-If you are a calibre user, the quickest and easiest way, especially on Windows, to remove DRM from your ebooks is to install the relevant plugins from the Calibre_Plugins folder, following the instructions and configuration directions provided in each plugin's ReadMe file.
+If you are a calibre user, the quickest and easiest way, especially on Windows, to remove DRM from your ebooks is to install the DeDRM plugin from the DeDRM_plugin folder, following the instructions and configuration directions provided in the ReadMe and the help links.
 
 Once installed and configured, you can simply add a DRM book to calibre and the DeDRMed version will be imported into the calibre database. Note that DRM removal ONLY occurs on import. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
 
-These plugins work for Windows, Mac OS X and Linux. For ebooks from Kindle 4 PC and Adobe Digital Editions, Linux users should read the section at the end of this ReadMe.
-
+These plugins work for Windows, Mac OS X and Linux. For ebooks from Kindle 4 PC and Adobe Digital Editions, Linux users should read the section at the end the DeDRM_plugin_ReadMe.txt file.
 
 
 DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
 ----------------------------------------------------------------------
 This application combines all the tools into one easy-to-use tool for Mac OS X users.
 
-Drag the "DeDRM 5.6.2.app" application from the DeDRM_Applications/Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
+Drag the "DeDRM 6.0.0.app" application from the DeDRM_Application_Macintosh folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and it will guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
 To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM application and it will remove the DRM of the kinds listed above.
 
-For more detailed instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Applications/Macintosh folder, including details of the extra step that Mac OS X 10.4 users need to take to use the application.
-
-
+For more detailed instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Application_Macintosh folder, including details of the extra step that Mac OS X 10.4 users need to take to use the application.
 
 
 DeDRM application for Windows users: (Windows XP through Windows 8)
@@ -67,28 +63,30 @@ DeDRM application for Windows users: (Windows XP through Windows 8)
 
 This application combines all the tools into one easy-to-use tool for Windows users.
 
-Drag the DeDRM_5.6.2 folder that's in the DeDRM_Applications/Windows folder, to your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_5.6.2 folder. Double-click on the shortcut and the DeDRM application will run and guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
+Drag the DeDRM_6.0.0 folder that's in the DeDRM_Application_Windows folder, to your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_6.0.0 folder. Double-click on the shortcut and the DeDRM application will run and guide you through collecting the data it needs to remove the DRM from any of the kinds of DRMed ebook listed in the first section of this ReadMe.
 
 To use the DeDRM application, simply drag ebooks, or folders containing ebooks, onto the DeDRM_Drop_Target.bat shortcut and it will remove the DRM of the kinds listed above.
 
-For more detailed instructions, see the DeDRM_ReadMe.txt file in the DeDRM_Applications/Windows folder.
-
+For more detailed instructions, see the DeDRM_Application_ReadMe.txt file in the DeDRM_Applications/Windows folder.
 
 
 Other_Tools
 -----------
-This folder includes three non-python tools:
+This folder includes other useful tools:
+
+Key_Generation_Script
+This folder contains a python script that creates a hashed keyfile for Barnes and Noble ePubs, and will be useful to Windows and Linux users who don't want to use the plugin.
+
+Key_Retrieval_Scripts
+This folder contains python script that retrieve keyfiles for Kindle for Mac and Adobe Digital Editions, and will be useful to all Linux Users.
 
 Kindle_for_Android_Patches
-
 Definitely only for the adventurous, this folder contains information on how to modify the Kindel for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin).
 
 B&N_Download_Helper
-
 A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Another one only for the adventurous.
 
 Scuolabook_DRM
-
 A windows-only application (including source code) for removing DRM from ScuolaBooks PDFs, created by "Hex" and included with permission.
 
 
