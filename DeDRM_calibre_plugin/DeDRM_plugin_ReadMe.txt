@@ -13,7 +13,7 @@ Do **NOT** select "Get plugins to enhance calibre" as this is reserved for "offi
 
 Customization
 -------------
-On Windows and Mac, the keys for ebooks downloaded for Kindle for Mac/PC and Adobe Digital Editions are automatically generated. If all your DRMed ebooks can be opened and read in Kindle for Mac/PC and/or Adobe Digital Editions on the same computer on which you are running calibre, you do not need to do any configuration of this plugin. On Linux, keys for Kindle for PC and Adobe Figital Editions need to be generated separately (see Linux systems section)
+On Windows and Mac, the keys for ebooks downloaded for Kindle for Mac/PC and Adobe Digital Editions are automatically generated. If all your DRMed ebooks can be opened and read in Kindle for Mac/PC and/or Adobe Digital Editions on the same computer on which you are running calibre, you do not need to do any configuration of this plugin. On Linux, keys for Kindle for PC and Adobe Digital Editions need to be generated separately (see Linux systems section)
 
 Otherwise, highlight the plugin (DeDRM under the "File type plugins" category) and click the "Customize Plugin" button.
 

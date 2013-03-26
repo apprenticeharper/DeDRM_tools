@@ -46,13 +46,14 @@ from __future__ import with_statement
 #   5.6 - Revised to allow use in Plugins to eliminate need for duplicate code
 #   5.7 - Unicode support added, renamed adobekey from ineptkey
 #   5.8 - Added getkey interface for Windows DeDRM application
+#   5.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
 
 """
 Retrieve Adobe ADEPT user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '5.8'
+__version__ = '5.9'
 
 import sys, os, struct, getopt
 
@@ -401,9 +402,11 @@ if iswindows:
                 aes = AES(keykey)
                 userkey = aes.decrypt(userkey)
                 userkey = userkey[26:-ord(userkey[-1])]
+                #print "found key:",userkey.encode('hex')
                 keys.append(userkey)
         if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')
+        print u"Found {0:d} keys".format(len(keys))
         return keys
 
 
@@ -483,7 +486,8 @@ def usage(progname):
     print u"Usage:"
     print u"    {0:s} [-h] [<outpath>]".format(progname)
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     print u"{0} v{1}\nCopyright © 2009-2013 i♥cabbages and Apprentice Alf".format(progname,__version__)
 
@@ -538,7 +542,7 @@ def cli_main(argv=unicode_argv()):
     return 0
 
 
-def gui_main(argv=unicode_argv()):
+def gui_main():
     import Tkinter
     import Tkconstants
     import tkMessageBox
@@ -556,6 +560,7 @@ def gui_main(argv=unicode_argv()):
             self.text.insert(Tkconstants.END, text)
 
 
+    argv=unicode_argv()
     root = Tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
@@ -574,7 +579,7 @@ def gui_main(argv=unicode_argv()):
                 keyfileout.write(key)
             success = True
             tkMessageBox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
-    except DrmException, e:
+    except ADEPTError, e:
         tkMessageBox.showerror(progname, u"Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')

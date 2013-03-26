@@ -7,6 +7,7 @@ __license__ = 'GPL v3'
 # Standard Python modules.
 import os, sys, re, hashlib
 import json
+import traceback
 
 from PyQt4.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QListWidget, QListWidgetItem, QAbstractItemView, QLineEdit, QPushButton, QIcon, QGroupBox, QDialog, QDialogButtonBox, QUrl, QString)
 from PyQt4 import QtGui
@@ -18,10 +19,6 @@ from calibre.utils.config import dynamic, config_dir, JSONConfig
 
 from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 from calibre_plugins.dedrm.utilities import (uStrCmp, DETAILED_MESSAGE, parseCustString)
-from calibre_plugins.dedrm.ignoblekeygen import generate_key as generate_bandn_key
-from calibre_plugins.dedrm.erdr2pml import getuser_key as generate_ereader_key
-from calibre_plugins.dedrm.adobekey import adeptkeys as retrieve_adept_keys
-from calibre_plugins.dedrm.kindlekey import kindlekeys as retrieve_kindle_keys
 
 class ManageKeysDialog(QDialog):
     def __init__(self, parent, key_type_name, plugin_keys, create_key, keyfile_ext = u""):
@@ -393,6 +390,7 @@ class AddBandNKeyDialog(QDialog):
 
     @property
     def key_value(self):
+        from calibre_plugins.dedrm.ignoblekeygen import generate_key as generate_bandn_key
         return generate_bandn_key(self.user_name,self.cc_number)
 
     @property
@@ -473,6 +471,7 @@ class AddEReaderDialog(QDialog):
 
     @property
     def key_value(self):
+        from calibre_plugins.dedrm.erdr2pml import getuser_key as generate_ereader_key
         return generate_ereader_key(self.user_name,self.cc_number).encode('hex')
 
     @property
@@ -505,9 +504,12 @@ class AddAdeptDialog(QDialog):
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
+        from calibre_plugins.dedrm.adobekey import adeptkeys as retrieve_adept_keys
         try:
-            self.default_key = retrieve_adept_keys()[0]
+            default_keys = retrieve_adept_keys()
+            self.default_key = default_keys[0]
         except:
+            traceback.print_exc()
             self.default_key = u""
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -567,6 +569,7 @@ class AddKindleDialog(QDialog):
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
+        from calibre_plugins.dedrm.kindlekey import kindlekeys as retrieve_kindle_keys
         try:
             self.default_key = retrieve_kindle_keys()[0]
         except:

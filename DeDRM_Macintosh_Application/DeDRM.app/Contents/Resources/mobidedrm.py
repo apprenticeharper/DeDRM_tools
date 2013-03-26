@@ -67,9 +67,10 @@
 #  0.37 - Fixed double announcement for stand-alone operation
 #  0.38 - Unicode used wherever possible, cope with absent alfcrypto
 #  0.39 - Fixed problem with TEXtREAd and getBookType interface
+#  0.40 - moved unicode_argv call inside main for Windows DeDRM compatibility
 
 
-__version__ = u"0.39"
+__version__ = u"0.40"
 
 import sys
 import os
@@ -506,7 +507,8 @@ def getUnencryptedBook(infile,pidlist):
     return book.mobi_data
 
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv)<3 or len(argv)>4:
         print u"MobiDeDrm v{0}.\nCopyright © 2008-2012 The Dark Reverser et al.".format(__version__)

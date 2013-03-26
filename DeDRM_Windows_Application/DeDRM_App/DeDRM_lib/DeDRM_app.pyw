@@ -1,8 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# DeDRM.pyw, version 6.0.0
-# By some_updates and Apprentice Alf
+# DeDRM.pyw, version 6.0.1
+# Copyright 2010-2013 some_updates and Apprentice Alf
+
+# Revision history:
+#   6.0.0 - Release along with unified plugin
+#   6.0.1 - Bug Fixes for Windows App
+
+__version__ = '6.0.1'
 
 import sys
 import os, os.path
@@ -48,8 +54,6 @@ class QueuedUTF8Stream:
         self.q.put(data)
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
-
-__version__ = '6.0.0'
 
 class DrmException(Exception):
     pass
@@ -372,7 +376,6 @@ class ConvDialog(Toplevel):
         self.running = 'inactive'
         self.numgood = 0
         self.numbad = 0
-        self.log = ''
         self.status = Tkinter.Label(self, text='DeDRM processing...')
         self.status.pack(fill=Tkconstants.X, expand=1)
         body = Tkinter.Frame(self)
@@ -394,6 +397,8 @@ class ConvDialog(Toplevel):
         self.qbutton = Tkinter.Button(buttons, text="Quit", width=14, command=self.quitting)
         self.qbutton.pack(side=Tkconstants.BOTTOM)
         self.status['text'] = ''
+
+        self.logfile = open(os.path.join(os.path.expanduser('~'),'DeDRM.log'),'w')
 
     def show(self):
         self.deiconify()
@@ -420,20 +425,19 @@ class ConvDialog(Toplevel):
             if len(self.filenames) > 0:
                 filename = self.filenames.pop(0)
             if filename == None:
-                msg = '\nComplete:  '
+                msg = 'Complete:  '
                 msg += 'Successes: %d, ' % self.numgood
                 msg += 'Failures: %d\n' % self.numbad
                 self.showCmdOutput(msg)
                 if self.numbad == 0:
                     self.after(2000,self.conversion_done())
-                logfile = os.path.join(os.path.expanduser('~'),'DeDRM.log')
-                file(logfile,'w').write(self.log)
-                self.log=''
+                self.logfile.write("DeDRM v{0}: {1}".format(__version__,msg))
+                self.logfile.close()
                 return
             infile = filename
             bname = os.path.basename(infile)
-            msg = 'Processing: ' + bname + ' ... '
-            self.log += msg
+            msg = 'Processing: ' + bname + '...'
+            self.logfile.write("DeDRM v{0}: {1}\n".format(__version__,msg))
             self.showCmdOutput(msg)
             outdir = os.path.dirname(filename)
             if 'outdir' in self.prefs_array:
@@ -447,7 +451,7 @@ class ConvDialog(Toplevel):
                 self.processQueue()
             else:
                 msg = 'Unknown File: ' + bname + '\n'
-                self.log += msg
+                self.logfile.write("DeDRM v{0}: {1}".format(__version__,msg))
                 self.showCmdOutput(msg)
                 self.numbad += 1
 
@@ -476,39 +480,32 @@ class ConvDialog(Toplevel):
             # nothing to wait for so just return
             return
         poll = self.p2.exitcode
-        print "processing", poll
+        #print "processing", poll
+        done = False
+        text = ''
+        while not done:
+            try:
+                data = self.q.get_nowait()
+                text += data
+            except Empty:
+                done = True
+        if text != '':
+            self.logfile.write(text)
         if poll != None:
             self.bar.stop()
-            done = False
-            text = ''
-            while not done:
-                try:
-                    data = self.q.get_nowait()
-                    text += data
-                except Empty:
-                    done = True
-            self.log += text
             if poll == 0:
                 msg = 'Success\n'
                 self.numgood += 1
-                self.log += msg
             else:
                 msg = 'Failed\n'
                 self.numbad += 1
-                self.log += msg
             self.p2.join()
+            self.logfile.write("DeDRM v{0}: {1}\n".format(__version__,msg))
             self.showCmdOutput(msg)
             self.p2 = None
             self.running = 'inactive'
             self.after(50,self.processBooks)
             return
-        try:
-            text = self.q.get_nowait()
-        except Empty:
-            text = ''
-            pass
-        if text != '':
-            self.log += text
         # make sure we get invoked again by event loop after interval
         self.stext.after(self.interval,self.processQueue)
         return
@@ -574,7 +571,8 @@ def processPDB(q, infile, outdir, rscpath):
     sys.exit(rv)
 
 
-def main(argv=unicode_argv()):
+def main():
+    argv=unicode_argv()
     apphome = os.path.dirname(argv[0])
     apphome = os.path.abspath(apphome)
 

@@ -26,13 +26,14 @@ __docformat__ = 'restructuredtext en'
 #
 # Revision history:
 #   6.0.0 - Initial release
+#   6.0.1 - Bug Fixes for Windows App
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 0, 0)
+PLUGIN_VERSION_TUPLE = (6, 0, 1)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'

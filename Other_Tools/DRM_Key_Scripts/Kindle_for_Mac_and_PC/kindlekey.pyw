@@ -15,13 +15,15 @@ from __future__ import with_statement
 #  1.3   - Added getkey interface for Windows DeDRM application
 #          Simplified some of the Kindle for Mac code.
 #  1.4   - Remove dependency on alfcrypto
+#  1.5   - moved unicode_argv call inside main for Windows DeDRM compatibility
+
 
 """
 Retrieve Kindle for PC/Mac user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '1.4'
+__version__ = '1.5'
 
 import sys, os, re
 from struct import pack, unpack, unpack_from
@@ -1797,7 +1799,8 @@ def usage(progname):
     print u"    {0:s} [-h] [-k <kindle.info>] [<outpath>]".format(progname)
 
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     print u"{0} v{1}\nCopyright © 2010-2013 some_updates and Apprentice Alf".format(progname,__version__)
 
@@ -1837,7 +1840,7 @@ def cli_main(argv=unicode_argv()):
     return 0
 
 
-def gui_main(argv=unicode_argv()):
+def gui_main():
     import Tkinter
     import Tkconstants
     import tkMessageBox
@@ -1855,6 +1858,7 @@ def gui_main(argv=unicode_argv()):
             self.text.insert(Tkconstants.END, text)
 
 
+    argv=unicode_argv()
     root = Tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])

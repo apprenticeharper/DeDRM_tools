@@ -35,13 +35,14 @@ from __future__ import with_statement
 #   5.7 - Fix for potential problem with PyCrypto
 #   5.8 - Revised to allow use in calibre plugins to eliminate need for duplicate code
 #   5.9 - Fixed to retain zip file metadata (e.g. file modification date)
+#   5.10 - moved unicode_argv call inside main for Windows DeDRM compatibility
 
 """
 Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "5.9"
+__version__ = "5.10"
 
 import sys
 import os
@@ -458,7 +459,8 @@ def decryptBook(userkey, inpath, outpath):
     return 0
 
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
         print u"usage: {0} <keyfile.der> <inbook.epub> <outbook.epub>".format(progname)

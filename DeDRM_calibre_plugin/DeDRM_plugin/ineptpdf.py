@@ -50,13 +50,14 @@ from __future__ import with_statement
 #   7.11 - More tweaks to fix minor problems.
 #   7.12 - Revised to allow use in calibre plugins to eliminate need for duplicate code
 #   7.13 - Fixed erroneous mentions of ineptepub
+#   7.14 - moved unicode_argv call inside main for Windows DeDRM compatibility
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "7.13"
+__version__ = "7.14"
 
 import sys
 import os
@@ -2185,7 +2186,8 @@ def decryptBook(userkey, inpath, outpath):
     return 0
 
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
         print u"usage: {0} <keyfile.der> <inbook.pdf> <outbook.pdf>".format(progname)

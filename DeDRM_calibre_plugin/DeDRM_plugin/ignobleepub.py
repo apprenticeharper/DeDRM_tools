@@ -33,13 +33,14 @@ from __future__ import with_statement
 #   3.6 - Revised to allow use in calibre plugins to eliminate need for duplicate code
 #   3.7 - Tweaked to match ineptepub more closely
 #   3.8 - Fixed to retain zip file metadata (e.g. file modification date)
+#   3.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
 
 """
 Decrypt Barnes & Noble encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "3.8"
+__version__ = "3.9"
 
 import sys
 import os
@@ -316,7 +317,8 @@ def decryptBook(keyb64, inpath, outpath):
     return 0
 
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
         print u"usage: {0} <keyfile.b64> <inbook.epub> <outbook.epub>".format(progname)

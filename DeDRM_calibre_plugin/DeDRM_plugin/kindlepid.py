@@ -9,6 +9,7 @@
 #  0.3 changed to autoflush stdout, fixed return code usage
 #  0.3 updated for unicode
 #  0.4 Added support for serial numbers starting with '9', fixed unicode bugs.
+#  0.5 moved unicode_argv call inside main for Windows DeDRM compatibility
 
 import sys
 import binascii
@@ -111,8 +112,9 @@ def pidFromSerial(s, l):
 
     return pid
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
     print u"Mobipocket PID calculator for Amazon Kindle. Copyright © 2007, 2009 Igor Skochinsky"
+    argv=unicode_argv()
     if len(argv)==2:
         serial = argv[1]
     else:

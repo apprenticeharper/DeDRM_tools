@@ -9,6 +9,7 @@
 #
 # Changelog epubtest
 #  1.00 - Cut to epubtest.py, testing ePub files only by Apprentice Alf
+#  1.01 - Added routine for use by Windows DeDRM
 #
 # Written in 2011 by Paul Durrant
 # Released with unlicense. See http://unlicense.org/
@@ -45,7 +46,7 @@
 
 from __future__ import with_statement
 
-__version__ = '1.00'
+__version__ = '1.01'
 
 import sys, struct, os
 import zlib
@@ -72,11 +73,49 @@ class SafeUnbuffered:
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
+try:
+    from calibre.constants import iswindows, isosx
+except:
+    iswindows = sys.platform.startswith('win')
+    isosx = sys.platform.startswith('darwin')
+
 def unicode_argv():
-    argvencoding = sys.stdin.encoding
-    if argvencoding == None:
-        argvencoding = "utf-8"
-    return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+    if iswindows:
+        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+        # strings.
+
+        # Versions 2.x of Python don't support Unicode in sys.argv on
+        # Windows, with the underlying Windows API instead replacing multi-byte
+        # characters with '?'.  So use shell32.GetCommandLineArgvW to get sys.argv
+        # as a list of Unicode strings and encode them as utf-8
+
+        from ctypes import POINTER, byref, cdll, c_int, windll
+        from ctypes.wintypes import LPCWSTR, LPWSTR
+
+        GetCommandLineW = cdll.kernel32.GetCommandLineW
+        GetCommandLineW.argtypes = []
+        GetCommandLineW.restype = LPCWSTR
+
+        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
+        CommandLineToArgvW.restype = POINTER(LPWSTR)
+
+        cmd = GetCommandLineW()
+        argc = c_int(0)
+        argv = CommandLineToArgvW(cmd, byref(argc))
+        if argc.value > 0:
+            # Remove Python executable and commands if present
+            start = argc.value - len(sys.argv)
+            return [argv[i] for i in
+                    xrange(start, argc.value)]
+        # if we don't have any arguments at all, just pass back script name
+        # this should never happen
+        return [u"epubtest.py"]
+    else:
+        argvencoding = sys.stdin.encoding
+        if argvencoding == None:
+            argvencoding = "utf-8"
+        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
 
 _FILENAME_LEN_OFFSET = 26
 _EXTRA_LEN_OFFSET = 28
@@ -129,38 +168,38 @@ def getfiledata(file, zi):
 
     return data
 
-def main(argv=unicode_argv()):
-    infile = argv[1]
-    kind = "Unknown"
+def encryption(infile):
+    # returns encryption: one of Unencrypted, Adobe, B&N and Unknown
     encryption = "Unknown"
-    with file(infile,'rb') as infileobject:
-        bookdata = infileobject.read(58)
-        # Check for Mobipocket/Kindle
-        if bookdata[0:0+2] == "PK":
-            if bookdata[30:30+28] == 'mimetypeapplication/epub+zip':
-                kind = "ePub"
-            else:
-                kind = "ZIP"
-            encryption = "Unencrypted"
-            foundrights = False
-            foundencryption = False
-            inzip = zipfile.ZipFile(infile,'r')
-            namelist = set(inzip.namelist())
-            if 'META-INF/rights.xml' not in namelist or 'META-INF/encryption.xml' not in namelist:
-                encryption = "Unencrypted"
-            else:
-                rights = etree.fromstring(inzip.read('META-INF/rights.xml'))
-                adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
-                expr = './/%s' % (adept('encryptedKey'),)
-                bookkey = ''.join(rights.findtext(expr))
-                if len(bookkey) == 172:
-                    encryption = "Adobe"
-                elif len(bookkey) == 64:
-                        encryption = "B&N"
+    try:
+        with open(infile,'rb') as infileobject:
+            bookdata = infileobject.read(58)
+            # Check for Zip
+            if bookdata[0:0+2] == "PK":
+                foundrights = False
+                foundencryption = False
+                inzip = zipfile.ZipFile(infile,'r')
+                namelist = set(inzip.namelist())
+                if 'META-INF/rights.xml' not in namelist or 'META-INF/encryption.xml' not in namelist:
+                    encryption = "Unencrypted"
                 else:
-                    encryption = "Unknown"
+                    rights = etree.fromstring(inzip.read('META-INF/rights.xml'))
+                    adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+                    expr = './/%s' % (adept('encryptedKey'),)
+                    bookkey = ''.join(rights.findtext(expr))
+                    if len(bookkey) == 172:
+                        encryption = "Adobe"
+                    elif len(bookkey) == 64:
+                        encryption = "B&N"
+                    else:
+                        encryption = "Unknown"
+    except:
+        traceback.print_exc()
+    return encryption
 
-    print u"{0} {1}".format(encryption, kind)
+def main():
+    argv=unicode_argv()
+    print encryption(argv[1])
     return 0
 
 if __name__ == "__main__":

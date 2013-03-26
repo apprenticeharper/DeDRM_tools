@@ -66,8 +66,9 @@
 #       - Don't reject dictionary format.
 #       - Ignore sidebars for dictionaries (different format?)
 #  0.22 - Unicode and plugin support, different image folders for PMLZ and source
+#  0.23 - moved unicode_argv call inside main for Windows DeDRM compatibility
 
-__version__='0.22'
+__version__='0.23'
 
 import sys, re
 import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile, traceback
@@ -551,9 +552,10 @@ def getuser_key(name,cc):
     cc = cc.replace(" ","")
     return struct.pack('>LL', binascii.crc32(newname) & 0xffffffff,binascii.crc32(cc[-8:])& 0xffffffff)
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
     print u"eRdr2Pml v{0}. Copyright © 2009–2012 The Dark Reverser et al.".format(__version__)
 
+    argv=unicode_argv()
     try:
         opts, args = getopt.getopt(argv[1:], "hp", ["make-pmlz"])
     except getopt.GetoptError, err:

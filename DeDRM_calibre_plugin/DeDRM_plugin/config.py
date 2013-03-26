@@ -29,10 +29,6 @@ from calibre_plugins.dedrm.__init__ import RESOURCE_NAME as help_file_name
 from calibre_plugins.dedrm.utilities import (uStrCmp, DETAILED_MESSAGE)
 
 import calibre_plugins.dedrm.dialogs as dialogs
-import calibre_plugins.dedrm.ignoblekeygen as bandn
-import calibre_plugins.dedrm.erdr2pml as ereader
-import calibre_plugins.dedrm.adobekey as adobe
-import calibre_plugins.dedrm.kindlekey as amazon
 
 JSON_NAME = PLUGIN_NAME.strip().lower().replace(' ', '_')
 JSON_PATH = os.path.join(u"plugins", JSON_NAME + '.json')
@@ -212,6 +208,7 @@ def addvaluetoprefs(prefkind, prefsvalue):
 def convertprefs(always = False):
 
     def parseIgnobleString(keystuff):
+        import calibre_plugins.dedrm.ignoblekeygen as bandn
         userkeys = {}
         ar = keystuff.split(':')
         for i, keystring in enumerate(ar):
@@ -230,6 +227,7 @@ def convertprefs(always = False):
         return userkeys
 
     def parseeReaderString(keystuff):
+        import calibre_plugins.dedrm.erdr2pml as ereader
         userkeys = {}
         ar = keystuff.split(':')
         for i, keystring in enumerate(ar):
@@ -302,10 +300,13 @@ def convertprefs(always = False):
         dedrmprefs['serials'] = []
 
     # get default adobe adept key(s)
+    import calibre_plugins.dedrm.adobekey as adobe
     priorkeycount = len(dedrmprefs['adeptkeys'])
     try:
         defaultkeys = adobe.adeptkeys()
     except:
+        import traceback
+        traceback.print_exc()
         defaultkeys = []
     defaultcount = 1
     for keyvalue in defaultkeys:
@@ -323,7 +324,8 @@ def convertprefs(always = False):
     writeprefs(False)
 
 
-   # get default kindle key(s)
+    # get default kindle key(s)
+    import calibre_plugins.dedrm.kindlekey as amazon
     priorkeycount = len(dedrmprefs['kindlekeys'])
     try:
         defaultkeys = amazon.kindlekeys()

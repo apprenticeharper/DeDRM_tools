@@ -53,8 +53,9 @@ from __future__ import with_statement
 #  4.9 - Missed some invalid characters in cleanup_name
 #  5.0 - Extraction of info from Kindle for PC/Mac moved into kindlekey.py
 #      - tweaked GetDecryptedBook interface to leave passed parameters unchanged
+#  5.1 - moved unicode_argv call inside main for Windows DeDRM compatibility
 
-__version__ = '5.0'
+__version__ = '5.1'
 
 
 import sys, os, re
@@ -276,7 +277,8 @@ def usage(progname):
 #
 # Main
 #
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2013 The Dark Reverser et al.".format(__version__)
 

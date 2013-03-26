@@ -31,13 +31,14 @@ from __future__ import with_statement
 #   2.3 - Modify interface to allow use of import
 #   2.4 - Improvements to UI and now works in plugins
 #   2.5 - Additional improvement for unicode and plugin support
+#   2.6 - moved unicode_argv call inside main for Windows DeDRM compatibility
 
 """
 Generate Barnes & Noble EPUB user key from name and credit card number.
 """
 
 __license__ = 'GPL v3'
-__version__ = "2.5"
+__version__ = "2.6"
 
 import sys
 import os
@@ -214,7 +215,8 @@ def generate_key(name, ccn):
 
 
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if AES is None:
         print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \

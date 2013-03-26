@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# topazextract.py, version ?
+# topazextract.py
 # Mostly written by some_updates based on code from many others
 
-__version__ = '4.8'
+# Changelog
+#  4.9  - moved unicode_argv call inside main for Windows DeDRM compatibility
+
+__version__ = '4.9'
 
 import sys
 import os, csv, getopt
@@ -442,7 +445,8 @@ def usage(progname):
     print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname)
 
 # Main
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     print u"TopazExtract v{0}.".format(__version__)
 

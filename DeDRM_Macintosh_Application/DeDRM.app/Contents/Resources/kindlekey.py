@@ -15,13 +15,16 @@ from __future__ import with_statement
 #  1.3   - Added getkey interface for Windows DeDRM application
 #          Simplified some of the Kindle for Mac code.
 #  1.4   - Remove dependency on alfcrypto
+#  1.5   - moved unicode_argv call inside main for Windows DeDRM compatibility
+#  1.6   - Fixed a problem getting the disk serial numbers
+
 
 """
 Retrieve Kindle for PC/Mac user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '1.4'
+__version__ = '1.6'
 
 import sys, os, re
 from struct import pack, unpack, unpack_from
@@ -1266,10 +1269,10 @@ elif isosx:
     # uses a sub process to get the Hard Drive Serial Number using ioreg
     # returns serial numbers of all internal hard drive drives
     def GetVolumesSerialNumbers():
+        sernums = []
         sernum = os.getenv('MYSERIALNUMBER')
         if sernum != None:
-            return [sernum]
-        sernums = []
+            sernums.append(sernum.strip())
         cmdline = '/usr/sbin/ioreg -w 0 -r -c AppleAHCIDiskDriver'
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
@@ -1285,7 +1288,7 @@ elif isosx:
             if pp >= 0:
                 sernum = resline[pp+19:-1]
                 sernums.append(sernum.strip())
-        return [sernum]
+        return sernums
 
     def GetUserHomeAppSupKindleDirParitionName():
         home = os.getenv('HOME')
@@ -1311,10 +1314,11 @@ elif isosx:
         return disk
 
     # uses a sub process to get the UUID of the specified disk partition using ioreg
-    def GetDiskPartitionUUID(diskpart):
+    def GetDiskPartitionUUIDs(diskpart):
+        uuids = []
         uuidnum = os.getenv('MYUUIDNUMBER')
         if uuidnum != None:
-            return uuidnum
+            uuids.append(strip(uuidnum))
         cmdline = '/usr/sbin/ioreg -l -S -w 0 -r -c AppleAHCIDiskDriver'
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
@@ -1357,14 +1361,15 @@ elif isosx:
                 uuidnest = -1
                 uuidnum = None
                 bsdname = None
-        if not foundIt:
-            uuidnum = ''
-        return uuidnum
+        if foundIt:
+            uuids.append(uuidnum)
+        return uuids
 
-    def GetMACAddressMunged():
+    def GetMACAddressesMunged():
+        macnums = []
         macnum = os.getenv('MYMACNUM')
         if macnum != None:
-            return macnum
+            macnums.append(macnum)
         cmdline = '/sbin/ifconfig en0'
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
@@ -1399,9 +1404,9 @@ elif isosx:
                 macnum = '%0.2x%0.2x%0.2x%0.2x%0.2x%0.2x' % (mlst[0], mlst[1], mlst[2], mlst[3], mlst[4], mlst[5])
                 foundIt = True
                 break
-        if not foundIt:
-            macnum = ''
-        return macnum
+        if foundIt:
+            macnums.append(macnum)
+        return macnums
 
 
     # uses unix env to get username instead of using sysctlbyname
@@ -1412,11 +1417,12 @@ elif isosx:
     def GetIDStrings():
         # Return all possible ID Strings
         strings = []
-        strings.append(GetMACAddressMunged())
+        strings.extend(GetMACAddressesMunged())
         strings.extend(GetVolumesSerialNumbers())
         diskpart = GetUserHomeAppSupKindleDirParitionName()
-        strings.append(GetDiskPartitionUUID(diskpart))
+        strings.extend(GetDiskPartitionUUIDs(diskpart))
         strings.append('9999999999')
+        #print strings
         return strings
 
 
@@ -1797,7 +1803,8 @@ def usage(progname):
     print u"    {0:s} [-h] [-k <kindle.info>] [<outpath>]".format(progname)
 
 
-def cli_main(argv=unicode_argv()):
+def cli_main():
+    argv=unicode_argv()
     progname = os.path.basename(argv[0])
     print u"{0} v{1}\nCopyright © 2010-2013 some_updates and Apprentice Alf".format(progname,__version__)
 
@@ -1837,7 +1844,7 @@ def cli_main(argv=unicode_argv()):
     return 0
 
 
-def gui_main(argv=unicode_argv()):
+def gui_main():
     import Tkinter
     import Tkconstants
     import tkMessageBox
@@ -1855,6 +1862,7 @@ def gui_main(argv=unicode_argv()):
             self.text.insert(Tkconstants.END, text)
 
 
+    argv=unicode_argv()
     root = Tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
