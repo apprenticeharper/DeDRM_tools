@@ -35,14 +35,15 @@ from __future__ import with_statement
 #   5.7 - Fix for potential problem with PyCrypto
 #   5.8 - Revised to allow use in calibre plugins to eliminate need for duplicate code
 #   5.9 - Fixed to retain zip file metadata (e.g. file modification date)
-#   5.10 - moved unicode_argv call inside main for Windows DeDRM compatibility
+#   6.0 - moved unicode_argv call inside main for Windows DeDRM compatibility
+#   6.1 - Work if TkInter is missing
 
 """
 Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "5.10"
+__version__ = "6.1"
 
 import sys
 import os
@@ -460,6 +461,8 @@ def decryptBook(userkey, inpath, outpath):
 
 
 def cli_main():
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
@@ -473,10 +476,13 @@ def cli_main():
     return result
 
 def gui_main():
-    import Tkinter
-    import Tkconstants
-    import tkFileDialog
-    import traceback
+    try:
+        import Tkinter
+        import Tkconstants
+        import tkMessageBox
+        import traceback
+    except:
+        return cli_main()
 
     class DecryptionDialog(Tkinter.Frame):
         def __init__(self, root):
@@ -584,7 +590,5 @@ def gui_main():
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        sys.stdout=SafeUnbuffered(sys.stdout)
-        sys.stderr=SafeUnbuffered(sys.stderr)
         sys.exit(cli_main())
     sys.exit(gui_main())

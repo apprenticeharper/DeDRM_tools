@@ -17,6 +17,7 @@ from __future__ import with_statement
 #  1.4   - Remove dependency on alfcrypto
 #  1.5   - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  1.6   - Fixed a problem getting the disk serial numbers
+#  1.7   - Work if TkInter is missing
 
 
 """
@@ -24,7 +25,7 @@ Retrieve Kindle for PC/Mac user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '1.6'
+__version__ = '1.7'
 
 import sys, os, re
 from struct import pack, unpack, unpack_from
@@ -1804,6 +1805,8 @@ def usage(progname):
 
 
 def cli_main():
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     print u"{0} v{1}\nCopyright © 2010-2013 some_updates and Apprentice Alf".format(progname,__version__)
@@ -1845,10 +1848,13 @@ def cli_main():
 
 
 def gui_main():
-    import Tkinter
-    import Tkconstants
-    import tkMessageBox
-    import traceback
+    try:
+        import Tkinter
+        import Tkconstants
+        import tkMessageBox
+        import traceback
+    except:
+        return cli_main()
 
     class ExceptionDialog(Tkinter.Frame):
         def __init__(self, root, text):
@@ -1895,7 +1901,5 @@ def gui_main():
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        sys.stdout=SafeUnbuffered(sys.stdout)
-        sys.stderr=SafeUnbuffered(sys.stderr)
         sys.exit(cli_main())
     sys.exit(gui_main())

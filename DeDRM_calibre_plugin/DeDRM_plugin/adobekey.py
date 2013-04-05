@@ -47,13 +47,14 @@ from __future__ import with_statement
 #   5.7 - Unicode support added, renamed adobekey from ineptkey
 #   5.8 - Added getkey interface for Windows DeDRM application
 #   5.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
+#   6.0 - Work if TkInter is missing
 
 """
 Retrieve Adobe ADEPT user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '5.9'
+__version__ = '6.0'
 
 import sys, os, struct, getopt
 
@@ -487,6 +488,8 @@ def usage(progname):
     print u"    {0:s} [-h] [<outpath>]".format(progname)
 
 def cli_main():
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     print u"{0} v{1}\nCopyright © 2009-2013 i♥cabbages and Apprentice Alf".format(progname,__version__)
@@ -543,10 +546,13 @@ def cli_main():
 
 
 def gui_main():
-    import Tkinter
-    import Tkconstants
-    import tkMessageBox
-    import traceback
+    try:
+        import Tkinter
+        import Tkconstants
+        import tkMessageBox
+        import traceback
+    except:
+        return cli_main()
 
     class ExceptionDialog(Tkinter.Frame):
         def __init__(self, root, text):
@@ -593,7 +599,5 @@ def gui_main():
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        sys.stdout=SafeUnbuffered(sys.stdout)
-        sys.stderr=SafeUnbuffered(sys.stderr)
         sys.exit(cli_main())
     sys.exit(gui_main())

@@ -7,8 +7,9 @@
 # Revision history:
 #   6.0.0 - Release along with unified plugin
 #   6.0.1 - Bug Fixes for Windows App
+#   6.0.2 - Changes only in the plugin so far
 
-__version__ = '6.0.1'
+__version__ = '6.0.2'
 
 import sys
 import os, os.path

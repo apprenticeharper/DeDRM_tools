@@ -51,13 +51,14 @@ from __future__ import with_statement
 #   7.12 - Revised to allow use in calibre plugins to eliminate need for duplicate code
 #   7.13 - Fixed erroneous mentions of ineptepub
 #   7.14 - moved unicode_argv call inside main for Windows DeDRM compatibility
+#   8.0 - Work if TkInter is missing
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "7.14"
+__version__ = "8.0"
 
 import sys
 import os
@@ -2187,6 +2188,8 @@ def decryptBook(userkey, inpath, outpath):
 
 
 def cli_main():
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
@@ -2201,10 +2204,13 @@ def cli_main():
 
 
 def gui_main():
-    import Tkinter
-    import Tkconstants
-    import tkFileDialog
-    import tkMessageBox
+    try:
+        import Tkinter
+        import Tkconstants
+        import tkMessageBox
+        import traceback
+    except:
+        return cli_main()
 
     class DecryptionDialog(Tkinter.Frame):
         def __init__(self, root):
@@ -2321,7 +2327,5 @@ def gui_main():
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        sys.stdout=SafeUnbuffered(sys.stdout)
-        sys.stderr=SafeUnbuffered(sys.stderr)
         sys.exit(cli_main())
     sys.exit(gui_main())

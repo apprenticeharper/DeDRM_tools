@@ -34,13 +34,14 @@ from __future__ import with_statement
 #   3.7 - Tweaked to match ineptepub more closely
 #   3.8 - Fixed to retain zip file metadata (e.g. file modification date)
 #   3.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
+#   4.0 - Work if TkInter is missing
 
 """
 Decrypt Barnes & Noble encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "3.9"
+__version__ = "4.0"
 
 import sys
 import os
@@ -318,6 +319,8 @@ def decryptBook(keyb64, inpath, outpath):
 
 
 def cli_main():
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
@@ -331,10 +334,13 @@ def cli_main():
     return result
 
 def gui_main():
-    import Tkinter
-    import Tkconstants
-    import tkFileDialog
-    import traceback
+    try:
+        import Tkinter
+        import Tkconstants
+        import tkMessageBox
+        import traceback
+    except:
+        return cli_main()
 
     class DecryptionDialog(Tkinter.Frame):
         def __init__(self, root):
@@ -442,7 +448,5 @@ def gui_main():
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        sys.stdout=SafeUnbuffered(sys.stdout)
-        sys.stderr=SafeUnbuffered(sys.stderr)
         sys.exit(cli_main())
     sys.exit(gui_main())

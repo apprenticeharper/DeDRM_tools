@@ -9,7 +9,7 @@ If the downloaded file is encrypted, install and configure the ignoble plugin in
 DOWNLOAD HIDDEN FILES FROM B&N
 ------------------------------
 
-Some content is not downloadable from the B&N website, notably magazines. A Greasemonkey script (link below) modifies the myNook page of the Barnes and Noble website to show a download button for normally non-downloadable content. This will work until Barnes & Noble changes their website.
+Some content is not downloadable from the B&N website, notably magazines. A Greasemonkey script (details below) modifies the myNook page of the Barnes and Noble website to show a download button for normally non-downloadable content. This will work until Barnes & Noble changes their website.
 
 Prerequisites
 -------------
