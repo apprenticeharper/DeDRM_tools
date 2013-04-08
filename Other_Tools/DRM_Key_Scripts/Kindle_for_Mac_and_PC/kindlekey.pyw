@@ -18,6 +18,7 @@ from __future__ import with_statement
 #  1.5   - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  1.6   - Fixed a problem getting the disk serial numbers
 #  1.7   - Work if TkInter is missing
+#  1.8   - Fixes for Kindle for Mac, and non-ascii in Windows user names
 
 
 """
@@ -25,7 +26,7 @@ Retrieve Kindle for PC/Mac user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '1.7'
+__version__ = '1.8'
 
 import sys, os, re
 from struct import pack, unpack, unpack_from
@@ -1142,7 +1143,7 @@ if iswindows:
                 DB[keyname] = cleartext
 
         if 'MazamaRandomNumber' in DB and 'kindle.account.tokens' in DB:
-            print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName())
+            print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().decode("latin-1"))
             # store values used in decryption
             DB['IDString'] = GetIDString()
             DB['UserName'] = GetUserName()
@@ -1521,20 +1522,32 @@ elif isosx:
             kInfoFiles.append(testpath)
             print('Found k4Mac kinf2011 file: ' + testpath)
             found = True
-        # check for  .kinf2011 files
+        # check for  .kinf2011 files from 1.10
         testpath = home + '/Library/Application Support/Kindle/storage/.kinf2011'
         if os.path.isfile(testpath):
             kInfoFiles.append(testpath)
             print('Found k4Mac kinf2011 file: ' + testpath)
             found = True
-        # check for  .rainier-2.1.1-kinf files
+        # check for  .rainier-2.1.1-kinf files from 1.6
         testpath = home + '/Library/Application Support/Kindle/storage/.rainier-2.1.1-kinf'
         if os.path.isfile(testpath):
             kInfoFiles.append(testpath)
             print('Found k4Mac rainier file: ' + testpath)
             found = True
-        # check for  .kindle-info files
+        # check for  .kindle-info files from 1.4
         testpath = home + '/Library/Application Support/Kindle/storage/.kindle-info'
+        if os.path.isfile(testpath):
+            kInfoFiles.append(testpath)
+            print('Found k4Mac kindle-info file: ' + testpath)
+            found = True
+        # check for  .kindle-info file from 1.2.2
+        testpath = home + '/Library/Application Support/Amazon/Kindle/storage/.kindle-info'
+        if os.path.isfile(testpath):
+            kInfoFiles.append(testpath)
+            print('Found k4Mac kindle-info file: ' + testpath)
+            found = True
+        # check for  .kindle-info file from 1.0 beta 1 (27214)
+        testpath = home + '/Library/Application Support/Amazon/Kindle for Mac/storage/.kindle-info'
         if os.path.isfile(testpath):
             kInfoFiles.append(testpath)
             print('Found k4Mac kindle-info file: ' + testpath)

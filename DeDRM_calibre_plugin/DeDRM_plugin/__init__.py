@@ -27,14 +27,15 @@ __docformat__ = 'restructuredtext en'
 # Revision history:
 #   6.0.0 - Initial release
 #   6.0.1 - Bug Fixes for Windows App, Kindle for Mac and Windows Adobe Digital Editions
-#   6.0.2 - Restored call to Wine to get Kindle for PC keys
+#   6.0.2 - Restored call to Wine to get Kindle for PC keys, added for ADE
+#   6.0.3 - Fixes for Kindle for Mac and Windows non-ascii user names
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 0, 2)
+PLUGIN_VERSION_TUPLE = (6, 0, 3)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'

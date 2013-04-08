@@ -7,9 +7,10 @@
 # Revision history:
 #   6.0.0 - Release along with unified plugin
 #   6.0.1 - Bug Fixes for Windows App
-#   6.0.2 - Changes only in the plugin so far
+#   6.0.2 - Fixed problem with spaces in paths and the bat file
+#   6.0.3 - Fix for Windows non-ascii user names
 
-__version__ = '6.0.2'
+__version__ = '6.0.3'
 
 import sys
 import os, os.path

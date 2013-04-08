@@ -1,7 +1,7 @@
 Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.0.2 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.0.3 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
 
 The is archive includes tools to remove DRM from:
 
@@ -84,6 +84,9 @@ A Javascript to enable a download button at the B&N website for ebooks that norm
 
 Scuolabook_DRM
 A windows-only application (including source code) for removing DRM from ScuolaBooks PDFs, created by "Hex" and included with permission.
+
+Rocket_ebooks
+Information about the now-obsolete Rocket ebook format and DRM, along with source for a tool to remove the DRM.
 
 
 

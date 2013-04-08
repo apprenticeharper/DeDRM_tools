@@ -24,9 +24,11 @@
 	<key>CFBundleExecutable</key>
 	<string>droplet</string>
 	<key>CFBundleGetInfoString</key>
-	<string>DeDRM AppleScript 6.0.2. Written 2010–2013 by Apprentice Alf and others.</string>
+	<string>DeDRM AppleScript 6.0.3. Written 2010–2013 by Apprentice Alf and others.</string>
 	<key>CFBundleIconFile</key>
 	<string>DeDRM</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.apple.ScriptEditor.id.707CCCD5-0C6C-4BEB-B67C-B6E866ADE85A</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -34,7 +36,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>6.0.2</string>
+	<string>6.0.3</string>
 	<key>CFBundleSignature</key>
 	<string>dplt</string>
 	<key>LSRequiresCarbon</key>
@@ -48,9 +50,9 @@
 		<key>name</key>
 		<string>ScriptWindowState</string>
 		<key>positionOfDivider</key>
-		<real>0</real>
+		<real>0.0</real>
 		<key>savedFrame</key>
-		<string>1616 -35 765 818 1440 -180 1920 1080 </string>
+		<string>320 125 1002 753 0 0 1440 878 </string>
 		<key>selectedTabView</key>
 		<string>event log</string>
 	</dict>
