@@ -29,13 +29,15 @@ __docformat__ = 'restructuredtext en'
 #   6.0.1 - Bug Fixes for Windows App, Kindle for Mac and Windows Adobe Digital Editions
 #   6.0.2 - Restored call to Wine to get Kindle for PC keys, added for ADE
 #   6.0.3 - Fixes for Kindle for Mac and Windows non-ascii user names
+#   6.0.4 - Fixes for stand-alone scripts and applications
+#           and pdb files in plugin and initial conversion of prefs.
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 0, 3)
+PLUGIN_VERSION_TUPLE = (6, 0, 4)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -427,7 +429,7 @@ class DeDRM(FileTypePlugin):
         import calibre_plugins.dedrm.prefs as prefs
         import calibre_plugins.dedrm.erdr2pml
 
-        dedrmrefs = prefs.DeDRM_Prefs()
+        dedrmprefs = prefs.DeDRM_Prefs()
         # Attempt to decrypt epub with each encryption key (generated or provided).
         for keyname, userkey in dedrmprefs['ereaderkeys'].items():
             keyname_masked = u"".join((u'X' if (x.isdigit()) else x) for x in keyname)

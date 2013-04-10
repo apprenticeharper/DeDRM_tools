@@ -54,8 +54,9 @@ from __future__ import with_statement
 #  5.0 - Extraction of info from Kindle for PC/Mac moved into kindlekey.py
 #      - tweaked GetDecryptedBook interface to leave passed parameters unchanged
 #  5.1 - moved unicode_argv call inside main for Windows DeDRM compatibility
+#  5.2 - Fixed error in command line processing of unicode arguments
 
-__version__ = '5.1'
+__version__ = '5.2'
 
 
 import sys, os, re
@@ -283,7 +284,7 @@ def cli_main():
     print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2013 The Dark Reverser et al.".format(__version__)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "k:p:s:")
+        opts, args = getopt.getopt(argv[1:], "k:p:s:")
     except getopt.GetoptError, err:
         print u"Error in options or arguments: {0}".format(err.args[0])
         usage(progname)

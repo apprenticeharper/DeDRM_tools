@@ -68,9 +68,10 @@
 #  0.38 - Unicode used wherever possible, cope with absent alfcrypto
 #  0.39 - Fixed problem with TEXtREAd and getBookType interface
 #  0.40 - moved unicode_argv call inside main for Windows DeDRM compatibility
+#  0.41 - Fixed potential unicode problem in command line calls
 
 
-__version__ = u"0.40"
+__version__ = u"0.41"
 
 import sys
 import os
@@ -514,7 +515,7 @@ def cli_main():
         print u"MobiDeDrm v{0}.\nCopyright © 2008-2012 The Dark Reverser et al.".format(__version__)
         print u"Removes protection from Kindle/Mobipocket, Kindle/KF8 and Kindle/Print Replica ebooks"
         print u"Usage:"
-        print u"    {0} <infile> <outfile> [<Comma separated list of PIDs to try>]".format(os.path.basename(sys.argv[0]))
+        print u"    {0} <infile> <outfile> [<Comma separated list of PIDs to try>]".format(progname)
         return 1
     else:
         infile = argv[1]

@@ -9,8 +9,9 @@
 #   6.0.1 - Bug Fixes for Windows App
 #   6.0.2 - Fixed problem with spaces in paths and the bat file
 #   6.0.3 - Fix for Windows non-ascii user names
+#   6.0.4 - Fix for other potential unicode problems
 
-__version__ = '6.0.3'
+__version__ = '6.0.4'
 
 import sys
 import os, os.path
