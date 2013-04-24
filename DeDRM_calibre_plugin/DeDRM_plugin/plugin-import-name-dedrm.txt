@@ -114,7 +114,7 @@ def convertprefs(always = False):
                 # Generate eReader user key from name and credit card number.
                 keyname = u"{0}_{1}".format(name.strip(),cc.strip()[-4:])
                 keyvalue = getuser_key(name,cc).encode('hex')
-                userkeysappend([keyname,keyvalue])
+                userkeys.append([keyname,keyvalue])
             except Exception, e:
                 traceback.print_exc()
                 print e.args[0]

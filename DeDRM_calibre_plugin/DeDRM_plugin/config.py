@@ -6,7 +6,7 @@ from __future__ import with_statement
 __license__ = 'GPL v3'
 
 # Standard Python modules.
-import os, traceback
+import os, traceback, json
 
 # PyQT4 modules (part of calibre).
 from PyQt4.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
@@ -178,8 +178,8 @@ class ManageKeysDialog(QDialog):
         self.create_key = create_key
         self.keyfile_ext = keyfile_ext
         self.import_key = (keyfile_ext != u"")
-        self.binary_file = (keyfile_ext == u".der")
-        self.json_file = (keyfile_ext == u".k4i")
+        self.binary_file = (keyfile_ext == u"der")
+        self.json_file = (keyfile_ext == u"k4i")
         self.wineprefix = wineprefix
 
         self.setWindowTitle("{0} {1}: Manage {2}s".format(PLUGIN_NAME, PLUGIN_VERSION, self.key_type_name))
@@ -676,7 +676,7 @@ class AddAdeptDialog(QDialog):
                 from calibre_plugins.dedrm.adobekey import adeptkeys
 
                 defaultkeys = adeptkeys()
-            else: # linux
+            else:  # linux
                 from wineutils import WineGetKeys
 
                 scriptpath = os.path.join(parent.parent.alfdir,u"adobekey.py")
