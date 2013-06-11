@@ -51,14 +51,15 @@ from __future__ import with_statement
 #   7.12 - Revised to allow use in calibre plugins to eliminate need for duplicate code
 #   7.13 - Fixed erroneous mentions of ineptepub
 #   7.14 - moved unicode_argv call inside main for Windows DeDRM compatibility
-#   8.0 - Work if TkInter is missing
+#   8.0  - Work if TkInter is missing
+#   8.0.1 - Broken Metadata fix.
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "8.0"
+__version__ = "8.0.1"
 
 import sys
 import os
@@ -949,8 +950,11 @@ class PSStackParser(PSBaseParser):
                 try:
                     (pos, objs) = self.end_type('d')
                     if len(objs) % 2 != 0:
-                        raise PSSyntaxError(
-                            'Invalid dictionary construct: %r' % objs)
+                        print "Incomplete dictionary construct"
+                        objs.append("") # this isn't necessary.
+                        # temporary fix. is this due to rental books?
+                        # raise PSSyntaxError(
+                        #     'Invalid dictionary construct: %r' % objs)
                     d = dict((literal_name(k), v) \
                                  for (k,v) in choplist(2, objs))
                     self.push((pos, d))

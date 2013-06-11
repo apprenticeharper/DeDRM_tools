@@ -114,7 +114,7 @@ def convertprefs(always = False):
                 # Generate eReader user key from name and credit card number.
                 keyname = u"{0}_{1}".format(name.strip(),cc.strip()[-4:])
                 keyvalue = getuser_key(name,cc).encode('hex')
-                userkeysappend([keyname,keyvalue])
+                userkeys.append([keyname,keyvalue])
             except Exception, e:
                 traceback.print_exc()
                 print e.args[0]
@@ -231,21 +231,20 @@ def convertprefs(always = False):
         dedrmprefs.addnamedvaluetoprefs('bandnkeys', name, value)
     addedkeycount = len(dedrmprefs['bandnkeys'])-priorkeycount
     if addedkeycount > 0:
-        print u"{0} v{1}: {2:d} Barnes and Noble {3} imported from config folder.".format(PLUGIN_NAME, PLUGIN_VERSION, ignoblecount, u"key file" if ignoblecount==1 else u"key files")
+        print u"{0} v{1}: {2:d} Barnes and Noble {3} imported from config folder.".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, u"key file" if addedkeycount==1 else u"key files")
     # Make the json write all the prefs to disk
     dedrmprefs.writeprefs(False)
 
     # get any .der files in the config dir
     priorkeycount = len(dedrmprefs['adeptkeys'])
     adeptfilekeys = getConfigFiles('.der','hex')
-    ineptcount = addConfigFiles('.der', 'adeptkeys')
     for keypair in adeptfilekeys:
         name = keypair[0]
         value = keypair[1]
         dedrmprefs.addnamedvaluetoprefs('adeptkeys', name, value)
     addedkeycount = len(dedrmprefs['adeptkeys'])-priorkeycount
     if addedkeycount > 0:
-        print u"{0} v{1}: {2:d} Adobe Adept {3} imported from config folder.".format(PLUGIN_NAME, PLUGIN_VERSION, ineptcount, u"keyfile" if ineptcount==1 else u"keyfiles")
+        print u"{0} v{1}: {2:d} Adobe Adept {3} imported from config folder.".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, u"keyfile" if addedkeycount==1 else u"keyfiles")
     # Make the json write all the prefs to disk
     dedrmprefs.writeprefs(False)
 
@@ -280,7 +279,7 @@ def convertprefs(always = False):
     if addedserialcount > 0:
         print u"{0} v{1}: {2:d} {3} imported from Kindle plugin preferences".format(PLUGIN_NAME, PLUGIN_VERSION, addedserialcount, u"serial number" if addedserialcount==1 else u"serial numbers")
     try:
-        if kindleprefs['wineprefix'] != "":
+        if 'wineprefix' in kindleprefs and kindleprefs['wineprefix'] != "":
             dedrmprefs.set('adobewineprefix',kindleprefs['wineprefix'])
             dedrmprefs.set('kindlewineprefix',kindleprefs['wineprefix'])
             print u"{0} v{1}: WINEPREFIX ‘(2)’ imported from Kindle plugin preferences".format(PLUGIN_NAME, PLUGIN_VERSION, kindleprefs['wineprefix'])

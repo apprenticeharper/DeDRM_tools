@@ -31,13 +31,14 @@ __docformat__ = 'restructuredtext en'
 #   6.0.3 - Fixes for Kindle for Mac and Windows non-ascii user names
 #   6.0.4 - Fixes for stand-alone scripts and applications
 #           and pdb files in plugin and initial conversion of prefs.
+#   6.0.6 - Fix up an incorrect function call
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 0, 5)
+PLUGIN_VERSION_TUPLE = (6, 0, 7)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -216,10 +217,10 @@ class DeDRM(FileTypePlugin):
                 else: # linux
                     from wineutils import WineGetKeys
 
-                    scriptpath = os.join(self.alfdir,u"adobekey.py")
+                    scriptpath = os.path.join(self.alfdir,u"adobekey.py")
                     defaultkeys = WineGetKeys(scriptpath, u".der",dedrmprefs['adobewineprefix'])
 
-                self.default_key = default_keys[0]
+                self.default_key = defaultkeys[0]
             except:
                 traceback.print_exc()
                 self.default_key = u""
@@ -311,7 +312,7 @@ class DeDRM(FileTypePlugin):
                 try:
                     from wineutils import WineGetKeys
 
-                    scriptpath = os.join(self.alfdir,u"adobekey.py")
+                    scriptpath = os.path.join(self.alfdir,u"adobekey.py")
                     defaultkeys = self.WineGetKeys(scriptpath, u".der",dedrmprefs['adobewineprefix'])
                 except:
                     pass
@@ -389,7 +390,7 @@ class DeDRM(FileTypePlugin):
                 else: # linux
                     from wineutils import WineGetKeys
 
-                    scriptpath = os.join(self.alfdir,u"kindlekey.py")
+                    scriptpath = os.path.join(self.alfdir,u"kindlekey.py")
                     defaultkeys = self.WineGetKeys(scriptpath, u".k4i",dedrmprefs['kindlewineprefix'])
             except:
                 pass

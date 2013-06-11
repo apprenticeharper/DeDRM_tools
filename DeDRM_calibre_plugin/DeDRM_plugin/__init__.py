@@ -38,7 +38,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 0, 6)
+PLUGIN_VERSION_TUPLE = (6, 0, 7)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -220,7 +220,7 @@ class DeDRM(FileTypePlugin):
                     scriptpath = os.path.join(self.alfdir,u"adobekey.py")
                     defaultkeys = WineGetKeys(scriptpath, u".der",dedrmprefs['adobewineprefix'])
 
-                self.default_key = default_keys[0]
+                self.default_key = defaultkeys[0]
             except:
                 traceback.print_exc()
                 self.default_key = u""

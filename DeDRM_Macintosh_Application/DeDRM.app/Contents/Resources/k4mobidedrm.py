@@ -188,7 +188,7 @@ def unescape(text):
 def GetDecryptedBook(infile, kDatabases, serials, pids, starttime = time.time()):
     # handle the obvious cases at the beginning
     if not os.path.isfile(infile):
-        raise DRMException (u"Input file does not exist.")
+        raise DrmException(u"Input file does not exist.")
 
     mobi = True
     magic3 = open(infile,'rb').read(3)

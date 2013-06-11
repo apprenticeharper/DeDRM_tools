@@ -71,7 +71,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = 'utf-8'
-        return [arg if (type(arg) == unicode) else unicode(arg, argvencoding) for arg in sys.argv]
+        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
 
 #global switch
 debug = False
@@ -92,12 +92,12 @@ class DrmException(Exception):
 def zipUpDir(myzip, tdir, localname):
     currentdir = tdir
     if localname != u"":
-        currentdir = os.path.join(currentdir, localname)
+        currentdir = os.path.join(currentdir,localname)
     list = os.listdir(currentdir)
     for file in list:
         afilename = file
         localfilePath = os.path.join(localname, afilename)
-        realfilePath = os.path.join(currentdir, file)
+        realfilePath = os.path.join(currentdir,file)
         if os.path.isfile(realfilePath):
             myzip.write(realfilePath, localfilePath)
         elif os.path.isdir(realfilePath):
@@ -116,7 +116,7 @@ def bookReadEncodedNumber(fo):
         data = ord(fo.read(1))
     if data >= 0x80:
         datax = (data & 0x7F)
-        while data >= 0x80:
+        while data >= 0x80 :
             data = ord(fo.read(1))
             datax = (datax <<7) + (data & 0x7F)
         data = datax

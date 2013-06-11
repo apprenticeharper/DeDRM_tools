@@ -3,7 +3,7 @@
 
 from __future__ import with_statement
 
-# ineptepub.pyw, version 5.9
+# ineptepub.pyw, version 6.1
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
