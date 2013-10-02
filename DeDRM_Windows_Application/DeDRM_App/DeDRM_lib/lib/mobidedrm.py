@@ -156,6 +156,8 @@ def PC1(key, src, decryption=True):
         return Pukall_Cipher().PC1(key,src,decryption)
     except NameError:
         pass
+    except TypeError:
+        pass
 
     # use slow python version, since Pukall_Cipher didn't load
     sum1 = 0;

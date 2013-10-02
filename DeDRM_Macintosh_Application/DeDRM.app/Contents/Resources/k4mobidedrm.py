@@ -80,10 +80,12 @@ if inCalibre:
     from calibre_plugins.dedrm import mobidedrm
     from calibre_plugins.dedrm import topazextract
     from calibre_plugins.dedrm import kgenpids
+    from calibre_plugins.dedrm import android
 else:
     import mobidedrm
     import topazextract
     import kgenpids
+    import android
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -273,7 +275,7 @@ def decryptBook(infile, outdir, kDatabaseFiles, serials, pids):
 def usage(progname):
     print u"Removes DRM protection from Mobipocket, Amazon KF8, Amazon Print Replica and Amazon Topaz ebooks"
     print u"Usage:"
-    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname)
+    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] [ -a <AmazonSecureStorage.xml> ] <infile> <outdir>".format(progname)
 
 #
 # Main
@@ -284,7 +286,7 @@ def cli_main():
     print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2013 The Dark Reverser et al.".format(__version__)
 
     try:
-        opts, args = getopt.getopt(argv[1:], "k:p:s:")
+        opts, args = getopt.getopt(argv[1:], "k:p:s:a:")
     except getopt.GetoptError, err:
         print u"Error in options or arguments: {0}".format(err.args[0])
         usage(progname)
@@ -312,6 +314,11 @@ def cli_main():
             if a == None :
                 raise DrmException("Invalid parameter for -s")
             serials = a.split(',')
+        if o == '-a':
+            if a == None:
+                continue
+            serials.extend(android.get_serials(a))
+    serials.extend(android.get_serials())
 
     # try with built in Kindle Info files if not on Linux
     k4 = not sys.platform.startswith('linux')

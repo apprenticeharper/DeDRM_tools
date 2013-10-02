@@ -458,7 +458,11 @@ class DocParser(object):
             (wtype, num) = pdesc[j]
 
             if wtype == 'ocr' :
-                word = self.ocrtext[num]
+                try:
+                    word = self.ocrtext[num]
+                except:
+                    word = ""
+
                 sep = ' '
 
                 if handle_links:

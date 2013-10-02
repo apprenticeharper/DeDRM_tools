@@ -19,6 +19,7 @@ from __future__ import with_statement
 #  1.6   - Fixed a problem getting the disk serial numbers
 #  1.7   - Work if TkInter is missing
 #  1.8   - Fixes for Kindle for Mac, and non-ascii in Windows user names
+#  1.9   - Fixes for Unicode in Windows user names
 
 
 """
@@ -26,7 +27,7 @@ Retrieve Kindle for PC/Mac user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '1.8'
+__version__ = '1.9'
 
 import sys, os, re
 from struct import pack, unpack, unpack_from
@@ -907,18 +908,34 @@ if iswindows:
         return CryptUnprotectData
     CryptUnprotectData = CryptUnprotectData()
 
+    # Returns Environmental Variables that contain unicode
+    def getEnvironmentVariable(name):
+        import ctypes
+        name = unicode(name) # make sure string argument is unicode
+        n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
+        if n == 0:
+            return None
+        buf = ctypes.create_unicode_buffer(u'\0'*n)
+        ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
+        return buf.value
 
     # Locate all of the kindle-info style files and return as list
     def getKindleInfoFiles():
         kInfoFiles = []
         # some 64 bit machines do not have the proper registry key for some reason
-        # or the pythonn interface to the 32 vs 64 bit registry is broken
+        # or the python interface to the 32 vs 64 bit registry is broken
         path = ""
         if 'LOCALAPPDATA' in os.environ.keys():
-            path = os.environ['LOCALAPPDATA']
+			# Python 2.x does not return unicode env. Use Python 3.x
+            path = winreg.ExpandEnvironmentStrings(u"%LOCALAPPDATA%")
+            # this is just another alternative.
+            # path = getEnvironmentVariable('LOCALAPPDATA')
+            if not os.path.isdir(path):
+                path = ""
         else:
             # User Shell Folders show take precedent over Shell Folders if present
             try:
+                # this will still break
                 regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders\\")
                 path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
                 if not os.path.isdir(path):
@@ -937,13 +954,14 @@ if iswindows:
         if path == "":
             print ('Could not find the folder in which to look for kinfoFiles.')
         else:
-            print('searching for kinfoFiles in ' + path)
+            # Probably not the best. To Fix (shouldn't ignore in encoding) or use utf-8
+            print(u'searching for kinfoFiles in ' + path.encode('ascii', 'ignore'))
 
             # look for (K4PC 1.9.0 and later) .kinf2011 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 1.9+ kinf2011 file: ' + kinfopath)
+                print('Found K4PC 1.9+ kinf2011 file: ' + kinfopath.encode('ascii','ignore'))
                 kInfoFiles.append(kinfopath)
 
             # look for (K4PC 1.6.0 and later) rainier.2.1.1.kinf file
@@ -1142,7 +1160,7 @@ if iswindows:
                 cleartext = CryptUnprotectData(encryptedValue, entropy, 1)
                 DB[keyname] = cleartext
 
-        if 'MazamaRandomNumber' in DB and 'kindle.account.tokens' in DB:
+        if 'kindle.account.tokens' in DB:
             print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().decode("latin-1"))
             # store values used in decryption
             DB['IDString'] = GetIDString()
@@ -1758,7 +1776,7 @@ elif isosx:
                         break
             except:
                 pass
-        if 'MazamaRandomNumber' in DB and 'kindle.account.tokens' in DB:
+        if 'kindle.account.tokens' in DB:
             # store values used in decryption
             print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName())
             DB['IDString'] = IDString

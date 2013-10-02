@@ -178,7 +178,12 @@ class DocParser(object):
                             if val == "":
                                 val = 0
 
-                            if not ((attr == 'hang') and (int(val) == 0)) :
+                            if not ((attr == 'hang') and (int(val) == 0)):
+                                try:
+                                    f = float(val)
+                                except:
+                                    print "Warning: unrecognised val, ignoring"
+                                    val = 0
                                 pv = float(val)/scale
                                 cssargs[attr] = (self.attr_val_map[attr], pv)
                                 keep = True

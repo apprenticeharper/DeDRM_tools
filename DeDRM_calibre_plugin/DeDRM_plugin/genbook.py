@@ -1,452 +1,721 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#! /usr/bin/python
+# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
-from __future__ import with_statement
-
-# ignobleepub.pyw, version 3.8
-# Copyright © 2009-2010 by i♥cabbages
-
-# Released under the terms of the GNU General Public Licence, version 3
-# <http://www.gnu.org/licenses/>
-
-# Modified 2010–2013 by some_updates, DiapDealer and Apprentice Alf
-
-# Windows users: Before running this program, you must first install Python 2.6
-#   from <http://www.python.org/download/> and PyCrypto from
-#   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
-#   install the version for Python 2.6).  Save this script file as
-#   ineptepub.pyw and double-click on it to run it.
-#
-# Mac OS X users: Save this script file as ineptepub.pyw.  You can run this
-#   program from the command line (pythonw ineptepub.pyw) or by double-clicking
-#   it when it has been associated with PythonLauncher.
-
-# Revision history:
-#   1 - Initial release
-#   2 - Added OS X support by using OpenSSL when available
-#   3 - screen out improper key lengths to prevent segfaults on Linux
-#   3.1 - Allow Windows versions of libcrypto to be found
-#   3.2 - add support for encoding to 'utf-8' when building up list of files to decrypt from encryption.xml
-#   3.3 - On Windows try PyCrypto first, OpenSSL next
-#   3.4 - Modify interface to allow use with import
-#   3.5 - Fix for potential problem with PyCrypto
-#   3.6 - Revised to allow use in calibre plugins to eliminate need for duplicate code
-#   3.7 - Tweaked to match ineptepub more closely
-#   3.8 - Fixed to retain zip file metadata (e.g. file modification date)
-#   3.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
-#   4.0 - Work if TkInter is missing
-
-"""
-Decrypt Barnes & Noble encrypted ePub books.
-"""
-
-__license__ = 'GPL v3'
-__version__ = "4.0"
-
-import sys
-import os
-import traceback
-import zlib
-import zipfile
-from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
-from contextlib import closing
-import xml.etree.ElementTree as etree
-
-# Wrap a stream so that output gets flushed immediately
-# and also make sure that any unicode strings get
-# encoded using "replace" before writing them.
-class SafeUnbuffered:
+class Unbuffered:
     def __init__(self, stream):
         self.stream = stream
-        self.encoding = stream.encoding
-        if self.encoding == None:
-            self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
-            data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
-try:
-    from calibre.constants import iswindows, isosx
-except:
-    iswindows = sys.platform.startswith('win')
-    isosx = sys.platform.startswith('darwin')
+import sys
+sys.stdout=Unbuffered(sys.stdout)
 
-def unicode_argv():
-    if iswindows:
-        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-        # strings.
+import csv
+import os
+import getopt
+from struct import pack
+from struct import unpack
 
-        # Versions 2.x of Python don't support Unicode in sys.argv on
-        # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.
-
-
-        from ctypes import POINTER, byref, cdll, c_int, windll
-        from ctypes.wintypes import LPCWSTR, LPWSTR
-
-        GetCommandLineW = cdll.kernel32.GetCommandLineW
-        GetCommandLineW.argtypes = []
-        GetCommandLineW.restype = LPCWSTR
-
-        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-        CommandLineToArgvW.restype = POINTER(LPWSTR)
-
-        cmd = GetCommandLineW()
-        argc = c_int(0)
-        argv = CommandLineToArgvW(cmd, byref(argc))
-        if argc.value > 0:
-            # Remove Python executable and commands if present
-            start = argc.value - len(sys.argv)
-            return [argv[i] for i in
-                    xrange(start, argc.value)]
-        return [u"ineptepub.py"]
-    else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
-
-
-class IGNOBLEError(Exception):
+class TpzDRMError(Exception):
     pass
 
-def _load_crypto_libcrypto():
-    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
-        Structure, c_ulong, create_string_buffer, cast
-    from ctypes.util import find_library
+# local support routines
+if 'calibre' in sys.modules:
+    inCalibre = True
+else:
+    inCalibre = False
 
-    if iswindows:
-        libcrypto = find_library('libeay32')
-    else:
-        libcrypto = find_library('crypto')
+if inCalibre :
+    from calibre_plugins.dedrm import convert2xml
+    from calibre_plugins.dedrm import flatxml2html
+    from calibre_plugins.dedrm import flatxml2svg
+    from calibre_plugins.dedrm import stylexml2css
+else :
+    import convert2xml
+    import flatxml2html
+    import flatxml2svg
+    import stylexml2css
 
-    if libcrypto is None:
-        raise IGNOBLEError('libcrypto not found')
-    libcrypto = CDLL(libcrypto)
+# global switch
+buildXML = False
 
-    AES_MAXNR = 14
+# Get a 7 bit encoded number from a file
+def readEncodedNumber(file):
+    flag = False
+    c = file.read(1)
+    if (len(c) == 0):
+        return None
+    data = ord(c)
+    if data == 0xFF:
+        flag = True
+        c = file.read(1)
+        if (len(c) == 0):
+            return None
+        data = ord(c)
+    if data >= 0x80:
+        datax = (data & 0x7F)
+        while data >= 0x80 :
+            c = file.read(1)
+            if (len(c) == 0):
+                return None
+            data = ord(c)
+            datax = (datax <<7) + (data & 0x7F)
+        data = datax
+    if flag:
+        data = -data
+    return data
 
-    c_char_pp = POINTER(c_char_p)
-    c_int_p = POINTER(c_int)
+# Get a length prefixed string from the file
+def lengthPrefixString(data):
+    return encodeNumber(len(data))+data
 
-    class AES_KEY(Structure):
-        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
-                    ('rounds', c_int)]
-    AES_KEY_p = POINTER(AES_KEY)
+def readString(file):
+    stringLength = readEncodedNumber(file)
+    if (stringLength == None):
+        return None
+    sv = file.read(stringLength)
+    if (len(sv)  != stringLength):
+        return ""
+    return unpack(str(stringLength)+"s",sv)[0]
 
-    def F(restype, name, argtypes):
-        func = getattr(libcrypto, name)
-        func.restype = restype
-        func.argtypes = argtypes
-        return func
-
-    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
-                            [c_char_p, c_int, AES_KEY_p])
-    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
-                        [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
-                         c_int])
-
-    class AES(object):
-        def __init__(self, userkey):
-            self._blocksize = len(userkey)
-            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                raise IGNOBLEError('AES improper key used')
-                return
-            key = self._key = AES_KEY()
-            rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
-            if rv < 0:
-                raise IGNOBLEError('Failed to initialize AES key')
-
-        def decrypt(self, data):
-            out = create_string_buffer(len(data))
-            iv = ("\x00" * self._blocksize)
-            rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
-            if rv == 0:
-                raise IGNOBLEError('AES decryption failed')
-            return out.raw
-
-    return AES
-
-def _load_crypto_pycrypto():
-    from Crypto.Cipher import AES as _AES
-
-    class AES(object):
-        def __init__(self, key):
-            self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
-
-        def decrypt(self, data):
-            return self._aes.decrypt(data)
-
-    return AES
-
-def _load_crypto():
-    AES = None
-    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
-    if sys.platform.startswith('win'):
-        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
-    for loader in cryptolist:
-        try:
-            AES = loader()
-            break
-        except (ImportError, IGNOBLEError):
-            pass
-    return AES
-
-AES = _load_crypto()
-
-META_NAMES = ('mimetype', 'META-INF/rights.xml', 'META-INF/encryption.xml')
-NSMAP = {'adept': 'http://ns.adobe.com/adept',
-         'enc': 'http://www.w3.org/2001/04/xmlenc#'}
-
-class Decryptor(object):
-    def __init__(self, bookkey, encryption):
-        enc = lambda tag: '{%s}%s' % (NSMAP['enc'], tag)
-        self._aes = AES(bookkey)
-        encryption = etree.fromstring(encryption)
-        self._encrypted = encrypted = set()
-        expr = './%s/%s/%s' % (enc('EncryptedData'), enc('CipherData'),
-                               enc('CipherReference'))
-        for elem in encryption.findall(expr):
-            path = elem.get('URI', None)
-            if path is not None:
-                path = path.encode('utf-8')
-                encrypted.add(path)
-
-    def decompress(self, bytes):
-        dc = zlib.decompressobj(-15)
-        bytes = dc.decompress(bytes)
-        ex = dc.decompress('Z') + dc.flush()
-        if ex:
-            bytes = bytes + ex
-        return bytes
-
-    def decrypt(self, path, data):
-        if path in self._encrypted:
-            data = self._aes.decrypt(data)[16:]
-            data = data[:-ord(data[-1])]
-            data = self.decompress(data)
-        return data
-
-# check file to make check whether it's probably an Adobe Adept encrypted ePub
-def ignobleBook(inpath):
-    with closing(ZipFile(open(inpath, 'rb'))) as inf:
-        namelist = set(inf.namelist())
-        if 'META-INF/rights.xml' not in namelist or \
-           'META-INF/encryption.xml' not in namelist:
-            return False
-        try:
-            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
-            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
-            expr = './/%s' % (adept('encryptedKey'),)
-            bookkey = ''.join(rights.findtext(expr))
-            if len(bookkey) == 64:
-                return True
-        except:
-            # if we couldn't check, assume it is
-            return True
-    return False
-
-def decryptBook(keyb64, inpath, outpath):
-    if AES is None:
-        raise IGNOBLEError(u"PyCrypto or OpenSSL must be installed.")
-    key = keyb64.decode('base64')[:16]
-    aes = AES(key)
-    with closing(ZipFile(open(inpath, 'rb'))) as inf:
-        namelist = set(inf.namelist())
-        if 'META-INF/rights.xml' not in namelist or \
-           'META-INF/encryption.xml' not in namelist:
-            print u"{0:s} is DRM-free.".format(os.path.basename(inpath))
-            return 1
-        for name in META_NAMES:
-            namelist.remove(name)
-        try:
-            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
-            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
-            expr = './/%s' % (adept('encryptedKey'),)
-            bookkey = ''.join(rights.findtext(expr))
-            if len(bookkey) != 64:
-                print u"{0:s} is not a secure Barnes & Noble ePub.".format(os.path.basename(inpath))
-                return 1
-            bookkey = aes.decrypt(bookkey.decode('base64'))
-            bookkey = bookkey[:-ord(bookkey[-1])]
-            encryption = inf.read('META-INF/encryption.xml')
-            decryptor = Decryptor(bookkey[-16:], encryption)
-            kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
-            with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
-                zi = ZipInfo('mimetype')
-                zi.compress_type=ZIP_STORED
-                try:
-                    # if the mimetype is present, get its info, including time-stamp
-                    oldzi = inf.getinfo('mimetype')
-                    # copy across fields to be preserved
-                    zi.date_time = oldzi.date_time
-                    zi.comment = oldzi.comment
-                    zi.extra = oldzi.extra
-                    zi.internal_attr = oldzi.internal_attr
-                    # external attributes are dependent on the create system, so copy both.
-                    zi.external_attr = oldzi.external_attr
-                    zi.create_system = oldzi.create_system
-                except:
-                    pass
-                outf.writestr(zi, inf.read('mimetype'))
-                for path in namelist:
-                    data = inf.read(path)
-                    zi = ZipInfo(path)
-                    zi.compress_type=ZIP_DEFLATED
-                    try:
-                        # get the file info, including time-stamp
-                        oldzi = inf.getinfo(path)
-                        # copy across useful fields
-                        zi.date_time = oldzi.date_time
-                        zi.comment = oldzi.comment
-                        zi.extra = oldzi.extra
-                        zi.internal_attr = oldzi.internal_attr
-                        # external attributes are dependent on the create system, so copy both.
-                        zi.external_attr = oldzi.external_attr
-                        zi.create_system = oldzi.create_system
-                    except:
-                        pass
-                    outf.writestr(zi, decryptor.decrypt(path, data))
-        except:
-            print u"Could not decrypt {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc())
-            return 2
-    return 0
-
-
-def cli_main():
-    sys.stdout=SafeUnbuffered(sys.stdout)
-    sys.stderr=SafeUnbuffered(sys.stderr)
-    argv=unicode_argv()
-    progname = os.path.basename(argv[0])
-    if len(argv) != 4:
-        print u"usage: {0} <keyfile.b64> <inbook.epub> <outbook.epub>".format(progname)
-        return 1
-    keypath, inpath, outpath = argv[1:]
-    userkey = open(keypath,'rb').read()
-    result = decryptBook(userkey, inpath, outpath)
-    if result == 0:
-        print u"Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath))
+def getMetaArray(metaFile):
+    # parse the meta file
+    result = {}
+    fo = file(metaFile,'rb')
+    size = readEncodedNumber(fo)
+    for i in xrange(size):
+        tag = readString(fo)
+        value = readString(fo)
+        result[tag] = value
+        # print tag, value
+    fo.close()
     return result
 
-def gui_main():
-    try:
-        import Tkinter
-        import Tkconstants
-        import tkMessageBox
-        import traceback
-    except:
-        return cli_main()
 
-    class DecryptionDialog(Tkinter.Frame):
-        def __init__(self, root):
-            Tkinter.Frame.__init__(self, root, border=5)
-            self.status = Tkinter.Label(self, text=u"Select files for decryption")
-            self.status.pack(fill=Tkconstants.X, expand=1)
-            body = Tkinter.Frame(self)
-            body.pack(fill=Tkconstants.X, expand=1)
-            sticky = Tkconstants.E + Tkconstants.W
-            body.grid_columnconfigure(1, weight=2)
-            Tkinter.Label(body, text=u"Key file").grid(row=0)
-            self.keypath = Tkinter.Entry(body, width=30)
-            self.keypath.grid(row=0, column=1, sticky=sticky)
-            if os.path.exists(u"bnepubkey.b64"):
-                self.keypath.insert(0, u"bnepubkey.b64")
-            button = Tkinter.Button(body, text=u"...", command=self.get_keypath)
-            button.grid(row=0, column=2)
-            Tkinter.Label(body, text=u"Input file").grid(row=1)
-            self.inpath = Tkinter.Entry(body, width=30)
-            self.inpath.grid(row=1, column=1, sticky=sticky)
-            button = Tkinter.Button(body, text=u"...", command=self.get_inpath)
-            button.grid(row=1, column=2)
-            Tkinter.Label(body, text=u"Output file").grid(row=2)
-            self.outpath = Tkinter.Entry(body, width=30)
-            self.outpath.grid(row=2, column=1, sticky=sticky)
-            button = Tkinter.Button(body, text=u"...", command=self.get_outpath)
-            button.grid(row=2, column=2)
-            buttons = Tkinter.Frame(self)
-            buttons.pack()
-            botton = Tkinter.Button(
-                buttons, text=u"Decrypt", width=10, command=self.decrypt)
-            botton.pack(side=Tkconstants.LEFT)
-            Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
-            button = Tkinter.Button(
-                buttons, text=u"Quit", width=10, command=self.quit)
-            button.pack(side=Tkconstants.RIGHT)
+# dictionary of all text strings by index value
+class Dictionary(object):
+    def __init__(self, dictFile):
+        self.filename = dictFile
+        self.size = 0
+        self.fo = file(dictFile,'rb')
+        self.stable = []
+        self.size = readEncodedNumber(self.fo)
+        for i in xrange(self.size):
+            self.stable.append(self.escapestr(readString(self.fo)))
+        self.pos = 0
+    def escapestr(self, str):
+        str = str.replace('&','&amp;')
+        str = str.replace('<','&lt;')
+        str = str.replace('>','&gt;')
+        str = str.replace('=','&#61;')
+        return str
+    def lookup(self,val):
+        if ((val >= 0) and (val < self.size)) :
+            self.pos = val
+            return self.stable[self.pos]
+        else:
+            print "Error: %d outside of string table limits" % val
+            raise TpzDRMError('outside or string table limits')
+            # sys.exit(-1)
+    def getSize(self):
+        return self.size
+    def getPos(self):
+        return self.pos
 
-        def get_keypath(self):
-            keypath = tkFileDialog.askopenfilename(
-                parent=None, title=u"Select Barnes & Noble \'.b64\' key file",
-                defaultextension=u".b64",
-                filetypes=[('base64-encoded files', '.b64'),
-                           ('All Files', '.*')])
-            if keypath:
-                keypath = os.path.normpath(keypath)
-                self.keypath.delete(0, Tkconstants.END)
-                self.keypath.insert(0, keypath)
-            return
 
-        def get_inpath(self):
-            inpath = tkFileDialog.askopenfilename(
-                parent=None, title=u"Select B&N-encrypted ePub file to decrypt",
-                defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
-            if inpath:
-                inpath = os.path.normpath(inpath)
-                self.inpath.delete(0, Tkconstants.END)
-                self.inpath.insert(0, inpath)
-            return
+class PageDimParser(object):
+    def __init__(self, flatxml):
+        self.flatdoc = flatxml.split('\n')
+    # find tag if within pos to end inclusive
+    def findinDoc(self, tagpath, pos, end) :
+        result = None
+        docList = self.flatdoc
+        cnt = len(docList)
+        if end == -1 :
+            end = cnt
+        else:
+            end = min(cnt,end)
+        foundat = -1
+        for j in xrange(pos, end):
+            item = docList[j]
+            if item.find('=') >= 0:
+                (name, argres) = item.split('=')
+            else :
+                name = item
+                argres = ''
+            if name.endswith(tagpath) :
+                result = argres
+                foundat = j
+                break
+        return foundat, result
+    def process(self):
+        (pos, sph) = self.findinDoc('page.h',0,-1)
+        (pos, spw) = self.findinDoc('page.w',0,-1)
+        if (sph == None): sph = '-1'
+        if (spw == None): spw = '-1'
+        return sph, spw
 
-        def get_outpath(self):
-            outpath = tkFileDialog.asksaveasfilename(
-                parent=None, title=u"Select unencrypted ePub file to produce",
-                defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
-            if outpath:
-                outpath = os.path.normpath(outpath)
-                self.outpath.delete(0, Tkconstants.END)
-                self.outpath.insert(0, outpath)
-            return
+def getPageDim(flatxml):
+    # create a document parser
+    dp = PageDimParser(flatxml)
+    (ph, pw) = dp.process()
+    return ph, pw
 
-        def decrypt(self):
-            keypath = self.keypath.get()
-            inpath = self.inpath.get()
-            outpath = self.outpath.get()
-            if not keypath or not os.path.exists(keypath):
-                self.status['text'] = u"Specified key file does not exist"
-                return
-            if not inpath or not os.path.exists(inpath):
-                self.status['text'] = u"Specified input file does not exist"
-                return
-            if not outpath:
-                self.status['text'] = u"Output file not specified"
-                return
-            if inpath == outpath:
-                self.status['text'] = u"Must have different input and output files"
-                return
-            userkey = open(keypath,'rb').read()
-            self.status['text'] = u"Decrypting..."
-            try:
-                decrypt_status = decryptBook(userkey, inpath, outpath)
-            except Exception, e:
-                self.status['text'] = u"Error: {0}".format(e.args[0])
-                return
-            if decrypt_status == 0:
-                self.status['text'] = u"File successfully decrypted"
+class GParser(object):
+    def __init__(self, flatxml):
+        self.flatdoc = flatxml.split('\n')
+        self.dpi = 1440
+        self.gh = self.getData('info.glyph.h')
+        self.gw = self.getData('info.glyph.w')
+        self.guse = self.getData('info.glyph.use')
+        if self.guse :
+            self.count = len(self.guse)
+        else :
+            self.count = 0
+        self.gvtx = self.getData('info.glyph.vtx')
+        self.glen = self.getData('info.glyph.len')
+        self.gdpi = self.getData('info.glyph.dpi')
+        self.vx = self.getData('info.vtx.x')
+        self.vy = self.getData('info.vtx.y')
+        self.vlen = self.getData('info.len.n')
+        if self.vlen :
+            self.glen.append(len(self.vlen))
+        elif self.glen:
+            self.glen.append(0)
+        if self.vx :
+            self.gvtx.append(len(self.vx))
+        elif self.gvtx :
+            self.gvtx.append(0)
+    def getData(self, path):
+        result = None
+        cnt = len(self.flatdoc)
+        for j in xrange(cnt):
+            item = self.flatdoc[j]
+            if item.find('=') >= 0:
+                (name, argt) = item.split('=')
+                argres = argt.split('|')
             else:
-                self.status['text'] = u"The was an error decrypting the file."
+                name = item
+                argres = []
+            if (name == path):
+                result = argres
+                break
+        if (len(argres) > 0) :
+            for j in xrange(0,len(argres)):
+                argres[j] = int(argres[j])
+        return result
+    def getGlyphDim(self, gly):
+        if self.gdpi[gly] == 0:
+            return 0, 0
+        maxh = (self.gh[gly] * self.dpi) / self.gdpi[gly]
+        maxw = (self.gw[gly] * self.dpi) / self.gdpi[gly]
+        return maxh, maxw
+    def getPath(self, gly):
+        path = ''
+        if (gly < 0) or (gly >= self.count):
+            return path
+        tx = self.vx[self.gvtx[gly]:self.gvtx[gly+1]]
+        ty = self.vy[self.gvtx[gly]:self.gvtx[gly+1]]
+        p = 0
+        for k in xrange(self.glen[gly], self.glen[gly+1]):
+            if (p == 0):
+                zx = tx[0:self.vlen[k]+1]
+                zy = ty[0:self.vlen[k]+1]
+            else:
+                zx = tx[self.vlen[k-1]+1:self.vlen[k]+1]
+                zy = ty[self.vlen[k-1]+1:self.vlen[k]+1]
+            p += 1
+            j = 0
+            while ( j  < len(zx) ):
+                if (j == 0):
+                    # Start Position.
+                    path += 'M %d %d ' % (zx[j] * self.dpi / self.gdpi[gly], zy[j] * self.dpi / self.gdpi[gly])
+                elif (j <= len(zx)-3):
+                    # Cubic Bezier Curve
+                    path += 'C %d %d %d %d %d %d ' % (zx[j] * self.dpi / self.gdpi[gly], zy[j] * self.dpi / self.gdpi[gly], zx[j+1] * self.dpi / self.gdpi[gly], zy[j+1] * self.dpi / self.gdpi[gly], zx[j+2] * self.dpi / self.gdpi[gly], zy[j+2] * self.dpi / self.gdpi[gly])
+                    j += 2
+                elif (j == len(zx)-2):
+                    # Cubic Bezier Curve to Start Position
+                    path += 'C %d %d %d %d %d %d ' % (zx[j] * self.dpi / self.gdpi[gly], zy[j] * self.dpi / self.gdpi[gly], zx[j+1] * self.dpi / self.gdpi[gly], zy[j+1] * self.dpi / self.gdpi[gly], zx[0] * self.dpi / self.gdpi[gly], zy[0] * self.dpi / self.gdpi[gly])
+                    j += 1
+                elif (j == len(zx)-1):
+                    # Quadratic Bezier Curve to Start Position
+                    path += 'Q %d %d %d %d ' % (zx[j] * self.dpi / self.gdpi[gly], zy[j] * self.dpi / self.gdpi[gly], zx[0] * self.dpi / self.gdpi[gly], zy[0] * self.dpi / self.gdpi[gly])
 
-    root = Tkinter.Tk()
-    root.title(u"Barnes & Noble ePub Decrypter v.{0}".format(__version__))
-    root.resizable(True, False)
-    root.minsize(300, 0)
-    DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
-    root.mainloop()
+                j += 1
+        path += 'z'
+        return path
+
+
+
+# dictionary of all text strings by index value
+class GlyphDict(object):
+    def __init__(self):
+        self.gdict = {}
+    def lookup(self, id):
+        # id='id="gl%d"' % val
+        if id in self.gdict:
+            return self.gdict[id]
+        return None
+    def addGlyph(self, val, path):
+        id='id="gl%d"' % val
+        self.gdict[id] = path
+
+
+def generateBook(bookDir, raw, fixedimage):
+    # sanity check Topaz file extraction
+    if not os.path.exists(bookDir) :
+        print "Can not find directory with unencrypted book"
+        return 1
+
+    dictFile = os.path.join(bookDir,'dict0000.dat')
+    if not os.path.exists(dictFile) :
+        print "Can not find dict0000.dat file"
+        return 1
+
+    pageDir = os.path.join(bookDir,'page')
+    if not os.path.exists(pageDir) :
+        print "Can not find page directory in unencrypted book"
+        return 1
+
+    imgDir = os.path.join(bookDir,'img')
+    if not os.path.exists(imgDir) :
+        print "Can not find image directory in unencrypted book"
+        return 1
+
+    glyphsDir = os.path.join(bookDir,'glyphs')
+    if not os.path.exists(glyphsDir) :
+        print "Can not find glyphs directory in unencrypted book"
+        return 1
+
+    metaFile = os.path.join(bookDir,'metadata0000.dat')
+    if not os.path.exists(metaFile) :
+        print "Can not find metadata0000.dat in unencrypted book"
+        return 1
+
+    svgDir = os.path.join(bookDir,'svg')
+    if not os.path.exists(svgDir) :
+        os.makedirs(svgDir)
+
+    if buildXML:
+        xmlDir = os.path.join(bookDir,'xml')
+        if not os.path.exists(xmlDir) :
+            os.makedirs(xmlDir)
+
+    otherFile = os.path.join(bookDir,'other0000.dat')
+    if not os.path.exists(otherFile) :
+        print "Can not find other0000.dat in unencrypted book"
+        return 1
+
+    print "Updating to color images if available"
+    spath = os.path.join(bookDir,'color_img')
+    dpath = os.path.join(bookDir,'img')
+    filenames = os.listdir(spath)
+    filenames = sorted(filenames)
+    for filename in filenames:
+        imgname = filename.replace('color','img')
+        sfile = os.path.join(spath,filename)
+        dfile = os.path.join(dpath,imgname)
+        imgdata = file(sfile,'rb').read()
+        file(dfile,'wb').write(imgdata)
+
+    print "Creating cover.jpg"
+    isCover = False
+    cpath = os.path.join(bookDir,'img')
+    cpath = os.path.join(cpath,'img0000.jpg')
+    if os.path.isfile(cpath):
+        cover = file(cpath, 'rb').read()
+        cpath = os.path.join(bookDir,'cover.jpg')
+        file(cpath, 'wb').write(cover)
+        isCover = True
+
+
+    print 'Processing Dictionary'
+    dict = Dictionary(dictFile)
+
+    print 'Processing Meta Data and creating OPF'
+    meta_array = getMetaArray(metaFile)
+
+    # replace special chars in title and authors like & < >
+    title = meta_array.get('Title','No Title Provided')
+    title = title.replace('&','&amp;')
+    title = title.replace('<','&lt;')
+    title = title.replace('>','&gt;')
+    meta_array['Title'] = title
+    authors = meta_array.get('Authors','No Authors Provided')
+    authors = authors.replace('&','&amp;')
+    authors = authors.replace('<','&lt;')
+    authors = authors.replace('>','&gt;')
+    meta_array['Authors'] = authors
+
+    if buildXML:
+        xname = os.path.join(xmlDir, 'metadata.xml')
+        mlst = []
+        for key in meta_array:
+            mlst.append('<meta name="' + key + '" content="' + meta_array[key] + '" />\n')
+        metastr = "".join(mlst)
+        mlst = None
+        file(xname, 'wb').write(metastr)
+
+    print 'Processing StyleSheet'
+
+    # get some scaling info from metadata to use while processing styles
+    # and first page info
+
+    fontsize = '135'
+    if 'fontSize' in meta_array:
+        fontsize = meta_array['fontSize']
+
+    # also get the size of a normal text page
+    # get the total number of pages unpacked as a safety check
+    filenames = os.listdir(pageDir)
+    numfiles = len(filenames)
+
+    spage = '1'
+    if 'firstTextPage' in meta_array:
+        spage = meta_array['firstTextPage']
+    pnum = int(spage)
+    if pnum >= numfiles or pnum < 0:
+        # metadata is wrong so just select a page near the front
+        # 10% of the book to get a normal text page
+        pnum = int(0.10 * numfiles)
+    # print "first normal text page is", spage
+
+    # get page height and width from first text page for use in stylesheet scaling
+    pname = 'page%04d.dat' % (pnum + 1)
+    fname = os.path.join(pageDir,pname)
+    flat_xml = convert2xml.fromData(dict, fname)
+
+    (ph, pw) = getPageDim(flat_xml)
+    if (ph == '-1') or (ph == '0') : ph = '11000'
+    if (pw == '-1') or (pw == '0') : pw = '8500'
+    meta_array['pageHeight'] = ph
+    meta_array['pageWidth'] = pw
+    if 'fontSize' not in meta_array.keys():
+        meta_array['fontSize'] = fontsize
+
+    # process other.dat for css info and for map of page files to svg images
+    # this map is needed because some pages actually are made up of multiple
+    # pageXXXX.xml files
+    xname = os.path.join(bookDir, 'style.css')
+    flat_xml = convert2xml.fromData(dict, otherFile)
+
+    # extract info.original.pid to get original page information
+    pageIDMap = {}
+    pageidnums = stylexml2css.getpageIDMap(flat_xml)
+    if len(pageidnums) == 0:
+        filenames = os.listdir(pageDir)
+        numfiles = len(filenames)
+        for k in range(numfiles):
+            pageidnums.append(k)
+    # create a map from page ids to list of page file nums to process for that page
+    for i in range(len(pageidnums)):
+        id = pageidnums[i]
+        if id in pageIDMap.keys():
+            pageIDMap[id].append(i)
+        else:
+            pageIDMap[id] = [i]
+
+    # now get the css info
+    cssstr , classlst = stylexml2css.convert2CSS(flat_xml, fontsize, ph, pw)
+    file(xname, 'wb').write(cssstr)
+    if buildXML:
+        xname = os.path.join(xmlDir, 'other0000.xml')
+        file(xname, 'wb').write(convert2xml.getXML(dict, otherFile))
+
+    print 'Processing Glyphs'
+    gd = GlyphDict()
+    filenames = os.listdir(glyphsDir)
+    filenames = sorted(filenames)
+    glyfname = os.path.join(svgDir,'glyphs.svg')
+    glyfile = open(glyfname, 'w')
+    glyfile.write('<?xml version="1.0" standalone="no"?>\n')
+    glyfile.write('<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n')
+    glyfile.write('<svg width="512" height="512" viewBox="0 0 511 511" xmlns="http://www.w3.org/2000/svg" version="1.1">\n')
+    glyfile.write('<title>Glyphs for %s</title>\n' % meta_array['Title'])
+    glyfile.write('<defs>\n')
+    counter = 0
+    for filename in filenames:
+        # print '     ', filename
+        print '.',
+        fname = os.path.join(glyphsDir,filename)
+        flat_xml = convert2xml.fromData(dict, fname)
+
+        if buildXML:
+            xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
+            file(xname, 'wb').write(convert2xml.getXML(dict, fname))
+
+        gp = GParser(flat_xml)
+        for i in xrange(0, gp.count):
+            path = gp.getPath(i)
+            maxh, maxw = gp.getGlyphDim(i)
+            fullpath = '<path id="gl%d" d="%s" fill="black" /><!-- width=%d height=%d -->\n' % (counter * 256 + i, path, maxw, maxh)
+            glyfile.write(fullpath)
+            gd.addGlyph(counter * 256 + i, fullpath)
+        counter += 1
+    glyfile.write('</defs>\n')
+    glyfile.write('</svg>\n')
+    glyfile.close()
+    print " "
+
+
+    # start up the html
+    # also build up tocentries while processing html
+    htmlFileName = "book.html"
+    hlst = []
+    hlst.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    hlst.append('<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.1 Strict//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11-strict.dtd">\n')
+    hlst.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">\n')
+    hlst.append('<head>\n')
+    hlst.append('<meta http-equiv="content-type" content="text/html; charset=utf-8"/>\n')
+    hlst.append('<title>' + meta_array['Title'] + ' by ' + meta_array['Authors'] + '</title>\n')
+    hlst.append('<meta name="Author" content="' + meta_array['Authors'] + '" />\n')
+    hlst.append('<meta name="Title" content="' + meta_array['Title'] + '" />\n')
+    if 'ASIN' in meta_array:
+        hlst.append('<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n')
+    if 'GUID' in meta_array:
+        hlst.append('<meta name="GUID" content="' + meta_array['GUID'] + '" />\n')
+    hlst.append('<link href="style.css" rel="stylesheet" type="text/css" />\n')
+    hlst.append('</head>\n<body>\n')
+
+    print 'Processing Pages'
+    # Books are at 1440 DPI.  This is rendering at twice that size for
+    # readability when rendering to the screen.
+    scaledpi = 1440.0
+
+    filenames = os.listdir(pageDir)
+    filenames = sorted(filenames)
+    numfiles = len(filenames)
+
+    xmllst = []
+    elst = []
+
+    for filename in filenames:
+        # print '     ', filename
+        print ".",
+        fname = os.path.join(pageDir,filename)
+        flat_xml = convert2xml.fromData(dict, fname)
+
+        # keep flat_xml for later svg processing
+        xmllst.append(flat_xml)
+
+        if buildXML:
+            xname = os.path.join(xmlDir, filename.replace('.dat','.xml'))
+            file(xname, 'wb').write(convert2xml.getXML(dict, fname))
+
+        # first get the html
+        pagehtml, tocinfo = flatxml2html.convert2HTML(flat_xml, classlst, fname, bookDir, gd, fixedimage)
+        elst.append(tocinfo)
+        hlst.append(pagehtml)
+
+    # finish up the html string and output it
+    hlst.append('</body>\n</html>\n')
+    htmlstr = "".join(hlst)
+    hlst = None
+    file(os.path.join(bookDir, htmlFileName), 'wb').write(htmlstr)
+
+    print " "
+    print 'Extracting Table of Contents from Amazon OCR'
+
+    # first create a table of contents file for the svg images
+    tlst = []
+    tlst.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    tlst.append('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n')
+    tlst.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >')
+    tlst.append('<head>\n')
+    tlst.append('<title>' + meta_array['Title'] + '</title>\n')
+    tlst.append('<meta name="Author" content="' + meta_array['Authors'] + '" />\n')
+    tlst.append('<meta name="Title" content="' + meta_array['Title'] + '" />\n')
+    if 'ASIN' in meta_array:
+        tlst.append('<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n')
+    if 'GUID' in meta_array:
+        tlst.append('<meta name="GUID" content="' + meta_array['GUID'] + '" />\n')
+    tlst.append('</head>\n')
+    tlst.append('<body>\n')
+
+    tlst.append('<h2>Table of Contents</h2>\n')
+    start = pageidnums[0]
+    if (raw):
+        startname = 'page%04d.svg' % start
+    else:
+        startname = 'page%04d.xhtml' % start
+
+    tlst.append('<h3><a href="' + startname + '">Start of Book</a></h3>\n')
+    # build up a table of contents for the svg xhtml output
+    tocentries = "".join(elst)
+    elst = None
+    toclst = tocentries.split('\n')
+    toclst.pop()
+    for entry in toclst:
+        print entry
+        title, pagenum = entry.split('|')
+        id = pageidnums[int(pagenum)]
+        if (raw):
+            fname = 'page%04d.svg' % id
+        else:
+            fname = 'page%04d.xhtml' % id
+        tlst.append('<h3><a href="'+ fname + '">' + title + '</a></h3>\n')
+    tlst.append('</body>\n')
+    tlst.append('</html>\n')
+    tochtml = "".join(tlst)
+    file(os.path.join(svgDir, 'toc.xhtml'), 'wb').write(tochtml)
+
+
+    # now create index_svg.xhtml that points to all required files
+    slst = []
+    slst.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    slst.append('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n')
+    slst.append('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" >')
+    slst.append('<head>\n')
+    slst.append('<title>' + meta_array['Title'] + '</title>\n')
+    slst.append('<meta name="Author" content="' + meta_array['Authors'] + '" />\n')
+    slst.append('<meta name="Title" content="' + meta_array['Title'] + '" />\n')
+    if 'ASIN' in meta_array:
+        slst.append('<meta name="ASIN" content="' + meta_array['ASIN'] + '" />\n')
+    if 'GUID' in meta_array:
+        slst.append('<meta name="GUID" content="' + meta_array['GUID'] + '" />\n')
+    slst.append('</head>\n')
+    slst.append('<body>\n')
+
+    print "Building svg images of each book page"
+    slst.append('<h2>List of Pages</h2>\n')
+    slst.append('<div>\n')
+    idlst = sorted(pageIDMap.keys())
+    numids = len(idlst)
+    cnt = len(idlst)
+    previd = None
+    for j in range(cnt):
+        pageid = idlst[j]
+        if j < cnt - 1:
+            nextid = idlst[j+1]
+        else:
+            nextid = None
+        print '.',
+        pagelst = pageIDMap[pageid]
+        flst = []
+        for page in pagelst:
+            flst.append(xmllst[page])
+        flat_svg = "".join(flst)
+        flst=None
+        svgxml = flatxml2svg.convert2SVG(gd, flat_svg, pageid, previd, nextid, svgDir, raw, meta_array, scaledpi)
+        if (raw) :
+            pfile = open(os.path.join(svgDir,'page%04d.svg' % pageid),'w')
+            slst.append('<a href="svg/page%04d.svg">Page %d</a>\n' % (pageid, pageid))
+        else :
+            pfile = open(os.path.join(svgDir,'page%04d.xhtml' % pageid), 'w')
+            slst.append('<a href="svg/page%04d.xhtml">Page %d</a>\n' % (pageid, pageid))
+        previd = pageid
+        pfile.write(svgxml)
+        pfile.close()
+        counter += 1
+    slst.append('</div>\n')
+    slst.append('<h2><a href="svg/toc.xhtml">Table of Contents</a></h2>\n')
+    slst.append('</body>\n</html>\n')
+    svgindex = "".join(slst)
+    slst = None
+    file(os.path.join(bookDir, 'index_svg.xhtml'), 'wb').write(svgindex)
+
+    print " "
+
+    # build the opf file
+    opfname = os.path.join(bookDir, 'book.opf')
+    olst = []
+    olst.append('<?xml version="1.0" encoding="utf-8"?>\n')
+    olst.append('<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="guid_id">\n')
+    # adding metadata
+    olst.append('   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">\n')
+    if 'GUID' in meta_array:
+        olst.append('      <dc:identifier opf:scheme="GUID" id="guid_id">' + meta_array['GUID'] + '</dc:identifier>\n')
+    if 'ASIN' in meta_array:
+        olst.append('      <dc:identifier opf:scheme="ASIN">' + meta_array['ASIN'] + '</dc:identifier>\n')
+    if 'oASIN' in meta_array:
+        olst.append('      <dc:identifier opf:scheme="oASIN">' + meta_array['oASIN'] + '</dc:identifier>\n')
+    olst.append('      <dc:title>' + meta_array['Title'] + '</dc:title>\n')
+    olst.append('      <dc:creator opf:role="aut">' + meta_array['Authors'] + '</dc:creator>\n')
+    olst.append('      <dc:language>en</dc:language>\n')
+    olst.append('      <dc:date>' + meta_array['UpdateTime'] + '</dc:date>\n')
+    if isCover:
+        olst.append('      <meta name="cover" content="bookcover"/>\n')
+    olst.append('   </metadata>\n')
+    olst.append('<manifest>\n')
+    olst.append('   <item id="book" href="book.html" media-type="application/xhtml+xml"/>\n')
+    olst.append('   <item id="stylesheet" href="style.css" media-type="text/css"/>\n')
+    # adding image files to manifest
+    filenames = os.listdir(imgDir)
+    filenames = sorted(filenames)
+    for filename in filenames:
+        imgname, imgext = os.path.splitext(filename)
+        if imgext == '.jpg':
+            imgext = 'jpeg'
+        if imgext == '.svg':
+            imgext = 'svg+xml'
+        olst.append('   <item id="' + imgname + '" href="img/' + filename + '" media-type="image/' + imgext + '"/>\n')
+    if isCover:
+        olst.append('   <item id="bookcover" href="cover.jpg" media-type="image/jpeg" />\n')
+    olst.append('</manifest>\n')
+    # adding spine
+    olst.append('<spine>\n   <itemref idref="book" />\n</spine>\n')
+    if isCover:
+        olst.append('   <guide>\n')
+        olst.append('      <reference href="cover.jpg" type="cover" title="Cover"/>\n')
+        olst.append('   </guide>\n')
+    olst.append('</package>\n')
+    opfstr = "".join(olst)
+    olst = None
+    file(opfname, 'wb').write(opfstr)
+
+    print 'Processing Complete'
+
     return 0
 
+def usage():
+    print "genbook.py generates a book from the extract Topaz Files"
+    print "Usage:"
+    print "    genbook.py [-r] [-h [--fixed-image] <bookDir>  "
+    print "  "
+    print "Options:"
+    print "  -h            :  help - print this usage message"
+    print "  -r            :  generate raw svg files (not wrapped in xhtml)"
+    print "  --fixed-image :  genearate any Fixed Area as an svg image in the html"
+    print "  "
+
+
+def main(argv):
+    bookDir = ''
+    if len(argv) == 0:
+        argv = sys.argv
+
+    try:
+        opts, args = getopt.getopt(argv[1:], "rh:",["fixed-image"])
+
+    except getopt.GetoptError, err:
+        print str(err)
+        usage()
+        return 1
+
+    if len(opts) == 0 and len(args) == 0 :
+        usage()
+        return 1
+
+    raw = 0
+    fixedimage = True
+    for o, a in opts:
+        if o =="-h":
+            usage()
+            return 0
+        if o =="-r":
+            raw = 1
+        if o =="--fixed-image":
+            fixedimage = True
+
+    bookDir = args[0]
+
+    rv = generateBook(bookDir, raw, fixedimage)
+    return rv
+
+
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        sys.exit(cli_main())
-    sys.exit(gui_main())
+    sys.exit(main(''))

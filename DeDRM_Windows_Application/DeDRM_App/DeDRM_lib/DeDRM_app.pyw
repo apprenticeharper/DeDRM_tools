@@ -12,7 +12,7 @@
 #   6.0.4 - Fix for other potential unicode problems
 #   6.0.5 - Fix typo
 
-__version__ = '6.0.7'
+__version__ = '6.0.8'
 
 import sys
 import os, os.path

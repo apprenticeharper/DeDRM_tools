@@ -356,7 +356,7 @@ class TopazBook:
 
         self.setBookKey(bookKey)
         self.createBookDirectory()
-        self.extractFiles()
+        self.extractFiles() 
         print u"Successfully Extracted Topaz contents"
         if inCalibre:
             from calibre_plugins.dedrm import genbook

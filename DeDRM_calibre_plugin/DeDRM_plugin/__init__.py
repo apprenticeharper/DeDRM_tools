@@ -31,14 +31,17 @@ __docformat__ = 'restructuredtext en'
 #   6.0.3 - Fixes for Kindle for Mac and Windows non-ascii user names
 #   6.0.4 - Fixes for stand-alone scripts and applications
 #           and pdb files in plugin and initial conversion of prefs.
+#   6.0.5 - Fix a key issue
 #   6.0.6 - Fix up an incorrect function call
+#   6.0.7 - Error handling for incomplete PDF metadata
+#   6.0.8 - Fixes a Wine key issue and topaz support
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 0, 7)
+PLUGIN_VERSION_TUPLE = (6, 0, 8)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -313,7 +316,7 @@ class DeDRM(FileTypePlugin):
                     from wineutils import WineGetKeys
 
                     scriptpath = os.path.join(self.alfdir,u"adobekey.py")
-                    defaultkeys = self.WineGetKeys(scriptpath, u".der",dedrmprefs['adobewineprefix'])
+                    defaultkeys = WineGetKeys(scriptpath, u".der",dedrmprefs['adobewineprefix'])
                 except:
                     pass
 
@@ -391,7 +394,7 @@ class DeDRM(FileTypePlugin):
                     from wineutils import WineGetKeys
 
                     scriptpath = os.path.join(self.alfdir,u"kindlekey.py")
-                    defaultkeys = self.WineGetKeys(scriptpath, u".k4i",dedrmprefs['kindlewineprefix'])
+                    defaultkeys = WineGetKeys(scriptpath, u".k4i",dedrmprefs['kindlewineprefix'])
             except:
                 pass
 
