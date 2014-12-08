@@ -22,7 +22,18 @@ li {margin-top: 0.5em}
 
 <p>If you have upgraded from an earlier version of the plugin, any existing Barnes and Noble keys will have been automatically imported, so you might not need to do any more configuration. Continue reading for key generation and management instructions.</p>
 
-<h3>Creating New Keys:</h3>
+<h3>Changes at Barnes & Noble</h3>
+
+<p>In mid-2014, Barnes & Noble changed the way they generated encryption keys. Instead of deriving the key from the user's name and credit card number, they started generating a random key themselves, sending that key through to devices when they connected to the B&N servers. This means that some users will find that no combination of their name and CC# will work in decrypting their ebooks.</p>
+
+<p>There is a work-around. B&N's desktop apps for Mac and Windows (nook for Mac/PC, nookStudy) generate a log file that contains the encryption key. For Mac the log file can be found somewhere in [user folder]/Library/Application Support/Barnes & Noble/ and for Windows the log file can be found somewhere in C:\Users\admin\AppData\Roaming\Barnes & Noble\</p>
+<p>In both cases, the log file will be called BNClientLog.txt</p>
+<p>You will need to open the application, sign in to your account, and download your books, checking that you can read them in the application, and then quit the application.</p>
+<p>Then you must open the log file in a text editor and search for CCHashResponseV1. Immediately after that text should be some more text, similar to ccHash: "rLYiGD+vcPoXvsj/87kDAb1AkBy="<p>
+<p>Copy the text after ccHash, include the " marks. Save it in a new text file, with file name extension .b64</p>
+<p>Follow the instructions below "Importing Existing Keyfiles:" to import that newly saved file into the preferences.</p>
+
+<h3>Old instructions: Creating New Keys:</h3>
 
 <p>On the right-hand side of the plugin’s customization dialog, you will see a button with an icon that looks like a green plus sign (+). Clicking this button will open a new dialog for entering the necessary data to generate a new key.</p>
 <ul>
@@ -48,7 +59,7 @@ li {margin-top: 0.5em}
 
 <h3>Importing Existing Keyfiles:</h3>
 
-<p>At the bottom-left of the plugin’s customization dialog, you will see a button labeled "Import Existing Keyfiles". Use this button to import existing ‘.b64’ key files. Key files might come from being exported from this or older plugins, or may have been generated using the original i♥cabbages script.</p>
+<p>At the bottom-left of the plugin’s customization dialog, you will see a button labeled "Import Existing Keyfiles". Use this button to import existing ‘.b64’ key files. Key files might come from being exported from this or older plugins, or may have been generated using the original i♥cabbages script, or you may have made it by following the instructions above.</p>
 
 <p>Once done creating/deleting/renaming/importing decryption keys, click Close to exit the customization dialogue. Your changes wil only be saved permanently when you click OK in the main configuration dialog.</p>
 

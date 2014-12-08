@@ -1,7 +1,7 @@
 Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.0.5 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.1.0 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
 
 The is archive includes tools to remove DRM from:
 
@@ -71,7 +71,7 @@ For more detailed instructions, see the DeDRM_App_ReadMe.txt file in the DeDRM_W
 
 Other_Tools
 -----------
-This folder includes other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
+This is now a separate archive and includes other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
 
 Key_Generation_Scripts
 This folder contains python scripts that creates a keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs and Kindle for Mac/PC ebooks.
