@@ -4,9 +4,20 @@
 # History:
 #  0.1 Initial release
 #  0.2 Added support for generating PID for iPhone (thanks to mbp)
-#  Unofficial: Added support for Kindle DX and Kindle 2 International
+#  0.3 changed to autoflush stdout, fixed return code usage
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
 
-import sys, binascii
+import sys
+sys.stdout=Unbuffered(sys.stdout)
+
+import binascii
 
 if sys.hexversion >= 0x3000000:
   print "This script is incompatible with Python 3.x. Please install Python 2.6.x from python.org"
@@ -49,29 +60,38 @@ def pidFromSerial(s, l):
 
   return pid
 
-print "Mobipocket PID calculator for Amazon Kindle. Copyright (c) 2007, 2009 Igor Skochinsky"
-if len(sys.argv)>1:
-  serial = sys.argv[1]
-  if len(serial)==16:
-    if serial.startswith("B001"):
-      print "Kindle 1 serial number detected"
-    elif serial.startswith("B002"):
-      print "Kindle 2 serial number detected"
-    elif serial.startswith("B003"):
-      print "Kindle 2i serial number detected"
-    elif serial.startswith("B004"):
-      print "Kindle DX serial number detected"
-    else:
-      print "Warning: unrecognized serial number. Please recheck input."
-      sys.exit(1)
-    pid = pidFromSerial(serial,7)+"*"
-    print "Mobipocked PID for Kindle serial# "+serial+" is "+checksumPid(pid)
-  elif len(serial)==40:
-    print "iPhone serial number (UDID) detected"
-    pid = pidFromSerial(serial,8)
-    print "Mobipocked PID for iPhone serial# "+serial+" is "+checksumPid(pid)
+def main(argv=sys.argv):
+  print "Mobipocket PID calculator for Amazon Kindle. Copyright (c) 2007, 2009 Igor Skochinsky"
+  if len(sys.argv)==2:
+      serial = sys.argv[1]
   else:
-    print "Warning: unrecognized serial number. Please recheck input."
-    sys.exit(1)
-else:
-  print "Usage: kindlepid.py <Kindle Serial Number>/<iPhone/iPod Touch UDID>"
+      print "Usage: kindlepid.py <Kindle Serial Number>/<iPhone/iPod Touch UDID>"
+      return 1
+  if len(serial)==16:
+      if serial.startswith("B001"):
+          print "Kindle 1 serial number detected"
+      elif serial.startswith("B002"):
+          print "Kindle 2 serial number detected"
+      elif serial.startswith("B003"):
+          print "Kindle 2 Global serial number detected"
+      elif serial.startswith("B004"):
+          print "Kindle DX serial number detected"
+      else:
+          print "Warning: unrecognized serial number. Please recheck input."
+          return 1
+      pid = pidFromSerial(serial,7)+"*"
+      print "Mobipocked PID for Kindle serial# "+serial+" is "+checksumPid(pid)
+      return 0
+  elif len(serial)==40:
+      print "iPhone serial number (UDID) detected"
+      pid = pidFromSerial(serial,8)
+      print "Mobipocked PID for iPhone serial# "+serial+" is "+checksumPid(pid)
+      return 0
+  else:
+      print "Warning: unrecognized serial number. Please recheck input."
+      return 1
+  return 0
+
+
+if __name__ == "__main__":
+  sys.exit(main())

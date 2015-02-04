@@ -1,16 +1,17 @@
-#!/usr/bin/python
-# The Kindleizer v0.2. Copyright (c) 2007, 2009 Igor Skochinsky <skochinsky@mail.ru>
-# This script enables encrypted Mobipocket books to be readable by Kindle
-# History: 
-#  0.1 initial release
-#  0.2 fixed corrupted metadata issue (thanks to Mark Peek)
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
 
-import prc, sys, struct
+import sys
+sys.stdout=Unbuffered(sys.stdout)
 
-if sys.hexversion >= 0x3000000:
-  print "This script is incompatible with Python 3.x. Please install Python 2.6.x from python.org"
-  sys.exit(2)
 
+import prc, struct
 from binascii import hexlify
 
 def strByte(s,off=0):
@@ -104,7 +105,7 @@ def find_key(rec0, pid):
             drmInfo = strPutDWord(drmInfo,4,(dw4|0x800))
             dw0, dw4, dw18, dw1c = struct.unpack(">II16xII", drmInfo)
             #print "Updated drmInfo:", "%08X, %08X, %s, %08X, %08X"%(dw0, dw4, hexlify(drmInfo[0x8:0x18]), dw18, dw1c)
-            return rec0[:iOff+0x10] + PC1(temp_key, drmInfo, False) + rec0[iOff+0x30:]
+            return rec0[:iOff+0x10] + PC1(temp_key, drmInfo, False) + rec0[:iOff+0x30]
       iOff += dwSize
     return None
 
@@ -115,7 +116,14 @@ def replaceext(filename, newext):
   else:
     return nameparts[0]+newext
 
-def main(fname, pid):
+def main(argv=sys.argv):
+  print "The Kindleizer v0.2. Copyright (c) 2007 Igor Skochinsky"
+  if len(sys.argv) != 3:
+      print "Fixes encrypted Mobipocket books to be readable by Kindle"
+      print "Usage: kindlefix.py file.mobi PID"
+      return 1
+  fname = sys.argv[1]
+  pid = sys.argv[2]
   if len(pid)==10 and pid[-3]=='*':
     pid = pid[:-2]
   if len(pid)!=8 or pid[-1]!='*':
@@ -159,10 +167,6 @@ def main(fname, pid):
   print "Output written to "+outfname
   return 0
 
-print "The Kindleizer v0.2. Copyright (c) 2007, 2009 Igor Skochinsky"
-if len(sys.argv)<3:
-  print "Fixes encrypted Mobipocket books to be readable by Kindle"
-  print "Usage: kindlefix.py file.mobi PID"
-else:  
-  fname = sys.argv[1]
-  sys.exit(main(fname, sys.argv[2]))
+
+if __name__ == "__main__":
+    sys.exit(main())

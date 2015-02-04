@@ -9,9 +9,22 @@
 #  0.01 - Initial version
 #  0.02 - Fix issue with size computing
 #  0.03 - Fix issue with some files
+#  0.04 - make stdout self flushing and fix return values
+
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+import sys
+sys.stdout=Unbuffered(sys.stdout)
 
 
-import struct, sys
+import struct
 
 class BitReader:
 	def __init__(self, data):
@@ -146,16 +159,18 @@ def unpackBook(input_file):
 		r += decompressSection(i)
 	return r
 
-print "MobiHuff v0.03"
-print "  Copyright (c) 2008 The Dark Reverser <dark.reverser@googlemail.com>"
-if len(sys.argv)!=3:
-	print ""
+def main(argv=sys.argv):
+    print "MobiHuff v0.03"
+    print "  Copyright (c) 2008 The Dark Reverser <dark.reverser@googlemail.com>"
+    if len(sys.argv)!=3:
+        print ""
 	print "Description:"
 	print "  Unpacks the new mobipocket huffdic compression."
 	print "  This program works with unencrypted files only."
 	print "Usage:"
 	print "  mobihuff.py infile.mobi outfile.html"
-else:  
+	return 1
+    else:  
 	infile = sys.argv[1]
 	outfile = sys.argv[2]
 	try:
@@ -166,3 +181,9 @@ else:
 	except ValueError, e:
 		print 
 		print "Error: %s" % e
+		return 1
+	return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

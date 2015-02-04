@@ -21,8 +21,21 @@
 #  0.07 - The extra data flags aren't present in MOBI header < 0xE8 in size
 #  0.08 - ...and also not in Mobi header version < 6
 #  0.09 - ...but they are there with Mobi header version 6, header size 0xE4!
+#  0.10 - use autoflushed stdout and proper return values
 
-import sys,struct,binascii
+class Unbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+import sys
+sys.stdout=Unbuffered(sys.stdout)
+
+import struct,binascii
 
 class DrmException(Exception):
 	pass
@@ -206,7 +219,7 @@ if not __name__ == "__main__":
 		description         = 'Removes DRM from secure Mobi files'
 		supported_platforms = ['linux', 'osx', 'windows'] # Platforms this plugin will run on
 		author              = 'The Dark Reverser' # The author of this plugin
-		version             = (0, 0, 9)   # The version number of this plugin
+		version             = (0, 0, 10)   # The version number of this plugin
 		file_types          = set(['prc','mobi','azw']) # The file types that this plugin will be applied to
 		on_import           = True # Run this plugin during the import
 
@@ -232,12 +245,13 @@ if not __name__ == "__main__":
 		def customization_help(self, gui=False):
 			return 'Enter PID (separate multiple PIDs with comma)'
 
-if __name__ == "__main__":
-	print "MobiDeDrm v0.09. Copyright (c) 2008 The Dark Reverser"
+def main(argv=sys.argv):
+	print "MobiDeDrm v0.10. Copyright (c) 2008 The Dark Reverser"
 	if len(sys.argv)<4:
 		print "Removes protection from Mobipocket books"
 		print "Usage:"
 		print "  mobidedrm infile.mobi outfile.mobi PID"
+                return 1
 	else:  
 		infile = sys.argv[1]
 		outfile = sys.argv[2]
@@ -247,3 +261,9 @@ if __name__ == "__main__":
 			file(outfile, 'wb').write(DrmStripper(data_file, pid).getResult())
 		except DrmException, e:
 			print "Error: %s" % e
+			return 1
+        return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+
