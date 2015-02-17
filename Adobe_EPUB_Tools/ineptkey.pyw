@@ -1,20 +1,21 @@
 #! /usr/bin/python
 
-# ineptkey.pyw, version 4.2
+# ineptkey.pyw, version 4.3
 
 # To run this program install Python 2.6 from http://www.python.org/download/
 # and PyCrypto from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
 # (make sure to install the version for Python 2.6).  Save this script file as
 # ineptkey.pyw and double-click on it to run it.  It will create a file named
-# adeptkey4.der in the same directory.  These are your ADEPT user keys.
+# adeptkey.der in the same directory.  These are your ADEPT user keys.
 
 # Revision history:
 #   1 - Initial release, for Adobe Digital Editions 1.7
 #   2 - Better algorithm for finding pLK; improved error handling
 #   3 - Rename to INEPT
 #   4.1 - quick beta fix for ADE 1.7.2 (anon)
-#   4.2 - multiple key support, added old 1.7.1 processing,
-#         new adeptkey4.der format (anon) 
+#   4.2 - added old 1.7.1 processing
+#   4.3 - better key search
+
 
 """
 Retrieve Adobe ADEPT user key under Windows.
@@ -46,6 +47,7 @@ except ImportError:
 
 
 DEVICE_KEY = 'Software\\Adobe\\Adept\\Device'
+PRIVATE_LICENCE_KEY = 'Software\\Adobe\\Adept\\Activation\\%04d'
 PRIVATE_LICENCE_KEY_KEY = 'Software\\Adobe\\Adept\\Activation\\%04d\\%04d'
 ACTIVATION = 'Software\\Adobe\\Adept\\Activation\\'
 
@@ -160,44 +162,46 @@ def retrieve_key(keypath):
     keys = {}
     counter = 0
     for i in xrange(0, 16):
+        skey = PRIVATE_LICENCE_KEY % i
+        try:
+            regkey = winreg.OpenKey(cuser, skey)
+        except WindowsError:
+            break
+        type = winreg.QueryValueEx(regkey, None)[0]
+        # obfuscation technique
+        if type != 'credentials':
+            continue
         for j in xrange(0, 16):
-            plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
+            plkkey = PRIVATE_LICENCE_KEY_KEY  % (i, j)
             try:
-                regkey = winreg.OpenKey(cuser, plkkey)
+                regkey = winreg.OpenKey(cuser, plkkey)                
             except WindowsError:
                 break
-            type = winreg.QueryValueEx(regkey, None)[0]
+            type = winreg.QueryValueEx(regkey, None)[0]            
             if type != 'privateLicenseKey':
                 continue
             userkey = winreg.QueryValueEx(regkey, 'value')[0]
-            L = []
-            L.append(userkey)
-            keys[i] = L
+            break
         for j in xrange(0, 16):
-            plkkey = PRIVATE_LICENCE_KEY_KEY % (i, j)
+            plkkey = PRIVATE_LICENCE_KEY_KEY  % (i, j)
             try:
-                pkcs = winreg.OpenKey(cuser, plkkey)
+                pkcs = winreg.OpenKey(cuser, plkkey)   
             except WindowsError:
                 break
             type = winreg.QueryValueEx(pkcs, None)[0]
             if type != 'pkcs12':
                 continue
             pkcs = winreg.QueryValueEx(pkcs, 'value')[0]
-            keys[i].append(pkcs)
-            counter = counter + 1
+            break
     if pkcs is None:       
         raise ADEPTError('Could not locate PKCS specification')
     if userkey is None:
         raise ADEPTError('Could not locate privateLicenseKey')
-    userkeyw = []
-    print counter
-    for key in keys:
-        pkcs = keys[key][1].decode('base64')
-        userkey = keys[key][0].decode('base64')
-        userkey = AES.new(keykey, AES.MODE_CBC).decrypt(userkey)
-        userkeyw.append(userkey[26:-ord(userkey[-1])])
+    userkey = userkey.decode('base64')
+    userkey = AES.new(keykey, AES.MODE_CBC).decrypt(userkey)
+    userkey = userkey[26:-ord(userkey[-1])]
     with open(keypath, 'wb') as f:
-        pickle.dump(userkeyw,f)
+        f.write(userkey)
     return
 
 class ExceptionDialog(Tkinter.Frame):
@@ -221,7 +225,7 @@ def main(argv=sys.argv):
             "This script requires PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
-    keypath = 'adeptkey4.der'
+    keypath = 'adeptkey.der'
     try:
         retrieve_key(keypath)
     except ADEPTError, e:
