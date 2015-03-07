@@ -35,13 +35,14 @@ __docformat__ = 'restructuredtext en'
 #   6.0.6 - Fix up an incorrect function call
 #   6.0.7 - Error handling for incomplete PDF metadata
 #   6.0.8 - Fixes a Wine key issue and topaz support
+#   6.0.9 - Ported to work with newer versions of Calibre (moved to Qt5). Still supports older Qt4 versions.
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 0, 8)
+PLUGIN_VERSION_TUPLE = (6, 0, 9)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'

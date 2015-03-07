@@ -1,0 +1,238 @@
+Only in kindle4.0.2.1: build
+diff -r -u10 kindle4.0.2.1_orig/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali kindle4.0.2.1/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali
+--- kindle4.0.2.1_orig/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali	2013-05-22 18:39:03.000000000 -0500
++++ kindle4.0.2.1/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali	2013-05-23 16:54:53.000000000 -0500
+@@ -36,20 +36,22 @@
+ .field private maxCpuSpeed:J
+ 
+ .field private maxMemory:J
+ 
+ .field private minCpuSpeed:J
+ 
+ .field private resources:Landroid/content/res/Resources;
+ 
+ .field private security:Lcom/mobipocket/android/library/reader/AndroidSecurity;
+ 
++.field private pidList:Ljava/lang/String;
++
+ .field private totalMemory:J
+ 
+ 
+ # direct methods
+ .method static constructor <clinit>()V
+     .locals 1
+ 
+     .prologue
+     .line 30
+     const-class v0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;
+@@ -72,20 +74,24 @@
+     .prologue
+     .line 130
+     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+ 
+     .line 131
+     iput-object p1, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->security:Lcom/mobipocket/android/library/reader/AndroidSecurity;
+ 
+     .line 132
+     iput-object p2, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->deviceType:Lcom/amazon/kcp/application/AmazonDeviceType;
+ 
++    const-string v0, "Open DRMed book to show PID list."
++
++    iput-object v0, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->pidList:Ljava/lang/String;
++
+     .line 133
+     sget-object v0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->TAG:Ljava/lang/String;
+ 
+     new-instance v0, Ljava/lang/StringBuilder;
+ 
+     invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+ 
+     const-string v1, "Device Type is set to \""
+ 
+     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+@@ -1235,10 +1241,33 @@
+     move-result-wide v0
+ 
+     iput-wide v0, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->totalMemory:J
+ 
+     .line 308
+     :cond_0
+     iget-wide v0, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->totalMemory:J
+ 
+     return-wide v0
+ .end method
++
++.method public getPidList()Ljava/lang/String;
++    .locals 1
++
++    .prologue
++    .line 15
++    iget-object v0, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->pidList:Ljava/lang/String;
++
++    return-object v0
++.end method
++
++.method public setPidList(Ljava/lang/String;)V
++    .locals 0
++    .parameter "value"
++
++    .prologue
++    .line 11
++    iput-object p1, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->pidList:Ljava/lang/String;
++
++    .line 12
++    return-void
++.end method
++
+diff -r -u10 kindle4.0.2.1_orig/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali kindle4.0.2.1/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali
+--- kindle4.0.2.1_orig/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali	2013-05-22 18:39:03.000000000 -0500
++++ kindle4.0.2.1/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali	2013-05-23 16:55:58.000000000 -0500
+@@ -23,10 +23,16 @@
+ .end method
+ 
+ .method public abstract getDeviceTypeId()Ljava/lang/String;
+ .end method
+ 
+ .method public abstract getOsVersion()Ljava/lang/String;
+ .end method
+ 
+ .method public abstract getPid()Ljava/lang/String;
+ .end method
++
++.method public abstract getPidList()Ljava/lang/String;
++.end method
++
++.method public abstract setPidList(Ljava/lang/String;)V
++.end method
+diff -r -u10 kindle4.0.2.1_orig/smali/com/amazon/kcp/info/AboutActivity.smali kindle4.0.2.1/smali/com/amazon/kcp/info/AboutActivity.smali
+--- kindle4.0.2.1_orig/smali/com/amazon/kcp/info/AboutActivity.smali	2013-05-22 18:39:03.000000000 -0500
++++ kindle4.0.2.1/smali/com/amazon/kcp/info/AboutActivity.smali	2013-05-23 17:18:14.000000000 -0500
+@@ -486,20 +486,71 @@
+     .end local v2           #screenDpi:Ljava/lang/String;
+     :cond_0
+     iget-object v5, p0, Lcom/amazon/kcp/info/AboutActivity;->detailItemList:Ljava/util/List;
+ 
+     invoke-interface {v5, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z
+ 
+     .line 317
+     return-void
+ .end method
+ 
++.method private populatePIDList()V
++    .locals 7
++
++    .prologue
++    .line 313
++    invoke-static {}, Lcom/amazon/kcp/application/DeviceInformationProviderFactory;->getProvider()Lcom/amazon/kcp/application/IDeviceInformationProvider;
++
++    move-result-object v0
++
++    invoke-interface {v0}, Lcom/amazon/kcp/application/IDeviceInformationProvider;->getPidList()Ljava/lang/String;
++
++    move-result-object v1
++
++    .line 314
++    .local v1, PidList:Ljava/lang/String;
++    iget-object v3, p0, Lcom/amazon/kcp/info/AboutActivity;->groupItemList:Ljava/util/List;
++
++    new-instance v4, Lcom/amazon/kcp/info/AboutActivity$GroupItem;
++
++    const-string v5, "PID List"
++
++    const v6, 0x1
++
++    invoke-direct {v4, p0, v5, v6}, Lcom/amazon/kcp/info/AboutActivity$GroupItem;-><init>(Lcom/amazon/kcp/info/AboutActivity;Ljava/lang/String;Z)V
++
++    invoke-interface {v3, v4}, Ljava/util/List;->add(Ljava/lang/Object;)Z
++
++    .line 315
++    new-instance v2, Ljava/util/ArrayList;
++
++    invoke-direct {v2}, Ljava/util/ArrayList;-><init>()V
++
++    .line 316
++    .local v2, children:Ljava/util/List;,"Ljava/util/List<Lcom/amazon/kcp/info/AboutActivity$DetailItem;>;"
++    new-instance v3, Lcom/amazon/kcp/info/AboutActivity$DetailItem;
++
++    const-string v4, "PIDs"
++
++    invoke-direct {v3, p0, v4, v1}, Lcom/amazon/kcp/info/AboutActivity$DetailItem;-><init>(Lcom/amazon/kcp/info/AboutActivity;Ljava/lang/String;Ljava/lang/String;)V
++
++    invoke-interface {v2, v3}, Ljava/util/List;->add(Ljava/lang/Object;)Z
++
++    .line 317
++    iget-object v3, p0, Lcom/amazon/kcp/info/AboutActivity;->detailItemList:Ljava/util/List;
++
++    invoke-interface {v3, v2}, Ljava/util/List;->add(Ljava/lang/Object;)Z
++
++    .line 318
++    return-void
++.end method
++
+ .method private populateDisplayItems()V
+     .locals 1
+ 
+     .prologue
+     .line 171
+     iget-object v0, p0, Lcom/amazon/kcp/info/AboutActivity;->groupItemList:Ljava/util/List;
+ 
+     if-nez v0, :cond_0
+ 
+     .line 173
+@@ -531,20 +582,22 @@
+ 
+     .line 192
+     invoke-direct {p0}, Lcom/amazon/kcp/info/AboutActivity;->populateRamInformation()V
+ 
+     .line 193
+     invoke-direct {p0}, Lcom/amazon/kcp/info/AboutActivity;->populateStorageInformation()V
+ 
+     .line 194
+     invoke-direct {p0}, Lcom/amazon/kcp/info/AboutActivity;->populateDisplayInformation()V
+ 
++    invoke-direct {p0}, Lcom/amazon/kcp/info/AboutActivity;->populatePIDList()V
++
+     .line 195
+     return-void
+ 
+     .line 177
+     :cond_0
+     iget-object v0, p0, Lcom/amazon/kcp/info/AboutActivity;->groupItemList:Ljava/util/List;
+ 
+     invoke-interface {v0}, Ljava/util/List;->clear()V
+ 
+     goto :goto_0
+diff -r -u10 kindle4.0.2.1_orig/smali/com/amazon/system/security/Security.smali kindle4.0.2.1/smali/com/amazon/system/security/Security.smali
+--- kindle4.0.2.1_orig/smali/com/amazon/system/security/Security.smali	2013-05-22 18:39:04.000000000 -0500
++++ kindle4.0.2.1/smali/com/amazon/system/security/Security.smali	2013-05-23 17:19:05.000000000 -0500
+@@ -920,20 +920,30 @@
+ 
+     .line 350
+     :cond_2
+     add-int/lit8 v8, v8, 0x1
+ 
+     .line 351
+     sget-object v0, Lcom/amazon/system/security/Security;->CUSTOM_PID_FOR_BUNDLED_DICTIONARY_DRM:Ljava/lang/String;
+ 
+     aput-object v0, v6, v8
+ 
++    invoke-static {}, Lcom/amazon/kcp/application/DeviceInformationProviderFactory;->getProvider()Lcom/amazon/kcp/application/IDeviceInformationProvider;
++
++    move-result-object v5
++
++    invoke-static {v6}, Ljava/util/Arrays;->toString([Ljava/lang/Object;)Ljava/lang/String;
++
++    move-result-object v2
++
++    invoke-interface {v5, v2}, Lcom/amazon/kcp/application/IDeviceInformationProvider;->setPidList(Ljava/lang/String;)V
++
+     .line 353
+     return-object v6
+ .end method
+ 
+ 
+ # virtual methods
+ .method public customDrmOnly()I
+     .locals 1
+ 
+     .prologue
