@@ -1,0 +1,157 @@
+diff --git a/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali b/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali
+index 8ea400e..3aefad2 100644
+--- a/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali
++++ b/smali/com/amazon/kcp/application/AndroidDeviceInformationProvider.smali
+@@ -41,6 +41,8 @@
+ 
+ .field private security:Lcom/mobipocket/android/library/reader/AndroidSecurity;
+ 
++.field private pidList:Ljava/lang/String;
++
+ .field private totalMemory:J
+ 
+ 
+@@ -74,6 +76,10 @@
+     .line 133
+     iput-object p1, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->security:Lcom/mobipocket/android/library/reader/AndroidSecurity;
+ 
++    const-string v0, "Open DRMed book to show PID list."
++
++    iput-object v0, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->pidList:Ljava/lang/String;
++
+     .line 134
+     sget-object v0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->TAG:Ljava/lang/String;
+ 
+@@ -1339,3 +1345,26 @@
+ 
+     return-wide v0
+ .end method
++
++.method public getPidList()Ljava/lang/String;
++    .locals 1
++
++    .prologue
++    .line 15
++    iget-object v0, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->pidList:Ljava/lang/String;
++
++    return-object v0
++.end method
++
++.method public setPidList(Ljava/lang/String;)V
++    .locals 0
++    .param p1, "value"
++
++    .prologue
++    .line 11
++    iput-object p1, p0, Lcom/amazon/kcp/application/AndroidDeviceInformationProvider;->pidList:Ljava/lang/String;
++
++    .line 12
++    return-void
++.end method
++
+diff --git a/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali b/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali
+index e4a3523..2269fab 100644
+--- a/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali
++++ b/smali/com/amazon/kcp/application/IDeviceInformationProvider.smali
+@@ -30,3 +30,9 @@
+ 
+ .method public abstract getPid()Ljava/lang/String;
+ .end method
++
++.method public abstract getPidList()Ljava/lang/String;
++.end method
++
++.method public abstract setPidList(Ljava/lang/String;)V
++.end method
+diff --git a/smali/com/amazon/kcp/info/AboutActivity.smali b/smali/com/amazon/kcp/info/AboutActivity.smali
+index 5640e9e..e298341 100644
+--- a/smali/com/amazon/kcp/info/AboutActivity.smali
++++ b/smali/com/amazon/kcp/info/AboutActivity.smali
+@@ -493,6 +493,57 @@
+     return-void
+ .end method
+ 
++.method private populatePIDList()V
++    .locals 7
++
++    .prologue
++    .line 313
++    invoke-static {}, Lcom/amazon/kcp/application/DeviceInformationProviderFactory;->getProvider()Lcom/amazon/kcp/application/IDeviceInformationProvider;
++
++    move-result-object v0
++
++    invoke-interface {v0}, Lcom/amazon/kcp/application/IDeviceInformationProvider;->getPidList()Ljava/lang/String;
++
++    move-result-object v1
++
++    .line 314
++    .local v1, "PidList":Ljava/lang/String;
++    iget-object v3, p0, Lcom/amazon/kcp/info/AboutActivity;->groupItemList:Ljava/util/List;
++
++    new-instance v4, Lcom/amazon/kcp/info/AboutActivity$GroupItem;
++
++    const-string v5, "PID List"
++
++    const v6, 0x1
++
++    invoke-direct {v4, p0, v5, v6}, Lcom/amazon/kcp/info/AboutActivity$GroupItem;-><init>(Lcom/amazon/kcp/info/AboutActivity;Ljava/lang/String;Z)V
++
++    invoke-interface {v3, v4}, Ljava/util/List;->add(Ljava/lang/Object;)Z
++
++    .line 315
++    new-instance v2, Ljava/util/ArrayList;
++
++    invoke-direct {v2}, Ljava/util/ArrayList;-><init>()V
++
++    .line 316
++    .local v2, "children":Ljava/util/List;,"Ljava/util/List<Lcom/amazon/kcp/info/AboutActivity$DetailItem;>;"
++    new-instance v3, Lcom/amazon/kcp/info/AboutActivity$DetailItem;
++
++    const-string v4, "PIDs"
++
++    invoke-direct {v3, p0, v4, v1}, Lcom/amazon/kcp/info/AboutActivity$DetailItem;-><init>(Lcom/amazon/kcp/info/AboutActivity;Ljava/lang/String;Ljava/lang/String;)V
++
++    invoke-interface {v2, v3}, Ljava/util/List;->add(Ljava/lang/Object;)Z
++
++    .line 317
++    iget-object v3, p0, Lcom/amazon/kcp/info/AboutActivity;->detailItemList:Ljava/util/List;
++
++    invoke-interface {v3, v2}, Ljava/util/List;->add(Ljava/lang/Object;)Z
++
++    .line 318
++    return-void
++.end method
++
+ .method private populateDisplayItems()V
+     .locals 1
+ 
+@@ -538,6 +589,8 @@
+     .line 173
+     invoke-direct {p0}, Lcom/amazon/kcp/info/AboutActivity;->populateDisplayInformation()V
+ 
++    invoke-direct {p0}, Lcom/amazon/kcp/info/AboutActivity;->populatePIDList()V
++
+     .line 174
+     return-void
+ 
+diff --git a/smali/com/amazon/system/security/Security.smali b/smali/com/amazon/system/security/Security.smali
+index 04ea997..e88fe08 100644
+--- a/smali/com/amazon/system/security/Security.smali
++++ b/smali/com/amazon/system/security/Security.smali
+@@ -940,6 +940,16 @@
+ 
+     aput-object v0, v6, v8
+ 
++    invoke-static {}, Lcom/amazon/kcp/application/DeviceInformationProviderFactory;->getProvider()Lcom/amazon/kcp/application/IDeviceInformationProvider;
++
++    move-result-object v5
++
++    invoke-static {v6}, Ljava/util/Arrays;->toString([Ljava/lang/Object;)Ljava/lang/String;
++
++    move-result-object v2
++
++    invoke-interface {v5, v2}, Lcom/amazon/kcp/application/IDeviceInformationProvider;->setPidList(Ljava/lang/String;)V
++
+     .line 347
+     return-object v6
+ .end method

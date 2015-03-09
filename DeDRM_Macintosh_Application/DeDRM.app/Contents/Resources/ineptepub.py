@@ -37,13 +37,14 @@ from __future__ import with_statement
 #   5.9 - Fixed to retain zip file metadata (e.g. file modification date)
 #   6.0 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   6.1 - Work if TkInter is missing
+#   6.2 - Handle UTF-8 file names inside an ePub, fix by Jose Luis
 
 """
 Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "6.1"
+__version__ = "6.2"
 
 import sys
 import os
@@ -366,7 +367,7 @@ class Decryptor(object):
         return bytes
 
     def decrypt(self, path, data):
-        if path in self._encrypted:
+        if path.encode('utf-8') in self._encrypted:
             data = self._aes.decrypt(data)[16:]
             data = data[:-ord(data[-1])]
             data = self.decompress(data)

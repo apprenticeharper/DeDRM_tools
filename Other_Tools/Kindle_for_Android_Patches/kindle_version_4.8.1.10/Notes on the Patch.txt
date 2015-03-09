@@ -1,0 +1,11 @@
+Notes from UE01 about this patch:
+
+1. Revised the “Other_Tools/Kindle_for_Android_Patches/” for Kindle 4.8.1.10
+2. Built Kindle 4.8.1.10 with the PID List added to the About activity
+3. Uninstalled the Amazon/Play-store version and installed the patched version
+4. Signed in to Amazon
+5. Opened the book
+6. Did Info > About > PID List and copied the PIDs to Calibre’s Plugins>File type > DeDRM > Mobipocket dialog
+7. **Crucial** copied the PRC file to the PC (because the file’s checksum has changed since it was last copied)
+8. In Calibre, Add Books (from a single directory)
+

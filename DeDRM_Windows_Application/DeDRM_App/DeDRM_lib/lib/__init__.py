@@ -36,13 +36,16 @@ __docformat__ = 'restructuredtext en'
 #   6.0.7 - Error handling for incomplete PDF metadata
 #   6.0.8 - Fixes a Wine key issue and topaz support
 #   6.0.9 - Ported to work with newer versions of Calibre (moved to Qt5). Still supports older Qt4 versions.
+#   6.1.0 - Fixed multiple books import problem and PDF import with no key problem
+#   6.2.0 - Support for getting B&N key from nook Study log. Fix for UTF-8 filenames in Adobe ePubs.
+#           Fix for not copying needed files. Fix for getting default Adobe key for PDFs
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 0, 9)
+PLUGIN_VERSION_TUPLE = (6, 2, 0)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -90,30 +93,20 @@ class DeDRM(FileTypePlugin):
     on_import               = True
     priority                = 600
 
-    def initialize(self):
-        # convert old preferences, if necessary.
-        try:
-            from calibre_plugins.dedrm.prefs import convertprefs
-            convertprefs()
-        except:
-            traceback.print_exc()
 
+    def initialize(self):
         """
-        Dynamic modules can't be imported/loaded from a zipfile... so this routine
-        runs whenever the plugin gets initialized. This will extract the appropriate
+        Dynamic modules can't be imported/loaded from a zipfile.
+        So this routine will extract the appropriate
         library for the target OS and copy it to the 'alfcrypto' subdirectory of
         calibre's configuration directory. That 'alfcrypto' directory is then
         inserted into the syspath (as the very first entry) in the run function
         so the CDLL stuff will work in the alfcrypto.py script.
+
+        The extraction only happens once per version of the plugin
+        Also perform upgrade of preferences once per version
         """
         try:
-            if iswindows:
-                names = [u"alfcrypto.dll",u"alfcrypto64.dll"]
-            elif isosx:
-                names = [u"libalfcrypto.dylib"]
-            else:
-                names = [u"libalfcrypto32.so",u"libalfcrypto64.so",u"kindlekey.py",u"adobekey.py",u"subasyncio.py"]
-            lib_dict = self.load_resources(names)
             self.pluginsdir = os.path.join(config_dir,u"plugins")
             if not os.path.exists(self.pluginsdir):
                 os.mkdir(self.pluginsdir)
@@ -126,9 +119,38 @@ class DeDRM(FileTypePlugin):
             self.alfdir = os.path.join(self.maindir,u"libraryfiles")
             if not os.path.exists(self.alfdir):
                 os.mkdir(self.alfdir)
-            for entry, data in lib_dict.items():
-                file_path = os.path.join(self.alfdir, entry)
-                open(file_path,'wb').write(data)
+            # only continue if we've never run this version of the plugin before
+            self.verdir = os.path.join(self.maindir,PLUGIN_VERSION)
+            if not os.path.exists(self.verdir):
+                if iswindows:
+                    names = [u"alfcrypto.dll",u"alfcrypto64.dll"]
+                elif isosx:
+                    names = [u"libalfcrypto.dylib"]
+                else:
+                    names = [u"libalfcrypto32.so",u"libalfcrypto64.so",u"kindlekey.py",u"adobekey.py",u"subasyncio.py"]
+                lib_dict = self.load_resources(names)
+                print u"{0} v{1}: Copying needed library files from plugin's zip".format(PLUGIN_NAME, PLUGIN_VERSION)
+
+                for entry, data in lib_dict.items():
+                    file_path = os.path.join(self.alfdir, entry)
+                    try:
+                        os.remove(file_path)
+                    except:
+                        pass
+
+                    try:
+                        open(file_path,'wb').write(data)
+                    except:
+                        print u"{0} v{1}: Exception when copying needed library files after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                        traceback.print_exc()
+                        pass
+
+                # convert old preferences, if necessary.
+                from calibre_plugins.dedrm.prefs import convertprefs
+                convertprefs()
+
+                # mark that this version has been initialized
+                os.mkdir(self.verdir)
         except Exception, e:
             traceback.print_exc()
             raise
@@ -166,7 +188,12 @@ class DeDRM(FileTypePlugin):
                 of = self.temporary_file(u".epub")
 
                 # Give the user key, ebook and TemporaryPersistent file to the decryption function.
-                result = ignobleepub.decryptBook(userkey, inf.name, of.name)
+                try:
+                    result = ignobleepub.decryptBook(userkey, inf.name, of.name)
+                except:
+                    print u"{0} v{1}: Exception when trying to decrypt after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                    traceback.print_exc()
+                    result = 1
 
                 of.close()
 
@@ -177,8 +204,69 @@ class DeDRM(FileTypePlugin):
 
                 print u"{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname_masked,time.time()-self.starttime)
 
+            # perhaps we should see if we can get a key from a log file
+            print u"{0} v{1}: Looking for new NOOK Study Keys after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+
+            # get the default NOOK Study keys
+            defaultkeys = []
+
+            try:
+                if iswindows or isosx:
+                    from calibre_plugins.dedrm.ignoblekey import nookkeys
+
+                    defaultkeys = nookkeys()
+                else: # linux
+                    from wineutils import WineGetKeys
+
+                    scriptpath = os.path.join(self.alfdir,u"ignoblekey.py")
+                    defaultkeys = WineGetKeys(scriptpath, u".b64",dedrmprefs['adobewineprefix'])
+
+            except:
+                print u"{0} v{1}: Exception when getting default NOOK Study Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                traceback.print_exc()
+
+            newkeys = []
+            for keyvalue in defaultkeys:
+                if keyvalue not in dedrmprefs['bandnkeys'].values():
+                    newkeys.append(keyvalue)
+
+            if len(newkeys) > 0:
+                try:
+                    for i,userkey in enumerate(newkeys):
+                        print u"{0} v{1}: Trying a new default key".format(PLUGIN_NAME, PLUGIN_VERSION)
+
+                        of = self.temporary_file(u".epub")
+
+                        # Give the user key, ebook and TemporaryPersistent file to the decryption function.
+                        try:
+                            result = ignobleepub.decryptBook(userkey, inf.name, of.name)
+                        except:
+                           print u"{0} v{1}: Exception when trying to decrypt after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                           traceback.print_exc()
+                           result = 1
+
+                        of.close()
+
+                        if result == 0:
+                            # Decryption was a success
+                            # Store the new successful key in the defaults
+                            print u"{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION)
+                            try:
+                                dedrmprefs.addnamedvaluetoprefs('bandnkeys','default_key',keyvalue)
+                                dedrmprefs.writeprefs()
+                                print u"{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+                            except:
+                                print u"{0} v{1}: Exception saving a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                                traceback.print_exc()
+                            # Return the modified PersistentTemporary file to calibre.
+                            return of.name
+
+                        print u"{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+                except Exception, e:
+                    pass
+
             print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-            raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt “{2}” after {3:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook),time.time()-self.starttime))
+            raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
         # import the Adobe Adept ePub handler
         import calibre_plugins.dedrm.ineptepub as ineptepub
@@ -196,6 +284,8 @@ class DeDRM(FileTypePlugin):
                 try:
                     result = ineptepub.decryptBook(userkey, inf.name, of.name)
                 except:
+                    print u"{0} v{1}: Exception when decrypting after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                    traceback.print_exc()
                     result = 1
 
                 of.close()
@@ -226,6 +316,7 @@ class DeDRM(FileTypePlugin):
 
                 self.default_key = defaultkeys[0]
             except:
+                print u"{0} v{1}: Exception when getting default Adobe Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
                 traceback.print_exc()
                 self.default_key = u""
 
@@ -244,6 +335,8 @@ class DeDRM(FileTypePlugin):
                         try:
                             result = ineptepub.decryptBook(userkey, inf.name, of.name)
                         except:
+                            print u"{0} v{1}: Exception when decrypting after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                            traceback.print_exc()
                             result = 1
 
                         of.close()
@@ -255,7 +348,9 @@ class DeDRM(FileTypePlugin):
                             try:
                                 dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key',keyvalue.encode('hex'))
                                 dedrmprefs.writeprefs()
+                                print u"{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
                             except:
+                                print u"{0} v{1}: Exception when saving a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
                                 traceback.print_exc()
                             # Return the modified PersistentTemporary file to calibre.
                             return of.name
@@ -266,12 +361,12 @@ class DeDRM(FileTypePlugin):
 
             # Something went wrong with decryption.
             print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-            raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt “{2}” after {3:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook),time.time()-self.starttime))
+            raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
         # Not a Barnes & Noble nor an Adobe Adept
         # Import the fixed epub.
         print u"{0} v{1}: “{2}” is neither an Adobe Adept nor a Barnes & Noble encrypted ePub".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook))
-        return inf.name
+        raise DeDRMError(u"{0} v{1}: Couldn't decrypt after {2:.1f} seconds. DRM free perhaps?".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
     def PDFDecrypt(self,path_to_ebook):
         import calibre_plugins.dedrm.prefs as prefs
@@ -289,6 +384,8 @@ class DeDRM(FileTypePlugin):
             try:
                 result = ineptpdf.decryptBook(userkey, path_to_ebook, of.name)
             except:
+                print u"{0} v{1}: Exception when decrypting after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                traceback.print_exc()
                 result = 1
 
             of.close()
@@ -298,67 +395,73 @@ class DeDRM(FileTypePlugin):
                 # Return the modified PersistentTemporary file to calibre.
                 return of.name
 
-            # perhaps we need to get a new default ADE key
-            print u"{0} v{1}: Looking for new default Adobe Digital Editions Keys after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+            print u"{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime)
 
-            # get the default Adobe keys
-            defaultkeys = []
+        # perhaps we need to get a new default ADE key
+        print u"{0} v{1}: Looking for new default Adobe Digital Editions Keys after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
 
+        # get the default Adobe keys
+        defaultkeys = []
+
+        try:
             if iswindows or isosx:
-                import calibre_plugins.dedrm.adobekey as adobe
+                from calibre_plugins.dedrm.adobekey import adeptkeys
 
-                try:
-                    defaultkeys = adobe.adeptkeys()
-                except:
-                    pass
-            else:
-                # linux
-                try:
-                    from wineutils import WineGetKeys
+                defaultkeys = adeptkeys()
+            else: # linux
+                from wineutils import WineGetKeys
 
-                    scriptpath = os.path.join(self.alfdir,u"adobekey.py")
-                    defaultkeys = WineGetKeys(scriptpath, u".der",dedrmprefs['adobewineprefix'])
-                except:
-                    pass
+                scriptpath = os.path.join(self.alfdir,u"adobekey.py")
+                defaultkeys = WineGetKeys(scriptpath, u".der",dedrmprefs['adobewineprefix'])
 
-            newkeys = []
-            for keyvalue in defaultkeys:
-                if keyvalue.encode('hex') not in dedrmprefs['adeptkeys'].values():
-                    newkeys.append(keyvalue)
+            self.default_key = defaultkeys[0]
+        except:
+            print u"{0} v{1}: Exception when getting default Adobe Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+            traceback.print_exc()
+            self.default_key = u""
 
-            if len(newkeys) > 0:
-                try:
-                    for i,userkey in enumerate(newkeys):
-                        print u"{0} v{1}: Trying a new default key".format(PLUGIN_NAME, PLUGIN_VERSION)
-                        of = self.temporary_file(u".pdf")
+        newkeys = []
+        for keyvalue in defaultkeys:
+            if keyvalue.encode('hex') not in dedrmprefs['adeptkeys'].values():
+                newkeys.append(keyvalue)
 
-                        # Give the user key, ebook and TemporaryPersistent file to the decryption function.
+        if len(newkeys) > 0:
+            try:
+                for i,userkey in enumerate(newkeys):
+                    print u"{0} v{1}: Trying a new default key".format(PLUGIN_NAME, PLUGIN_VERSION)
+                    of = self.temporary_file(u".pdf")
+
+                    # Give the user key, ebook and TemporaryPersistent file to the decryption function.
+                    try:
+                        result = ineptpdf.decryptBook(userkey, path_to_ebook, of.name)
+                    except:
+                        print u"{0} v{1}: Exception when decrypting after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                        traceback.print_exc()
+                        result = 1
+
+                    of.close()
+
+                    if  result == 0:
+                        # Decryption was a success
+                        # Store the new successful key in the defaults
+                        print u"{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION)
                         try:
-                            result = ineptepdf.decryptBook(userkey, inf.name, of.name)
+                            dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key',keyvalue.encode('hex'))
+                            dedrmprefs.writeprefs()
+                            print u"{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
                         except:
-                            result = 1
+                            print u"{0} v{1}: Exception when saving a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                            traceback.print_exc()
+                        # Return the modified PersistentTemporary file to calibre.
+                        return of.name
 
-                        of.close()
-
-                        if  result == 0:
-                            # Decryption was a success
-                            # Store the new successful key in the defaults
-                            print u"{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION)
-                            try:
-                                dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key',keyvalue.encode('hex'))
-                                dedrmprefs.writeprefs()
-                            except:
-                                traceback.print_exc()
-                            # Return the modified PersistentTemporary file to calibre.
-                            return of.name
-
-                        print u"{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-                except Exception, e:
-                    pass
+                    print u"{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+            except Exception, e:
+                pass
 
         # Something went wrong with decryption.
         print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-        raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt “{2}” after {3:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook),time.time()-self.starttime))
+        raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
 
     def KindleMobiDecrypt(self,path_to_ebook):
@@ -397,6 +500,8 @@ class DeDRM(FileTypePlugin):
                     scriptpath = os.path.join(self.alfdir,u"kindlekey.py")
                     defaultkeys = WineGetKeys(scriptpath, u".k4i",dedrmprefs['kindlewineprefix'])
             except:
+                print u"{0} v{1}: Exception when getting default Kindle Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                traceback.print_exc()
                 pass
 
             newkeys = {}
@@ -419,8 +524,7 @@ class DeDRM(FileTypePlugin):
             if not decoded:
                 #if you reached here then no luck raise and exception
                 print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-                traceback.print_exc()
-                raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt “{4}” after {3:.1f} seconds with error: {2}\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION, e.args[0],time.time()-self.starttime,os.path.basename(path_to_ebook)))
+                raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
         of = self.temporary_file(book.getBookExtension())
         book.getFile(of.name)
@@ -454,7 +558,7 @@ class DeDRM(FileTypePlugin):
             print u"{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname_masked,time.time()-self.starttime)
 
         print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-        raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt “{2}” after {3:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook),time.time()-self.starttime))
+        raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
 
     def run(self, path_to_ebook):

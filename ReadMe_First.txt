@@ -1,13 +1,14 @@
-Welcome to the tools!
+﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.1.0 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.2.0 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
 
 The is archive includes tools to remove DRM from:
 
  - Kindle ebooks (Mobi, Topaz, Print Replica and KF8).
- - Barnes and Noble ePubs
- - Adobe Digital Editions ePubs (including Sony and Kobo ePubs downloaded to ADE)
+ - Barnes and Noble ePubs downloaded through NOOK Study
+ - Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
+ - Kobo kePubs from the Kobo Desktop application
  - Adobe Digital Editions PDFs
  - Mobipocket ebooks
  - eReader PDB books
@@ -18,41 +19,26 @@ These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
 About the tools
 ---------------
-These tools have been updated and maintained by Apprentice Alf, DiapDealer and some_updates. You can find the latest updates and get support at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
+These tools are updated and maintained by Apprentice Alf and Apprentice Harper. You can find the latest updates and get support at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
 If you re-post these tools, a link to the blog would be appreciated.
-
-The original inept and ignoble scripts were by i♥cabbages
-The original mobidedrm and erdr2pml scripts were by The Dark Reverser
-The original topaz DRM removal script was by CMBDTC
-The original topaz format conversion scripts were by some_updates, clarknova and Bart Simpson
-The Scuolabooks tool is by Hex
-The calibre plugin conversions were originally by DiapDealer
-
-The DeDRM plugin is by Apprentice Alf based on plugins by DiapDealer
-The DeDRM AppleScript application is by Apprentice Alf
-The DeDRM python GUI is by some_updates and Apprentice Alf
-
-Many fixes, updates and enhancements to the scripts and applicatons have been by Apprentice Alf, some_updates and DiapDealer and others.
 
 
 DeDRM plugin for calibre (Mac OS X, Windows, and Linux)
 -------------------------------------------------------
 If you already use calibre, the quickest and easiest way, especially on Windows, to remove DRM from your ebooks is to install the DeDRM plugin from the DeDRM_calibre_plugin folder, following the instructions and configuration directions provided in the ReadMe and the help links.
 
-Once installed and configured, you can simply add a DRM book to calibre and the DeDRMed version will be imported into the calibre database. Note that DRM removal ONLY occurs on import. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
+Once installed and configured, you can simply add a DRM book to calibre and the DeDRMed version will be imported into the calibre database. Note that DRM removal only occurs on IMPORT not on CONVERSION or at any other time, not even conversion to other formats. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
 
-These plugins work for Windows, Mac OS X and Linux. For ebooks from Kindle 4 PC and Adobe Digital Editions, Linux users should read the section at the end the DeDRM_plugin_ReadMe.txt file.
+Linux users should read the section at the end the DeDRM_plugin_ReadMe.txt file.
 
 
 DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
 ---------------------------------------------------------------
-This application is a stand-alone application for Mac OS X users.
+This application is a stand-alone DRM removal application for Mac OS X users.
 
-Drag the "DeDRM.app" application from the DeDRM_Macintosh_Application folder to your Desktop (or your Applications Folder, or anywhere else you find convenient). Double-click on the application to run it and you will be able to enter any configuration data needed to remove DRM from  your type of DRMed ebooks.
+For instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Application_Macintosh folder.
 
-To use the DeDRM application simply drag ebooks and/or folders containing ebooks onto the DeDRM application and it will remove the DRM and save DRM-free versions of the books wherever you selected in the Output Folder configuration dialog.
-
-For more detailed instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Application_Macintosh folder, including details of the extra step that Mac OS X 10.4 users need to take to use the application.
+N.B. Mac OS X 10.4 users need to take extra steps befor using the application, see the ReadMe.
 
 
 DeDRM application for Windows users: (Windows XP through Windows 8)
@@ -62,44 +48,46 @@ DeDRM application for Windows users: (Windows XP through Windows 8)
 
 This application is a stand-alone application for Windows users.
 
-Drag the DeDRM_App folder that's in the DeDRM_Windows_Application folder, to your "My Documents" folder (or anywhere else you find convenient). Make a short-cut on your Desktop of the DeDRM_Drop_Target.bat file that's in the DeDRM_App folder. Double-click on the shortcut and the DeDRM application will run and you will be able to enter any configuration data needed to remove DRM from  your type of DRMed ebooks.
+For instructions, see the DeDRM_App_ReadMe.txt file in the DeDRM_Windows_Applications folder.
 
-To use the DeDRM application simply drag ebooks or folders containing ebooks onto the DeDRM_Drop_Target.bat shortcut and it will remove the DRM and save DRM-free versions of the books wherever you selected in the Output Folder configuration dialog.
 
-For more detailed instructions, see the DeDRM_App_ReadMe.txt file in the DeDRM_Windows_Applications folder.
+Obok plugin for calibre (Mac OS X, Windows)
+-------------------------------------------
+This plugin allows you to import kePub ebooks from your kobo desktop application. It is separate from the DeDRM application because it has to work in a different way. It will find all the books downloaded to your kobo desktop application, and let you choose which ones to import, removing the DRM as they are imported.
+
+For instructions, see the obok_plugin_ReadMe.txt file in the Obok_calibre_plugin folder.
 
 
 Other_Tools
 -----------
-This is now a separate archive and includes other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
-
-Key_Generation_Scripts
-This folder contains python scripts that creates a keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs and Kindle for Mac/PC ebooks.
-
-Kindle_for_Android_Patches
-Definitely only for the adventurous, this folder contains information on how to modify the Kindel for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin).
+This is folder other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
 
 B&N_Download_Helper
 A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Another one only for the adventurous.
 
-Scuolabook_DRM
-A windows-only application (including source code) for removing DRM from ScuolaBooks PDFs, created by "Hex" and included with permission.
+DRM_Key_Scripts
+This folder contains python scripts that create or extract encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs and Kindle for Mac/PC ebooks.
+
+Kindle_for_Android_Patches
+Definitely only for the adventurous, this folder contains information on how to modify the Kindel for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin).
+
+Kobo
+Contains the standalone obok python script for removing DRM from kePubs downloaded using the kobo desktop application.
 
 Rocket_ebooks
 Information about the now-obsolete Rocket ebook format and DRM, along with source for a tool to remove the DRM.
 
-
+Scuolabook_DRM
+A windows-only application (including source code) for removing DRM from ScuolaBooks PDFs, created by "Hex" and included with permission.
 
 
 Windows and Python
 ------------------
-We **strongly** recommend ActiveState's Active Python 2.7 Community Edition for Windows (x86) 32 bits. This can be downloaded for free from:
+We **strongly** recommend ActiveState's Active Python 2.7 Community Edition for Windows. This can be downloaded for free from:
 
 http://www.activestate.com/activepython/downloads
 
-We do **NOT** recommend the version of Python from python.org.
-
-The version from python.org is not as complete as most normal Python installations on Linux and even Mac OS X. It is missing various Windows specific libraries, does not install the default Tk Widget kit (for graphical user interfaces) unless you select it as an option in the installer, and does not properly update the system PATH environment variable. Therefore using the default python.org build on Windows is simply an exercise in frustration for most Windows users.
+We do **NOT** recommend the version of Python from python.org as it is missing various Windows specific libraries, does not install the Tk Widget kit (for graphical user interfaces) by default, and does not properly update the system PATH environment variable. Therefore using the default python.org build on Windows is simply an exercise in frustration for most Windows users.
 
 In addition, Windows Users need one of PyCrypto OR OpenSSL. Because of potential conflicts with other software, we recommend using PyCrypto.
 
@@ -109,7 +97,7 @@ For PyCrypto:
 
     http://www.voidspace.org.uk/python/modules.shtml
 
-    Please get the latest PyCrypto meant for Windows 32 bit that matches the version of Python you installed (2.7)
+    Please get the latest (currently 2.6) PyCrypto meant for Windows Python version 2.7
 
 For OpenSSL:
 
@@ -122,7 +110,7 @@ For OpenSSL:
     Visual C++ 2008 Redistributables (1.7Mb)
     http://www.microsoft.com/downloads/details.aspx?familyid=9B2DA534-3E03-4391-8A4D-074B9F2BC1BF
 
-Once Windows users have installed Python 2.X for 32 bits, and the matching OpenSSL OR PyCrypto pieces, they too are ready to run a DeDRM application.
+Once Windows users have installed Python 2.7, and the matching OpenSSL OR PyCrypto pieces, they are ready to run the DeDRM application or individual scripts.
 
 
 
@@ -147,3 +135,23 @@ MD5: 1636862796d573c693d56bcc526b60bd
 If you have any problems with Requiem, I suggest you contact Brahms directly through their Tor website.
 
 No support for requiem is provided at Apprentice Alf's blog.
+
+
+Credits
+-------
+The original inept and ignoble scripts were by i♥cabbages
+The original mobidedrm and erdr2pml scripts were by The Dark Reverser
+The original topaz DRM removal script was by CMBDTC
+The original topaz format conversion scripts were by some_updates, clarknova and Bart Simpson
+The original obok script was by Physisticated
+
+The alfcrypto library is by some_updates
+The ePub encryption detection script is by Apprentice Alf, adapted from a script by Paul Durrant
+The ignoblekey script is by Apprentice Harper
+The DeDRM plugin was based on plugins by DiapDealer and is maintained by Apprentice Alf and Apprentice Harper
+The DeDRM AppleScript was by Paul Durrant and is maintained by Apprentice Alf and Apprentice Harper
+The DeDRM python GUI was by some_updates and is maintained by Apprentice Alf and Apprentice Harper
+
+The Scuolabooks tool is by Hex
+
+Many fixes, updates and enhancements to the scripts and applicatons have been made by many other people. For more details, see the commments in the individual scripts.

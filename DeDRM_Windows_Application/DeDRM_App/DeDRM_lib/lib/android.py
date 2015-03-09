@@ -10,6 +10,7 @@ from cStringIO import StringIO
 from binascii import a2b_hex, b2a_hex
 
 STORAGE = 'AmazonSecureStorage.xml'
+STORAGE2 = 'map_data_storage.db'
 
 class AndroidObfuscation(object):
     '''AndroidObfuscation
@@ -76,13 +77,8 @@ def parse_preference(path):
 
 def get_serials(path=None):
     ''' get serials from android's shared preference xml '''
-    if path is None:
-        if not os.path.isfile(STORAGE):
-            if os.path.isfile("backup.ab"):
-                get_storage()
-            else:
-                return []
-        path = STORAGE
+    if path is None and os.path.isfile("backup.ab"):
+        return get_storage()
 
     if not os.path.isfile(path):
         return []
@@ -113,16 +109,27 @@ def get_serials(path=None):
     try:
         tokens = set(get_value('kindle.account.tokens').split(','))
     except:
-        return [dsnid]
+        return []
 
     serials = []
     for token in tokens:
         if token:
             serials.append('%s%s' % (dsnid, token))
-    serials.append(dsnid)
-    for token in tokens:
-        if token:
-            serials.append(token)
+    return serials
+
+def get_serials2(path=STORAGE2):
+    import sqlite3
+    connection = sqlite3.connect(path)
+    cursor = connection.cursor()
+    cursor.execute('''select userdata_value from userdata where userdata_key like '%/%token.device.deviceserialname%' ''')
+    dsns = [x[0].encode('utf8') for x in cursor.fetchall()]
+
+    cursor.execute('''select userdata_value from userdata where userdata_key like '%/%kindle.account.tokens%' ''')
+    tokens = [x[0].encode('utf8') for x in cursor.fetchall()]
+    serials = []
+    for x in dsns:
+        for y in tokens:
+            serials.append('%s%s' % (x, y))
     return serials
 
 def get_storage(path='backup.ab'):
@@ -130,25 +137,38 @@ def get_storage(path='backup.ab'):
     backup.ab can be get using adb command:
     shell> adb backup com.amazon.kindle
     '''
+    if not os.path.isfile(path):
+        serials = []
+        if os.path.isfile(STORAGE2):
+            serials.extend(get_serials2(STORAGE2))
+        if os.path.isfile(STORAGE):
+            serials.extend(get_serials(STORAGE))
+        return serials
     output = None
     read = open(path, 'rb')
     head = read.read(24)
-    if head == 'ANDROID BACKUP\n1\n1\nnone\n':
+    if head[:14] == 'ANDROID BACKUP':
         output = StringIO(zlib.decompress(read.read()))
     read.close()
 
     if not output:
-        return False
+        return []
 
+    serials = []
     tar = tarfile.open(fileobj=output)
     for member in tar.getmembers():
-        if member.name.strip().endswith(STORAGE):
+        if member.name.strip().endswith(STORAGE2):
+            write = open(STORAGE2, 'w')
+            write.write(tar.extractfile(member).read())
+            write.close()
+            serials.extend(get_serials2(STORAGE2))
+        elif member.name.strip().endswith(STORAGE):
             write = open(STORAGE, 'w')
             write.write(tar.extractfile(member).read())
             write.close()
-            break
+            serials.extend(get_serials(STORAGE))
 
-    return True
+    return serials
 
 __all__ = [ 'get_storage', 'get_serials', 'parse_preference',
             'AndroidObfuscation', 'AndroidObfuscationV2', 'STORAGE']

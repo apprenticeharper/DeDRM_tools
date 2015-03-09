@@ -1,19 +1,19 @@
-DeDRM_plugin.zip
+﻿DeDRM_plugin.zip
 ================
 
-This calibre plugin replaces all previous DRM removal plugins. When you install this plugin, the older separate plugins should be removed.
+This calibre plugin replaces all previous DRM removal plugins. Before you install this plugin, you should uninstall any older individual DRM removal plugins, e.g. K4MobiDeDRM.
 
-This plugin will remove the DRM from Amazon Kindle ebooks (Mobi, KF8, Topaz and Print Replica), Mobipocket, Adobe Digital Edition ePubs (including Sony and Kobo ePubs), Barnes and Noble ePubs, Adobe Digital Edition PDFs, and Fictionwise eReader ebooks.
+This plugin will remove the DRM from Amazon Kindle ebooks (Mobi, KF8, Topaz and Print Replica), Mobipocket, Adobe Digital Edition ePubs (including Sony and Kobo ePubs), Barnes and Noble (nook) ePubs, Adobe Digital Edition PDFs, and Fictionwise eReader ebooks.
 
 
 Installation
 ------------
-Do NOT select "Get plugins to enhance calibre" as this is reserved for 'official' calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (DeDRM_plugin.zip) and click the "Add" button. Click "Yes" in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+From the Preferences menu, do NOT select "Get plugins to enhance calibre" as this is reserved for 'official' calibre plugins. Instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (DeDRM_plugin.zip) and click the "Add" button. Click "Yes" in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
 
 
 Customization
 -------------
-The keys for ebooks downloaded using Kindle for Mac/PC and Adobe Digital Editions are automatically generated and saved when needed. If all your DRMed ebooks can be opened and read in Kindle for Mac/PC or Adobe Digital Editions on the same computer on which you are running calibre, you do not need to do any configuration of this plugin. (On Linux, Kindle for PC and Adobe Digital Editions along with Python and PyCrypto need to be installed under Wine for this to work, see the Linux section at the end.)
+The keys for ebooks downloaded using Kindle for Mac/PC, Adobe Digital Editions and NOOK Study are automatically generated and saved when needed. If all your DRMed ebooks can be downloaded and read in Kindle for Mac/PC, Adobe Digital Editions or NOOK Study on the same computer and user account on which you are running calibre, you do not need to do add any customisation data to this plugin. (Linux users should see the Linux section at the end of this ReadMe.)
 
 If you have books from other sources (e.g. from an eInk Kindle), highlight the plugin (DeDRM under the "File type plugins" category) and click the "Customize Plugin" button.
 
@@ -26,21 +26,19 @@ When you have finished entering your configuration information, you must click t
 
 Troubleshooting
 ---------------
-If you find that it's not working for you (imported ebooks still have DRM), you can save a lot of time and trouble by deleting the DRMed ebook from calibre and then trying to add the ebook to calibre in debug mode with the command line tools. This will print out a lot of helpful debugging info that can be copied into any online help requests.
+If you find that it's not working for you (imported ebooks still have DRM - that is, they won't convert or open in the calibre ebook viewer), you should make a log of import process by deleting the DRMed ebook from calibre and then adding the ebook to calibre when it's running in debug mode. This will generate a lot of helpful debugging info that can be copied into any online help requests. Here's how to do it:
 
-On Macintosh only you must first run calibre, open Preferences, open Miscellaneous, and click on the “Install command line tools” button. (On Windows and Linux the command line tools are installed automatically.)
-
-On Windows, open a terminal/command window. (Start/Run… and then type 'cmd' (without the 's) as the program to run).
+On Windows, open a terminal/command window. (Start/Run… and then type 'cmd.exe' (without the 's) as the program to run).
 On Macintosh, open the Terminal application (in your Utilities folder).
 On Linux open a command window. Hopefully all Linux users know how to do this.
 
 You should now have a text-based command-line window open.
 
-Type in "calibre-debug -g" (without the ") and press the return/enter key. Calibre will launch and run as normal, but with debugging information output to the terminal window.
+Type in "calibre-debug -g" (without the "s but with the space before the -g) and press the return/enter key. Calibre will launch and run as normal, but with debugging information output to the terminal window.
 
-Import the drmed eBook into calibre in any of the the normal ways. (I usually drag&drop onto the calibre window.)
+Import the DRMed eBook into calibre in any of the the normal ways. (I usually drag&drop onto the calibre window.)
 
-More debug information will be written to the terminal window.
+Debug information will be written to the terminal window.
 
 Copy the output from the terminal window.
 On Windows, you must use the window menu (little icon at left of window bar) to select all the text and then to copy it.
@@ -51,15 +49,18 @@ Paste the information into a comment at my blog, http://apprenticealf.wordpress.
 
 Credits
 -------
-The mobidedrm and erdr2pml scripts were created by The Dark Reverser
-The ignobleepub, ignoblekeygen, ineptepub and adobe key scripts were created by i♥cabbages
-The k4mobidedrm script and supporting scripts were written by some_updates with help from DiapDealer and Apprentice Alf, based on code by Bart Simpson (aka Skindle), CMBDTC and clarknova
-The alfcrypto library was created by some_updates
-The ePub encryption detection script was adapted by Apprentice Alf from a script by Paul Durrant
-The DeDRM all-in-one AppleScript was created by Apprentice Alf
-The DeDRM all-in-one python script was created by some_updates and Apprentice Alf
+The original inept and ignoble scripts were by i♥cabbages
+The original mobidedrm and erdr2pml scripts were by The Dark Reverser
+The original topaz DRM removal script was by CMBDTC
+The original topaz format conversion scripts were by some_updates, clarknova and Bart Simpson
+The original obok script was by Physisticated
 
+The alfcrypto library is by some_updates
+The ePub encryption detection script is by Apprentice Alf, adapted from a script by Paul Durrant
+The ignoblekey script is by Apprentice Harper
+The DeDRM plugin was based on plugins by DiapDealer and is maintained by Apprentice Alf and Apprentice Harper
 
+Many fixes, updates and enhancements to the scripts and applicatons have been made by many other people. For more details, see the commments in the individual scripts.
 
 
 Linux Systems Only

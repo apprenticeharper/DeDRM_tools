@@ -22,7 +22,24 @@ li {margin-top: 0.5em}
 
 <p>If you have upgraded from an earlier version of the plugin, any existing Barnes and Noble keys will have been automatically imported, so you might not need to do any more configuration. Continue reading for key generation and management instructions.</p>
 
-<h3>Creating New Keys:</h3>
+<h3>Changes at Barnes & Noble</h3>
+
+<p>In mid-2014, Barnes & Noble changed the way they generated encryption keys. Instead of deriving the key from the user's name and credit card number, they started generating a random key themselves, sending that key through to devices when they connected to the Barnes & Noble servers. This means that some users will find that no combination of their name and CC# will work in decrypting their ebooks.</p>
+
+<p>There is a work-around. Barnes & Noble’s desktop app NOOK Study generates a log file that contains the encryption key. You can download NOOK Study from <a href="https://yuzu.com/nsdownload">https://yuzu.com/nsdownload</a>.</p>
+<p>Once downloaded, install the application, register with your Barnes & Noble or nook account, and download at least one DRMed ebook through NOOK Study. It will be saved somewhere in a folder called "My Barnes & Noble eBooks" in your Documents folder.</p>
+<p>Now import that book into calibre. The log file and the key in the log should be automatically found by the plugin and used to decrypt the book.</p>
+<p>If the automatic process doesn't work for you, you can still find extract it manually and save it as a .b64 file for import into the plugin's preferences as follows:</p>
+<ol><li>In NOOK Study, select Settings/About (Windows) or NOOK Study/About NOOK Study (Mac) and in the dialog that appears click the link at the bottom to copy the log into the clipboard.</li>
+<li>Paste the copied log into a text editor</li>
+<li>Search for the text CCHashResponseV1</li>
+<li>On the line below which starts with ccHash, copy the text between the " marks after ccHash, but don't include the " marks.</li>
+<li>Save that text in a new <b>plain text</b> file, with file name extension .b64 (for example, key.b64)</li>
+<li>Import that file into the preferences through this dialog, using the "Import Existing Key Files" button.</li>
+</ol>
+
+
+<h3>Old instructions: Creating New Keys:</h3>
 
 <p>On the right-hand side of the plugin’s customization dialog, you will see a button with an icon that looks like a green plus sign (+). Clicking this button will open a new dialog for entering the necessary data to generate a new key.</p>
 <ul>
@@ -48,7 +65,7 @@ li {margin-top: 0.5em}
 
 <h3>Importing Existing Keyfiles:</h3>
 
-<p>At the bottom-left of the plugin’s customization dialog, you will see a button labeled "Import Existing Keyfiles". Use this button to import existing ‘.b64’ key files. Key files might come from being exported from this or older plugins, or may have been generated using the original i♥cabbages script.</p>
+<p>At the bottom-left of the plugin’s customization dialog, you will see a button labeled "Import Existing Keyfiles". Use this button to import existing ‘.b64’ key files. Key files might come from being exported from this or older plugins, or may have been generated using the original i♥cabbages script, or you may have made it by following the instructions above.</p>
 
 <p>Once done creating/deleting/renaming/importing decryption keys, click Close to exit the customization dialogue. Your changes wil only be saved permanently when you click OK in the main configuration dialog.</p>
 
