@@ -1,0 +1,102 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: obok\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-10-19 10:28+0200\n"
+"PO-Revision-Date: 2014-10-23 14:43+0100\n"
+"Last-Translator: \n"
+"Language-Team: friends of obok\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 1.6.10\n"
+
+#: common_utils.py:220
+msgid "Help"
+msgstr "Hilfe"
+
+#: common_utils.py:229 utilities.py:207
+msgid "Restart required"
+msgstr "Neustart erforderlich"
+
+#: common_utils.py:230 utilities.py:208
+msgid ""
+"Title image not found - you must restart Calibre before using this plugin!"
+msgstr ""
+"Das Abbild wurde nicht gefunden. - vor der Verwendung dieses Calibre Plugin "
+"is ein Neustart erforderlich!"
+
+#: common_utils.py:316
+msgid "Undefined"
+msgstr "Undefiniert"
+
+#: config.py:25
+msgid ""
+"<p>Default behavior when duplicates are detected. None of the choices will "
+"cause calibre ebooks to be overwritten"
+msgstr ""
+"<p>Standardverhalten, wenn Duplikate erkannt werden. Keine der "
+"Entscheidungen werden ebooks verursachen das sie überschrieben werden."
+
+#: dialogs.py:58
+msgid "Obok DeDRM"
+msgstr "Obok DeDRM"
+
+#: dialogs.py:68
+msgid "<a href=\"http://www.foo.com/\">Help</a>"
+msgstr "<a href=\"http://www.foo.com/\">Hilfe</a>"
+
+#: dialogs.py:82
+msgid "Select All"
+msgstr "Alles markieren"
+
+#: dialogs.py:83
+msgid "Select all books to add them to the calibre library."
+msgstr "Wählen Sie alle Bücher, um sie zu Calibre Bibliothek hinzuzufügen."
+
+#: dialogs.py:85
+msgid "All with DRM"
+msgstr "Alle mit DRM"
+
+#: dialogs.py:86
+msgid "Select all books with DRM."
+msgstr "Wählen Sie alle Bücher mit DRM."
+
+#: dialogs.py:88
+msgid "All DRM free"
+msgstr "Alle ohne DRM"
+
+#: dialogs.py:89
+msgid "Select all books without DRM."
+msgstr "Wählen Sie alle Bücher ohne DRM."
+
+#: dialogs.py:139
+msgid "Title"
+msgstr "Titel"
+
+#: dialogs.py:139
+msgid "Author"
+msgstr "Autor"
+
+#: dialogs.py:139
+msgid "Series"
+msgstr "Reihe"
+
+#: dialogs.py:362
+msgid "Copy to clipboard"
+msgstr "In Zwischenablage kopieren"
+
+#: dialogs.py:390
+msgid "View Report"
+msgstr "Bericht anzeigen"
+
+#: __init__.py:24
+msgid "Removes DRM from Kobo kepubs and adds them to the library."
+msgstr "Entfernt DRM von Kobo kepubs und fügt sie zu Bibliothek hinzu."
