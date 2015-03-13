@@ -1,10 +1,14 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+# Version 3.1.2 January 2015
+# Add coding, version number and version announcement
+#
 # Version 3.05 October 2014
 # Identifies DRM-free books in the dialog
 #
 # Version 3.04 September 2014
-# Handles DRM-free books as well (sometimes Kobo Library doesn't 
+# Handles DRM-free books as well (sometimes Kobo Library doesn't
 # show download link for DRM-free books)
 #
 # Version 3.03 August 2014
@@ -104,6 +108,9 @@
 # after all.
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
+
+__version__ = '3.1.1'
+
 import sys
 import os
 import subprocess
@@ -210,6 +217,7 @@ class KoboLibrary(object):
     of books, their titles, and the user's encryption key(s)."""
 
     def __init__ (self):
+        print u"Obok v{0}\nCopyright © 2012-2014 Physisticated et al.".format(__version__)
         if sys.platform.startswith('win'):
             if sys.getwindowsversion().major > 5:
                 self.kobodir = os.environ['LOCALAPPDATA']
@@ -446,7 +454,7 @@ if __name__ == '__main__':
     zin = zipfile.ZipFile(book.filename, "r")
     # make filename out of Unicode alphanumeric and whitespace equivalents from title
     outname = "%s.epub" % (re.sub('[^\s\w]', '', book.title, 0, re.UNICODE))
-    
+
     if (book.type == 'drm-free'):
         print "DRM-free book, conversion is not needed"
         shutil.copyfile(book.filename, outname)
