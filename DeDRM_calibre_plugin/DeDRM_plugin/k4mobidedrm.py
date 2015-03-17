@@ -80,12 +80,12 @@ if inCalibre:
     from calibre_plugins.dedrm import mobidedrm
     from calibre_plugins.dedrm import topazextract
     from calibre_plugins.dedrm import kgenpids
-    from calibre_plugins.dedrm import android
+    from calibre_plugins.dedrm import androidkindlekey
 else:
     import mobidedrm
     import topazextract
     import kgenpids
-    import android
+    import androidkindlekey
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -317,8 +317,7 @@ def cli_main():
         if o == '-a':
             if a == None:
                 continue
-            serials.extend(android.get_serials(a))
-    serials.extend(android.get_serials())
+            serials.extend(androidkindlekey.get_serials(a))
 
     # try with built in Kindle Info files if not on Linux
     k4 = not sys.platform.startswith('linux')
