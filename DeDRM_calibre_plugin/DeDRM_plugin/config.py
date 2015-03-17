@@ -55,6 +55,7 @@ class ConfigWidget(QWidget):
         self.tempdedrmprefs['kindlekeys'] = self.dedrmprefs['kindlekeys'].copy()
         self.tempdedrmprefs['pids'] = list(self.dedrmprefs['pids'])
         self.tempdedrmprefs['serials'] = list(self.dedrmprefs['serials'])
+        self.tempdedrmprefs['androidserials'] = list(self.dedrmprefs['androidserials'])
         self.tempdedrmprefs['adobewineprefix'] = self.dedrmprefs['adobewineprefix']
         self.tempdedrmprefs['kindlewineprefix'] = self.dedrmprefs['kindlewineprefix']
 
@@ -83,6 +84,10 @@ class ConfigWidget(QWidget):
         self.bandn_button.setToolTip(_(u"Click to manage keys for Barnes and Noble ebooks"))
         self.bandn_button.setText(u"Barnes and Noble ebooks")
         self.bandn_button.clicked.connect(self.bandn_keys)
+        self.kindle_android_button = QtGui.QPushButton(self)
+        self.kindle_android_button.setToolTip(_(u"Click to manage Kindle for Android serial numbers for Kindle ebooks"))
+        self.kindle_android_button.setText(u"Kindle for Android ebooks")
+        self.kindle_android_button.clicked.connect(self.kindle_android_serials)
         self.kindle_serial_button = QtGui.QPushButton(self)
         self.kindle_serial_button.setToolTip(_(u"Click to manage eInk Kindle serial numbers for Kindle ebooks"))
         self.kindle_serial_button.setText(u"eInk Kindle ebooks")
@@ -104,6 +109,7 @@ class ConfigWidget(QWidget):
         self.ereader_button.setText(u"eReader ebooks")
         self.ereader_button.clicked.connect(self.ereader_keys)
         button_layout.addWidget(self.kindle_serial_button)
+        button_layout.addWidget(self.kindle_android_button)
         button_layout.addWidget(self.bandn_button)
         button_layout.addWidget(self.mobi_button)
         button_layout.addWidget(self.ereader_button)
@@ -114,6 +120,10 @@ class ConfigWidget(QWidget):
 
     def kindle_serials(self):
         d = ManageKeysDialog(self,u"EInk Kindle Serial Number",self.tempdedrmprefs['serials'], AddSerialDialog)
+        d.exec_()
+        
+    def kindle_android_serials(self):
+        d = ManageKeysDialog(self,u"Kindle for Andoid Serial Number",self.tempdedrmprefs['androidserials'], AddAndroidSerialDialog, 'ab')
         d.exec_()
 
     def kindle_keys(self):
@@ -164,6 +174,7 @@ class ConfigWidget(QWidget):
         self.dedrmprefs.set('kindlekeys', self.tempdedrmprefs['kindlekeys'])
         self.dedrmprefs.set('pids', self.tempdedrmprefs['pids'])
         self.dedrmprefs.set('serials', self.tempdedrmprefs['serials'])
+        self.dedrmprefs.set('androidserials', self.tempdedrmprefs['androidserials'])
         self.dedrmprefs.set('adobewineprefix', self.tempdedrmprefs['adobewineprefix'])
         self.dedrmprefs.set('kindlewineprefix', self.tempdedrmprefs['kindlewineprefix'])
         self.dedrmprefs.set('configured', True)
@@ -859,6 +870,51 @@ class AddSerialDialog(QDialog):
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         if len(self.key_name) != 16:
             errmsg = u"EInk Kindle Serial Numbers must be 16 characters long. This is {0:d} characters long.".format(len(self.key_name))
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        QDialog.accept(self)
+
+
+class AddAndroidSerialDialog(QDialog):
+    def __init__(self, parent=None,):
+        QDialog.__init__(self, parent)
+        self.parent = parent
+        self.setWindowTitle(u"{0} {1}: Add New Kindle for Android Serial Number".format(PLUGIN_NAME, PLUGIN_VERSION))
+        layout = QVBoxLayout(self)
+        self.setLayout(layout)
+
+        data_group_box = QGroupBox(u"", self)
+        layout.addWidget(data_group_box)
+        data_group_box_layout = QVBoxLayout()
+        data_group_box.setLayout(data_group_box_layout)
+
+        key_group = QHBoxLayout()
+        data_group_box_layout.addLayout(key_group)
+        key_group.addWidget(QLabel(u"Kindle for Android Serial Number:", self))
+        self.key_ledit = QLineEdit("", self)
+        self.key_ledit.setToolTip(u"Enter a Kindle for ANdroid serial number. These can be found using the androidkindlekey.py script.")
+        key_group.addWidget(self.key_ledit)
+        key_label = QLabel(_(''), self)
+        key_label.setAlignment(Qt.AlignHCenter)
+        data_group_box_layout.addWidget(key_label)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+        self.resize(self.sizeHint())
+
+    @property
+    def key_name(self):
+        return unicode(self.key_ledit.text()).strip()
+
+    @property
+    def key_value(self):
+        return unicode(self.key_ledit.text()).strip()
+
+    def accept(self):
+        if len(self.key_name) == 0 or self.key_name.isspace():
+            errmsg = u"Please enter a Kindle for Android Serial Number or click Cancel in the dialog."
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         QDialog.accept(self)
 
