@@ -38,7 +38,7 @@ This application is a stand-alone DRM removal application for Mac OS X users.
 
 For instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Application_Macintosh folder.
 
-N.B. Mac OS X 10.4 users need to take extra steps befor using the application, see the ReadMe.
+N.B. Mac OS X 10.4 users need to take extra steps before using the application, see the ReadMe.
 
 
 DeDRM application for Windows users: (Windows XP through Windows 8)
