@@ -1,16 +1,107 @@
 #!/usr/bin/env python
-#fileencoding: utf-8
+# -*- coding: utf-8 -*-
+
+from __future__ import with_statement
+
+# androidkindlekey.py
+# Copyright © 2013-15 by Thom
+# Some portions Copyright © 2011-15 by Apprentice Alf and Apprentice Harper
+#
+
+# Revision history:
+#  1.0   - Android serial number extracted from AmazonSecureStorage.xml
+#  1.1   - Fixes and enhancements of some kind
+#  1.2   - Changed to be callable from AppleScript by returning only serial number
+#        - and changed name to androidkindlekey.py
+#        - and added in unicode command line support
+
+
+"""
+Retrieve Kindle for Android Serial Number.
+"""
+
+__license__ = 'GPL v3'
+__version__ = '1.2'
 
 import os
 import sys
+import getopt
+import tempfile
 import zlib
 import tarfile
 from hashlib import md5
 from cStringIO import StringIO
 from binascii import a2b_hex, b2a_hex
 
-STORAGE = 'AmazonSecureStorage.xml'
-STORAGE2 = 'map_data_storage.db'
+# Routines common to Mac and PC
+
+# Wrap a stream so that output gets flushed immediately
+# and also make sure that any unicode strings get
+# encoded using "replace" before writing them.
+class SafeUnbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
+    def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
+try:
+    from calibre.constants import iswindows, isosx
+except:
+    iswindows = sys.platform.startswith('win')
+    isosx = sys.platform.startswith('darwin')
+
+def unicode_argv():
+    if iswindows:
+        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
+        # strings.
+
+        # Versions 2.x of Python don't support Unicode in sys.argv on
+        # Windows, with the underlying Windows API instead replacing multi-byte
+        # characters with '?'.  So use shell32.GetCommandLineArgvW to get sys.argv
+        # as a list of Unicode strings and encode them as utf-8
+
+        from ctypes import POINTER, byref, cdll, c_int, windll
+        from ctypes.wintypes import LPCWSTR, LPWSTR
+
+        GetCommandLineW = cdll.kernel32.GetCommandLineW
+        GetCommandLineW.argtypes = []
+        GetCommandLineW.restype = LPCWSTR
+
+        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
+        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
+        CommandLineToArgvW.restype = POINTER(LPWSTR)
+
+        cmd = GetCommandLineW()
+        argc = c_int(0)
+        argv = CommandLineToArgvW(cmd, byref(argc))
+        if argc.value > 0:
+            # Remove Python executable and commands if present
+            start = argc.value - len(sys.argv)
+            return [argv[i] for i in
+                    xrange(start, argc.value)]
+        # if we don't have any arguments at all, just pass back script name
+        # this should never happen
+        return [u"kindlekey.py"]
+    else:
+        argvencoding = sys.stdin.encoding
+        if argvencoding == None:
+            argvencoding = "utf-8"
+        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+
+class DrmException(Exception):
+    pass
+
+STORAGE  = u"backup.ab"
+STORAGE1 = u"AmazonSecureStorage.xml"
+STORAGE2 = u"map_data_storage.db"
 
 class AndroidObfuscation(object):
     '''AndroidObfuscation
@@ -75,10 +166,8 @@ def parse_preference(path):
     read.close()
     return storage
 
-def get_serials(path=None):
+def get_serials1(path=STORAGE1):
     ''' get serials from android's shared preference xml '''
-    if path is None and os.path.isfile("backup.ab"):
-        return get_storage()
 
     if not os.path.isfile(path):
         return []
@@ -86,10 +175,8 @@ def get_serials(path=None):
     storage = parse_preference(path)
     salt = storage.get('AmazonSaltKey')
     if salt and len(salt) == 16:
-        sys.stdout.write('Using AndroidObfuscationV2\n')
         obfuscation = AndroidObfuscationV2(a2b_hex(salt))
     else:
-        sys.stdout.write('Using AndroidObfuscation\n')
         obfuscation = AndroidObfuscation()
 
     def get_value(key):
@@ -118,6 +205,10 @@ def get_serials(path=None):
     return serials
 
 def get_serials2(path=STORAGE2):
+    ''' get serials from android's shared preference xml '''
+    if not os.path.isfile(path):
+        return []
+
     import sqlite3
     connection = sqlite3.connect(path)
     cursor = connection.cursor()
@@ -132,24 +223,31 @@ def get_serials2(path=STORAGE2):
             serials.append('%s%s' % (x, y))
     return serials
 
-def get_storage(path='backup.ab'):
-    '''get AmazonSecureStorage.xml from android backup.ab
+def get_serials(path=STORAGE):
+    '''get serials from files in from android backup.ab
     backup.ab can be get using adb command:
     shell> adb backup com.amazon.kindle
+    or from individual files if they're passed.
     '''
     if not os.path.isfile(path):
-        serials = []
-        if os.path.isfile(STORAGE2):
-            serials.extend(get_serials2(STORAGE2))
-        if os.path.isfile(STORAGE):
-            serials.extend(get_serials(STORAGE))
-        return serials
+        return []
+
+    basename = os.path.basename(path)
+    if basename == STORAGE1:
+        return get_serials1(path)
+    elif basename == STORAGE2:
+        return get_serials2(path)
+
     output = None
-    read = open(path, 'rb')
-    head = read.read(24)
-    if head[:14] == 'ANDROID BACKUP':
-        output = StringIO(zlib.decompress(read.read()))
-    read.close()
+    try :
+        read = open(path, 'rb')
+        head = read.read(24)
+        if head[:14] == 'ANDROID BACKUP':
+            output = StringIO(zlib.decompress(read.read()))
+    except Exception:
+        pass
+    finally:
+        read.close()
 
     if not output:
         return []
@@ -157,21 +255,83 @@ def get_storage(path='backup.ab'):
     serials = []
     tar = tarfile.open(fileobj=output)
     for member in tar.getmembers():
-        if member.name.strip().endswith(STORAGE2):
-            write = open(STORAGE2, 'w')
+        if member.name.strip().endswith(STORAGE1):
+            write = tempfile.NamedTemporaryFile(mode='w', delete=False)
             write.write(tar.extractfile(member).read())
             write.close()
-            serials.extend(get_serials2(STORAGE2))
-        elif member.name.strip().endswith(STORAGE):
-            write = open(STORAGE, 'w')
+            write_path = os.path.abspath(write.name)
+            serials.extend(get_serials1(write_path))
+            os.remove(write_path)
+        elif member.name.strip().endswith(STORAGE2):
+            write = tempfile.NamedTemporaryFile(mode='w', delete=False)
             write.write(tar.extractfile(member).read())
             write.close()
-            serials.extend(get_serials(STORAGE))
+            write_path = os.path.abspath(write.name)
+            serials.extend(get_serials2(write_path))
+            os.remove(write_path)
 
     return serials
 
-__all__ = [ 'get_storage', 'get_serials', 'parse_preference',
-            'AndroidObfuscation', 'AndroidObfuscationV2', 'STORAGE']
+__all__ = [ 'get_serials' ]
+
+def usage(progname):
+    print u"{0} v{1}\nCopyright © 2013-2015 Thom and Apprentice Harper".format(progname,__version__)
+    print u"Decrypts the serial number of Kindle For Android from Android backup or file"
+    print u"Get backup.ab file using adb backup com.amazon.kindle for Android 4.0+."
+    print u"Otherwise extract AmazonSecureStorage.xml from /data/data/com.amazon.kindle/shared_prefs/AmazonSecureStorage.xml"
+    print u"Or map_data_storage.db from /data/data/com.amazon.kindle/databases/map_data_storage.db"
+    print u""
+    print u"Serial number is written to standard output."
+    print u"Usage:"
+    print u"    {0:s} [-h]  <inputfile>".format(progname)
+
+
+def cli_main():
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
+    argv=unicode_argv()
+    progname = os.path.basename(argv[0])
+
+    try:
+        opts, args = getopt.getopt(argv[1:], "h")
+    except getopt.GetoptError, err:
+        usage(progname)
+        print u"\nError in options or arguments: {0}".format(err.args[0])
+        return 2
+
+    files = []
+    for o, a in opts:
+        if o == "-h":
+            usage(progname)
+            return 0
+
+    if len(args) > 1:
+        usage(progname)
+        return 2
+
+    inpath = args[0]
+    if not os.path.isabs(inpath):
+        inpath = os.path.abspath(inpath)
+
+    inpath = os.path.realpath(os.path.normpath(inpath))
+
+    if not os.path.isfile(inpath):
+        usage(progname)
+        print u"\n{0:s} file not found".format(inpath)
+        return 2
+
+    serials = get_serials(inpath)
+
+    if len(serials) == 0:
+        print u"No keys found in {0:s}".format(inpath)
+        return 2
+
+    for serial in serials:
+        print serial
+    return 0
 
 if __name__ == '__main__':
-    print get_serials()
+    if len(sys.argv) > 1:
+        sys.exit(cli_main())
+    usage(os.path.basename(unicode_argv()[0]))
+    sys.exit(0);
