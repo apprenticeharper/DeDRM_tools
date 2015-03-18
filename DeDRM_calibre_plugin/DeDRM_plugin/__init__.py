@@ -479,7 +479,7 @@ class DeDRM(FileTypePlugin):
         dedrmprefs = prefs.DeDRM_Prefs()
         pids = dedrmprefs['pids']
         serials = dedrmprefs['serials']
-        serials.append(dedrmprefs['androidserials'])
+        serials.extend(dedrmprefs['androidserials'])
         kindleDatabases = dedrmprefs['kindlekeys'].items()
 
         try:

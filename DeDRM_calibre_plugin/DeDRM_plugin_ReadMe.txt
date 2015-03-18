@@ -91,6 +91,6 @@ These instructions have been tested with Wine 1.4 on Ubuntu.
 Instructions for getting Kindle for PC and Adobe Digital Editions default decryption keys
 -----------------------------------------------------------------------------------------
 
-If everything has been installed in wine as above, the keys will be retrieve automatically.
+If everything has been installed in wine as above, the keys will be retrieved automatically.
 
 If you have a more complex wine installation, you may enter the appropriate WINEPREFIX in the configuration dialogs for Kindle for PC and Adobe Digital Editions. You can also test that you have entered the WINEPREFIX correctly by trying to add the default keys to the preferences by clicking on the green plus button in the configuration dialogs.

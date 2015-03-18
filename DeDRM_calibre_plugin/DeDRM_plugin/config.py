@@ -34,6 +34,7 @@ from calibre.constants import iswindows, isosx
 from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 from calibre_plugins.dedrm.__init__ import RESOURCE_NAME as help_file_name
 from calibre_plugins.dedrm.utilities import uStrCmp
+from calibre_plugins.dedrm.androidkindlekey import get_serials
 
 import calibre_plugins.dedrm.prefs as prefs
 
@@ -199,6 +200,7 @@ class ManageKeysDialog(QDialog):
         self.import_key = (keyfile_ext != u"")
         self.binary_file = (keyfile_ext == u"der")
         self.json_file = (keyfile_ext == u"k4i")
+        self.android_file = (keyfile_ext == u"ab")
         self.wineprefix = wineprefix
 
         self.setWindowTitle("{0} {1}: Manage {2}s".format(PLUGIN_NAME, PLUGIN_VERSION, self.key_type_name))
@@ -381,32 +383,43 @@ class ManageKeysDialog(QDialog):
             for filename in files:
                 fpath = os.path.join(config_dir, filename)
                 filename = os.path.basename(filename)
-                new_key_name = os.path.splitext(os.path.basename(filename))[0]
-                with open(fpath,'rb') as keyfile:
-                    new_key_value = keyfile.read()
-                if self.binary_file:
-                    new_key_value = new_key_value.encode('hex')
-                elif self.json_file:
-                    new_key_value = json.loads(new_key_value)
-                match = False
-                for key in self.plugin_keys.keys():
-                    if uStrCmp(new_key_name, key, True):
-                        skipped += 1
-                        msg = u"A key with the name <strong>{0}</strong> already exists!\nSkipping key file  <strong>{1}</strong>.\nRename the existing key and import again".format(new_key_name,filename)
-                        inf = info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
-                                _(msg), show_copy_button=False, show=True)
-                        match = True
-                        break
-                if not match:
-                    if new_key_value in self.plugin_keys.values():
-                        old_key_name = [name for name, value in self.plugin_keys.iteritems() if value == new_key_value][0]
-                        skipped += 1
-                        info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
-                                            u"The key in file {0} is the same as the existing key <strong>{1}</strong> and has been skipped.".format(filename,old_key_name), show_copy_button=False, show=True)
-                    else:
-                        counter += 1
-                        self.plugin_keys[new_key_name] = new_key_value
-
+                if type(self.plugin_keys) != dict:
+                    # must be the new Kindle for Android section
+                    print u"Getting keys from "+fpath
+                    new_keys = get_serials(fpath)
+                    for key in new_keys:
+                        if key in self.plugin_keys:
+                            skipped += 1
+                        else:
+                            counter += 1
+                            self.plugin_keys.append(key)
+                else:
+                    new_key_name = os.path.splitext(os.path.basename(filename))[0]
+                    with open(fpath,'rb') as keyfile:
+                        new_key_value = keyfile.read()
+                    if self.binary_file:
+                        new_key_value = new_key_value.encode('hex')
+                    elif self.json_file:
+                        new_key_value = json.loads(new_key_value)
+                    match = False
+                    for key in self.plugin_keys.keys():
+                        if uStrCmp(new_key_name, key, True):
+                            skipped += 1
+                            msg = u"A key with the name <strong>{0}</strong> already exists!\nSkipping key file  <strong>{1}</strong>.\nRename the existing key and import again".format(new_key_name,filename)
+                            inf = info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
+                                    _(msg), show_copy_button=False, show=True)
+                            match = True
+                            break
+                    if not match:
+                        if new_key_value in self.plugin_keys.values():
+                            old_key_name = [name for name, value in self.plugin_keys.iteritems() if value == new_key_value][0]
+                            skipped += 1
+                            info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
+                                                u"The key in file {0} is the same as the existing key <strong>{1}</strong> and has been skipped.".format(filename,old_key_name), show_copy_button=False, show=True)
+                        else:
+                            counter += 1
+                            self.plugin_keys[new_key_name] = new_key_value
+                            
             msg = u""
             if counter+skipped > 1:
                 if counter > 0:
