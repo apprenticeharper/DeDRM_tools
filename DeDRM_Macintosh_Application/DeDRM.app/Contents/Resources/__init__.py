@@ -39,13 +39,14 @@ __docformat__ = 'restructuredtext en'
 #   6.1.0 - Fixed multiple books import problem and PDF import with no key problem
 #   6.2.0 - Support for getting B&N key from nook Study log. Fix for UTF-8 filenames in Adobe ePubs.
 #           Fix for not copying needed files. Fix for getting default Adobe key for PDFs
+#   6.3.0 - Added in Kindle for Android serial number solution
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 2, 0)
+PLUGIN_VERSION_TUPLE = (6, 3, 0)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -478,6 +479,7 @@ class DeDRM(FileTypePlugin):
         dedrmprefs = prefs.DeDRM_Prefs()
         pids = dedrmprefs['pids']
         serials = dedrmprefs['serials']
+        serials.extend(dedrmprefs['androidserials'])
         kindleDatabases = dedrmprefs['kindlekeys'].items()
 
         try:

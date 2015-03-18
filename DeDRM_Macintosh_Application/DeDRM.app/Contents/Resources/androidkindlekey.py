@@ -256,14 +256,14 @@ def get_serials(path=STORAGE):
     tar = tarfile.open(fileobj=output)
     for member in tar.getmembers():
         if member.name.strip().endswith(STORAGE1):
-            write = tempfile.NamedTemporaryFile(mode='w', delete=False)
+            write = tempfile.NamedTemporaryFile(mode='wb', delete=False)
             write.write(tar.extractfile(member).read())
             write.close()
             write_path = os.path.abspath(write.name)
             serials.extend(get_serials1(write_path))
             os.remove(write_path)
         elif member.name.strip().endswith(STORAGE2):
-            write = tempfile.NamedTemporaryFile(mode='w', delete=False)
+            write = tempfile.NamedTemporaryFile(mode='wb', delete=False)
             write.write(tar.extractfile(member).read())
             write.close()
             write_path = os.path.abspath(write.name)
