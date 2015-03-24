@@ -12,8 +12,9 @@
 #   6.0.4 - Fix for other potential unicode problems
 #   6.0.5 - Fix typo
 #   6.2.0 - Update to match plugin and AppleScript
+#   6.3.0 - Add in Android support
 
-__version__ = '6.2.0'
+__version__ = '6.3.0'
 
 import sys
 import os, os.path
@@ -158,83 +159,107 @@ class PrefsDialog(Toplevel):
         body.pack(fill=Tkconstants.X, expand=1)
         sticky = Tkconstants.E + Tkconstants.W
         body.grid_columnconfigure(1, weight=2)
-
-        Tkinter.Label(body, text='Adobe Key file (adeptkey.der)').grid(row=0, sticky=Tkconstants.E)
+        
+        cur_row = 0
+        Tkinter.Label(body, text='Adobe Key file (adeptkey.der)').grid(row=cur_row, sticky=Tkconstants.E)
         self.adkpath = Tkinter.Entry(body, width=50)
-        self.adkpath.grid(row=0, column=1, sticky=sticky)
+        self.adkpath.grid(row=cur_row, column=1, sticky=sticky)
         prefdir = self.prefs_array['dir']
         keyfile = os.path.join(prefdir,'adeptkey.der')
         if os.path.isfile(keyfile):
             path = keyfile
-            self.adkpath.insert(0, path)
+            self.adkpath.insert(cur_row, path)
         button = Tkinter.Button(body, text="...", command=self.get_adkpath)
-        button.grid(row=0, column=2)
+        button.grid(row=cur_row, column=2)
 
-        Tkinter.Label(body, text='Kindle Key file (kindlekey.k4i)').grid(row=1, sticky=Tkconstants.E)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='Kindle Key file (kindlekey.k4i)').grid(row=cur_row, sticky=Tkconstants.E)
         self.kkpath = Tkinter.Entry(body, width=50)
-        self.kkpath.grid(row=1, column=1, sticky=sticky)
+        self.kkpath.grid(row=cur_row, column=1, sticky=sticky)
         prefdir = self.prefs_array['dir']
         keyfile = os.path.join(prefdir,'kindlekey.k4i')
         if os.path.isfile(keyfile):
             path = keyfile
-            self.kkpath.insert(1, path)
+            self.kkpath.insert(0, path)
         button = Tkinter.Button(body, text="...", command=self.get_kkpath)
-        button.grid(row=1, column=2)
+        button.grid(row=cur_row, column=2)
 
-        Tkinter.Label(body, text='Barnes and Noble Key file (bnepubkey.b64)').grid(row=2, sticky=Tkconstants.E)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='Android Kindle Key file (kindlekey.k4a)').grid(row=cur_row, sticky=Tkconstants.E)
+        self.akkpath = Tkinter.Entry(body, width=50)
+        self.akkpath.grid(row=cur_row, column=1, sticky=sticky)
+        prefdir = self.prefs_array['dir']
+        keyfile = os.path.join(prefdir,'kindlekey.k4a')
+        if os.path.isfile(keyfile):
+            path = keyfile
+            self.akkpath.insert(0, path)
+        button = Tkinter.Button(body, text="...", command=self.get_akkpath)
+        button.grid(row=cur_row, column=2)
+
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='Barnes and Noble Key file (bnepubkey.b64)').grid(row=cur_row, sticky=Tkconstants.E)
         self.bnkpath = Tkinter.Entry(body, width=50)
-        self.bnkpath.grid(row=2, column=1, sticky=sticky)
+        self.bnkpath.grid(row=cur_row, column=1, sticky=sticky)
         prefdir = self.prefs_array['dir']
         keyfile = os.path.join(prefdir,'bnepubkey.b64')
         if os.path.isfile(keyfile):
             path = keyfile
-            self.bnkpath.insert(2, path)
+            self.bnkpath.insert(0, path)
         button = Tkinter.Button(body, text="...", command=self.get_bnkpath)
-        button.grid(row=2, column=2)
+        button.grid(row=cur_row, column=2)
 
-        Tkinter.Label(body, text='Mobipocket PID list\n(8 or 10 characters, comma separated)').grid(row=3, sticky=Tkconstants.E)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='Mobipocket PID list\n(8 or 10 characters, comma separated)').grid(row=cur_row, sticky=Tkconstants.E)
         self.pidnums = Tkinter.StringVar()
         self.pidinfo = Tkinter.Entry(body, width=50, textvariable=self.pidnums)
         if 'pids' in self.prefs_array:
             self.pidnums.set(self.prefs_array['pids'])
-        self.pidinfo.grid(row=3, column=1, sticky=sticky)
+        self.pidinfo.grid(row=cur_row, column=1, sticky=sticky)
 
-        Tkinter.Label(body, text='eInk Kindle Serial Number list\n(16 characters, comma separated)').grid(row=4, sticky=Tkconstants.E)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='eInk Kindle Serial Number list\n(16 characters, comma separated)').grid(row=cur_row, sticky=Tkconstants.E)
         self.sernums = Tkinter.StringVar()
         self.serinfo = Tkinter.Entry(body, width=50, textvariable=self.sernums)
         if 'serials' in self.prefs_array:
             self.sernums.set(self.prefs_array['serials'])
-        self.serinfo.grid(row=4, column=1, sticky=sticky)
+        self.serinfo.grid(row=cur_row, column=1, sticky=sticky)
 
-        Tkinter.Label(body, text='eReader data list\n(name:last 8 digits on credit card, comma separated)').grid(row=5, sticky=Tkconstants.E)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='eReader data list\n(name:last 8 digits on credit card, comma separated)').grid(row=cur_row, sticky=Tkconstants.E)
         self.sdrmnums = Tkinter.StringVar()
         self.sdrminfo = Tkinter.Entry(body, width=50, textvariable=self.sdrmnums)
         if 'sdrms' in self.prefs_array:
             self.sdrmnums.set(self.prefs_array['sdrms'])
-        self.sdrminfo.grid(row=5, column=1, sticky=sticky)
+        self.sdrminfo.grid(row=cur_row, column=1, sticky=sticky)
 
-        Tkinter.Label(body, text="Output Folder (if blank, use input ebook's folder)").grid(row=6, sticky=Tkconstants.E)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text="Output Folder (if blank, use input ebook's folder)").grid(row=cur_row, sticky=Tkconstants.E)
         self.outpath = Tkinter.Entry(body, width=50)
-        self.outpath.grid(row=6, column=1, sticky=sticky)
+        self.outpath.grid(row=cur_row, column=1, sticky=sticky)
         if 'outdir' in self.prefs_array:
             dpath = self.prefs_array['outdir']
             self.outpath.insert(0, dpath)
         button = Tkinter.Button(body, text="...", command=self.get_outpath)
-        button.grid(row=6, column=2)
+        button.grid(row=cur_row, column=2)
 
-        Tkinter.Label(body, text='').grid(row=7, column=0, columnspan=2, sticky=Tkconstants.N)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='').grid(row=cur_row, column=0, columnspan=2, sticky=Tkconstants.N)
 
-        Tkinter.Label(body, text='Alternatively Process an eBook').grid(row=8, column=0, columnspan=2, sticky=Tkconstants.N)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='Alternatively Process an eBook').grid(row=cur_row, column=0, columnspan=2, sticky=Tkconstants.N)
 
-        Tkinter.Label(body, text='Select an eBook to Process*').grid(row=9, sticky=Tkconstants.E)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='Select an eBook to Process*').grid(row=cur_row, sticky=Tkconstants.E)
         self.bookpath = Tkinter.Entry(body, width=50)
-        self.bookpath.grid(row=9, column=1, sticky=sticky)
+        self.bookpath.grid(row=cur_row, column=1, sticky=sticky)
         button = Tkinter.Button(body, text="...", command=self.get_bookpath)
-        button.grid(row=9, column=2)
+        button.grid(row=cur_row, column=2)
 
-        Tkinter.Label(body, font=("Helvetica", "10", "italic"), text='*To DeDRM multiple ebooks simultaneously, set your preferences and quit.\nThen drag and drop ebooks or folders onto the DeDRM_Drop_Target').grid(row=10, column=1, sticky=Tkconstants.E)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, font=("Helvetica", "10", "italic"), text='*To DeDRM multiple ebooks simultaneously, set your preferences and quit.\nThen drag and drop ebooks or folders onto the DeDRM_Drop_Target').grid(row=cur_row, column=1, sticky=Tkconstants.E)
 
-        Tkinter.Label(body, text='').grid(row=11, column=0, columnspan=2, sticky=Tkconstants.E)
+        cur_row = cur_row + 1
+        Tkinter.Label(body, text='').grid(row=cur_row, column=0, columnspan=2, sticky=Tkconstants.E)
 
         buttons = Tkinter.Frame(self)
         buttons.pack()
@@ -302,6 +327,24 @@ class PrefsDialog(Toplevel):
             kkpath = os.path.normpath(kkpath)
             self.kkpath.delete(0, Tkconstants.END)
             self.kkpath.insert(0, kkpath)
+        return
+
+    def get_akkpath(self):
+        akkbpath = tkFileDialog.askopenfilename(parent=None, title='Select Android for Kindle backup file',
+            defaultextension='.ab', filetypes=[('Kindle for Android backup file', '.ab'), ('All Files', '.*')])
+        if akkbpath:
+            # call androidkindlekey here
+            prefdir = self.prefs_array['dir']
+            androidkindlekeyfile = os.path.join(prefdir,'kindlekey.k4a')
+            import androidkindlekey
+            try:
+                androidkindlekey.getkey(androidkindlekeyfile, akkbpath)
+            except:
+                traceback.print_exc()
+                pass
+            if os.path.isfile(androidkindlekeyfile):
+                self.akkpath.delete(0, Tkconstants.END)
+                self.akkpath.insert(0, androidkindlekeyfile)
         return
 
     def get_bnkpath(self):

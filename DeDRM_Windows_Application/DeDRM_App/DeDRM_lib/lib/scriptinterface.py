@@ -158,6 +158,14 @@ def decryptk4mobi(infile, outdir, rscpath):
         serialstr = serialstr.strip()
         if serialstr != '':
             serialnums = serialstr.split(',')
+    files = os.listdir(rscpath)
+    filefilter = re.compile("\.k4a$", re.IGNORECASE)
+    files = filter(filefilter.search, files)
+    if files:
+        for filename in files:
+            dpath = os.path.join(rscpath,filename)
+            androidserial = open(keypath,'r').read()
+            serialnums.append(androidserial)
     kDatabaseFiles = []
     files = os.listdir(rscpath)
     filefilter = re.compile("\.k4i$", re.IGNORECASE)
