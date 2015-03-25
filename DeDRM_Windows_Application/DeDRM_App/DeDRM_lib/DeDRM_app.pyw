@@ -12,8 +12,9 @@
 #   6.0.4 - Fix for other potential unicode problems
 #   6.0.5 - Fix typo
 #   6.2.0 - Update to match plugin and AppleScript
+#   6.2.1 - Fix for non-ascii user names
 
-__version__ = '6.2.0'
+__version__ = '6.2.1'
 
 import sys
 import os, os.path
@@ -536,7 +537,7 @@ class ConvDialog(Toplevel):
             self.p2 = Process(target=processPDB, args=(q, infile, outdir, rscpath))
             self.p2.start()
             return 0
-        if ext in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.tpz']:
+        if ext in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.pobi', '.tpz']:
             self.p2 = Process(target=processK4MOBI,args=(q, infile, outdir, rscpath))
             self.p2.start()
             return 0
@@ -588,7 +589,7 @@ def main():
     argv=unicode_argv()
     apphome = os.path.dirname(argv[0])
     apphome = os.path.abspath(apphome)
-
+    
     # windows may pass a spurious quoted null string as argv[1] from bat file
     # simply work around this until we can figure out a better way to handle things
     if sys.platform.startswith('win') and len(argv) == 2:

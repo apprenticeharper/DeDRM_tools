@@ -39,13 +39,14 @@ __docformat__ = 'restructuredtext en'
 #   6.1.0 - Fixed multiple books import problem and PDF import with no key problem
 #   6.2.0 - Support for getting B&N key from nook Study log. Fix for UTF-8 filenames in Adobe ePubs.
 #           Fix for not copying needed files. Fix for getting default Adobe key for PDFs
+#   6.2.1 - Fix for non-ascii Windows user names
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 2, 0)
+PLUGIN_VERSION_TUPLE = (6, 2, 1)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -89,7 +90,7 @@ class DeDRM(FileTypePlugin):
     author                  = u"DiapDealer, Apprentice Alf, The Dark Reverser and i♥cabbages"
     version                 = PLUGIN_VERSION_TUPLE
     minimum_calibre_version = (0, 7, 55)  # Compiled python libraries cannot be imported in earlier versions.
-    file_types              = set(['epub','pdf','pdb','prc','mobi','azw','azw1','azw3','azw4','tpz'])
+    file_types              = set(['epub','pdf','pdb','prc','mobi','pobi','azw','azw1','azw3','azw4','tpz'])
     on_import               = True
     priority                = 600
 

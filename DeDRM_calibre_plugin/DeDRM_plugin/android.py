@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 #fileencoding: utf-8
 
+# android.py
+# Copyright © 2013-2015 by Thom and Apprentice Harper
+
+# Revision history:
+#  1.0   - AmazonSecureStorage.xml decryption to serial number
+#  1.1   - map_data_storage.db decryption to serial number
+#  1.2   - BugFix
+
 import os
 import sys
 import zlib
@@ -80,7 +88,7 @@ def get_serials(path=None):
     if path is None and os.path.isfile("backup.ab"):
         return get_storage()
 
-    if not os.path.isfile(path):
+    if path is None or not os.path.isfile(path):
         return []
 
     storage = parse_preference(path)
