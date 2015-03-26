@@ -12,6 +12,7 @@
 #   6.0.4 - Fix for other potential unicode problems
 #   6.0.5 - Fix typo
 #   6.2.0 - Update to match plugin and AppleScript
+#   6.2.1 - Fix for non-ascii user names
 #   6.3.0 - Add in Android support
 
 __version__ = '6.3.0'
@@ -579,7 +580,7 @@ class ConvDialog(Toplevel):
             self.p2 = Process(target=processPDB, args=(q, infile, outdir, rscpath))
             self.p2.start()
             return 0
-        if ext in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.tpz']:
+        if ext in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.pobi', '.tpz']:
             self.p2 = Process(target=processK4MOBI,args=(q, infile, outdir, rscpath))
             self.p2.start()
             return 0

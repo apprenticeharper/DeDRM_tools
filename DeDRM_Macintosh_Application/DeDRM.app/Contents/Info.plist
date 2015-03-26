@@ -24,7 +24,7 @@
 	<key>CFBundleExecutable</key>
 	<string>droplet</string>
 	<key>CFBundleGetInfoString</key>
-	<string>DeDRM AppleScript 6.2.0. Written 2010–2015 by Apprentice Alf et al.</string>
+	<string>DeDRM AppleScript 6.3.0 Written 2010–2015 by Apprentice Alf et al.</string>
 	<key>CFBundleIconFile</key>
 	<string>DeDRM</string>
 	<key>CFBundleIdentifier</key>

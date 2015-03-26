@@ -4,9 +4,7 @@
 from __future__ import with_statement
 
 # kindlekey.py
-# Copyright © 2010-2013 by some_updates and Apprentice Alf
-#
-# Currently requires alfcrypto.py which requires the alfcrypto library
+# Copyright © 2010-2015 by some_updates, Apprentice Alf and Apprentice Harper
 
 # Revision history:
 #  1.0   - Kindle info file decryption, extracted from k4mobidedrm, etc.
@@ -20,6 +18,7 @@ from __future__ import with_statement
 #  1.7   - Work if TkInter is missing
 #  1.8   - Fixes for Kindle for Mac, and non-ascii in Windows user names
 #  1.9   - Fixes for Unicode in Windows user names
+#  2.0   - Added comments and extra fix for non-ascii Windows user names
 
 
 """
@@ -885,6 +884,7 @@ if iswindows:
                     return "AlternateUserName"
                 buffer = create_unicode_buffer(len(buffer) * 2)
                 size.value = len(buffer)
+            # return low byte of the unicode value of each character of the username
             return buffer.value.encode('utf-16-le')[::2]
         return GetUserName
     GetUserName = GetUserName()
@@ -1161,10 +1161,10 @@ if iswindows:
                 DB[keyname] = cleartext
 
         if 'kindle.account.tokens' in DB:
-            print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().decode("latin-1"))
             # store values used in decryption
             DB['IDString'] = GetIDString()
             DB['UserName'] = GetUserName()
+            print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex'))
         else:
             DB = {}
         return DB
