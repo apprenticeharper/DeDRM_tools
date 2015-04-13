@@ -11,7 +11,9 @@ from __future__ import with_statement
 # Revision history:
 #  1.0   - AmazonSecureStorage.xml decryption to serial number
 #  1.1   - map_data_storage.db decryption to serial number
-#  1.2   - BugFix
+#  1.2   - Changed to be callable from AppleScript by returning only serial number
+#        - and changed name to androidkindlekey.py
+#        - and added in unicode command line support
 #  1.3   - added in TkInter interface, output to a file and attempt to get backup from a connected android device.
 
 """

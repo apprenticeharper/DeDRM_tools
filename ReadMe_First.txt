@@ -6,7 +6,7 @@ This ReadMe_First.txt is meant to give users a quick overview of what is availab
 The is archive includes tools to remove DRM from:
 
  - Kindle ebooks (Mobi, Topaz, Print Replica and KF8).
- - Barnes and Noble ePubs downloaded through NOOK Study
+ - Barnes and Noble ePubs
  - Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
  - Kobo kePubs from the Kobo Desktop application
  - Adobe Digital Editions PDFs
@@ -19,7 +19,7 @@ These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
 About the tools
 ---------------
-These tools are updated and maintained by Apprentice Alf and Apprentice Harper. You can find the latest updates and get support at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
+These tools are updated and maintained by Apprentice Alf and Apprentice Harper. You can find links to the latest updates and get support at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
 If you re-post these tools, a link to the blog would be appreciated.
 
 
@@ -60,13 +60,13 @@ For instructions, see the obok_plugin_ReadMe.txt file in the Obok_calibre_plugin
 
 Other_Tools
 -----------
-This is folder other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
+This is a folder other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
 
 B&N_Download_Helper
 A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Another one only for the adventurous.
 
 DRM_Key_Scripts
-This folder contains python scripts that create or extract encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs and Kindle for Mac/PC ebooks.
+This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs, Kindle for Mac/PC and Kindle for Android ebooks.
 
 Kindle_for_Android_Patches
 Definitely only for the adventurous, this folder contains information on how to modify the Kindel for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin).
