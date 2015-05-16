@@ -32,6 +32,11 @@ __version__ = "1.0"
 
 import sys
 import os
+import re
+import random
+import urllib
+import urllib2
+from lxml import etree
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -100,35 +105,35 @@ class IGNOBLEError(Exception):
 
 def fetch_key(email, password):
     # remove spaces and case from name and CC numbers.
-    if type(email)==unicode:
+    if isinstance(email, unicode):
         email = email.encode('utf-8')
-    if type(password)==unicode:
+    if isinstance(password, unicode):
         password = password.encode('utf-8')
-        
-    import random
-    random = "%030x" % random.randrange(16**30)
-    
-    import urllib, urllib2
+
+    bn_suffix = "%030x" % random.randrange(16**30)
     fetch_url = "https://cart4.barnesandnoble.com/services/service.aspx?Version=2&acctPassword="
-    fetch_url += urllib.quote(password,'')+"&devID=PC_BN_2.5.6.9575_"+random+"&emailAddress="
-    fetch_url += urllib.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
-    #print fetch_url
+    fetch_url += urllib.quote(password, '')+"&devID=PC_BN_2.5.6.9575_"+bn_suffix+"&emailAddress="
+    fetch_url += urllib.quote(email, "")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
     
-    found = ''
     try:
         req = urllib2.Request(fetch_url)
         response = urllib2.urlopen(req)
         the_page = response.read()
-        #print the_page
-        
-        import re
-        
-        found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)
+
+        doc = etree.fromstring(the_page)
+        state_elms = doc.xpath('/engineResponse/stateData/data')
+        if len(state_elms) == 1:
+            if state_elms[0].attrib['name'] == 'success' and state_elms[0].text == '1':
+                pass
+            else:
+                return ''
+        cchash_elms = doc.xpath('/engineResponse/payMethod/ccHash')
+        if len(cchash_elms) == 1:
+            return cchash_elms[0].text
+        else:
+            return ''
     except:
-        found = ''
-    return found
-
-
+        return ''
 
 
 def cli_main():
