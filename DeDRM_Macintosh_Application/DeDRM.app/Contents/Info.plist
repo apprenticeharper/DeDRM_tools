@@ -24,7 +24,7 @@
 	<key>CFBundleExecutable</key>
 	<string>droplet</string>
 	<key>CFBundleGetInfoString</key>
-	<string>DeDRM AppleScript 6.2.1 Written 2010–2015 by Apprentice Alf et al.</string>
+	<string>DeDRM AppleScript 6.2.2 Written 2010–2015 by Apprentice Alf et al.</string>
 	<key>CFBundleIconFile</key>
 	<string>DeDRM</string>
 	<key>CFBundleIdentifier</key>
@@ -36,13 +36,13 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>6.2.1</string>
+	<string>6.2.2</string>
 	<key>CFBundleSignature</key>
 	<string>dplt</string>
 	<key>LSRequiresCarbon</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2010–2015 Paul Durrant, Apprentice Alf and Apprentice Harper</string>
+	<string>Copyright © 2010–2015 Apprentice Alf and Apprentice Harper</string>
 	<key>WindowState</key>
 	<dict>
 		<key>bundleDividerCollapsed</key>
@@ -58,7 +58,7 @@
 		<key>positionOfDivider</key>
 		<real>439</real>
 		<key>savedFrame</key>
-		<string>77 69 1246 778 0 0 1440 877 </string>
+		<string>128 98 1246 778 0 0 1680 1027 </string>
 		<key>selectedTab</key>
 		<string>log</string>
 	</dict>

@@ -18,7 +18,7 @@ from calibre.utils.config import dynamic, config_dir, JSONConfig
 
 from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 from calibre_plugins.dedrm.utilities import (uStrCmp, DETAILED_MESSAGE, parseCustString)
-from calibre_plugins.dedrm.ignoblekeygen import generate_key as generate_bandn_key
+from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as generate_bandn_key
 from calibre_plugins.dedrm.erdr2pml import getuser_key as generate_ereader_key
 from calibre_plugins.dedrm.adobekey import adeptkeys as retrieve_adept_keys
 from calibre_plugins.dedrm.kindlekey import kindlekeys as retrieve_kindle_keys

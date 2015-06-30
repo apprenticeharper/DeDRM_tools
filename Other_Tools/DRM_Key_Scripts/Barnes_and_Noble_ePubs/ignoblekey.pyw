@@ -4,7 +4,7 @@
 from __future__ import with_statement
 
 # ignoblekey.py
-# Copyright © 2015 Apprentice Alf
+# Copyright © 2015 Apprentice Alf and Apprentice Harper
 
 # Based on kindlekey.py, Copyright © 2010-2013 by some_updates and Apprentice Alf
 
@@ -13,13 +13,14 @@ from __future__ import with_statement
 
 # Revision history:
 #   1.0 - Initial release
+#   1.1 - remove duplicates and return last key as single key
 
 """
 Get Barnes & Noble EPUB user key from nook Studio log file
 """
 
 __license__ = 'GPL v3'
-__version__ = "1.0"
+__version__ = "1.1"
 
 import sys
 import os
@@ -143,7 +144,7 @@ def getNookLogFiles():
                 paths.add(path)
         except WindowsError:
             pass
- 
+
         for path in paths:
             # look for nookStudy log file
             logpath = path +'\\Barnes & Noble\\NOOKstudy\\logs\\BNClientLog.txt'
@@ -199,7 +200,7 @@ def nookkeys(files = []):
         if fileKeys:
             print u"Found {0} keys in the Nook Study log files".format(len(fileKeys))
             keys.extend(fileKeys)
-    return keys
+    return list(set(keys))
 
 # interface for Python DeDRM
 # returns single key or multiple keys, depending on path or file passed in
@@ -209,7 +210,7 @@ def getkey(outpath, files=[]):
         if not os.path.isdir(outpath):
             outfile = outpath
             with file(outfile, 'w') as keyfileout:
-                keyfileout.write(keys[0])
+                keyfileout.write(keys[-1])
             print u"Saved a key to {0}".format(outfile)
         else:
             keycount = 0

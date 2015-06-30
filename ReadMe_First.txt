@@ -1,12 +1,12 @@
 ﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.2.0 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.2.2 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
 
 The is archive includes tools to remove DRM from:
 
  - Kindle ebooks (Mobi, Topaz, Print Replica and KF8).
- - Barnes and Noble ePubs downloaded through NOOK Study
+ - Barnes and Noble ePubs
  - Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
  - Kobo kePubs from the Kobo Desktop application
  - Adobe Digital Editions PDFs
@@ -19,13 +19,13 @@ These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
 About the tools
 ---------------
-These tools are updated and maintained by Apprentice Alf and Apprentice Harper. You can find the latest updates and get support at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
+These tools are updated and maintained by Apprentice Alf and Apprentice Harper. You can find links to the latest updates and get support at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
 If you re-post these tools, a link to the blog would be appreciated.
 
 
 DeDRM plugin for calibre (Mac OS X, Windows, and Linux)
 -------------------------------------------------------
-If you already use calibre, the quickest and easiest way, especially on Windows, to remove DRM from your ebooks is to install the DeDRM plugin from the DeDRM_calibre_plugin folder, following the instructions and configuration directions provided in the ReadMe and the help links.
+Calibre is an open source freeware ebook library manager. It is the best tool around for keeping track of your ebooks. The DeDRM plugin for calibre provides the simplest way, especially on Windows, to remove DRM from your ebooks. Just install the DeDRM plugin from the DeDRM_calibre_plugin folder, following the instructions and configuration directions provided in the ReadMe and the help links.
 
 Once installed and configured, you can simply add a DRM book to calibre and the DeDRMed version will be imported into the calibre database. Note that DRM removal only occurs on IMPORT not on CONVERSION or at any other time, not even conversion to other formats. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
 
@@ -38,7 +38,7 @@ This application is a stand-alone DRM removal application for Mac OS X users.
 
 For instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Application_Macintosh folder.
 
-N.B. Mac OS X 10.4 users need to take extra steps befor using the application, see the ReadMe.
+N.B. Mac OS X 10.4 users need to take extra steps before using the application, see the ReadMe.
 
 
 DeDRM application for Windows users: (Windows XP through Windows 8)
@@ -60,13 +60,13 @@ For instructions, see the obok_plugin_ReadMe.txt file in the Obok_calibre_plugin
 
 Other_Tools
 -----------
-This is folder other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
-
-B&N_Download_Helper
-A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Another one only for the adventurous.
+This is a folder of other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
 
 DRM_Key_Scripts
-This folder contains python scripts that create or extract encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs and Kindle for Mac/PC ebooks.
+This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs, Kindle for Mac/PC and Kindle for Android ebooks. These files are needed for the Windows stand-alone DeDRM application.
+
+B&N_Download_Helper
+A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Only for the adventurous.
 
 Kindle_for_Android_Patches
 Definitely only for the adventurous, this folder contains information on how to modify the Kindel for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin).
