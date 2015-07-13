@@ -3,13 +3,14 @@
 
 from __future__ import with_statement
 
-# ignoblekeyfetch.pyw, version 1.0
+# ignoblekeyfetch.pyw, version 1.1
 # Copyright © 2015 Apprentice Harper
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
 # Based on discoveries by "Nobody You Know"
+# Code partly based on ignoblekeygen.py by several people.
 
 # Windows users: Before running this program, you must first install Python.
 #   We recommend ActiveState Python 2.7.X for Windows from
@@ -17,11 +18,12 @@ from __future__ import with_statement
 #   Then save this script file as ignoblekeyfetch.pyw and double-click on it to run it.
 #
 # Mac OS X users: Save this script file as ignoblekeyfetch.pyw.  You can run this
-#   program from the command line (python ignoblekeygen.pyw) or by double-clicking
+#   program from the command line (python ignoblekeyfetch.pyw) or by double-clicking
 #   it when it has been associated with PythonLauncher.
 
 # Revision history:
-#   1.0 - Initial release
+#   1.0 - Initial  version
+#   1.1 - Try second URL if first one fails
 
 """
 Fetch Barnes & Noble EPUB user key from B&N servers using email and password
@@ -87,7 +89,7 @@ def unicode_argv():
                     xrange(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"ignoblekeygen.py"]
+        return [u"ignoblekeyfetch.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
@@ -99,7 +101,7 @@ class IGNOBLEError(Exception):
     pass
 
 def fetch_key(email, password):
-    # remove spaces and case from name and CC numbers.
+    # change name and CC numbers to utf-8 if unicode
     if type(email)==unicode:
         email = email.encode('utf-8')
     if type(password)==unicode:
@@ -108,7 +110,9 @@ def fetch_key(email, password):
     import random
     random = "%030x" % random.randrange(16**30)
     
-    import urllib, urllib2
+    import urllib, urllib2, re
+    
+    # try the URL from nook for PC
     fetch_url = "https://cart4.barnesandnoble.com/services/service.aspx?Version=2&acctPassword="
     fetch_url += urllib.quote(password,'')+"&devID=PC_BN_2.5.6.9575_"+random+"&emailAddress="
     fetch_url += urllib.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
@@ -120,12 +124,26 @@ def fetch_key(email, password):
         response = urllib2.urlopen(req)
         the_page = response.read()
         #print the_page
-        
-        import re
-        
         found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)
     except:
         found = ''
+    if len(found)!=28:
+        # try the URL from android devices
+        fetch_url = "https://cart4.barnesandnoble.com/services/service.aspx?Version=2&acctPassword="
+        fetch_url += urllib.quote(password,'')+"&devID=hobbes_9.3.50818_"+random+"&emailAddress="
+        fetch_url += urllib.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
+        #print fetch_url
+        
+        found = ''
+        try:
+            req = urllib2.Request(fetch_url)
+            response = urllib2.urlopen(req)
+            the_page = response.read()
+            #print the_page            
+            found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)
+        except:
+            found = ''
+
     return found
 
 

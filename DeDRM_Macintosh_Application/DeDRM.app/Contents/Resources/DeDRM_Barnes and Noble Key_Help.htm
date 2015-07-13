@@ -24,28 +24,17 @@ li {margin-top: 0.5em}
 
 <h3>Changes at Barnes & Noble</h3>
 
-<p>In mid-2014, Barnes & Noble changed the way they generated encryption keys. Instead of deriving the key from the user's name and credit card number, they started generating a random key themselves, sending that key through to devices when they connected to the Barnes & Noble servers. This means that some users will find that no combination of their name and CC# will work in decrypting their ebooks.</p>
+<p>In mid-2014, Barnes & Noble changed the way they generated encryption keys. Instead of deriving the key from the user's name and credit card number, they started generating a random key themselves, sending that key through to devices when they connected to the Barnes & Noble servers. This means that most users will now find that no combination of their name and CC# will work in decrypting their recently downloaded ebooks.</p>
 
-<p>There is a work-around. Barnes & Noble’s desktop app NOOK Study generates a log file that contains the encryption key. You can download NOOK Study from <a href="https://yuzu.com/nsdownload">https://yuzu.com/nsdownload</a>.</p>
-<p>Once downloaded, install the application, register with your Barnes & Noble or nook account, and download at least one DRMed ebook through NOOK Study. It will be saved somewhere in a folder called "My Barnes & Noble eBooks" in your Documents folder.</p>
-<p>Now import that book into calibre. The log file and the key in the log should be automatically found by the plugin and used to decrypt the book.</p>
-<p>If the automatic process doesn't work for you, you can still find extract it manually and save it as a .b64 file for import into the plugin's preferences as follows:</p>
-<ol><li>In NOOK Study, select Settings/About (Windows) or NOOK Study/About NOOK Study (Mac) and in the dialog that appears click the link at the bottom to copy the log into the clipboard.</li>
-<li>Paste the copied log into a text editor</li>
-<li>Search for the text CCHashResponseV1</li>
-<li>On the line below which starts with ccHash, copy the text between the " marks after ccHash, but don't include the " marks.</li>
-<li>Save that text in a new <b>plain text</b> file, with file name extension .b64 (for example, key.b64)</li>
-<li>Import that file into the preferences through this dialog, using the "Import Existing Key Files" button.</li>
-</ol>
+<p>Someone commenting at Apprentice Alf's blog detailed a way to retrieve a new account key using the account's email address and password. This method has now been incorporated into the plugin.
 
-
-<h3>Old instructions: Creating New Keys:</h3>
+<h3>Creating New Keys:</h3>
 
 <p>On the right-hand side of the plugin’s customization dialog, you will see a button with an icon that looks like a green plus sign (+). Clicking this button will open a new dialog for entering the necessary data to generate a new key.</p>
 <ul>
-<li><span class="bold">Unique Key Name:</span> this is a unique name you choose to help you identify the key. This name will show in the list of configured keys. Choose something that will help you remember the data (name, cc#) it was created with.</li>
-<li><span class="bold">Your Name:</span> This is the name used by Barnes and Noble to generate your encryption key. Seemingly at random, Barnes and Noble choose one of three places from which to take this name. Most commonly, it’s your name as set in your Barnes &amp; Noble account, My Account page, directly under PERSONAL INFORMATION.  Sometimes it is the the name used in the default shipping address, and sometimes it’s the name listed for the active credit card. If these names are different in your Barnes and Noble account preferences, I suggest creating one key for each version of your name. This name will not be stored anywhere on your computer or in calibre. It will only be used in the creation of the one-way hash/key that’s stored in the preferences.</li>
-<li><span class="bold">Credit Card#:</span> this is the default credit card number that was on file with Barnes and Noble at the time of download of the ebook to be de-DRMed. Just enter the 16 (15 for American Express) digits. As with the name, this number will not be stored anywhere on your computer or in calibre. It will only be used in the creation of the one-way hash/key that’s stored in the preferences.</li>
+<li><span class="bold">Unique Key Name:</span> this is a unique name you choose to help you identify the key. This name will show in the list of configured keys. Choose something that will help you remember the data (account email address) it was created with.</li>
+<li><span class="bold">B&N/nook account email address:</span> This is the default email address for your Barnes and Noble/nook account. This email will not be stored anywhere on your computer or in calibre. It will only be used to fetch the account key that from the B&N server, and it is that key that will be stored in the preferences.</li>
+<li><span class="bold">B&N/nook account password:</span> this is the password for your Barnes and Noble/nook account. As with the email address, this will not be stored anywhere on your computer or in calibre. It will only be used to fetch the key from the B&N server.</li>
 </ul>
 
 <p>Click the OK button to create and store the generated key. Or Cancel if you don’t want to create a key.</p>
@@ -68,6 +57,11 @@ li {margin-top: 0.5em}
 <p>At the bottom-left of the plugin’s customization dialog, you will see a button labeled "Import Existing Keyfiles". Use this button to import existing ‘.b64’ key files. Key files might come from being exported from this or older plugins, or may have been generated using the original i♥cabbages script, or you may have made it by following the instructions above.</p>
 
 <p>Once done creating/deleting/renaming/importing decryption keys, click Close to exit the customization dialogue. Your changes wil only be saved permanently when you click OK in the main configuration dialog.</p>
+
+<h3>NOOK Study</h3>
+<p>Books downloaded through NOOK Study may or may not use the key found using the above method. If a book is not decrypted successfully with any of the keys, the plugin will attempt to recover keys from the NOOK Study log file and use them.</p>
+
+
 
 </body>
 

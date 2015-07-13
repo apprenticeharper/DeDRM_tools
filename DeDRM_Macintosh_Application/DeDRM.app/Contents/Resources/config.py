@@ -545,14 +545,14 @@ class AddBandNKeyDialog(QDialog):
 
         name_group = QHBoxLayout()
         data_group_box_layout.addLayout(name_group)
-        name_group.addWidget(QLabel(u"Your Name:", self))
+        name_group.addWidget(QLabel(u"B&N/nook account email address:", self))
         self.name_ledit = QLineEdit(u"", self)
-        self.name_ledit.setToolTip(_(u"<p>Enter your name as it appears in your B&N " +
-                                u"account or on your credit card.</p>" +
+        self.name_ledit.setToolTip(_(u"<p>Enter your email address as it appears in your B&N " +
+                                u"account.</p>" +
                                 u"<p>It will only be used to generate this " +
-                                u"one-time key and won\'t be stored anywhere " +
+                                u"key and won\'t be stored anywhere " +
                                 u"in calibre or on your computer.</p>" +
-                                u"<p>(ex: Jonathan Smith)"))
+                                u"<p>eg: apprenticeharper@gmail.com</p>"))
         name_group.addWidget(self.name_ledit)
         name_disclaimer_label = QLabel(_(u"(Will not be saved in configuration data)"), self)
         name_disclaimer_label.setAlignment(Qt.AlignHCenter)
@@ -560,13 +560,12 @@ class AddBandNKeyDialog(QDialog):
 
         ccn_group = QHBoxLayout()
         data_group_box_layout.addLayout(ccn_group)
-        ccn_group.addWidget(QLabel(u"Credit Card#:", self))
+        ccn_group.addWidget(QLabel(u"B&N/nook account password:", self))
         self.cc_ledit = QLineEdit(u"", self)
-        self.cc_ledit.setToolTip(_(u"<p>Enter the full credit card number on record " +
-                                u"in your B&N account.</p>" +
-                                u"<p>No spaces or dashes... just the numbers. " +
-                                u"This number will only be used to generate this " +
-                                u"one-time key and won\'t be stored anywhere in " +
+        self.cc_ledit.setToolTip(_(u"<p>Enter the password " +
+                                u"for your B&N account.</p>" +
+                                u"<p>The password will only be used to generate this " +
+                                u"key and won\'t be stored anywhere in " +
                                 u"calibre or on your computer."))
         ccn_group.addWidget(self.cc_ledit)
         ccn_disclaimer_label = QLabel(_('(Will not be saved in configuration data)'), self)
@@ -587,8 +586,8 @@ class AddBandNKeyDialog(QDialog):
 
     @property
     def key_value(self):
-        from calibre_plugins.dedrm.ignoblekeygen import generate_key as generate_bandn_key
-        return generate_bandn_key(self.user_name,self.cc_number)
+        from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as fetch_bandn_key
+        return fetch_bandn_key(self.user_name,self.cc_number)
 
     @property
     def user_name(self):
@@ -596,15 +595,12 @@ class AddBandNKeyDialog(QDialog):
 
     @property
     def cc_number(self):
-        return unicode(self.cc_ledit.text()).strip().replace(' ', '').replace('-','')
+        return unicode(self.cc_ledit.text()).strip()
 
 
     def accept(self):
         if len(self.key_name) == 0 or len(self.user_name) == 0 or len(self.cc_number) == 0 or self.key_name.isspace() or self.user_name.isspace() or self.cc_number.isspace():
             errmsg = u"All fields are required!"
-            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
-        if not self.cc_number.isdigit():
-            errmsg = u"Numbers only in the credit card number field!"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         if len(self.key_name) < 4:
             errmsg = u"Key name must be at <i>least</i> 4 characters long!"

@@ -13,6 +13,7 @@
 #   6.0.5 - Fix typo
 #   6.2.0 - Update to match plugin and AppleScript
 #   6.2.1 - Fix for non-ascii user names
+#   6.2.2 - Added URL method for B&N/nook books
 #   6.3.0 - Add in Android support
 
 __version__ = '6.3.0'

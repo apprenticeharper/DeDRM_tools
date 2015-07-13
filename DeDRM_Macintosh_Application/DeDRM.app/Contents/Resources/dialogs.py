@@ -1,196 +1,30 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 
 from __future__ import with_statement
-
 __license__ = 'GPL v3'
 
 # Standard Python modules.
-import os, traceback, json
+import os, sys, re, hashlib
+import json
 
-# PyQT4 modules (part of calibre).
-try:
-    from PyQt5.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
-                      QGroupBox, QPushButton, QListWidget, QListWidgetItem,
-                      QAbstractItemView, QIcon, QDialog, QDialogButtonBox, QUrl)
-except ImportError:
-    from PyQt4.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
-                      QGroupBox, QPushButton, QListWidget, QListWidgetItem,
-                      QAbstractItemView, QIcon, QDialog, QDialogButtonBox, QUrl)
-try:
-    from PyQt5 import Qt as QtGui
-except ImportError:
-    from PyQt4 import QtGui
-    
-from zipfile import ZipFile
+from PyQt4.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QListWidget, QListWidgetItem, QAbstractItemView, QLineEdit, QPushButton, QIcon, QGroupBox, QDialog, QDialogButtonBox, QUrl, QString)
+from PyQt4 import QtGui
 
 # calibre modules and constants.
 from calibre.gui2 import (error_dialog, question_dialog, info_dialog, open_url,
-                            choose_dir, choose_files, choose_save_file)
+                            choose_dir, choose_files)
 from calibre.utils.config import dynamic, config_dir, JSONConfig
-from calibre.constants import iswindows, isosx
 
-# modules from this plugin's zipfile.
 from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
-from calibre_plugins.dedrm.__init__ import RESOURCE_NAME as help_file_name
-from calibre_plugins.dedrm.utilities import uStrCmp
-from calibre_plugins.dedrm.androidkindlekey import get_serials
-
-import calibre_plugins.dedrm.prefs as prefs
-
-class ConfigWidget(QWidget):
-    def __init__(self, plugin_path, alfdir):
-        QWidget.__init__(self)
-
-        self.plugin_path = plugin_path
-        self.alfdir = alfdir
-
-        # get the prefs
-        self.dedrmprefs = prefs.DeDRM_Prefs()
-
-        # make a local copy
-        self.tempdedrmprefs = {}
-        self.tempdedrmprefs['bandnkeys'] = self.dedrmprefs['bandnkeys'].copy()
-        self.tempdedrmprefs['adeptkeys'] = self.dedrmprefs['adeptkeys'].copy()
-        self.tempdedrmprefs['ereaderkeys'] = self.dedrmprefs['ereaderkeys'].copy()
-        self.tempdedrmprefs['kindlekeys'] = self.dedrmprefs['kindlekeys'].copy()
-        self.tempdedrmprefs['pids'] = list(self.dedrmprefs['pids'])
-        self.tempdedrmprefs['serials'] = list(self.dedrmprefs['serials'])
-        self.tempdedrmprefs['androidserials'] = list(self.dedrmprefs['androidserials'])
-        self.tempdedrmprefs['adobewineprefix'] = self.dedrmprefs['adobewineprefix']
-        self.tempdedrmprefs['kindlewineprefix'] = self.dedrmprefs['kindlewineprefix']
-
-        # Start Qt Gui dialog layout
-        layout = QVBoxLayout(self)
-        self.setLayout(layout)
-
-        help_layout = QHBoxLayout()
-        layout.addLayout(help_layout)
-        # Add hyperlink to a help file at the right. We will replace the correct name when it is clicked.
-        help_label = QLabel('<a href="http://www.foo.com/">Plugin Help</a>', self)
-        help_label.setTextInteractionFlags(Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard)
-        help_label.setAlignment(Qt.AlignRight)
-        help_label.linkActivated.connect(self.help_link_activated)
-        help_layout.addWidget(help_label)
-
-        keys_group_box = QGroupBox(_('Configuration:'), self)
-        layout.addWidget(keys_group_box)
-        keys_group_box_layout = QHBoxLayout()
-        keys_group_box.setLayout(keys_group_box_layout)
-
-
-        button_layout = QVBoxLayout()
-        keys_group_box_layout.addLayout(button_layout)
-        self.bandn_button = QtGui.QPushButton(self)
-        self.bandn_button.setToolTip(_(u"Click to manage keys for Barnes and Noble ebooks"))
-        self.bandn_button.setText(u"Barnes and Noble ebooks")
-        self.bandn_button.clicked.connect(self.bandn_keys)
-        self.kindle_android_button = QtGui.QPushButton(self)
-        self.kindle_android_button.setToolTip(_(u"Click to manage Kindle for Android serial numbers for Kindle ebooks"))
-        self.kindle_android_button.setText(u"Kindle for Android ebooks")
-        self.kindle_android_button.clicked.connect(self.kindle_android_serials)
-        self.kindle_serial_button = QtGui.QPushButton(self)
-        self.kindle_serial_button.setToolTip(_(u"Click to manage eInk Kindle serial numbers for Kindle ebooks"))
-        self.kindle_serial_button.setText(u"eInk Kindle ebooks")
-        self.kindle_serial_button.clicked.connect(self.kindle_serials)
-        self.kindle_key_button = QtGui.QPushButton(self)
-        self.kindle_key_button.setToolTip(_(u"Click to manage keys for Kindle for Mac/PC ebooks"))
-        self.kindle_key_button.setText(u"Kindle for Mac/PC ebooks")
-        self.kindle_key_button.clicked.connect(self.kindle_keys)
-        self.adept_button = QtGui.QPushButton(self)
-        self.adept_button.setToolTip(_(u"Click to manage keys for Adobe Digital Editions ebooks"))
-        self.adept_button.setText(u"Adobe Digital Editions ebooks")
-        self.adept_button.clicked.connect(self.adept_keys)
-        self.mobi_button = QtGui.QPushButton(self)
-        self.mobi_button.setToolTip(_(u"Click to manage PIDs for Mobipocket ebooks"))
-        self.mobi_button.setText(u"Mobipocket ebooks")
-        self.mobi_button.clicked.connect(self.mobi_keys)
-        self.ereader_button = QtGui.QPushButton(self)
-        self.ereader_button.setToolTip(_(u"Click to manage keys for eReader ebooks"))
-        self.ereader_button.setText(u"eReader ebooks")
-        self.ereader_button.clicked.connect(self.ereader_keys)
-        button_layout.addWidget(self.kindle_serial_button)
-        button_layout.addWidget(self.kindle_android_button)
-        button_layout.addWidget(self.bandn_button)
-        button_layout.addWidget(self.mobi_button)
-        button_layout.addWidget(self.ereader_button)
-        button_layout.addWidget(self.adept_button)
-        button_layout.addWidget(self.kindle_key_button)
-
-        self.resize(self.sizeHint())
-
-    def kindle_serials(self):
-        d = ManageKeysDialog(self,u"EInk Kindle Serial Number",self.tempdedrmprefs['serials'], AddSerialDialog)
-        d.exec_()
-        
-    def kindle_android_serials(self):
-        d = ManageKeysDialog(self,u"Kindle for Andoid Serial Number",self.tempdedrmprefs['androidserials'], AddAndroidSerialDialog, 'ab')
-        d.exec_()
-
-    def kindle_keys(self):
-        if isosx or iswindows:
-            d = ManageKeysDialog(self,u"Kindle for Mac and PC Key",self.tempdedrmprefs['kindlekeys'], AddKindleDialog, 'k4i')
-        else:
-            # linux
-            d = ManageKeysDialog(self,u"Kindle for Mac and PC Key",self.tempdedrmprefs['kindlekeys'], AddKindleDialog, 'k4i', self.tempdedrmprefs['kindlewineprefix'])
-        d.exec_()
-        self.tempdedrmprefs['kindlewineprefix'] = d.getwineprefix()
-
-    def adept_keys(self):
-        if isosx or iswindows:
-            d = ManageKeysDialog(self,u"Adobe Digital Editions Key",self.tempdedrmprefs['adeptkeys'], AddAdeptDialog, 'der')
-        else:
-            # linux
-            d = ManageKeysDialog(self,u"Adobe Digital Editions Key",self.tempdedrmprefs['adeptkeys'], AddAdeptDialog, 'der', self.tempdedrmprefs['adobewineprefix'])
-        d.exec_()
-        self.tempdedrmprefs['adobewineprefix'] = d.getwineprefix()
-
-    def mobi_keys(self):
-        d = ManageKeysDialog(self,u"Mobipocket PID",self.tempdedrmprefs['pids'], AddPIDDialog)
-        d.exec_()
-
-    def bandn_keys(self):
-        d = ManageKeysDialog(self,u"Barnes and Noble Key",self.tempdedrmprefs['bandnkeys'], AddBandNKeyDialog, 'b64')
-        d.exec_()
-
-    def ereader_keys(self):
-        d = ManageKeysDialog(self,u"eReader Key",self.tempdedrmprefs['ereaderkeys'], AddEReaderDialog, 'b63')
-        d.exec_()
-
-    def help_link_activated(self, url):
-        def get_help_file_resource():
-            # Copy the HTML helpfile to the plugin directory each time the
-            # link is clicked in case the helpfile is updated in newer plugins.
-            file_path = os.path.join(config_dir, u"plugins", u"DeDRM", u"help", help_file_name)
-            with open(file_path,'w') as f:
-                f.write(self.load_resource(help_file_name))
-            return file_path
-        url = 'file:///' + get_help_file_resource()
-        open_url(QUrl(url))
-
-    def save_settings(self):
-        self.dedrmprefs.set('bandnkeys', self.tempdedrmprefs['bandnkeys'])
-        self.dedrmprefs.set('adeptkeys', self.tempdedrmprefs['adeptkeys'])
-        self.dedrmprefs.set('ereaderkeys', self.tempdedrmprefs['ereaderkeys'])
-        self.dedrmprefs.set('kindlekeys', self.tempdedrmprefs['kindlekeys'])
-        self.dedrmprefs.set('pids', self.tempdedrmprefs['pids'])
-        self.dedrmprefs.set('serials', self.tempdedrmprefs['serials'])
-        self.dedrmprefs.set('androidserials', self.tempdedrmprefs['androidserials'])
-        self.dedrmprefs.set('adobewineprefix', self.tempdedrmprefs['adobewineprefix'])
-        self.dedrmprefs.set('kindlewineprefix', self.tempdedrmprefs['kindlewineprefix'])
-        self.dedrmprefs.set('configured', True)
-        self.dedrmprefs.writeprefs()
-
-    def load_resource(self, name):
-        with ZipFile(self.plugin_path, 'r') as zf:
-            if name in zf.namelist():
-                return zf.read(name)
-        return ""
-
-
+from calibre_plugins.dedrm.utilities import (uStrCmp, DETAILED_MESSAGE, parseCustString)
+from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as generate_bandn_key
+from calibre_plugins.dedrm.erdr2pml import getuser_key as generate_ereader_key
+from calibre_plugins.dedrm.adobekey import adeptkeys as retrieve_adept_keys
+from calibre_plugins.dedrm.kindlekey import kindlekeys as retrieve_kindle_keys
 
 class ManageKeysDialog(QDialog):
-    def __init__(self, parent, key_type_name, plugin_keys, create_key, keyfile_ext = u"", wineprefix = None):
+    def __init__(self, parent, key_type_name, plugin_keys, create_key, keyfile_ext = u""):
         QDialog.__init__(self,parent)
         self.parent = parent
         self.key_type_name = key_type_name
@@ -198,10 +32,8 @@ class ManageKeysDialog(QDialog):
         self.create_key = create_key
         self.keyfile_ext = keyfile_ext
         self.import_key = (keyfile_ext != u"")
-        self.binary_file = (keyfile_ext == u"der")
-        self.json_file = (keyfile_ext == u"k4i")
-        self.android_file = (keyfile_ext == u"ab")
-        self.wineprefix = wineprefix
+        self.binary_file = (key_type_name == u"Adobe Digital Editions Key")
+        self.json_file = (key_type_name == u"Kindle for Mac and PC Key")
 
         self.setWindowTitle("{0} {1}: Manage {2}s".format(PLUGIN_NAME, PLUGIN_VERSION, self.key_type_name))
 
@@ -243,7 +75,7 @@ class ManageKeysDialog(QDialog):
         self._delete_key_button.clicked.connect(self.delete_key)
         button_layout.addWidget(self._delete_key_button)
 
-        if type(self.plugin_keys) == dict and self.import_key:
+        if type(self.plugin_keys) == dict:
             self._rename_key_button = QtGui.QToolButton(self)
             self._rename_key_button.setToolTip(_(u"Rename highlighted key"))
             self._rename_key_button.setIcon(QIcon(I('edit-select-all.png')))
@@ -257,18 +89,6 @@ class ManageKeysDialog(QDialog):
             button_layout.addWidget(self.export_key_button)
         spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         button_layout.addItem(spacerItem)
-
-        if self.wineprefix is not None:
-            layout.addSpacing(5)
-            wineprefix_layout = QHBoxLayout()
-            layout.addLayout(wineprefix_layout)
-            wineprefix_layout.setAlignment(Qt.AlignCenter)
-            self.wp_label = QLabel(u"WINEPREFIX:")
-            wineprefix_layout.addWidget(self.wp_label)
-            self.wp_lineedit = QLineEdit(self)
-            wineprefix_layout.addWidget(self.wp_lineedit)
-            self.wp_label.setBuddy(self.wp_lineedit)
-            self.wp_lineedit.setText(self.wineprefix)
 
         layout.addSpacing(5)
         migrate_layout = QHBoxLayout()
@@ -285,11 +105,6 @@ class ManageKeysDialog(QDialog):
         migrate_layout.addWidget(self.button_box)
 
         self.resize(self.sizeHint())
-
-    def getwineprefix(self):
-        if self.wineprefix is not None:
-            return unicode(self.wp_lineedit.text()).strip()
-        return u""
 
     def populate_list(self):
         if type(self.plugin_keys) == dict:
@@ -337,7 +152,7 @@ class ManageKeysDialog(QDialog):
         if d.result() != d.Accepted:
             # rename cancelled or moot.
             return
-        keyname = unicode(self.listy.currentItem().text())
+        keyname = unicode(self.listy.currentItem().text().toUtf8(),'utf8')
         if not question_dialog(self, "{0} {1}: Confirm Rename".format(PLUGIN_NAME, PLUGIN_VERSION), u"Do you really want to rename the {2} named <strong>{0}</strong> to <strong>{1}</strong>?".format(keyname,d.key_name,self.key_type_name), show_copy_button=False, default_yes=False):
             return
         self.plugin_keys[d.key_name] = self.plugin_keys[keyname]
@@ -349,7 +164,7 @@ class ManageKeysDialog(QDialog):
     def delete_key(self):
         if not self.listy.currentItem():
             return
-        keyname = unicode(self.listy.currentItem().text())
+        keyname = unicode(self.listy.currentItem().text().toUtf8(), 'utf8')
         if not question_dialog(self, "{0} {1}: Confirm Delete".format(PLUGIN_NAME, PLUGIN_VERSION), u"Do you really want to delete the {1} <strong>{0}</strong>?".format(keyname, self.key_type_name), show_copy_button=False, default_yes=False):
             return
         if type(self.plugin_keys) == dict:
@@ -373,53 +188,41 @@ class ManageKeysDialog(QDialog):
         open_url(QUrl(url))
 
     def migrate_files(self):
-        unique_dlg_name = PLUGIN_NAME + u"import {0} keys".format(self.key_type_name).replace(' ', '_') #takes care of automatically remembering last directory
-        caption = u"Select {0} files to import".format(self.key_type_name)
-        filters = [(u"{0} files".format(self.key_type_name), [self.keyfile_ext])]
-        files = choose_files(self, unique_dlg_name, caption, filters, all_files=False)
+        dynamic[PLUGIN_NAME + u"config_dir"] = config_dir
+        files = choose_files(self, PLUGIN_NAME + u"config_dir",
+                u"Select {0} files to import".format(self.key_type_name), [(u"{0} files".format(self.key_type_name), [self.keyfile_ext])], False)
         counter = 0
         skipped = 0
         if files:
             for filename in files:
                 fpath = os.path.join(config_dir, filename)
                 filename = os.path.basename(filename)
-                if type(self.plugin_keys) != dict:
-                    # must be the new Kindle for Android section
-                    print u"Getting keys from "+fpath
-                    new_keys = get_serials(fpath)
-                    for key in new_keys:
-                        if key in self.plugin_keys:
-                            skipped += 1
-                        else:
-                            counter += 1
-                            self.plugin_keys.append(key)
-                else:
-                    new_key_name = os.path.splitext(os.path.basename(filename))[0]
-                    with open(fpath,'rb') as keyfile:
-                        new_key_value = keyfile.read()
-                    if self.binary_file:
-                        new_key_value = new_key_value.encode('hex')
-                    elif self.json_file:
-                        new_key_value = json.loads(new_key_value)
-                    match = False
-                    for key in self.plugin_keys.keys():
-                        if uStrCmp(new_key_name, key, True):
-                            skipped += 1
-                            msg = u"A key with the name <strong>{0}</strong> already exists!\nSkipping key file  <strong>{1}</strong>.\nRename the existing key and import again".format(new_key_name,filename)
-                            inf = info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
-                                    _(msg), show_copy_button=False, show=True)
-                            match = True
-                            break
-                    if not match:
-                        if new_key_value in self.plugin_keys.values():
-                            old_key_name = [name for name, value in self.plugin_keys.iteritems() if value == new_key_value][0]
-                            skipped += 1
-                            info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
-                                                u"The key in file {0} is the same as the existing key <strong>{1}</strong> and has been skipped.".format(filename,old_key_name), show_copy_button=False, show=True)
-                        else:
-                            counter += 1
-                            self.plugin_keys[new_key_name] = new_key_value
-                            
+                new_key_name = os.path.splitext(os.path.basename(filename))[0]
+                with open(fpath,'rb') as keyfile:
+                    new_key_value = keyfile.read()
+                if self.binary_file:
+                    new_key_value = new_key_value.encode('hex')
+                elif self.json_file:
+                    new_key_value = json.loads(new_key_value)
+                match = False
+                for key in self.plugin_keys.keys():
+                    if uStrCmp(new_key_name, key, True):
+                        skipped += 1
+                        msg = u"A key with the name <strong>{0}</strong> already exists!\nSkipping key file  <strong>{1}</strong>.\nRename the existing key and import again".format(new_key_name,filename)
+                        inf = info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
+                                _(msg), show_copy_button=False, show=True)
+                        match = True
+                        break
+                if not match:
+                    if new_key_value in self.plugin_keys.values():
+                        old_key_name = [name for name, value in self.plugin_keys.iteritems() if value == new_key_value][0]
+                        skipped += 1
+                        info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
+                                            u"The key in file {0} is the same as the existing key <strong>{1}</strong> and has been skipped.".format(filename,old_key_name), show_copy_button=False, show=True)
+                    else:
+                        counter += 1
+                        self.plugin_keys[new_key_name] = new_key_value
+
             msg = u""
             if counter+skipped > 1:
                 if counter > 0:
@@ -441,14 +244,17 @@ class ManageKeysDialog(QDialog):
             r = error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
                                     _(errmsg), show=True, show_copy_button=False)
             return
-        keyname = unicode(self.listy.currentItem().text())
-        unique_dlg_name = PLUGIN_NAME + u"export {0} keys".format(self.key_type_name).replace(' ', '_') #takes care of automatically remembering last directory
-        caption = u"Save {0} File as...".format(self.key_type_name)
-        filters = [(u"{0} Files".format(self.key_type_name), [u"{0}".format(self.keyfile_ext)])]
-        defaultname = u"{0}.{1}".format(keyname, self.keyfile_ext)
-        filename = choose_save_file(self, unique_dlg_name,  caption, filters, all_files=False, initial_filename=defaultname)
+        filter = QString(u"{0} Files (*.{1})".format(self.key_type_name, self.keyfile_ext))
+        keyname = unicode(self.listy.currentItem().text().toUtf8(), 'utf8')
+        if dynamic.get(PLUGIN_NAME + 'save_dir'):
+            defaultname = os.path.join(dynamic.get(PLUGIN_NAME + 'save_dir'), u"{0}.{1}".format(keyname , self.keyfile_ext))
+        else:
+            defaultname = os.path.join(os.path.expanduser('~'), u"{0}.{1}".format(keyname , self.keyfile_ext))
+        filename = unicode(QtGui.QFileDialog.getSaveFileName(self, u"Save {0} File as...".format(self.key_type_name), defaultname,
+                                            u"{0} Files (*.{1})".format(self.key_type_name,self.keyfile_ext), filter))
         if filename:
-            with file(filename, 'wb') as fname:
+            dynamic[PLUGIN_NAME + 'save_dir'] = os.path.split(filename)[0]
+            with file(filename, 'w') as fname:
                 if self.binary_file:
                     fname.write(self.plugin_keys[keyname].decode('hex'))
                 elif self.json_file:
@@ -488,7 +294,7 @@ class RenameKeyDialog(QDialog):
         self.resize(self.sizeHint())
 
     def accept(self):
-        if not unicode(self.key_ledit.text()) or unicode(self.key_ledit.text()).isspace():
+        if self.key_ledit.text().isEmpty() or unicode(self.key_ledit.text()).isspace():
             errmsg = u"Key name field cannot be empty!"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
                                     _(errmsg), show=True, show_copy_button=False)
@@ -509,7 +315,7 @@ class RenameKeyDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text().toUtf8(), 'utf8').strip()
 
 
 
@@ -545,14 +351,14 @@ class AddBandNKeyDialog(QDialog):
 
         name_group = QHBoxLayout()
         data_group_box_layout.addLayout(name_group)
-        name_group.addWidget(QLabel(u"B&N/nook account email address:", self))
+        name_group.addWidget(QLabel(u"Your Name:", self))
         self.name_ledit = QLineEdit(u"", self)
-        self.name_ledit.setToolTip(_(u"<p>Enter your email address as it appears in your B&N " +
-                                u"account.</p>" +
+        self.name_ledit.setToolTip(_(u"<p>Enter your name as it appears in your B&N " +
+                                u"account or on your credit card.</p>" +
                                 u"<p>It will only be used to generate this " +
-                                u"key and won\'t be stored anywhere " +
+                                u"one-time key and won\'t be stored anywhere " +
                                 u"in calibre or on your computer.</p>" +
-                                u"<p>eg: apprenticeharper@gmail.com</p>"))
+                                u"<p>(ex: Jonathan Smith)"))
         name_group.addWidget(self.name_ledit)
         name_disclaimer_label = QLabel(_(u"(Will not be saved in configuration data)"), self)
         name_disclaimer_label.setAlignment(Qt.AlignHCenter)
@@ -560,12 +366,13 @@ class AddBandNKeyDialog(QDialog):
 
         ccn_group = QHBoxLayout()
         data_group_box_layout.addLayout(ccn_group)
-        ccn_group.addWidget(QLabel(u"B&N/nook account password:", self))
+        ccn_group.addWidget(QLabel(u"Credit Card#:", self))
         self.cc_ledit = QLineEdit(u"", self)
-        self.cc_ledit.setToolTip(_(u"<p>Enter the password " +
-                                u"for your B&N account.</p>" +
-                                u"<p>The password will only be used to generate this " +
-                                u"key and won\'t be stored anywhere in " +
+        self.cc_ledit.setToolTip(_(u"<p>Enter the full credit card number on record " +
+                                u"in your B&N account.</p>" +
+                                u"<p>No spaces or dashes... just the numbers. " +
+                                u"This number will only be used to generate this " +
+                                u"one-time key and won\'t be stored anywhere in " +
                                 u"calibre or on your computer."))
         ccn_group.addWidget(self.cc_ledit)
         ccn_disclaimer_label = QLabel(_('(Will not be saved in configuration data)'), self)
@@ -582,25 +389,27 @@ class AddBandNKeyDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text().toUtf8(), 'utf8').strip()
 
     @property
     def key_value(self):
-        from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as fetch_bandn_key
-        return fetch_bandn_key(self.user_name,self.cc_number)
+        return generate_bandn_key(self.user_name,self.cc_number)
 
     @property
     def user_name(self):
-        return unicode(self.name_ledit.text()).strip().lower().replace(' ','')
+        return unicode(self.name_ledit.text().toUtf8(), 'utf8').strip().lower().replace(' ','')
 
     @property
     def cc_number(self):
-        return unicode(self.cc_ledit.text()).strip()
+        return unicode(self.cc_ledit.text().toUtf8(), 'utf8').strip().replace(' ', '').replace('-','')
 
 
     def accept(self):
         if len(self.key_name) == 0 or len(self.user_name) == 0 or len(self.cc_number) == 0 or self.key_name.isspace() or self.user_name.isspace() or self.cc_number.isspace():
             errmsg = u"All fields are required!"
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        if not self.cc_number.isdigit():
+            errmsg = u"Numbers only in the credit card number field!"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         if len(self.key_name) < 4:
             errmsg = u"Key name must be at <i>least</i> 4 characters long!"
@@ -660,20 +469,19 @@ class AddEReaderDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text().toUtf8(), 'utf8').strip()
 
     @property
     def key_value(self):
-        from calibre_plugins.dedrm.erdr2pml import getuser_key as generate_ereader_key
         return generate_ereader_key(self.user_name,self.cc_number).encode('hex')
 
     @property
     def user_name(self):
-        return unicode(self.name_ledit.text()).strip().lower().replace(' ','')
+        return unicode(self.name_ledit.text().toUtf8(), 'utf8').strip().lower().replace(' ','')
 
     @property
     def cc_number(self):
-        return unicode(self.cc_ledit.text()).strip().replace(' ', '').replace('-','')
+        return unicode(self.cc_ledit.text().toUtf8(), 'utf8').strip().replace(' ', '').replace('-','')
 
 
     def accept(self):
@@ -698,19 +506,8 @@ class AddAdeptDialog(QDialog):
         self.setLayout(layout)
 
         try:
-            if iswindows or isosx:
-                from calibre_plugins.dedrm.adobekey import adeptkeys
-
-                defaultkeys = adeptkeys()
-            else:  # linux
-                from wineutils import WineGetKeys
-
-                scriptpath = os.path.join(parent.parent.alfdir,u"adobekey.py")
-                defaultkeys = WineGetKeys(scriptpath, u".der",parent.getwineprefix())
-
-            self.default_key = defaultkeys[0]
+            self.default_key = retrieve_adept_keys()[0]
         except:
-            traceback.print_exc()
             self.default_key = u""
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -724,7 +521,7 @@ class AddAdeptDialog(QDialog):
             key_group = QHBoxLayout()
             data_group_box_layout.addLayout(key_group)
             key_group.addWidget(QLabel(u"Unique Key Name:", self))
-            self.key_ledit = QLineEdit(u"default_key", self)
+            self.key_ledit = QLineEdit("", self)
             self.key_ledit.setToolTip(u"<p>Enter an identifying name for the current default Adobe Digital Editions key.")
             key_group.addWidget(self.key_ledit)
             key_label = QLabel(_(''), self)
@@ -745,7 +542,7 @@ class AddAdeptDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text().toUtf8(), 'utf8').strip()
 
     @property
     def key_value(self):
@@ -771,19 +568,8 @@ class AddKindleDialog(QDialog):
         self.setLayout(layout)
 
         try:
-            if iswindows or isosx:
-                from calibre_plugins.dedrm.kindlekey import kindlekeys
-
-                defaultkeys = kindlekeys()
-            else: # linux
-                from wineutils import WineGetKeys
-
-                scriptpath = os.path.join(parent.parent.alfdir,u"kindlekey.py")
-                defaultkeys = WineGetKeys(scriptpath, u".k4i",parent.getwineprefix())
-
-            self.default_key = defaultkeys[0]
+            self.default_key = retrieve_kindle_keys()[0]
         except:
-            traceback.print_exc()
             self.default_key = u""
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -797,7 +583,7 @@ class AddKindleDialog(QDialog):
             key_group = QHBoxLayout()
             data_group_box_layout.addLayout(key_group)
             key_group.addWidget(QLabel(u"Unique Key Name:", self))
-            self.key_ledit = QLineEdit(u"default_key", self)
+            self.key_ledit = QLineEdit("", self)
             self.key_ledit.setToolTip(u"<p>Enter an identifying name for the current default Kindle for Mac/PC key.")
             key_group.addWidget(self.key_ledit)
             key_label = QLabel(_(''), self)
@@ -818,7 +604,7 @@ class AddKindleDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text().toUtf8(), 'utf8').strip()
 
     @property
     def key_value(self):
@@ -867,11 +653,11 @@ class AddSerialDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text().toUtf8(), 'utf8').strip()
 
     @property
     def key_value(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text().toUtf8(), 'utf8').strip()
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():
@@ -879,51 +665,6 @@ class AddSerialDialog(QDialog):
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         if len(self.key_name) != 16:
             errmsg = u"EInk Kindle Serial Numbers must be 16 characters long. This is {0:d} characters long.".format(len(self.key_name))
-            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
-        QDialog.accept(self)
-
-
-class AddAndroidSerialDialog(QDialog):
-    def __init__(self, parent=None,):
-        QDialog.__init__(self, parent)
-        self.parent = parent
-        self.setWindowTitle(u"{0} {1}: Add New Kindle for Android Serial Number".format(PLUGIN_NAME, PLUGIN_VERSION))
-        layout = QVBoxLayout(self)
-        self.setLayout(layout)
-
-        data_group_box = QGroupBox(u"", self)
-        layout.addWidget(data_group_box)
-        data_group_box_layout = QVBoxLayout()
-        data_group_box.setLayout(data_group_box_layout)
-
-        key_group = QHBoxLayout()
-        data_group_box_layout.addLayout(key_group)
-        key_group.addWidget(QLabel(u"Kindle for Android Serial Number:", self))
-        self.key_ledit = QLineEdit("", self)
-        self.key_ledit.setToolTip(u"Enter a Kindle for ANdroid serial number. These can be found using the androidkindlekey.py script.")
-        key_group.addWidget(self.key_ledit)
-        key_label = QLabel(_(''), self)
-        key_label.setAlignment(Qt.AlignHCenter)
-        data_group_box_layout.addWidget(key_label)
-
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        layout.addWidget(self.button_box)
-
-        self.resize(self.sizeHint())
-
-    @property
-    def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
-
-    @property
-    def key_value(self):
-        return unicode(self.key_ledit.text()).strip()
-
-    def accept(self):
-        if len(self.key_name) == 0 or self.key_name.isspace():
-            errmsg = u"Please enter a Kindle for Android Serial Number or click Cancel in the dialog."
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         QDialog.accept(self)
 
@@ -960,11 +701,11 @@ class AddPIDDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text().toUtf8(), 'utf8').strip()
 
     @property
     def key_value(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text().toUtf8(), 'utf8').strip()
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():

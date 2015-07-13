@@ -1,7 +1,7 @@
 ﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.2.0 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.2.2 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
 
 The is archive includes tools to remove DRM from:
 
@@ -25,7 +25,7 @@ If you re-post these tools, a link to the blog would be appreciated.
 
 DeDRM plugin for calibre (Mac OS X, Windows, and Linux)
 -------------------------------------------------------
-If you already use calibre, the quickest and easiest way, especially on Windows, to remove DRM from your ebooks is to install the DeDRM plugin from the DeDRM_calibre_plugin folder, following the instructions and configuration directions provided in the ReadMe and the help links.
+Calibre is an open source freeware ebook library manager. It is the best tool around for keeping track of your ebooks. The DeDRM plugin for calibre provides the simplest way, especially on Windows, to remove DRM from your ebooks. Just install the DeDRM plugin from the DeDRM_calibre_plugin folder, following the instructions and configuration directions provided in the ReadMe and the help links.
 
 Once installed and configured, you can simply add a DRM book to calibre and the DeDRMed version will be imported into the calibre database. Note that DRM removal only occurs on IMPORT not on CONVERSION or at any other time, not even conversion to other formats. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
 
@@ -60,10 +60,13 @@ For instructions, see the obok_plugin_ReadMe.txt file in the Obok_calibre_plugin
 
 Other_Tools
 -----------
-This is a folder other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
+This is a folder of other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
+
+DRM_Key_Scripts
+This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs, Kindle for Mac/PC and Kindle for Android ebooks. These files are needed for the Windows stand-alone DeDRM application.
 
 B&N_Download_Helper
-A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Another one only for the adventurous.
+A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Only for the adventurous.
 
 DRM_Key_Scripts
 This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs, Kindle for Mac/PC and Kindle for Android ebooks.

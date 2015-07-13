@@ -40,7 +40,9 @@ __docformat__ = 'restructuredtext en'
 #   6.2.0 - Support for getting B&N key from nook Study log. Fix for UTF-8 filenames in Adobe ePubs.
 #           Fix for not copying needed files. Fix for getting default Adobe key for PDFs
 #   6.2.1 - Fix for non-ascii Windows user names
+#   6.2.2 - Added URL method for B&N/nook books
 #   6.3.0 - Added in Kindle for Android serial number solution
+
 
 """
 Decrypt DRMed ebooks.
@@ -254,7 +256,7 @@ class DeDRM(FileTypePlugin):
                             # Store the new successful key in the defaults
                             print u"{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION)
                             try:
-                                dedrmprefs.addnamedvaluetoprefs('bandnkeys','default_key',keyvalue)
+                                dedrmprefs.addnamedvaluetoprefs('bandnkeys','nook_Study_key',keyvalue)
                                 dedrmprefs.writeprefs()
                                 print u"{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
                             except:

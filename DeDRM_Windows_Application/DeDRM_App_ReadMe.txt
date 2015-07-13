@@ -20,7 +20,7 @@ Installation
 ------------
 0. If you don't already have a correct version of Python and PyCrypto installed, follow the "Installing Python on Windows" and "Installing PyCrypto on Windows" sections below before continuing.
 
-1. Drag the DeDRM_App folder from tools_v6.2.0/DeDRM_Application_Windows to your "My Documents" folder.
+1. Drag the DeDRM_App folder from tools_v6.2.2/DeDRM_Application_Windows to your "My Documents" folder.
 
 2. Open the DeDRM_App folder you've just dragged, and make a short-cut of the DeDRM_Drop_Target.bat file (right-click/Create Shortcut). Drag the shortcut file onto your Desktop.
 
