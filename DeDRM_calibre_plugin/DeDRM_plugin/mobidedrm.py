@@ -434,11 +434,11 @@ class MobiBook:
             return
         if crypto_type != 2 and crypto_type != 1:
             raise DrmException(u"Cannot decode unknown Mobipocket encryption type {0:d}".format(crypto_type))
-        if 406 in self.meta_array:
+        
+		if 406 in self.meta_array:
+            # library or rented ebook
             data406 = self.meta_array[406]
             val406, = struct.unpack('>Q',data406)
-            if val406 != 0:
-                raise DrmException(u"Cannot decode library or rented ebooks.")
 
         goodpids = []
         for pid in pidlist:
