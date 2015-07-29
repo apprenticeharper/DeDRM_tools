@@ -132,8 +132,14 @@ class MainApp(Tk):
             nfile = os.path.join(prefdir,fname)
             if os.path.isfile(dfile):
                 shutil.copyfile(dfile,nfile)
-        if 'kinfofile' in newprefs:
-            dfile = newprefs['kinfofile']
+        if 'kindlefile' in newprefs:
+            dfile = newprefs['kindlefile']
+            fname = os.path.basename(dfile)
+            nfile = os.path.join(prefdir,fname)
+            if os.path.isfile(dfile):
+                shutil.copyfile(dfile,nfile)
+        if 'androidfile' in newprefs:
+            dfile = newprefs['androidfile']
             fname = os.path.basename(dfile)
             nfile = os.path.join(prefdir,fname)
             if os.path.isfile(dfile):
@@ -187,11 +193,11 @@ class PrefsDialog(Toplevel):
         button.grid(row=cur_row, column=2)
 
         cur_row = cur_row + 1
-        Tkinter.Label(body, text='Android Kindle Key file (kindlekey.k4a)').grid(row=cur_row, sticky=Tkconstants.E)
+        Tkinter.Label(body, text='Android Kindle backup file (backup.ab)').grid(row=cur_row, sticky=Tkconstants.E)
         self.akkpath = Tkinter.Entry(body, width=50)
         self.akkpath.grid(row=cur_row, column=1, sticky=sticky)
         prefdir = self.prefs_array['dir']
-        keyfile = os.path.join(prefdir,'kindlekey.k4a')
+        keyfile = os.path.join(prefdir,'backup.ab')
         if os.path.isfile(keyfile):
             path = keyfile
             self.akkpath.insert(0, path)
@@ -332,21 +338,13 @@ class PrefsDialog(Toplevel):
         return
 
     def get_akkpath(self):
-        akkbpath = tkFileDialog.askopenfilename(parent=None, title='Select Android for Kindle backup file',
+        cpath = self.akkpath.get()
+        akkpath = tkFileDialog.askopenfilename(initialdir = cpath, parent=None, title='Select Android for Kindle backup file',
             defaultextension='.ab', filetypes=[('Kindle for Android backup file', '.ab'), ('All Files', '.*')])
-        if akkbpath:
-            # call androidkindlekey here
-            prefdir = self.prefs_array['dir']
-            androidkindlekeyfile = os.path.join(prefdir,'kindlekey.k4a')
-            import androidkindlekey
-            try:
-                androidkindlekey.getkey(androidkindlekeyfile, akkbpath)
-            except:
-                traceback.print_exc()
-                pass
-            if os.path.isfile(androidkindlekeyfile):
-                self.akkpath.delete(0, Tkconstants.END)
-                self.akkpath.insert(0, androidkindlekeyfile)
+        if akkpath:
+            akkpath = os.path.normpath(akkpath)
+            self.akkpath.delete(0, Tkconstants.END)
+            self.akkpath.insert(0, akkpath)
         return
 
     def get_bnkpath(self):
@@ -401,6 +399,9 @@ class PrefsDialog(Toplevel):
         kkpath = self.kkpath.get()
         if os.path.dirname(kkpath) != prefdir:
             new_prefs['kindlefile'] = kkpath
+        akkpath = self.akkpath.get()
+        if os.path.dirname(akkpath) != prefdir:
+            new_prefs['androidfile'] = akkpath
         self.master.setPreferences(new_prefs)
         # and update internal copies
         self.prefs_array['pids'] = new_prefs['pids']

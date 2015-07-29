@@ -34,9 +34,9 @@ from calibre.constants import iswindows, isosx
 from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 from calibre_plugins.dedrm.__init__ import RESOURCE_NAME as help_file_name
 from calibre_plugins.dedrm.utilities import uStrCmp
-from calibre_plugins.dedrm.androidkindlekey import get_serials
 
 import calibre_plugins.dedrm.prefs as prefs
+import calibre_plugins.dedrm.androidkindlekey as androidkindlekey
 
 class ConfigWidget(QWidget):
     def __init__(self, plugin_path, alfdir):
@@ -54,9 +54,9 @@ class ConfigWidget(QWidget):
         self.tempdedrmprefs['adeptkeys'] = self.dedrmprefs['adeptkeys'].copy()
         self.tempdedrmprefs['ereaderkeys'] = self.dedrmprefs['ereaderkeys'].copy()
         self.tempdedrmprefs['kindlekeys'] = self.dedrmprefs['kindlekeys'].copy()
+        self.tempdedrmprefs['androidkeys'] = self.dedrmprefs['androidkeys'].copy()
         self.tempdedrmprefs['pids'] = list(self.dedrmprefs['pids'])
         self.tempdedrmprefs['serials'] = list(self.dedrmprefs['serials'])
-        self.tempdedrmprefs['androidserials'] = list(self.dedrmprefs['androidserials'])
         self.tempdedrmprefs['adobewineprefix'] = self.dedrmprefs['adobewineprefix']
         self.tempdedrmprefs['kindlewineprefix'] = self.dedrmprefs['kindlewineprefix']
 
@@ -86,9 +86,9 @@ class ConfigWidget(QWidget):
         self.bandn_button.setText(u"Barnes and Noble ebooks")
         self.bandn_button.clicked.connect(self.bandn_keys)
         self.kindle_android_button = QtGui.QPushButton(self)
-        self.kindle_android_button.setToolTip(_(u"Click to manage Kindle for Android serial numbers for Kindle ebooks"))
+        self.kindle_android_button.setToolTip(_(u"Click to manage keys for Kindle for Android ebooks"))
         self.kindle_android_button.setText(u"Kindle for Android ebooks")
-        self.kindle_android_button.clicked.connect(self.kindle_android_serials)
+        self.kindle_android_button.clicked.connect(self.kindle_android)
         self.kindle_serial_button = QtGui.QPushButton(self)
         self.kindle_serial_button.setToolTip(_(u"Click to manage eInk Kindle serial numbers for Kindle ebooks"))
         self.kindle_serial_button.setText(u"eInk Kindle ebooks")
@@ -123,8 +123,8 @@ class ConfigWidget(QWidget):
         d = ManageKeysDialog(self,u"EInk Kindle Serial Number",self.tempdedrmprefs['serials'], AddSerialDialog)
         d.exec_()
         
-    def kindle_android_serials(self):
-        d = ManageKeysDialog(self,u"Kindle for Andoid Serial Number",self.tempdedrmprefs['androidserials'], AddAndroidSerialDialog, 'ab')
+    def kindle_android(self):
+        d = ManageKeysDialog(self,u"Kindle for Android Keys File",self.tempdedrmprefs['androidkeys'], AddAndroidDialog, 'k4a')
         d.exec_()
 
     def kindle_keys(self):
@@ -173,9 +173,9 @@ class ConfigWidget(QWidget):
         self.dedrmprefs.set('adeptkeys', self.tempdedrmprefs['adeptkeys'])
         self.dedrmprefs.set('ereaderkeys', self.tempdedrmprefs['ereaderkeys'])
         self.dedrmprefs.set('kindlekeys', self.tempdedrmprefs['kindlekeys'])
+        self.dedrmprefs.set('androidkeys', self.tempdedrmprefs['androidkeys'])
         self.dedrmprefs.set('pids', self.tempdedrmprefs['pids'])
         self.dedrmprefs.set('serials', self.tempdedrmprefs['serials'])
-        self.dedrmprefs.set('androidserials', self.tempdedrmprefs['androidserials'])
         self.dedrmprefs.set('adobewineprefix', self.tempdedrmprefs['adobewineprefix'])
         self.dedrmprefs.set('kindlewineprefix', self.tempdedrmprefs['kindlewineprefix'])
         self.dedrmprefs.set('configured', True)
@@ -200,7 +200,7 @@ class ManageKeysDialog(QDialog):
         self.import_key = (keyfile_ext != u"")
         self.binary_file = (keyfile_ext == u"der")
         self.json_file = (keyfile_ext == u"k4i")
-        self.android_file = (keyfile_ext == u"ab")
+        self.android_file = (keyfile_ext == u"k4a")
         self.wineprefix = wineprefix
 
         self.setWindowTitle("{0} {1}: Manage {2}s".format(PLUGIN_NAME, PLUGIN_VERSION, self.key_type_name))
@@ -232,8 +232,8 @@ class ManageKeysDialog(QDialog):
         button_layout = QVBoxLayout()
         keys_group_box_layout.addLayout(button_layout)
         self._add_key_button = QtGui.QToolButton(self)
-        self._add_key_button.setToolTip(u"Create new {0}".format(self.key_type_name))
         self._add_key_button.setIcon(QIcon(I('plus.png')))
+        self._add_key_button.setToolTip(u"Create new {0}".format(self.key_type_name))
         self._add_key_button.clicked.connect(self.add_key)
         button_layout.addWidget(self._add_key_button)
 
@@ -383,42 +383,34 @@ class ManageKeysDialog(QDialog):
             for filename in files:
                 fpath = os.path.join(config_dir, filename)
                 filename = os.path.basename(filename)
-                if type(self.plugin_keys) != dict:
-                    # must be the new Kindle for Android section
-                    print u"Getting keys from "+fpath
-                    new_keys = get_serials(fpath)
-                    for key in new_keys:
-                        if key in self.plugin_keys:
-                            skipped += 1
-                        else:
-                            counter += 1
-                            self.plugin_keys.append(key)
-                else:
-                    new_key_name = os.path.splitext(os.path.basename(filename))[0]
-                    with open(fpath,'rb') as keyfile:
-                        new_key_value = keyfile.read()
-                    if self.binary_file:
-                        new_key_value = new_key_value.encode('hex')
-                    elif self.json_file:
-                        new_key_value = json.loads(new_key_value)
-                    match = False
-                    for key in self.plugin_keys.keys():
-                        if uStrCmp(new_key_name, key, True):
-                            skipped += 1
-                            msg = u"A key with the name <strong>{0}</strong> already exists!\nSkipping key file  <strong>{1}</strong>.\nRename the existing key and import again".format(new_key_name,filename)
-                            inf = info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
-                                    _(msg), show_copy_button=False, show=True)
-                            match = True
-                            break
-                    if not match:
-                        if new_key_value in self.plugin_keys.values():
-                            old_key_name = [name for name, value in self.plugin_keys.iteritems() if value == new_key_value][0]
-                            skipped += 1
-                            info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
-                                                u"The key in file {0} is the same as the existing key <strong>{1}</strong> and has been skipped.".format(filename,old_key_name), show_copy_button=False, show=True)
-                        else:
-                            counter += 1
-                            self.plugin_keys[new_key_name] = new_key_value
+                new_key_name = os.path.splitext(os.path.basename(filename))[0]
+                with open(fpath,'rb') as keyfile:
+                    new_key_value = keyfile.read()
+                if self.binary_file:
+                    new_key_value = new_key_value.encode('hex')
+                elif self.json_file:
+                    new_key_value = json.loads(new_key_value)
+                elif self.android_file:
+                    # convert to list of the keys in the string
+                    new_key_value = new_key_value.splitlines()
+                match = False
+                for key in self.plugin_keys.keys():
+                    if uStrCmp(new_key_name, key, True):
+                        skipped += 1
+                        msg = u"A key with the name <strong>{0}</strong> already exists!\nSkipping key file  <strong>{1}</strong>.\nRename the existing key and import again".format(new_key_name,filename)
+                        inf = info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
+                                _(msg), show_copy_button=False, show=True)
+                        match = True
+                        break
+                if not match:
+                    if new_key_value in self.plugin_keys.values():
+                        old_key_name = [name for name, value in self.plugin_keys.iteritems() if value == new_key_value][0]
+                        skipped += 1
+                        info_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
+                                            u"The key in file {0} is the same as the existing key <strong>{1}</strong> and has been skipped.".format(filename,old_key_name), show_copy_button=False, show=True)
+                    else:
+                        counter += 1
+                        self.plugin_keys[new_key_name] = new_key_value
                             
             msg = u""
             if counter+skipped > 1:
@@ -453,6 +445,10 @@ class ManageKeysDialog(QDialog):
                     fname.write(self.plugin_keys[keyname].decode('hex'))
                 elif self.json_file:
                     fname.write(json.dumps(self.plugin_keys[keyname]))
+                elif self.android_file:
+                    for key in self.plugin_keys[keyname]:
+                        fname.write(key)
+                        fname.write("\n")
                 else:
                     fname.write(self.plugin_keys[keyname])
 
@@ -539,9 +535,6 @@ class AddBandNKeyDialog(QDialog):
                                 u"<p>It should be something that will help you remember " +
                                 u"what personal information was used to create it."))
         key_group.addWidget(self.key_ledit)
-        key_label = QLabel(_(''), self)
-        key_label.setAlignment(Qt.AlignHCenter)
-        data_group_box_layout.addWidget(key_label)
 
         name_group = QHBoxLayout()
         data_group_box_layout.addLayout(name_group)
@@ -626,9 +619,6 @@ class AddEReaderDialog(QDialog):
         self.key_ledit = QLineEdit("", self)
         self.key_ledit.setToolTip(u"<p>Enter an identifying name for this new key.\nIt should be something that will help you remember what personal information was used to create it.")
         key_group.addWidget(self.key_ledit)
-        key_label = QLabel(_(''), self)
-        key_label.setAlignment(Qt.AlignHCenter)
-        data_group_box_layout.addWidget(key_label)
 
         name_group = QHBoxLayout()
         data_group_box_layout.addLayout(name_group)
@@ -727,9 +717,7 @@ class AddAdeptDialog(QDialog):
             self.key_ledit = QLineEdit(u"default_key", self)
             self.key_ledit.setToolTip(u"<p>Enter an identifying name for the current default Adobe Digital Editions key.")
             key_group.addWidget(self.key_ledit)
-            key_label = QLabel(_(''), self)
-            key_label.setAlignment(Qt.AlignHCenter)
-            data_group_box_layout.addWidget(key_label)
+
             self.button_box.accepted.connect(self.accept)
         else:
             default_key_error = QLabel(u"The default encryption key for Adobe Digital Editions could not be found.", self)
@@ -800,15 +788,14 @@ class AddKindleDialog(QDialog):
             self.key_ledit = QLineEdit(u"default_key", self)
             self.key_ledit.setToolTip(u"<p>Enter an identifying name for the current default Kindle for Mac/PC key.")
             key_group.addWidget(self.key_ledit)
-            key_label = QLabel(_(''), self)
-            key_label.setAlignment(Qt.AlignHCenter)
-            data_group_box_layout.addWidget(key_label)
+
             self.button_box.accepted.connect(self.accept)
         else:
             default_key_error = QLabel(u"The default encryption key for Kindle for Mac/PC could not be found.", self)
             default_key_error.setAlignment(Qt.AlignHCenter)
             layout.addWidget(default_key_error)
-            # if no default, bot buttons do the same
+            
+            # if no default, both buttons do the same
             self.button_box.accepted.connect(self.reject)
 
         self.button_box.rejected.connect(self.reject)
@@ -854,9 +841,6 @@ class AddSerialDialog(QDialog):
         self.key_ledit = QLineEdit("", self)
         self.key_ledit.setToolTip(u"Enter an eInk Kindle serial number. EInk Kindle serial numbers are 16 characters long and usually start with a 'B' or a '9'. Kindle Serial Numbers are case-sensitive, so be sure to enter the upper and lower case letters unchanged.")
         key_group.addWidget(self.key_ledit)
-        key_label = QLabel(_(''), self)
-        key_label.setAlignment(Qt.AlignHCenter)
-        data_group_box_layout.addWidget(key_label)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -883,34 +867,44 @@ class AddSerialDialog(QDialog):
         QDialog.accept(self)
 
 
-class AddAndroidSerialDialog(QDialog):
+class AddAndroidDialog(QDialog):
     def __init__(self, parent=None,):
+
         QDialog.__init__(self, parent)
         self.parent = parent
-        self.setWindowTitle(u"{0} {1}: Add New Kindle for Android Serial Number".format(PLUGIN_NAME, PLUGIN_VERSION))
+        self.setWindowTitle(u"{0} {1}: Add new Kindle for Android Key".format(PLUGIN_NAME, PLUGIN_VERSION))
         layout = QVBoxLayout(self)
         self.setLayout(layout)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
         data_group_box = QGroupBox(u"", self)
         layout.addWidget(data_group_box)
         data_group_box_layout = QVBoxLayout()
         data_group_box.setLayout(data_group_box_layout)
 
+        file_group = QHBoxLayout()
+        data_group_box_layout.addLayout(file_group)
+        add_btn = QPushButton(u"Choose Backup File", self)
+        add_btn.setToolTip(u"Import Kindle for Android backup file.")
+        add_btn.clicked.connect(self.get_android_file)
+        file_group.addWidget(add_btn)
+        self.selected_file_name = QLabel(u"",self)
+        self.selected_file_name.setAlignment(Qt.AlignHCenter)
+        file_group.addWidget(self.selected_file_name)
+        
         key_group = QHBoxLayout()
         data_group_box_layout.addLayout(key_group)
-        key_group.addWidget(QLabel(u"Kindle for Android Serial Number:", self))
-        self.key_ledit = QLineEdit("", self)
-        self.key_ledit.setToolTip(u"Enter a Kindle for ANdroid serial number. These can be found using the androidkindlekey.py script.")
+        key_group.addWidget(QLabel(u"Unique Key Name:", self))
+        self.key_ledit = QLineEdit(u"", self)
+        self.key_ledit.setToolTip(u"<p>Enter an identifying name for the Android for Kindle key.")
         key_group.addWidget(self.key_ledit)
-        key_label = QLabel(_(''), self)
-        key_label.setAlignment(Qt.AlignHCenter)
-        data_group_box_layout.addWidget(key_label)
-
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        #key_label = QLabel(_(''), self)
+        #key_label.setAlignment(Qt.AlignHCenter)
+        #data_group_box_layout.addWidget(key_label)
+        
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         layout.addWidget(self.button_box)
-
         self.resize(self.sizeHint())
 
     @property
@@ -918,15 +912,43 @@ class AddAndroidSerialDialog(QDialog):
         return unicode(self.key_ledit.text()).strip()
 
     @property
+    def file_name(self):
+        return unicode(self.selected_file_name.text()).strip()
+
+    @property
     def key_value(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.serials_from_file
+        
+    def get_android_file(self):
+        unique_dlg_name = PLUGIN_NAME + u"Import Kindle for Android backup file" #takes care of automatically remembering last directory
+        caption = u"Select Kindle for Android backup file to add"
+        filters = [(u"Kindle for Android backup files", ['db','ab','xml'])]
+        files = choose_files(self, unique_dlg_name, caption, filters, all_files=False)
+        self.serials_from_file = []
+        file_name = u""
+        if files:
+            # find the first selected file that yields some serial numbers
+            for filename in files:
+                fpath = os.path.join(config_dir, filename)
+                self.filename = os.path.basename(filename)
+                file_serials = androidkindlekey.get_serials(fpath)
+                if len(file_serials)>0:
+                    file_name = os.path.basename(self.filename)
+                    self.serials_from_file.extend(file_serials)
+        self.selected_file_name.setText(file_name)
+    
 
     def accept(self):
+        if len(self.file_name) == 0 or len(self.key_value) == 0:
+            errmsg = u"Please choose a Kindle for Android backup file."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         if len(self.key_name) == 0 or self.key_name.isspace():
-            errmsg = u"Please enter a Kindle for Android Serial Number or click Cancel in the dialog."
+            errmsg = u"Please enter a key name."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        if len(self.key_name) < 4:
+            errmsg = u"Key name must be at <i>least</i> 4 characters long!"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         QDialog.accept(self)
-
 
 class AddPIDDialog(QDialog):
     def __init__(self, parent=None,):
@@ -947,9 +969,6 @@ class AddPIDDialog(QDialog):
         self.key_ledit = QLineEdit("", self)
         self.key_ledit.setToolTip(u"Enter a Mobipocket PID. Mobipocket PIDs are 8 or 10 characters long. Mobipocket PIDs are case-sensitive, so be sure to enter the upper and lower case letters unchanged.")
         key_group.addWidget(self.key_ledit)
-        key_label = QLabel(_(''), self)
-        key_label.setAlignment(Qt.AlignHCenter)
-        data_group_box_layout.addWidget(key_label)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.accept)

@@ -158,14 +158,6 @@ def decryptk4mobi(infile, outdir, rscpath):
         serialstr = serialstr.strip()
         if serialstr != '':
             serialnums = serialstr.split(',')
-    files = os.listdir(rscpath)
-    filefilter = re.compile("\.k4a$", re.IGNORECASE)
-    files = filter(filefilter.search, files)
-    if files:
-        for filename in files:
-            dpath = os.path.join(rscpath,filename)
-            androidserial = open(keypath,'r').read()
-            serialnums.append(androidserial)
     kDatabaseFiles = []
     files = os.listdir(rscpath)
     filefilter = re.compile("\.k4i$", re.IGNORECASE)
@@ -174,8 +166,30 @@ def decryptk4mobi(infile, outdir, rscpath):
         for filename in files:
             dpath = os.path.join(rscpath,filename)
             kDatabaseFiles.append(dpath)
+    androidFiles = []
+    files = os.listdir(rscpath)
+    filefilter = re.compile("\.ab$", re.IGNORECASE)
+    files = filter(filefilter.search, files)
+    if files:
+        for filename in files:
+            dpath = os.path.join(rscpath,filename)
+            androidFiles.append(dpath)
+    files = os.listdir(rscpath)
+    filefilter = re.compile("\.db$", re.IGNORECASE)
+    files = filter(filefilter.search, files)
+    if files:
+        for filename in files:
+            dpath = os.path.join(rscpath,filename)
+            androidFiles.append(dpath)
+    files = os.listdir(rscpath)
+    filefilter = re.compile("\.xml$", re.IGNORECASE)
+    files = filter(filefilter.search, files)
+    if files:
+        for filename in files:
+            dpath = os.path.join(rscpath,filename)
+            androidFiles.append(dpath)
     try:
-        rv = k4mobidedrm.decryptBook(infile, outdir, kDatabaseFiles, serialnums, pidnums)
+        rv = k4mobidedrm.decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serialnums, pidnums)
     except Exception, e:
         errlog += traceback.format_exc()
         errlog += str(e)

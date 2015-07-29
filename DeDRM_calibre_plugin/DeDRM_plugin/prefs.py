@@ -23,9 +23,9 @@ class DeDRM_Prefs():
         self.dedrmprefs.defaults['adeptkeys'] = {}
         self.dedrmprefs.defaults['ereaderkeys'] = {}
         self.dedrmprefs.defaults['kindlekeys'] = {}
+        self.dedrmprefs.defaults['androidkeys'] = {}
         self.dedrmprefs.defaults['pids'] = []
         self.dedrmprefs.defaults['serials'] = []
-        self.dedrmprefs.defaults['androidserials'] = []
         self.dedrmprefs.defaults['adobewineprefix'] = ""
         self.dedrmprefs.defaults['kindlewineprefix'] = ""
 
@@ -41,12 +41,12 @@ class DeDRM_Prefs():
             self.dedrmprefs['ereaderkeys'] = {}
         if self.dedrmprefs['kindlekeys'] == {}:
             self.dedrmprefs['kindlekeys'] = {}
+        if self.dedrmprefs['androidkeys'] == {}:
+            self.dedrmprefs['androidkeys'] = {}
         if self.dedrmprefs['pids'] == []:
             self.dedrmprefs['pids'] = []
         if self.dedrmprefs['serials'] == []:
             self.dedrmprefs['serials'] = []
-        if self.dedrmprefs['androidserials'] == []:
-            self.dedrmprefs['androidserials'] = []
 
     def __getitem__(self,kind = None):
         if kind is not None:

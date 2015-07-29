@@ -3,15 +3,15 @@
 
 from __future__ import with_statement
 
-# ignobleepub.pyw, version 3.6
-# Copyright © 2009-2012 by DiapDealer et al.
+# k4mobidedrm.py, version 5.3
+# Copyright © 2009-2015 by ApprenticeHarper et al.
 
-# engine to remove drm from Kindle for Mac and Kindle for PC books
+# engine to remove drm from Kindle and Mobipocket ebooks
 # for personal use for archiving and converting your ebooks
 
 # PLEASE DO NOT PIRATE EBOOKS!
 
-# We want all authors and publishers, and eBook stores to live
+# We want all authors and publishers, and ebook stores to live
 # long and prosperous lives but at the same time  we just want to
 # be able to read OUR books on whatever device we want and to keep
 # readable for a long, long time
@@ -55,8 +55,9 @@ from __future__ import with_statement
 #      - tweaked GetDecryptedBook interface to leave passed parameters unchanged
 #  5.1 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  5.2 - Fixed error in command line processing of unicode arguments
+#  5.3 - Changed Android support to allow passing of backup .ab files
 
-__version__ = '5.2'
+__version__ = '5.3'
 
 
 import sys, os, re
@@ -187,7 +188,7 @@ def unescape(text):
         return text # leave as is
     return re.sub(u"&#?\w+;", fixup, text)
 
-def GetDecryptedBook(infile, kDatabases, serials, pids, starttime = time.time()):
+def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime = time.time()):
     # handle the obvious cases at the beginning
     if not os.path.isfile(infile):
         raise DrmException(u"Input file does not exist.")
@@ -207,9 +208,14 @@ def GetDecryptedBook(infile, kDatabases, serials, pids, starttime = time.time())
 
     # copy list of pids
     totalpids = list(pids)
-    # extend PID list with book-specific PIDs
+    # extend list of serials with serials from android databases
+    for aFile in androidFiles:
+        serials.extend(androidkindlekey.get_serials(aFile))
+    # extend PID list with book-specific PIDs from seriala and kDatabases
     md1, md2 = mb.getPIDMetaInfo()
     totalpids.extend(kgenpids.getPidList(md1, md2, serials, kDatabases))
+    # remove any duplicates
+    totalpid = list(set(totalpids))
     print u"Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(totalpids))
 
     try:
@@ -223,7 +229,7 @@ def GetDecryptedBook(infile, kDatabases, serials, pids, starttime = time.time())
 
 
 # kDatabaseFiles is a list of files created by kindlekey
-def decryptBook(infile, outdir, kDatabaseFiles, serials, pids):
+def decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids):
     starttime = time.time()
     kDatabases = []
     for dbfile in kDatabaseFiles:
@@ -239,7 +245,7 @@ def decryptBook(infile, outdir, kDatabaseFiles, serials, pids):
 
 
     try:
-        book = GetDecryptedBook(infile, kDatabases, serials, pids, starttime)
+        book = GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime)
     except Exception, e:
         print u"Error decrypting book after {1:.1f} seconds: {0}".format(e.args[0],time.time()-starttime)
         traceback.print_exc()
@@ -254,7 +260,7 @@ def decryptBook(infile, outdir, kDatabaseFiles, serials, pids):
 
     # avoid excessively long file names
     if len(outfilename)>150:
-        outfilename = outfilename[:150]
+        outfilename = outfilename[:99]+"--"+outfilename[-49:]
 
     outfilename = outfilename+u"_nodrm"
     outfile = os.path.join(outdir, outfilename + book.getBookExtension())
@@ -275,7 +281,7 @@ def decryptBook(infile, outdir, kDatabaseFiles, serials, pids):
 def usage(progname):
     print u"Removes DRM protection from Mobipocket, Amazon KF8, Amazon Print Replica and Amazon Topaz ebooks"
     print u"Usage:"
-    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] [ -a <AmazonSecureStorage.xml> ] <infile> <outdir>".format(progname)
+    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] [ -a <AmazonSecureStorage.xml|backup.ab> ] <infile> <outdir>".format(progname)
 
 #
 # Main
@@ -298,6 +304,7 @@ def cli_main():
     infile = args[0]
     outdir = args[1]
     kDatabaseFiles = []
+    androidFiles = []
     serials = []
     pids = []
 
@@ -317,12 +324,12 @@ def cli_main():
         if o == '-a':
             if a == None:
                 continue
-            serials.extend(androidkindlekey.get_serials(a))
+            androidFiles.apprend(a)
 
     # try with built in Kindle Info files if not on Linux
     k4 = not sys.platform.startswith('linux')
 
-    return decryptBook(infile, outdir, kDatabaseFiles, serials, pids)
+    return decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids)
 
 
 if __name__ == '__main__':

@@ -140,9 +140,9 @@ def fetch_key(email, password):
             response = urllib2.urlopen(req)
             the_page = response.read()
             #print the_page            
-        found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)
-    except:
-        found = ''
+            found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)
+        except:
+            found = ''
 
     return found
 

@@ -14,14 +14,15 @@ from __future__ import with_statement
 #  1.2   - Changed to be callable from AppleScript by returning only serial number
 #        - and changed name to androidkindlekey.py
 #        - and added in unicode command line support
-#  1.3   - added in TkInter interface, output to a file and attempt to get backup from a connected android device.
+#  1.3   - added in TkInter interface, output to a file
+#  1.4   - Fix some problems identified by Aldo Bleeker
 
 """
 Retrieve Kindle for Android Serial Number.
 """
 
 __license__ = 'GPL v3'
-__version__ = '1.3'
+__version__ = '1.4'
 
 import os
 import sys
@@ -199,13 +200,16 @@ def get_serials1(path=STORAGE1):
         return []
 
     serials = []
+    if dsnid:
+        serials.append(dsnid)
     for token in tokens:
         if token:
             serials.append('%s%s' % (dsnid, token))
+            serials.append(token)
     return serials
 
 def get_serials2(path=STORAGE2):
-    ''' get serials from android's shared preference xml '''
+    ''' get serials from android's sql database '''
     if not os.path.isfile(path):
         return []
 
@@ -213,14 +217,32 @@ def get_serials2(path=STORAGE2):
     connection = sqlite3.connect(path)
     cursor = connection.cursor()
     cursor.execute('''select userdata_value from userdata where userdata_key like '%/%token.device.deviceserialname%' ''')
-    dsns = [x[0].encode('utf8') for x in cursor.fetchall()]
+    userdata_keys = cursor.fetchall()
+    dsns = []
+    for userdata_row in userdata_keys:
+        if userdata_row:
+            userdata_utf8 = userdata_row[0].encode('utf8')
+            if len(userdata_utf8) > 0:
+                dsns.append(userdata_utf8)
+    dsns = list(set(dsns))
 
     cursor.execute('''select userdata_value from userdata where userdata_key like '%/%kindle.account.tokens%' ''')
-    tokens = [x[0].encode('utf8') for x in cursor.fetchall()]
+    userdata_keys = cursor.fetchall()
+    tokens = []
+    for userdata_row in userdata_keys:
+        if userdata_row:
+            userdata_utf8 = userdata_row[0].encode('utf8')
+            if len(userdata_utf8) > 0:
+                tokens.append(userdata_utf8)
+    tokens = list(set(tokens))
+ 
     serials = []
     for x in dsns:
+        serials.append(x)
         for y in tokens:
             serials.append('%s%s' % (x, y))
+    for y in tokens:
+        serials.append(y)
     return serials
 
 def get_serials(path=STORAGE):
@@ -269,46 +291,31 @@ def get_serials(path=STORAGE):
             write_path = os.path.abspath(write.name)
             serials.extend(get_serials2(write_path))
             os.remove(write_path)
-
-    return serials
+    return list(set(serials))
 
 __all__ = [ 'get_serials', 'getkey']
 
-# interface for Python DeDRM
-# returns single key or multiple keys, depending on path or file passed in
-def getkey(outpath, inpath):
+# procedure for CLI and GUI interfaces
+# returns single or multiple keys (one per line) in the specified file
+def getkey(outfile, inpath):
     keys = get_serials(inpath)
     if len(keys) > 0:
-        if not os.path.isdir(outpath):
-            outfile = outpath
-            with file(outfile, 'w') as keyfileout:
-                keyfileout.write(keys[0])
-            print u"Saved a key to {0}".format(outfile)
-        else:
-            keycount = 0
+        with file(outfile, 'w') as keyfileout:
             for key in keys:
-                while True:
-                    keycount += 1
-                    outfile = os.path.join(outpath,u"kindlekey{0:d}.k4a".format(keycount))
-                    if not os.path.exists(outfile):
-                        break
-                with file(outfile, 'w') as keyfileout:
-                    keyfileout.write(key)
-                print u"Saved a key to {0}".format(outfile)
+                keyfileout.write(key)
+                keyfileout.write("\n")
         return True
     return False
 
 
 def usage(progname):
-    print u"{0} v{1}\nCopyright © 2013-2015 Thom and Apprentice Harper".format(progname,__version__)
-    print u"Decrypts the serial number of Kindle For Android from Android backup or file"
+    print u"Decrypts the serial number(s) of Kindle For Android from Android backup or file"
     print u"Get backup.ab file using adb backup com.amazon.kindle for Android 4.0+."
     print u"Otherwise extract AmazonSecureStorage.xml from /data/data/com.amazon.kindle/shared_prefs/AmazonSecureStorage.xml"
     print u"Or map_data_storage.db from /data/data/com.amazon.kindle/databases/map_data_storage.db"
     print u""
-    print u"Serial number is written to standard output."
     print u"Usage:"
-    print u"    {0:s} [-h] [-b <backup.ab>] [<outpath>]".format(progname)
+    print u"    {0:s} [-h] [-b <backup.ab>] [<outfile.k4a>]".format(progname)
 
 
 def cli_main():
@@ -339,24 +346,28 @@ def cli_main():
 
     if len(args) == 1:
         # save to the specified file or directory
-        outpath = args[0]
-        if not os.path.isabs(outpath):
-           outpath = os.path.join(os.path.dirname(argv[0]),outpath)
-           outpath = os.path.abspath(outpath)
+        outfile = args[0]
+        if not os.path.isabs(outfile):
+           outfile = os.path.join(os.path.dirname(argv[0]),outfile)
+           outfile = os.path.abspath(outfile)
+        if os.path.isdir(outfile):
+           outfile = os.path.join(os.path.dirname(argv[0]),"androidkindlekey.k4a")
     else:
         # save to the same directory as the script
-        outpath = os.path.dirname(argv[0])
+        outfile = os.path.join(os.path.dirname(argv[0]),"androidkindlekey.k4a")
 
     # make sure the outpath is OK
-    outpath = os.path.realpath(os.path.normpath(outpath))
+    outfile = os.path.realpath(os.path.normpath(outfile))
 
     if not os.path.isfile(inpath):
         usage(progname)
         print u"\n{0:s} file not found".format(inpath)
         return 2
 
-    if not getkey(outpath, inpath):
-        print u"Could not retrieve Kindle for Android key."
+    if getkey(outfile, inpath):
+        print u"\nSaved Kindle for Android key to {0}".format(outfile)
+    else:
+        print u"\nCould not retrieve Kindle for Android key."
     return 0
 
 
