@@ -323,8 +323,8 @@ def cli_main():
             serials = a.split(',')
         if o == '-a':
             if a == None:
-                continue
-            androidFiles.apprend(a)
+                raise DrmException("Invalid parameter for -a")
+            androidFiles.append(a)
 
     # try with built in Kindle Info files if not on Linux
     k4 = not sys.platform.startswith('linux')

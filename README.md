@@ -8,8 +8,8 @@ Mostly it tracks the tools releases by Apprentice Alf, athough it also includes 
 Users should download the latest zip archive.
 Developers might be interested in forking the repository, as it contains unzipped versions of those tools that are zipped, and text versions of the AppleScripts, to make the changes over time easier to follow.
 
-I welcome contributions from others to improve these tools, from expanding the range of books handled, improving key retrieval,  to just general bug fixe, speed improvements and UI enhancements.
+I welcome contributions from others to improve these tools, from expanding the range of books handled, improving key retrieval,  to just general bug fixes, speed improvements and UI enhancements.
 
-My special thanks to all those developers who have done the hard work of reverse engineering to provide the initial tools. 
+My special thanks to all those developers who have done the hard work of reverse engineering to provide the initial tools.
 
 Apprentice Harper.

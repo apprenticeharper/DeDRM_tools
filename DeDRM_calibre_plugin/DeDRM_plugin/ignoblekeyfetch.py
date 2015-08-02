@@ -30,7 +30,7 @@ Fetch Barnes & Noble EPUB user key from B&N servers using email and password
 """
 
 __license__ = 'GPL v3'
-__version__ = "1.0"
+__version__ = "1.1"
 
 import sys
 import os
@@ -101,23 +101,23 @@ class IGNOBLEError(Exception):
     pass
 
 def fetch_key(email, password):
-    # change name and CC numbers to utf-8 if unicode
+    # change email and password to utf-8 if unicode
     if type(email)==unicode:
         email = email.encode('utf-8')
     if type(password)==unicode:
         password = password.encode('utf-8')
-        
+
     import random
     random = "%030x" % random.randrange(16**30)
-    
+
     import urllib, urllib2, re
-    
+
     # try the URL from nook for PC
     fetch_url = "https://cart4.barnesandnoble.com/services/service.aspx?Version=2&acctPassword="
     fetch_url += urllib.quote(password,'')+"&devID=PC_BN_2.5.6.9575_"+random+"&emailAddress="
     fetch_url += urllib.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
     #print fetch_url
-    
+
     found = ''
     try:
         req = urllib2.Request(fetch_url)
@@ -133,13 +133,13 @@ def fetch_key(email, password):
         fetch_url += urllib.quote(password,'')+"&devID=hobbes_9.3.50818_"+random+"&emailAddress="
         fetch_url += urllib.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
         #print fetch_url
-        
+
         found = ''
         try:
             req = urllib2.Request(fetch_url)
             response = urllib2.urlopen(req)
             the_page = response.read()
-            #print the_page            
+            #print the_page
             found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)
         except:
             found = ''
@@ -169,6 +169,7 @@ def cli_main():
 def gui_main():
     try:
         import Tkinter
+        import tkFileDialog
         import Tkconstants
         import tkMessageBox
         import traceback

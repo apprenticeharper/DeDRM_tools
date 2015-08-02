@@ -33,13 +33,14 @@ from __future__ import with_statement
 #   2.5 - Additional improvement for unicode and plugin support
 #   2.6 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   2.7 - Work if TkInter is missing
+#   2.8 - Fix bug in stand-alone use (import tkFileDialog)
 
 """
 Generate Barnes & Noble EPUB user key from name and credit card number.
 """
 
 __license__ = 'GPL v3'
-__version__ = "2.7"
+__version__ = "2.8"
 
 import sys
 import os
@@ -240,6 +241,7 @@ def gui_main():
         import Tkinter
         import Tkconstants
         import tkMessageBox
+        import tkFileDialog
         import traceback
     except:
         return cli_main()

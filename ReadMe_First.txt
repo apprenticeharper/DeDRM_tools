@@ -1,11 +1,11 @@
 ﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.2.2 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.3.1 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
 
 The is archive includes tools to remove DRM from:
 
- - Kindle ebooks (Mobi, Topaz, Print Replica and KF8).
+ - Kindle ebooks (from Kindle for Mac/PC, eInk Kindles and Kindle for Android).
  - Barnes and Noble ePubs
  - Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
  - Kobo kePubs from the Kobo Desktop application
@@ -36,7 +36,7 @@ DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
 ---------------------------------------------------------------
 This application is a stand-alone DRM removal application for Mac OS X users.
 
-For instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Application_Macintosh folder.
+For instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Macintosh_Application folder.
 
 N.B. Mac OS X 10.4 users need to take extra steps before using the application, see the ReadMe.
 
@@ -62,17 +62,14 @@ Other_Tools
 -----------
 This is a folder of other tools that may be useful for DRMed ebooks from certain sources or for Linux users. Most users won't need any of these tools.
 
-DRM_Key_Scripts
-This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs, Kindle for Mac/PC and Kindle for Android ebooks. These files are needed for the Windows stand-alone DeDRM application.
-
-B&N_Download_Helper
+B_and_N_Download_Helper
 A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Only for the adventurous.
 
 DRM_Key_Scripts
 This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs, Kindle for Mac/PC and Kindle for Android ebooks.
 
 Kindle_for_Android_Patches
-Definitely only for the adventurous, this folder contains information on how to modify the Kindel for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin).
+Definitely only for the adventurous, this folder contains information on how to modify the Kindle for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin). This is now of historical interest only, as Android support has now been added to the tools more simply.
 
 Kobo
 Contains the standalone obok python script for removing DRM from kePubs downloaded using the kobo desktop application.

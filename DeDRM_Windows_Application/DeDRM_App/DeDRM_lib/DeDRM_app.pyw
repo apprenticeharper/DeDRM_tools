@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # DeDRM.pyw
-# Copyright 2010-2013 some_updates and Apprentice Alf
+# Copyright 2010-2015 some_updates, Apprentice Alf and Apprentice Harper
 
 # Revision history:
 #   6.0.0 - Release along with unified plugin
@@ -15,8 +15,9 @@
 #   6.2.1 - Fix for non-ascii user names
 #   6.2.2 - Added URL method for B&N/nook books
 #   6.3.0 - Add in Android support
+#   6.3.1 - Version bump for clarity
 
-__version__ = '6.3.0'
+__version__ = '6.3.1'
 
 import sys
 import os, os.path
@@ -167,7 +168,7 @@ class PrefsDialog(Toplevel):
         body.pack(fill=Tkconstants.X, expand=1)
         sticky = Tkconstants.E + Tkconstants.W
         body.grid_columnconfigure(1, weight=2)
-        
+
         cur_row = 0
         Tkinter.Label(body, text='Adobe Key file (adeptkey.der)').grid(row=cur_row, sticky=Tkconstants.E)
         self.adkpath = Tkinter.Entry(body, width=50)
