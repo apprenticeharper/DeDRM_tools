@@ -3,333 +3,359 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2014-11-17 12:51+0100\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"PO-Revision-Date: 2015-05-31 22:44+1000\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"X-Generator: Poedit 1.8.1\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: pt\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:80
 msgid ""
 "<p>No books found in Kobo Library\n"
 "Are you sure it's installed\\configured\\synchronized?"
 msgstr ""
+"<p>Não foram encontrados livros na livraria Kobo\n"
+"Tem a certeza de que está instalado\\configured\\synchronized?"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:87
 msgid "Legacy key found: "
-msgstr ""
+msgstr "Chave de legado encontrada"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:93
 msgid "Trouble retrieving keys with newer obok method."
-msgstr ""
+msgstr "Problema na obtenção das chaves com o novo método obok."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:97
 msgid "Found {0} possible keys to try."
-msgstr ""
+msgstr "Encontradas  {0}  chaves possíveis para experimentar."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:99
 msgid "<p>No userkeys found to decrypt books with. No point in proceeding."
 msgstr ""
+"Não foi encontrada nenhuma chave de usuário com a qual desencriptar os "
+"livros. Não vale a pena continuar."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:115
 msgid "{} - Decryption canceled by user."
-msgstr ""
+msgstr "Desencriptação cancelada pelo utilizador."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:135
 msgid "{} - \"Add books\" canceled by user."
-msgstr ""
+msgstr "{} - \"Adição de livros\" cancelada pelo utilizador."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:137
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:156
 msgid "{} - wrapping up results."
-msgstr ""
+msgstr "{} - finalizando os resultados."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:153
 msgid "{} - User opted not to try to insert EPUB formats"
-msgstr ""
+msgstr "O utilizador optou por não tentar inserir formatos EPUB"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:188
 msgid "{0} - Decrypting {1}"
-msgstr ""
+msgstr "Desencriptando"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:197
 msgid "{0} - Couldn't decrypt {1}"
-msgstr ""
+msgstr "{0} - Não foi possível desencriptar {1}"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:198
 msgid "decryption errors"
-msgstr ""
+msgstr "erros na desencriptação"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:213
 msgid "{0} - Added {1}"
-msgstr ""
+msgstr "{0} - Adicionado {1}"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:218
 msgid "{0} - {1} already exists. Will try to add format later."
-msgstr ""
+msgstr "{0} - {1} já existe. a adição do formato irá ser tentada mais tarde."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:219
 msgid "duplicate detected"
-msgstr ""
+msgstr "detectados duplicados"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:233
 msgid "{0} - Successfully added EPUB format to existing {1}"
-msgstr ""
+msgstr "{0} - formato EPUB adicionado com sucesso ao existente {1}"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:236
 msgid ""
 "{0} - Error adding EPUB format to existing {1}. This really shouldn't happen."
 msgstr ""
+"{0} - Erro ao adicionar o formato EPUB ao existente {1}. Isto realmente não "
+"deveria acontecer."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:259
 msgid "{} - \"Insert formats\" canceled by user."
-msgstr ""
+msgstr "{} - \"Inserção de formatos\" cancelada pelo utilizador."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:291
 msgid ""
 "<p><b>{0}</b> EPUB{2} successfully added to library.<br /><br /><b>{1}</b> "
 msgstr ""
+"<p><b>{0}</b> EPUB{2} adicionado com sucesso à biblioteca.<br /><br /><b>{1}"
+"</b> "
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:292
 msgid ""
 "not added because books with the same title/author were detected.<br /><br /"
 ">Would you like to try and add the EPUB format{0}"
 msgstr ""
+"não adicionados porque foram detectados com o mesmo título/autor.<br /><br /"
+">Gostaria de tentar e adicionar o formato EPUB{0}"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:293
 msgid ""
 " to those existing entries?<br /><br />NOTE: no pre-existing EPUBs will be "
 "overwritten."
 msgstr ""
+" às entradas existentes?<br /><br />NOTA: EPUBs pré existentes não serão "
+"reescritos."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:295
 msgid ""
 "{0} -- not added because of {1} in your library.\n"
 "\n"
 msgstr ""
+"{0} -- não adicionado porque {1} na biblioteca.\n"
+"\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:297
 msgid "<p><b>{0}</b> -- not added because of {1} in your library.<br /><br />"
-msgstr ""
+msgstr "<p><b>{0}</b> -- não adicionado porque {1} na biblioteca.<br /><br />"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:298
 msgid ""
 "Would you like to try and add the EPUB format to an available calibre "
 "duplicate?<br /><br />"
 msgstr ""
+"Gostaria de tentar adicionar o formato EPUB a um duplicado já existente no "
+"calibre?<br /><br />"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:299
 msgid "NOTE: no pre-existing EPUB will be overwritten."
-msgstr ""
+msgstr "NOTA: EPUBs pré existentes não serão reescritos."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:346
 msgid "Trying key: "
-msgstr ""
+msgstr "Experimentando a chave:"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:378
 msgid "Decryption failed, trying next key."
-msgstr ""
+msgstr "A desencriptação falhou, tentado a próxima chave."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:382
 msgid "Unknown Error decrypting, trying next key.."
-msgstr ""
+msgstr "Erro desconhecido na desencriptação, tentado a próxima chave."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:395
 msgid ""
 "<p>All selected Kobo books added as new calibre books or inserted into "
 "existing calibre ebooks.<br /><br />No issues."
 msgstr ""
+"<p>Todos os livros Kobo selecionados foram adicionados como livros novos no "
+"calibre ou inseridos em livros já existentes no calibre.<br /><br />Sem "
+"problemas."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:399
 msgid "<p>{0} successfully added."
-msgstr ""
+msgstr "<p>{0} adicionados com sucesso."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:403
 msgid ""
 "<p>Not all selected Kobo books made it into calibre.<br /><br />View report "
 "for details."
 msgstr ""
+"<p>Nem todos os livros Kobo selecionados seguiram para o calibre.<br /><br /"
+">Veja o relatório para mais detalhes."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:404
 msgid "<p><b>Total attempted:</b> {}</p>\n"
-msgstr ""
+msgstr "<p><b>tentativas totais:</b> {}</p>\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:405
 msgid "<p><b>Decryption errors:</b> {}</p>\n"
-msgstr ""
+msgstr "<p><b>Erros de desencriptação:</b> {}</p>\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:411
 msgid "<p><b>New Books created:</b> {}</p>\n"
-msgstr ""
+msgstr "<p><b>Novos livros criados:</b> {}</p>\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:418
 msgid "<p><b>Duplicates that weren't added:</b> {}</p>\n"
-msgstr ""
+msgstr "<p><b>Duplicados não adicionados:</b> {}</p>\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:426
 msgid "<p><b>Book imports cancelled by user:</b> {}</p>\n"
-msgstr ""
+msgstr "<p><b>Importação de livros cancelada pelo utilizador:</b> {}</p>\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:428
 msgid ""
 "<p><b>New EPUB formats inserted in existing calibre books:</b> {0}</p>\n"
 msgstr ""
+"<p><b>Novos formatos EPUB inseridos em livros existentes no calibre:</b> {0}"
+"</p>\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:434
 msgid ""
 "<p><b>EPUB formats NOT inserted into existing calibre books:</b> {}<br />\n"
 msgstr ""
+"<p><b>formatos EPUB NÃO inseridos em livros existentes no calibre:</b> {}"
+"<br />\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:435
 msgid ""
 "(Either because the user <i>chose</i> not to insert them, or because all "
 "duplicates already had an EPUB format)"
 msgstr ""
+"(Porque o utilizador <i>escolheu</i> não os inserir, ou porque todos os "
+"duplicados já tinham um formato EPUB)"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:444
 msgid "<p><b>Format imports cancelled by user:</b> {}</p>\n"
-msgstr ""
+msgstr "<p><b>Importação do formato cancelada pelo utilizador:</b> {}</p>\n"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:458
 msgid "Unknown Book Title"
-msgstr ""
+msgstr "Título do livro desconhecido"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:460
 msgid "it couldn't be decrypted."
-msgstr ""
+msgstr "não pode ser desencriptado."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:462
 msgid ""
 "user CHOSE not to insert the new EPUB format, or all existing calibre "
 "entries HAD an EPUB format already."
 msgstr ""
+"o utilizador ESCOLHEU não inserir o novo formato EPUB, ou todas as entradas "
+"existentes no calibre já tinham um formato EPUB."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:464
 msgid "of unknown reasons. Gosh I'm embarrassed!"
-msgstr ""
+msgstr "de razões desconhecidas. Estou envergonhado!"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:465
 msgid "<p>{0} not added because {1}"
-msgstr ""
+msgstr "<p>{0} não adicionado porque {1}"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\common_utils.py:226
 msgid "Help"
-msgstr ""
+msgstr "Help"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\common_utils.py:235
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\utilities.py:214
 msgid "Restart required"
-msgstr ""
+msgstr "Reinicio requerido"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\common_utils.py:236
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\utilities.py:215
 msgid ""
 "Title image not found - you must restart Calibre before using this plugin!"
 msgstr ""
+"Imagem do título não encontrada - tem que reiniciar o Calibre antes de "
+"utilizar este plugin!"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\common_utils.py:322
 msgid "Undefined"
-msgstr ""
+msgstr "Não definido"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:30
 msgid "When should Obok try to insert EPUBs into existing calibre entries?"
 msgstr ""
+"Quando deve o Obok tentar inserir EPUBs em entradas já existentes no calibre?"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:33
 msgid ""
 "<p>Default behavior when duplicates are detected. None of the choices will "
 "cause calibre ebooks to be overwritten"
 msgstr ""
+"<p>Comportamento por defeito quando são detetados duplicados. Nenhuma das "
+"escolhas fará com que os livros existentes no calibre sejam reescritos"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:35
 msgid "Ask"
-msgstr ""
+msgstr "Pergunta"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:35
 msgid "Always"
-msgstr ""
+msgstr "Sempre"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:35
 msgid "Never"
-msgstr ""
-
-#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:60
-#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\utilities.py:150
-msgid " v"
-msgstr ""
+msgstr "Nunca"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:65
 msgid "Obok DeDRM"
 msgstr ""
 
-#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:68
-msgid "<a href=\"http://www.foo.com/\">Help</a>"
-msgstr ""
-
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:89
 msgid "Select All"
-msgstr ""
+msgstr "Selecionar todos"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:90
 msgid "Select all books to add them to the calibre library."
-msgstr ""
+msgstr "Selecionar todos os livros para adicioná-los à biblioteca do calibre."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:92
 msgid "All with DRM"
-msgstr ""
+msgstr "Todos com DRM"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:93
 msgid "Select all books with DRM."
-msgstr ""
+msgstr "Selecionar todos os livros com DRM"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:95
 msgid "All DRM free"
-msgstr ""
+msgstr "Todos sem DRM"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:96
 msgid "Select all books without DRM."
-msgstr ""
+msgstr "Selecionar todos os livros sem DRM."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:146
 msgid "Title"
-msgstr ""
+msgstr "Título"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:146
 msgid "Author"
-msgstr ""
+msgstr "Autor"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:146
 msgid "Series"
-msgstr ""
+msgstr "Série"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:369
 msgid "Copy to clipboard"
-msgstr ""
+msgstr "Copiar para a área de transferência"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:397
 msgid "View Report"
-msgstr ""
+msgstr "Ver relatório"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\__init__.py:21
 msgid "Removes DRM from Kobo kepubs and adds them to the library."
-msgstr ""
+msgstr "Remove o DRM dos kepubs Kobo e adiciona-os à biblioteca."
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\obok\obok.py:162
 msgid "AES improper key used"
-msgstr ""
+msgstr "AES chave imprópria usada"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\obok\obok.py:167
 msgid "Failed to initialize AES key"
-msgstr ""
+msgstr "Falha na inicialização da chave AES"
 
 #: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\obok\obok.py:175
 msgid "AES decryption failed"
-msgstr ""
+msgstr "A desencriptação da chave AES falhou"

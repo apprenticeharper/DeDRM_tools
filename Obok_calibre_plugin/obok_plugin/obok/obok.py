@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.1.3 August 2015
+# Add translations for Portuguese and Arabic
+#
 # Version 3.1.2 January 2015
 # Add coding, version number and version announcement
 #
@@ -109,7 +112,7 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.1.1'
+__version__ = '3.1.3'
 
 import sys
 import os
