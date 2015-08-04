@@ -16,8 +16,9 @@
 #   6.2.2 - Added URL method for B&N/nook books
 #   6.3.0 - Add in Android support
 #   6.3.1 - Version bump for clarity
+#   6.3.2 - Version bump to match plugin
 
-__version__ = '6.3.1'
+__version__ = '6.3.2'
 
 import sys
 import os, os.path

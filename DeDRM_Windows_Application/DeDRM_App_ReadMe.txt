@@ -5,9 +5,10 @@ DeDRM_App.pyw is a python drag and drop application that allows users to drag an
 
 It will work without manual configuration for Kindle for PC ebooks, Adobe Digital Edition epub and pdf ebooks and Barnes & Noble NOOK Study ePubs when Kindle for PC, Adobe Digital Editions and NOOK Study are installed on the same computer and user account.
 
-To remove the DRM from eInk Kindle ebooks, Mobipocket ebooks and Fictionwise eReader ebooks requires the user to double-click the DeDRM_Drop_Target.bat file and set some additional Preferences including:
+To remove the DRM from eInk Kindle ebooks, Kindle for Android ebooks, Mobipocket ebooks and Fictionwise eReader ebooks requires the user to double-click the DeDRM_Drop_Target.bat file and set some additional Preferences including:
 
 eInk Kindle: 16 digit Serial Number
+Kindle for Android: backup.ab file, details below.
 eReader Social DRM: Name:Last 8 digits of CC number
 MobiPocket: 10 digit PID
 
@@ -25,6 +26,17 @@ Installation
 2. Open the DeDRM_App folder you've just dragged, and make a short-cut of the DeDRM_Drop_Target.bat file (right-click/Create Shortcut). Drag the shortcut file onto your Desktop.
 
 3. To set the preferences simply double-click on the short-cut you've just created.
+
+
+Kindle for Android
+------------------
+The backup.ab file needs to be obtained using Android-specific tools.
+
+Obtain and install adb (Android Debug Bridge) on your computer. Details of how to do this are beyond the scope of this readme file, but there are plenty of on-line guides.
+
+Enable developer mode on your Android device. Again, look for an on-line guide for your device.
+
+Once you have adb installed and your device in developer mode, connect your device to your computer with a USB cable and then open up a command line (Terminal on Mac OS X and cmd.exe on Windows) and enter "adb backup com.amazon.kindle" (without the quotation marks!) and press return. A file "backup.ab" should be created in your home directory.
 
 
 Credits

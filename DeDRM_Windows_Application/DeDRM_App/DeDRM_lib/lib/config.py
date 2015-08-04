@@ -124,7 +124,7 @@ class ConfigWidget(QWidget):
         d.exec_()
         
     def kindle_android(self):
-        d = ManageKeysDialog(self,u"Kindle for Android Keys File",self.tempdedrmprefs['androidkeys'], AddAndroidDialog, 'k4a')
+        d = ManageKeysDialog(self,u"Kindle for Android Key",self.tempdedrmprefs['androidkeys'], AddAndroidDialog, 'k4a')
         d.exec_()
 
     def kindle_keys(self):

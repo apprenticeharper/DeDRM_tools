@@ -43,6 +43,7 @@ __docformat__ = 'restructuredtext en'
 #   6.2.2 - Added URL method for B&N/nook books
 #   6.3.0 - Added in Kindle for Android serial number solution
 #   6.3.1 - Version number bump for clarity
+#   6.3.2 - Fixed Kindle for Android help file
 
 
 """
@@ -50,7 +51,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 3, 1)
+PLUGIN_VERSION_TUPLE = (6, 3, 2)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
