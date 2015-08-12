@@ -44,6 +44,7 @@ __docformat__ = 'restructuredtext en'
 #   6.3.0 - Added in Kindle for Android serial number solution
 #   6.3.1 - Version number bump for clarity
 #   6.3.2 - Fixed Kindle for Android help file
+#   6.3.3 - Bug fix for Kindle for PC support
 
 
 """
@@ -51,7 +52,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 3, 2)
+PLUGIN_VERSION_TUPLE = (6, 3, 3)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -523,7 +524,7 @@ class DeDRM(FileTypePlugin):
             if len(newkeys) > 0:
                 print u"{0} v{1}: Found {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), u"key" if len(newkeys)==1 else u"keys")
                 try:
-                    book = k4mobidedrm.GetDecryptedBook(path_to_ebook,newkeys.items(),[],[],self.starttime)
+                    book = k4mobidedrm.GetDecryptedBook(path_to_ebook,newkeys.items(),[],[],[],self.starttime)
                     decoded = True
                     # store the new successful keys in the defaults
                     print u"{0} v{1}: Saving {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), u"key" if len(newkeys)==1 else u"keys")
