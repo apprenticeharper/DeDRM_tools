@@ -18,8 +18,9 @@
 #   6.3.1 - Version bump for clarity
 #   6.3.2 - Version bump to match plugin
 #   6.3.3 - Version bump to match plugin
+#   6.3.4 - Version bump to match plugin
 
-__version__ = '6.3.3'
+__version__ = '6.3.4'
 
 import sys
 import os, os.path

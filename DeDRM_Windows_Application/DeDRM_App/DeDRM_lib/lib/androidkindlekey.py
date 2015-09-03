@@ -16,16 +16,18 @@ from __future__ import with_statement
 #        - and added in unicode command line support
 #  1.3   - added in TkInter interface, output to a file
 #  1.4   - Fix some problems identified by Aldo Bleeker
+#  1.5   - Fix another problem identified by Aldo Bleeker
 
 """
 Retrieve Kindle for Android Serial Number.
 """
 
 __license__ = 'GPL v3'
-__version__ = '1.4'
+__version__ = '1.5'
 
 import os
 import sys
+import traceback
 import getopt
 import tempfile
 import zlib
@@ -220,20 +222,30 @@ def get_serials2(path=STORAGE2):
     userdata_keys = cursor.fetchall()
     dsns = []
     for userdata_row in userdata_keys:
-        if userdata_row:
-            userdata_utf8 = userdata_row[0].encode('utf8')
-            if len(userdata_utf8) > 0:
-                dsns.append(userdata_utf8)
+        try:
+            if userdata_row and userdata_row[0]:
+                userdata_utf8 = userdata_row[0].encode('utf8')
+                if len(userdata_utf8) > 0:
+                    dsns.append(userdata_utf8)
+        except:
+            print "Error getting one of the device serial name keys"
+            traceback.print_exc()
+            pass
     dsns = list(set(dsns))
 
     cursor.execute('''select userdata_value from userdata where userdata_key like '%/%kindle.account.tokens%' ''')
     userdata_keys = cursor.fetchall()
     tokens = []
     for userdata_row in userdata_keys:
-        if userdata_row:
-            userdata_utf8 = userdata_row[0].encode('utf8')
-            if len(userdata_utf8) > 0:
-                tokens.append(userdata_utf8)
+        try:
+            if userdata_row and userdata_row[0]:
+                userdata_utf8 = userdata_row[0].encode('utf8')
+                if len(userdata_utf8) > 0:
+                    tokens.append(userdata_utf8)
+        except:
+            print "Error getting one of the account token keys"
+            traceback.print_exc()
+            pass
     tokens = list(set(tokens))
  
     serials = []
@@ -377,7 +389,6 @@ def gui_main():
         import Tkconstants
         import tkMessageBox
         import tkFileDialog
-        import traceback
     except:
         print "Tkinter not installed"
         return cli_main()

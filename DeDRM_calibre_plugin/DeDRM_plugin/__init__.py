@@ -45,6 +45,7 @@ __docformat__ = 'restructuredtext en'
 #   6.3.1 - Version number bump for clarity
 #   6.3.2 - Fixed Kindle for Android help file
 #   6.3.3 - Bug fix for Kindle for PC support
+#   6.3.4 - Fixes for Kindle for Android, Linux, and Kobo 3.17
 
 
 """
@@ -52,7 +53,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 3, 3)
+PLUGIN_VERSION_TUPLE = (6, 3, 4)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -148,7 +149,7 @@ class DeDRM(FileTypePlugin):
                     try:
                         open(file_path,'wb').write(data)
                     except:
-                        print u"{0} v{1}: Exception when copying needed library files after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                        print u"{0} v{1}: Exception when copying needed library files".format(PLUGIN_NAME, PLUGIN_VERSION)
                         traceback.print_exc()
                         pass
 
