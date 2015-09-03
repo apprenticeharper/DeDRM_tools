@@ -6,7 +6,7 @@ __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
 
 
-import os, zipfile
+import os, traceback, zipfile
 
 try:
     from PyQt5.Qt import QToolButton, QUrl
@@ -98,6 +98,7 @@ class InterfacePluginAction(InterfaceAction):
             candidate_keys = self.library.userkeys
         except:
             print (_('Trouble retrieving keys with newer obok method.'))
+            traceback.print_exc()
         else:
             if len(candidate_keys):
                 self.userkeys.extend(candidate_keys)

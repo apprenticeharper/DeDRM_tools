@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.1.4 September 2015
+# Updated for version 3.17 of the Windows Desktop app.
+#
 # Version 3.1.3 August 2015
 # Add translations for Portuguese and Arabic
 #
@@ -220,7 +223,7 @@ class KoboLibrary(object):
     of books, their titles, and the user's encryption key(s)."""
 
     def __init__ (self):
-        print u"Obok v{0}\nCopyright © 2012-2014 Physisticated et al.".format(__version__)
+        print u"Obok v{0}\nCopyright © 2012-2015 Physisticated et al.".format(__version__)
         if sys.platform.startswith('win'):
             if sys.getwindowsversion().major > 5:
                 self.kobodir = os.environ['LOCALAPPDATA']
@@ -249,9 +252,8 @@ class KoboLibrary(object):
         """
         if len(self._userkeys) != 0:
             return self._userkeys
-        userid = self.__getuserid()
         for macaddr in self.__getmacaddrs():
-            self._userkeys.append(self.__getuserkey(macaddr, userid))
+            self._userkeys.extend(self.__getuserkeys(macaddr))
         return self._userkeys
 
     @property
@@ -297,13 +299,33 @@ class KoboLibrary(object):
                 macaddrs.append(m[0].upper())
         return macaddrs
 
-    def __getuserid (self):
-        return self.__cursor.execute('SELECT UserID FROM user WHERE HasMadePurchase = "true"').fetchone()[0]
-
-    def __getuserkey (self, macaddr, userid):
+    def __getuserids (self):
+        userids = []
+        cursor = self.__cursor.execute('SELECT UserID FROM user WHERE HasMadePurchase = "true"')
+        row = cursor.fetchone()
+        while row is not None:
+            try:
+                userid = row[0]
+                userids.append(userid)
+            except:
+                pass
+            row = cursor.fetchone()
+        return userids
+               
+    def __getuserkeys (self, macaddr):
+        userids = self.__getuserids()
+        userkeys = []
+        # This version is used for versions before 3.17.0.
         deviceid = hashlib.sha256('NoCanLook' + macaddr).hexdigest()
-        userkey = hashlib.sha256(deviceid + userid).hexdigest()
-        return binascii.a2b_hex(userkey[32:])
+        for userid in userids:
+            userkey = hashlib.sha256(deviceid + userid).hexdigest()
+            userkeys.append(binascii.a2b_hex(userkey[32:]))
+        # This version is used for 3.17.0 and later.
+        deviceid = hashlib.sha256('XzUhGYdFp' + macaddr).hexdigest()
+        for userid in userids:
+            userkey = hashlib.sha256(deviceid + userid).hexdigest()
+            userkeys.append(binascii.a2b_hex(userkey[32:]))
+        return userkeys
 
 class KoboBook(object):
     """A Kobo book.
