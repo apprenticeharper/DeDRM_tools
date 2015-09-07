@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.1.5 September 2015
+# Removed requirement that a purchase has been made.
+#
 # Version 3.1.4 September 2015
 # Updated for version 3.17 of the Windows Desktop app.
 #
@@ -115,7 +118,7 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.1.3'
+__version__ = '3.1.5'
 
 import sys
 import os
@@ -301,7 +304,7 @@ class KoboLibrary(object):
 
     def __getuserids (self):
         userids = []
-        cursor = self.__cursor.execute('SELECT UserID FROM user WHERE HasMadePurchase = "true"')
+        cursor = self.__cursor.execute('SELECT UserID FROM user')
         row = cursor.fetchone()
         while row is not None:
             try:
