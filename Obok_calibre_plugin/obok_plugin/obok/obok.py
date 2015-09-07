@@ -3,6 +3,7 @@
 
 # Version 3.1.5 September 2015
 # Removed requirement that a purchase has been made.
+# Also add in character encoding fixes
 #
 # Version 3.1.4 September 2015
 # Updated for version 3.17 of the Windows Desktop app.
@@ -217,6 +218,24 @@ def _load_crypto():
     return AES
 
 AES = _load_crypto()
+
+# Wrap a stream so that output gets flushed immediately
+# and also make sure that any unicode strings get
+# encoded using "replace" before writing them.
+class SafeUnbuffered:
+    def __init__(self, stream):
+        self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
+    def write(self, data):
+        if isinstance(data,unicode):
+            data = data.encode(self.encoding,"replace")
+        self.stream.write(data)
+        self.stream.flush()
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
 
 class KoboLibrary(object):
     """The Kobo library.
@@ -463,8 +482,7 @@ class KoboFile(object):
             contents = contents[:-padding]
         return contents
 
-if __name__ == '__main__':
-
+def cli_main():
     lib = KoboLibrary()
 
     for i, book in enumerate(lib.books):
@@ -515,4 +533,9 @@ if __name__ == '__main__':
 
     zin.close()
     lib.close()
-    exit(result)
+    return result
+
+if __name__ == '__main__':
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
+    sys.exit(cli_main())
