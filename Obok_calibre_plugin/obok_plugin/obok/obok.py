@@ -486,7 +486,7 @@ def cli_main():
     lib = KoboLibrary()
 
     for i, book in enumerate(lib.books):
-        print ('%d: %s' % (i + 1, book.title)).encode('ascii', 'ignore')
+        print ('%d: %s' % (i + 1, book.title))
 
     num_string = raw_input("Convert book number... ")
     try:
@@ -499,7 +499,7 @@ def cli_main():
 
     zin = zipfile.ZipFile(book.filename, "r")
     # make filename out of Unicode alphanumeric and whitespace equivalents from title
-    outname = "%s.epub" % (re.sub('[^\s\w]', '', book.title, 0, re.UNICODE))
+    outname = "%s.epub" % (re.sub('[^\s\w]', '_', book.title, 0, re.UNICODE))
 
     if (book.type == 'drm-free'):
         print "DRM-free book, conversion is not needed"
