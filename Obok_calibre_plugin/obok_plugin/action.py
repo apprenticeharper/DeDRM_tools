@@ -79,7 +79,7 @@ class InterfacePluginAction(InterfaceAction):
 
         print ('Running {}'.format(PLUGIN_NAME + ' v' + PLUGIN_VERSION))
         # Get the Kobo Library object (obok v3.01)
-        self.library = KoboLibrary()
+        self.library = KoboLibrary(cfg['kobo_serials'])
 
         # Get a list of Kobo titles
         books = self.build_book_list()

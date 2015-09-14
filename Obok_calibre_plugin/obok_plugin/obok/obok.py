@@ -244,7 +244,7 @@ class KoboLibrary(object):
     written by the Kobo Desktop Edition application, including the list
     of books, their titles, and the user's encryption key(s)."""
 
-    def __init__ (self):
+    def __init__ (self, serials = []):
         print u"Obok v{0}\nCopyright © 2012-2015 Physisticated et al.".format(__version__)
         if sys.platform.startswith('win'):
             if sys.getwindowsversion().major > 5:
@@ -254,13 +254,20 @@ class KoboLibrary(object):
             self.kobodir = os.path.join(self.kobodir, 'Kobo', 'Kobo Desktop Edition')
         elif sys.platform.startswith('darwin'):
             self.kobodir = os.path.join(os.environ['HOME'], 'Library', 'Application Support', 'Kobo', 'Kobo Desktop Edition')
+        elif sys.platform.startswith('linux'):
+            # TODO TODO TODO needs change - fixed path to mount point
+            self.kobodir = '/media/norbert/KOBOeReader/.kobo'
         self.bookdir = os.path.join(self.kobodir, 'kepub')
-        kobodb = os.path.join(self.kobodir, 'Kobo.sqlite')
+        if sys.platform.startswith('linux'):
+            kobodb = os.path.join(self.kobodir, 'KoboReader.sqlite')
+        else:
+            kobodb = os.path.join(self.kobodir, 'Kobo.sqlite')
         self.__sqlite = sqlite3.connect(kobodb)
         self.__cursor = self.__sqlite.cursor()
         self._userkeys = []
         self._books = []
         self._volumeID = []
+        self._serials = serials
 
     def close (self):
         """Closes the database used by the library."""
@@ -319,6 +326,9 @@ class KoboLibrary(object):
             for m in matches:
                 # print "m:",m[0]
                 macaddrs.append(m[0].upper())
+        elif sys.platform.startswith('linux'):
+            macaddrs.extend(self._serials)
+
         return macaddrs
 
     def __getuserids (self):
@@ -486,7 +496,7 @@ def cli_main():
     lib = KoboLibrary()
 
     for i, book in enumerate(lib.books):
-        print ('%d: %s' % (i + 1, book.title))
+        print ('%d: %s' % (i + 1, book.title)).encode('ascii', 'ignore')
 
     num_string = raw_input("Convert book number... ")
     try:
