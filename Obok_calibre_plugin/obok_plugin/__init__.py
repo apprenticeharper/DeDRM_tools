@@ -29,7 +29,7 @@ class ObokDeDRMAction(InterfaceActionBase):
 
     name                    = PLUGIN_NAME
     description             = PLUGIN_DESCRIPTION
-    supported_platforms     = ['windows', 'osx']
+    supported_platforms     = ['windows', 'osx', 'linux' ]
     author                  = PLUGIN_AUTHORS
     version                 = PLUGIN_VERSION_TUPLE
     minimum_calibre_version = (1, 0, 0)
