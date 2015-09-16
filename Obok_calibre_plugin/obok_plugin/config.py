@@ -19,7 +19,7 @@ plugin_prefs = JSONConfig('plugins/obok_dedrm_prefs')
 plugin_prefs.defaults['finding_homes_for_formats'] = 'Ask'
 plugin_prefs.defaults['kobo_serials'] = []
 
-from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
+from calibre_plugins.obok_dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 from calibre_plugins.obok_dedrm.utilities import (debug_print)
 try:
     debug_print("obok::config.py - loading translations")

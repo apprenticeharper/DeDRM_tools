@@ -78,8 +78,26 @@ class InterfacePluginAction(InterfaceAction):
         self.current_idx = self.gui.library_view.currentIndex()
 
         print ('Running {}'.format(PLUGIN_NAME + ' v' + PLUGIN_VERSION))
+        #
+        # search for connected device in case serials are saved
+        device = self.parent().device_manager.connected_device
+        device_path = None
+        if (device):
+            device_path = self.parent().device_manager.connected_device._main_prefix
+            debug_print("get_device_settings - device_path=", device_path)
+        else:
+            debug_print("didn't find device")
+
         # Get the Kobo Library object (obok v3.01)
-        self.library = KoboLibrary(cfg['kobo_serials'])
+        self.library = KoboLibrary(cfg['kobo_serials'], device_path)
+        debug_print ("got kobodir %s" % self.library.kobodir)
+        if (self.library.kobodir == ''):
+            # linux and no device connected, but could be extended
+            # to the case where on Windows/Mac the prog is not installed
+            msg = _('<p>Could not find Kobo Library\n<p>Windows/Mac: do you have Kobo Desktop installed?\n<p>Windows/Mac/Linux: In case you have an Kobo eInk device, configure the serial number and connect the device.')
+            showErrorDlg(msg, None)
+            return
+
 
         # Get a list of Kobo titles
         books = self.build_book_list()
