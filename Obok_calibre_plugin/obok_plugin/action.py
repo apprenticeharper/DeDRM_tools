@@ -34,6 +34,15 @@ from calibre_plugins.obok_dedrm.utilities import (
 from calibre_plugins.obok_dedrm.obok.obok import KoboLibrary
 from calibre_plugins.obok_dedrm.obok.legacy_obok import legacy_obok
 
+can_parse_xml = True
+try:
+  from xml.etree import ElementTree as ET
+  debug_print("using xml.etree for xml parsing")
+except ImportError:
+  can_parse_xml = False
+  debug_print("Cannot find xml.etree, disabling extraction of serial numbers")
+
+
 PLUGIN_ICONS = ['images/obok.png']
 
 try:
@@ -80,21 +89,37 @@ class InterfacePluginAction(InterfaceAction):
         print ('Running {}'.format(PLUGIN_NAME + ' v' + PLUGIN_VERSION))
         #
         # search for connected device in case serials are saved
+        tmpserials = cfg['kobo_serials']
         device = self.parent().device_manager.connected_device
         device_path = None
         if (device):
-            device_path = self.parent().device_manager.connected_device._main_prefix
+            device_path = device._main_prefix
             debug_print("get_device_settings - device_path=", device_path)
+            # get serial from device_path/.adobe-digital-editions/device.xml
+            if can_parse_xml:
+                devicexml = os.path.join(device_path, '.adobe-digital-editions', 'device.xml')
+                debug_print("trying to load %s" % devicexml)
+                if (os.path.exists(devicexml)):
+                    debug_print("trying to parse %s" % devicexml)
+                    xmltree = ET.parse(devicexml)
+                    for node in xmltree.iter():
+                        if "deviceSerial" in node.tag:
+                            serial = node.text
+                            debug_print ("found serial %s" % serial)
+                            tmpserials.append(serial)
+                            break
+
+
         else:
             debug_print("didn't find device")
 
         # Get the Kobo Library object (obok v3.01)
-        self.library = KoboLibrary(cfg['kobo_serials'], device_path)
+        self.library = KoboLibrary(tmpserials, device_path)
         debug_print ("got kobodir %s" % self.library.kobodir)
         if (self.library.kobodir == ''):
             # linux and no device connected, but could be extended
             # to the case where on Windows/Mac the prog is not installed
-            msg = _('<p>Could not find Kobo Library\n<p>Windows/Mac: do you have Kobo Desktop installed?\n<p>Windows/Mac/Linux: In case you have an Kobo eInk device, configure the serial number and connect the device.')
+            msg = _('<p>Could not find Kobo Library\n<p>Windows/Mac: do you have Kobo Desktop installed?\n<p>Windows/Mac/Linux: In case you have an Kobo eInk device, connect the device.')
             showErrorDlg(msg, None)
             return
 
