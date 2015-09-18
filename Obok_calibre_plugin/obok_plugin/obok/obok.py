@@ -248,29 +248,31 @@ class KoboLibrary(object):
         print u"Obok v{0}\nCopyright © 2012-2015 Physisticated et al.".format(__version__)
         self.kobodir = ''
         kobodb = ''
-        if sys.platform.startswith('win'):
-            if sys.getwindowsversion().major > 5:
-                self.kobodir = os.environ['LOCALAPPDATA']
-            else:
-                self.kobodir = os.path.join(os.environ['USERPROFILE'], 'Local Settings', 'Application Data')
-            self.kobodir = os.path.join(self.kobodir, 'Kobo', 'Kobo Desktop Edition')
-        elif sys.platform.startswith('darwin'):
-            self.kobodir = os.path.join(os.environ['HOME'], 'Library', 'Application Support', 'Kobo', 'Kobo Desktop Edition')
-        # desktop versions use Kobo.sqlite
-        kobodb = os.path.join(self.kobodir, 'Kobo.sqlite')
-        if (self.kobodir == '' or not(os.path.exists(kobodb))):
-            # kobodb is either not set or not an existing file, that means that either:
-            # . windows or mac: desktop app is not installed
-            # . linux
-            # we check for a connected device and try to set up kobodir and kobodb from there
-            if (device_path):
-                self.kobodir = os.path.join(device_path, '.kobo')
-                # devices use KoboReader.sqlite
-                kobodb  = os.path.join(self.kobodir, 'KoboReader.sqlite')
-                if (not(os.path.exists(kobodb))):
-                    # give up here, we haven't found anything useful
-                    self.kobodir = ''
-                    kobodb  = ''
+
+        # - first check whether serials have been found or are provided 
+        #   and a device is connected. In this case, use the device
+        # - otherwise fall back to Kobo Desktop Application for Windows and Mac
+        if (device_path and (len(serials) > 0)):
+            self.kobodir = os.path.join(device_path, '.kobo')
+            # devices use KoboReader.sqlite
+            kobodb  = os.path.join(self.kobodir, 'KoboReader.sqlite')
+            if (not(os.path.exists(kobodb))):
+                # give up here, we haven't found anything useful
+                self.kobodir = ''
+                kobodb  = ''
+
+        if (self.kobodir == ''):
+            # we haven't found a device with serials, so try desktop apps
+            if sys.platform.startswith('win'):
+                if sys.getwindowsversion().major > 5:
+                    self.kobodir = os.environ['LOCALAPPDATA']
+                else:
+                    self.kobodir = os.path.join(os.environ['USERPROFILE'], 'Local Settings', 'Application Data')
+                self.kobodir = os.path.join(self.kobodir, 'Kobo', 'Kobo Desktop Edition')
+            elif sys.platform.startswith('darwin'):
+                self.kobodir = os.path.join(os.environ['HOME'], 'Library', 'Application Support', 'Kobo', 'Kobo Desktop Edition')
+            # desktop versions use Kobo.sqlite
+            kobodb = os.path.join(self.kobodir, 'Kobo.sqlite')
         
         if (self.kobodir != ''):
             self.bookdir = os.path.join(self.kobodir, 'kepub')
