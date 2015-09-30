@@ -19,7 +19,7 @@ except NameError:
 PLUGIN_NAME = 'Obok DeDRM'
 PLUGIN_SAFE_NAME = PLUGIN_NAME.strip().lower().replace(' ', '_')
 PLUGIN_DESCRIPTION = _('Removes DRM from Kobo kepubs and adds them to the library.')
-PLUGIN_VERSION_TUPLE = (3, 1, 5)
+PLUGIN_VERSION_TUPLE = (3, 1, 6)
 PLUGIN_VERSION = '.'.join([str(x) for x in PLUGIN_VERSION_TUPLE])
 HELPFILE_NAME = PLUGIN_SAFE_NAME + '_Help.htm'
 PLUGIN_AUTHORS = 'Anon'

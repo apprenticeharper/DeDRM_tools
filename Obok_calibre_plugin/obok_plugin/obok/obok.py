@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.1.6 September 2015
+# Enable support for Kobo devices
+# More character encoding fixes (unicode strings)
+#
 # Version 3.1.5 September 2015
 # Removed requirement that a purchase has been made.
 # Also add in character encoding fixes
@@ -119,7 +123,7 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.1.5'
+__version__ = '3.1.6'
 
 import sys
 import os
@@ -246,36 +250,41 @@ class KoboLibrary(object):
 
     def __init__ (self, serials = [], device_path = None):
         print u"Obok v{0}\nCopyright © 2012-2015 Physisticated et al.".format(__version__)
-        self.kobodir = ''
-        kobodb = ''
+        self.kobodir = u""
+        kobodb = u""
 
         # - first check whether serials have been found or are provided 
         #   and a device is connected. In this case, use the device
         # - otherwise fall back to Kobo Desktop Application for Windows and Mac
         if (device_path and (len(serials) > 0)):
-            self.kobodir = os.path.join(device_path, '.kobo')
+            self.kobodir = os.path.join(device_path, u".kobo")
             # devices use KoboReader.sqlite
-            kobodb  = os.path.join(self.kobodir, 'KoboReader.sqlite')
+            kobodb  = os.path.join(self.kobodir, u"KoboReader.sqlite")
             if (not(os.path.exists(kobodb))):
                 # give up here, we haven't found anything useful
-                self.kobodir = ''
-                kobodb  = ''
+                self.kobodir = u""
+                kobodb  = u""
 
-        if (self.kobodir == ''):
+        if (self.kobodir == u""):
             # we haven't found a device with serials, so try desktop apps
             if sys.platform.startswith('win'):
+                import _winreg as winreg
                 if sys.getwindowsversion().major > 5:
-                    self.kobodir = os.environ['LOCALAPPDATA']
-                else:
-                    self.kobodir = os.path.join(os.environ['USERPROFILE'], 'Local Settings', 'Application Data')
-                self.kobodir = os.path.join(self.kobodir, 'Kobo', 'Kobo Desktop Edition')
+                    if 'LOCALAPPDATA' in os.environ.keys():
+                        # Python 2.x does not return unicode env. Use Python 3.x
+                        self.kobodir = winreg.ExpandEnvironmentStrings(u"%LOCALAPPDATA%")
+                if (self.kobodir == u""):
+                    if 'USERPROFILE' in os.environ.keys():
+                        # Python 2.x does not return unicode env. Use Python 3.x
+                        self.kobodir = os.path.join(winreg.ExpandEnvironmentStrings(u"%USERPROFILE%"), u"Local Settings", u"Application Data")
+                self.kobodir = os.path.join(self.kobodir, u"Kobo", u"Kobo Desktop Edition")
             elif sys.platform.startswith('darwin'):
-                self.kobodir = os.path.join(os.environ['HOME'], 'Library', 'Application Support', 'Kobo', 'Kobo Desktop Edition')
+                self.kobodir = os.path.join(os.environ['HOME'], u"Library", u"Application Support", u"Kobo", u"Kobo Desktop Edition")
             # desktop versions use Kobo.sqlite
-            kobodb = os.path.join(self.kobodir, 'Kobo.sqlite')
+            kobodb = os.path.join(self.kobodir, u"Kobo.sqlite")
         
-        if (self.kobodir != ''):
-            self.bookdir = os.path.join(self.kobodir, 'kepub')
+        if (self.kobodir != u""):
+            self.bookdir = os.path.join(self.kobodir, u"kepub")
             self.__sqlite = sqlite3.connect(kobodb)
             self.__cursor = self.__sqlite.cursor()
             self._userkeys = []
@@ -322,7 +331,7 @@ class KoboLibrary(object):
 
     def __bookfile (self, volumeid):
         """The filename needed to open a given book."""
-        return os.path.join(self.kobodir, 'kepub', volumeid)
+        return os.path.join(self.kobodir, u"kepub", volumeid)
 
     def __getmacaddrs (self):
         """The list of all MAC addresses on this machine."""
@@ -338,7 +347,7 @@ class KoboLibrary(object):
             output = subprocess.check_output('/sbin/ifconfig -a', shell=True)
             matches = c.findall(output)
             for m in matches:
-                # print "m:",m[0]
+                # print u"m:{0}".format(m[0])
                 macaddrs.append(m[0].upper())
 
         # extend the list of macaddrs in any case with the serials
@@ -480,13 +489,13 @@ class KoboFile(object):
             if contents[:5]=="<?xml":
                 return True
             else:
-                print "Bad XML: ",contents[:5]
+                print u"Bad XML: {0}".format(contents[:5])
                 raise ValueError
         if self.mimetype == 'image/jpeg':
             if contents[:3] == '\xff\xd8\xff':
                 return True
             else:
-                print "Bad JPEG: ", contents[:3].encode('hex')
+                print u"Bad JPEG: {0}".format(contents[:3].encode('hex'))
                 raise ValueError()
         return False
 
@@ -512,31 +521,30 @@ def cli_main():
     lib = KoboLibrary()
 
     for i, book in enumerate(lib.books):
-        print ('%d: %s' % (i + 1, book.title)).encode('ascii', 'ignore')
+        print u"{0}: {1}".format(i + 1, book.title)
 
-    num_string = raw_input("Convert book number... ")
+    num_string = raw_input(u"Convert book number... ")
     try:
         num = int(num_string)
         book = lib.books[num - 1]
     except (ValueError, IndexError):
         exit()
 
-    print "Converting", book.title
+    print u"Converting {0}".format(book.title)
 
     zin = zipfile.ZipFile(book.filename, "r")
     # make filename out of Unicode alphanumeric and whitespace equivalents from title
-    outname = "%s.epub" % (re.sub('[^\s\w]', '_', book.title, 0, re.UNICODE))
+    outname = u"{0}.epub".format(re.sub('[^\s\w]', '_', book.title, 0, re.UNICODE))
 
     if (book.type == 'drm-free'):
-        print "DRM-free book, conversion is not needed"
+        print u"DRM-free book, conversion is not needed"
         shutil.copyfile(book.filename, outname)
-        print "Book saved as", os.path.join(os.getcwd(), outname)
+        print u"Book saved as {0}".format(os.path.join(os.getcwd(), outname))
         exit(0)
 
     result = 1
     for userkey in lib.userkeys:
-        # print "Trying key: ",userkey.encode('hex_codec')
-        confirmedGood = False
+        print u"Trying key: {0}".format(userkey.encode('hex_codec'))
         try:
             zout = zipfile.ZipFile(outname, "w", zipfile.ZIP_DEFLATED)
             for filename in zin.namelist():
@@ -545,20 +553,22 @@ def cli_main():
                     file = book.encryptedfiles[filename]
                     contents = file.decrypt(userkey, contents)
                     # Parse failures mean the key is probably wrong.
-                    if not confirmedGood:
-                        confirmedGood = file.check(contents)
+                    file.check(contents)
                 zout.writestr(filename, contents)
             zout.close()
-            print "Book saved as", os.path.join(os.getcwd(), outname)
+            print u"Decryption succeeded."
+            print u"Book saved as {0}".format(os.path.join(os.getcwd(), outname))
             result = 0
             break
         except ValueError:
-            print "Decryption failed, trying next key"
+            print u"Decryption failed."
             zout.close()
             os.remove(outname)
 
     zin.close()
     lib.close()
+    if result != 0:
+        print u"Could not decrypt book with any of the keys found."
     return result
 
 if __name__ == '__main__':
