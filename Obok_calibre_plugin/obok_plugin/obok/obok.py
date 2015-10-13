@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.1.7 October 2015
+# Handle the case of no device or database more gracefully.
+#
 # Version 3.1.6 September 2015
 # Enable support for Kobo devices
 # More character encoding fixes (unicode strings)
@@ -123,7 +126,7 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.1.6'
+__version__ = '3.1.7'
 
 import sys
 import os

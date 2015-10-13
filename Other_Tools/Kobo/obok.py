@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.1.7 October 2015
+# Handle the case of no device or database more gracefully.
+#
 # Version 3.1.6 September 2015
 # Enable support for Kobo devices
 # More character encoding fixes (unicode strings)
@@ -123,7 +126,7 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.1.6'
+__version__ = '3.1.7'
 
 import sys
 import os
@@ -260,7 +263,7 @@ class KoboLibrary(object):
             self.kobodir = os.path.join(device_path, u".kobo")
             # devices use KoboReader.sqlite
             kobodb  = os.path.join(self.kobodir, u"KoboReader.sqlite")
-            if (not(os.path.exists(kobodb))):
+            if (not(os.path.isfile(kobodb))):
                 # give up here, we haven't found anything useful
                 self.kobodir = u""
                 kobodb  = u""
@@ -282,6 +285,12 @@ class KoboLibrary(object):
                 self.kobodir = os.path.join(os.environ['HOME'], u"Library", u"Application Support", u"Kobo", u"Kobo Desktop Edition")
             # desktop versions use Kobo.sqlite
             kobodb = os.path.join(self.kobodir, u"Kobo.sqlite")
+            # check for existence of file
+            if (not(os.path.isfile(kobodb))):
+                # give up here, we haven't found anything useful
+                self.kobodir = u""
+                kobodb  = u""
+
         
         if (self.kobodir != u""):
             self.bookdir = os.path.join(self.kobodir, u"kepub")
