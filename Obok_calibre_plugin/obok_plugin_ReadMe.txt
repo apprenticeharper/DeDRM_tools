@@ -1,7 +1,7 @@
 ﻿obok_plugin.zip
 ================
 
-This plugin will remove the DRM from Kobo ebooks download on Mac or Windows using the Kobo desktop application, or from Kobo ebooks on an attached Kobo reader. If both are available, ebooks will be read from the attached Kobo reader. To import from the desktop application, unplug the Kobo reader.
+This plugin will remove the DRM from Kobo ebooks download on Mac or Windows using the Kobo desktop application, or from Kobo ebooks on an attached E-Ink Kobo reader (but not a Kobo Arc or Kobo Vox). If both are available, ebooks will be read from the attached E-Ink Kobo reader. To import from the desktop application, unplug the Kobo reader.
 
 
 Installation

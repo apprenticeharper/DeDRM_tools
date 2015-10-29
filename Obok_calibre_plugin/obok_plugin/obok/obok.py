@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.1.8 November 2015
+# Handle the case of Kobo Arc or Vox device (i.e. don't crash).
+#
 # Version 3.1.7 October 2015
 # Handle the case of no device or database more gracefully.
 #

@@ -90,28 +90,29 @@ class InterfacePluginAction(InterfaceAction):
         #
         # search for connected device in case serials are saved
         tmpserials = cfg['kobo_serials']
-        device = self.parent().device_manager.connected_device
         device_path = None
-        if (device):
-            device_path = device._main_prefix
-            debug_print("get_device_settings - device_path=", device_path)
-            # get serial from device_path/.adobe-digital-editions/device.xml
-            if can_parse_xml:
-                devicexml = os.path.join(device_path, '.adobe-digital-editions', 'device.xml')
-                debug_print("trying to load %s" % devicexml)
-                if (os.path.exists(devicexml)):
-                    debug_print("trying to parse %s" % devicexml)
-                    xmltree = ET.parse(devicexml)
-                    for node in xmltree.iter():
-                        if "deviceSerial" in node.tag:
-                            serial = node.text
-                            debug_print ("found serial %s" % serial)
-                            tmpserials.append(serial)
-                            break
-
-
-        else:
-            debug_print("didn't find device")
+        try:
+            device = self.parent().device_manager.connected_device
+            if (device):
+                device_path = device._main_prefix
+                debug_print("get_device_settings - device_path=", device_path)
+                # get serial from device_path/.adobe-digital-editions/device.xml
+                if can_parse_xml:
+                    devicexml = os.path.join(device_path, '.adobe-digital-editions', 'device.xml')
+                    debug_print("trying to load %s" % devicexml)
+                    if (os.path.exists(devicexml)):
+                        debug_print("trying to parse %s" % devicexml)
+                        xmltree = ET.parse(devicexml)
+                        for node in xmltree.iter():
+                            if "deviceSerial" in node.tag:
+                                serial = node.text
+                                debug_print ("found serial %s" % serial)
+                                tmpserials.append(serial)
+                                break
+            else:
+                debug_print("didn't find device")
+        except:
+            debug_print("Exception getting device path. Probably not an E-Ink Kobo device")
 
         # Get the Kobo Library object (obok v3.01)
         self.library = KoboLibrary(tmpserials, device_path)
