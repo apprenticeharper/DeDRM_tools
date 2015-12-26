@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.1.9 December 2015
+# Update for latest version of Windows Desktop app.
+#
 # Version 3.1.8 November 2015
 # Handle the case of Kobo Arc or Vox device (i.e. don't crash).
 #
@@ -143,6 +146,9 @@ import hashlib
 import xml.etree.ElementTree as ET
 import string
 import shutil
+
+# List of all known hash keys
+KOBO_HASH_KEYS = ['88b3a2e13', 'XzUhGYdFp', 'NoCanLook']
 
 class ENCRYPTIONError(Exception):
     pass
@@ -384,16 +390,11 @@ class KoboLibrary(object):
     def __getuserkeys (self, macaddr):
         userids = self.__getuserids()
         userkeys = []
-        # This version is used for versions before 3.17.0.
-        deviceid = hashlib.sha256('NoCanLook' + macaddr).hexdigest()
-        for userid in userids:
-            userkey = hashlib.sha256(deviceid + userid).hexdigest()
-            userkeys.append(binascii.a2b_hex(userkey[32:]))
-        # This version is used for 3.17.0 and later.
-        deviceid = hashlib.sha256('XzUhGYdFp' + macaddr).hexdigest()
-        for userid in userids:
-            userkey = hashlib.sha256(deviceid + userid).hexdigest()
-            userkeys.append(binascii.a2b_hex(userkey[32:]))
+        for hash in KOBO_HASH_KEYS:
+            deviceid = hashlib.sha256(hash + macaddr).hexdigest()
+            for userid in userids:
+                userkey = hashlib.sha256(deviceid + userid).hexdigest()
+                userkeys.append(binascii.a2b_hex(userkey[32:]))
         return userkeys
 
 class KoboBook(object):
