@@ -34,15 +34,6 @@ from calibre_plugins.obok_dedrm.utilities import (
 from calibre_plugins.obok_dedrm.obok.obok import KoboLibrary
 from calibre_plugins.obok_dedrm.obok.legacy_obok import legacy_obok
 
-can_parse_xml = True
-try:
-  from xml.etree import ElementTree as ET
-  debug_print("using xml.etree for xml parsing")
-except ImportError:
-  can_parse_xml = False
-  debug_print("Cannot find xml.etree, disabling extraction of serial numbers")
-
-
 PLUGIN_ICONS = ['images/obok.png']
 
 try:
@@ -96,19 +87,6 @@ class InterfacePluginAction(InterfaceAction):
             if (device):
                 device_path = device._main_prefix
                 debug_print("get_device_settings - device_path=", device_path)
-                # get serial from device_path/.adobe-digital-editions/device.xml
-                if can_parse_xml:
-                    devicexml = os.path.join(device_path, '.adobe-digital-editions', 'device.xml')
-                    debug_print("trying to load %s" % devicexml)
-                    if (os.path.exists(devicexml)):
-                        debug_print("trying to parse %s" % devicexml)
-                        xmltree = ET.parse(devicexml)
-                        for node in xmltree.iter():
-                            if "deviceSerial" in node.tag:
-                                serial = node.text
-                                debug_print ("found serial %s" % serial)
-                                tmpserials.append(serial)
-                                break
             else:
                 debug_print("didn't find device")
         except:
