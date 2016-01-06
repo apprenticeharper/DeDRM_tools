@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.1.9 December 2015
+# Update for latest version of Windows Desktop app.
+# Support Kobo devices in the command line version.
+#
 # Version 3.1.8 November 2015
 # Handle the case of Kobo Arc or Vox device (i.e. don't crash).
 #
@@ -129,7 +133,8 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.1.7'
+__version__ = '3.1.9'
+__about__ =  u"Obok v{0}\nCopyright © 2012-2015 Physisticated et al.".format(__version__)
 
 import sys
 import os
@@ -143,6 +148,18 @@ import hashlib
 import xml.etree.ElementTree as ET
 import string
 import shutil
+import argparse
+
+can_parse_xml = True
+try:
+  from xml.etree import ElementTree as ET
+  # print u"using xml.etree for xml parsing"
+except ImportError:
+  can_parse_xml = False
+  # print u"Cannot find xml.etree, disabling extraction of serial numbers"
+
+# List of all known hash keys
+KOBO_HASH_KEYS = ['88b3a2e13', 'XzUhGYdFp', 'NoCanLook']
 
 class ENCRYPTIONError(Exception):
     pass
@@ -255,24 +272,59 @@ class KoboLibrary(object):
     of books, their titles, and the user's encryption key(s)."""
 
     def __init__ (self, serials = [], device_path = None):
-        print u"Obok v{0}\nCopyright © 2012-2015 Physisticated et al.".format(__version__)
+        print __about__
         self.kobodir = u""
         kobodb = u""
 
-        # - first check whether serials have been found or are provided 
-        #   and a device is connected. In this case, use the device
-        # - otherwise fall back to Kobo Desktop Application for Windows and Mac
-        if (device_path and (len(serials) > 0)):
+        # Order of checks
+        # 1. first check if a device_path has been passed in, and whether
+        #    we can find the sqlite db in the respective place
+        # 2. if 1., and we got some serials passed in (from saved
+        #    settings in calibre), just use it
+        # 3. if 1. worked, but we didn't get serials, try to parse them
+        #    from the device, if this didn't work, unset everything
+        # 4. if by now we don't have kobodir set, give up on device and
+        #    try to use the Desktop app.
+
+        # step 1. check whether this looks like a real device
+        if (device_path):
+            # we got a device path
             self.kobodir = os.path.join(device_path, u".kobo")
             # devices use KoboReader.sqlite
             kobodb  = os.path.join(self.kobodir, u"KoboReader.sqlite")
             if (not(os.path.isfile(kobodb))):
-                # give up here, we haven't found anything useful
+                # device path seems to be wrong, unset it
+                device_path = u""
                 self.kobodir = u""
                 kobodb  = u""
 
+        if (self.kobodir):
+            # step 3. we found a device but didn't get serials, try to get them
+            if (len(serials) == 0):
+                # we got a device path but no saved serial
+                # try to get the serial from the device
+                # print u"get_device_settings - device_path = {0}".format(device_path)
+                # get serial from device_path/.adobe-digital-editions/device.xml
+                if can_parse_xml:
+                    devicexml = os.path.join(device_path, '.adobe-digital-editions', 'device.xml')
+                    # print u"trying to load {0}".format(devicexml)
+                    if (os.path.exists(devicexml)):
+                        # print u"trying to parse {0}".format(devicexml)
+                        xmltree = ET.parse(devicexml)
+                        for node in xmltree.iter():
+                            if "deviceSerial" in node.tag:
+                                serial = node.text
+                                # print u"found serial {0}".format(serial)
+                                serials.append(serial)
+                                break
+                    else:
+                        # print u"cannot get serials from device."
+                        device_path = u""
+                        self.kobodir = u""
+                        kobodb  = u""
+
         if (self.kobodir == u""):
-            # we haven't found a device with serials, so try desktop apps
+            # step 4. we haven't found a device with serials, so try desktop apps
             if sys.platform.startswith('win'):
                 import _winreg as winreg
                 if sys.getwindowsversion().major > 5:
@@ -384,16 +436,11 @@ class KoboLibrary(object):
     def __getuserkeys (self, macaddr):
         userids = self.__getuserids()
         userkeys = []
-        # This version is used for versions before 3.17.0.
-        deviceid = hashlib.sha256('NoCanLook' + macaddr).hexdigest()
-        for userid in userids:
-            userkey = hashlib.sha256(deviceid + userid).hexdigest()
-            userkeys.append(binascii.a2b_hex(userkey[32:]))
-        # This version is used for 3.17.0 and later.
-        deviceid = hashlib.sha256('XzUhGYdFp' + macaddr).hexdigest()
-        for userid in userids:
-            userkey = hashlib.sha256(deviceid + userid).hexdigest()
-            userkeys.append(binascii.a2b_hex(userkey[32:]))
+        for hash in KOBO_HASH_KEYS:
+            deviceid = hashlib.sha256(hash + macaddr).hexdigest()
+            for userid in userids:
+                userkey = hashlib.sha256(deviceid + userid).hexdigest()
+                userkeys.append(binascii.a2b_hex(userkey[32:]))
         return userkeys
 
 class KoboBook(object):
@@ -530,7 +577,17 @@ class KoboFile(object):
         return contents
 
 def cli_main():
-    lib = KoboLibrary()
+    description = __about__
+    epilog = u"Parsing of arguments failed."
+    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description, epilog=epilog)
+    parser.add_argument('--devicedir', default='/media/KOBOeReader', help="directory of connected Kobo device")
+    args = vars(parser.parse_args())
+    serials = []
+    devicedir = u""
+    if args['devicedir']:
+        devicedir = args['devicedir']
+
+    lib = KoboLibrary(serials, devicedir)
 
     for i, book in enumerate(lib.books):
         print u"{0}: {1}".format(i + 1, book.title)
