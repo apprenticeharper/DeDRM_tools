@@ -12,7 +12,7 @@ The is archive includes tools to remove DRM from:
  - Adobe Digital Editions PDFs
  - Mobipocket ebooks
  - eReader PDB books
- - Scuolabooks (Windows only solution by Hex)
+ - Scuolabooks (Link to solution by Hex)
 
 These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
@@ -78,7 +78,7 @@ Rocket_ebooks
 Information about the now-obsolete Rocket ebook format and DRM, along with source for a tool to remove the DRM.
 
 Scuolabook_DRM
-A windows-only application (including source code) for removing DRM from ScuolaBooks PDFs, created by "Hex" and included with permission.
+A link to the tool for removing DRM from ScuolaBooks PDFs, created by "Hex".
 
 
 Windows and Python

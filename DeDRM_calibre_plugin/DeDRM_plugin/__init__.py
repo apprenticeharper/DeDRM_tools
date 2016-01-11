@@ -46,6 +46,7 @@ __docformat__ = 'restructuredtext en'
 #   6.3.2 - Fixed Kindle for Android help file
 #   6.3.3 - Bug fix for Kindle for PC support
 #   6.3.4 - Fixes for Kindle for Android, Linux, and Kobo 3.17
+#   6.3.5 - Fixes for Linux, and Kobo 3.19 and more logging
 
 
 """
@@ -53,7 +54,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 3, 4)
+PLUGIN_VERSION_TUPLE = (6, 3, 5)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -96,7 +97,7 @@ class DeDRM(FileTypePlugin):
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = u"Apprentice Alf, Aprentice Harper, The Dark Reverser and i♥cabbages"
     version                 = PLUGIN_VERSION_TUPLE
-    minimum_calibre_version = (0, 7, 55)  # Compiled python libraries cannot be imported in earlier versions.
+    minimum_calibre_version = (1, 0, 0)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub','pdf','pdb','prc','mobi','pobi','azw','azw1','azw3','azw4','tpz'])
     on_import               = True
     priority                = 600
@@ -296,11 +297,15 @@ class DeDRM(FileTypePlugin):
                     traceback.print_exc()
                     result = 1
 
-                of.close()
+                try:
+                    of.close()
+                except:
+                    print u"{0} v{1}: Exception closing temporary file after {2:.1f} seconds. Ignored.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
 
                 if  result == 0:
                     # Decryption was successful.
                     # Return the modified PersistentTemporary file to calibre.
+                    print u"{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime)
                     return of.name
 
                 print u"{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime)
@@ -360,6 +365,7 @@ class DeDRM(FileTypePlugin):
                             except:
                                 print u"{0} v{1}: Exception when saving a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
                                 traceback.print_exc()
+                            print u"{0} v{1}: Decrypted with new default key after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
                             # Return the modified PersistentTemporary file to calibre.
                             return of.name
 

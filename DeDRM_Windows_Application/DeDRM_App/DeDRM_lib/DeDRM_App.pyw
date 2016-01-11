@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # DeDRM.pyw
-# Copyright 2010-2015 some_updates, Apprentice Alf and Apprentice Harper
+# Copyright 2010-2016 some_updates, Apprentice Alf and Apprentice Harper
 
 # Revision history:
 #   6.0.0 - Release along with unified plugin
@@ -19,8 +19,9 @@
 #   6.3.2 - Version bump to match plugin
 #   6.3.3 - Version bump to match plugin
 #   6.3.4 - Version bump to match plugin
+#   6.3.5 - Version bump to match plugin
 
-__version__ = '6.3.4'
+__version__ = '6.3.5'
 
 import sys
 import os, os.path

@@ -3,18 +3,19 @@
 
 from __future__ import with_statement
 
-# ineptpdf.pyw, version 7.11
+# ineptpdf.pyw, version 8.0.2
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
 # Modified 2010–2012 by some_updates, DiapDealer and Apprentice Alf
+# Modified 2015-2016 by Apprentice Harper
 
-# Windows users: Before running this program, you must first install Python 2.6
+# Windows users: Before running this program, you must first install Python 2.7
 #   from <http://www.python.org/download/> and PyCrypto from
 #   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
-#   install the version for Python 2.6).  Save this script file as
+#   install the version for Python 2.7).  Save this script file as
 #   ineptpdf.pyw and double-click on it to run it.
 #
 # Mac OS X users: Save this script file as ineptpdf.pyw.  You can run this
@@ -53,13 +54,15 @@ from __future__ import with_statement
 #   7.14 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   8.0  - Work if TkInter is missing
 #   8.0.1 - Broken Metadata fix.
+#   8.0.2 - Add additional check on DER file sanity
+
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "8.0.1"
+__version__ = "8.0.2"
 
 import sys
 import os
@@ -197,6 +200,11 @@ def _load_crypto_libcrypto():
             pp = c_char_pp(cast(buf, c_char_p))
             rsa = self._rsa = d2i_RSAPrivateKey(None, pp, len(der))
             if rsa is None:
+                raise ADEPTError('Error parsing ADEPT user key DER')
+            # check if pointer is not NULL
+            try:
+                c = self._rsa.contents
+            except ValueError:   
                 raise ADEPTError('Error parsing ADEPT user key DER')
 
         def decrypt(self, from_):
@@ -383,6 +391,11 @@ def _load_crypto_pycrypto():
             key = [key.getChild(x).value for x in xrange(1, 4)]
             key = [self.bytesToNumber(v) for v in key]
             self._rsa = _RSA.construct(key)
+            # check if pointer is not NULL
+            try:
+                c = self._rsa.contents
+            except ValueError:   
+                raise ADEPTError('Error parsing ADEPT user key DER')
 
         def bytesToNumber(self, bytes):
             total = 0L
