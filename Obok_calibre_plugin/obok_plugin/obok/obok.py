@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Version 3.1.9 December 2015
+# Version 6.3.5 January 2016
 # Update for latest version of Windows Desktop app.
 # Support Kobo devices in the command line version.
+#
+# Version 3.1.9 November 2015
+# Handle Kobo Desktop under wine on Linux
 #
 # Version 3.1.8 November 2015
 # Handle the case of Kobo Arc or Vox device (i.e. don't crash).
@@ -338,6 +341,9 @@ class KoboLibrary(object):
                 self.kobodir = os.path.join(self.kobodir, u"Kobo", u"Kobo Desktop Edition")
             elif sys.platform.startswith('darwin'):
                 self.kobodir = os.path.join(os.environ['HOME'], u"Library", u"Application Support", u"Kobo", u"Kobo Desktop Edition")
+            elif linux_path != None:
+                # Probably Linux, let's get the wine prefix and path to Kobo.
+                self.kobodir = os.path.join(linux_path, u"Local Settings", u"Application Data", u"Kobo", u"Kobo Desktop Edition")
             # desktop versions use Kobo.sqlite
             kobodb = os.path.join(self.kobodir, u"Kobo.sqlite")
             # check for existence of file
@@ -413,6 +419,13 @@ class KoboLibrary(object):
             for m in matches:
                 # print u"m:{0}".format(m[0])
                 macaddrs.append(m[0].upper())
+        else:
+            # probably linux, let's try ipconfig under wine
+            c = re.compile('\s(' + '[0-9a-f]{2}-' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
+            for line in os.popen('ipconfig /all'):
+                m = c.search(line)
+                if m:
+                    macaddrs.append(re.sub("-", ":", m.group(1)).upper())
 
         # extend the list of macaddrs in any case with the serials
         # cannot hurt ;-)
