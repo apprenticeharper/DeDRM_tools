@@ -3,7 +3,7 @@
 
 from __future__ import with_statement
 
-# ineptepub.pyw, version 6.3
+# ineptepub.pyw, version 6.4
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
@@ -40,13 +40,14 @@ from __future__ import with_statement
 #   6.1 - Work if TkInter is missing
 #   6.2 - Handle UTF-8 file names inside an ePub, fix by Jose Luis
 #   6.3 - Add additional check on DER file sanity
+#   6.4 - Remove erroneous check on DER file sanity
 
 """
 Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "6.3"
+__version__ = "6.4"
 
 import sys
 import os
@@ -171,13 +172,8 @@ def _load_crypto_libcrypto():
         def __init__(self, der):
             buf = create_string_buffer(der)
             pp = c_char_pp(cast(buf, c_char_p))
-            rsa = self._rsa = d2i_RSAPrivateKey(None, pp, len(der)) 
+            rsa = self._rsa = d2i_RSAPrivateKey(None, pp, len(der))
             if rsa is None:
-                raise ADEPTError('Error parsing ADEPT user key DER')
-            # check if pointer is not NULL
-            try:
-                c = self._rsa.contents
-            except ValueError:   
                 raise ADEPTError('Error parsing ADEPT user key DER')
 
         def decrypt(self, from_):
@@ -325,7 +321,6 @@ def _load_crypto_pycrypto():
                 c = self._rsa.contents
             except ValueError:   
                 raise ADEPTError('Error parsing ADEPT user key DER')
-
 
         def bytesToNumber(self, bytes):
             total = 0L

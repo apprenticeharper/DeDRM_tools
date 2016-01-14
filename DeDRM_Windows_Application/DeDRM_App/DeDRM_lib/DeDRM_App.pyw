@@ -20,8 +20,9 @@
 #   6.3.3 - Version bump to match plugin
 #   6.3.4 - Version bump to match plugin
 #   6.3.5 - Version bump to match plugin
+#   6.3.6 - Version bump to match plugin
 
-__version__ = '6.3.5'
+__version__ = '6.3.6'
 
 import sys
 import os, os.path

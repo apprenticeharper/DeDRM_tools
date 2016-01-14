@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Version 6.3.5 January 2016
+# Version 3.2.0 January 2016
 # Update for latest version of Windows Desktop app.
 # Support Kobo devices in the command line version.
 #
