@@ -3,7 +3,7 @@
 
 from __future__ import with_statement
 
-# ineptpdf.pyw, version 8.0.3
+# ineptpdf.pyw, version 8.0.4
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
@@ -56,6 +56,7 @@ from __future__ import with_statement
 #   8.0.1 - Broken Metadata fix.
 #   8.0.2 - Add additional check on DER file sanity
 #   8.0.3 - Remove erroneous check on DER file sanity
+#   8.0.4 - Completely remove erroneous check on DER file sanity
 
 
 """
@@ -63,7 +64,7 @@ Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "8.0.3"
+__version__ = "8.0.4"
 
 import sys
 import os
@@ -387,11 +388,6 @@ def _load_crypto_pycrypto():
             key = [key.getChild(x).value for x in xrange(1, 4)]
             key = [self.bytesToNumber(v) for v in key]
             self._rsa = _RSA.construct(key)
-            # check if pointer is not NULL
-            try:
-                c = self._rsa.contents
-            except ValueError:   
-                raise ADEPTError('Error parsing ADEPT user key DER')
 
         def bytesToNumber(self, bytes):
             total = 0L
