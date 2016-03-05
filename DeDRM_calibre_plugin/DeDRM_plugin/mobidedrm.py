@@ -448,6 +448,8 @@ class MobiBook:
                 goodpids.append(pid[0:-2])
             elif len(pid)==8:
                 goodpids.append(pid)
+            else:
+                print u"Warning: PID {0} has wrong number of digits".format(pid)
 
         if self.crypto_type == 1:
             t1_keyvec = 'QDCVEPMU675RUBSZ'
@@ -530,7 +532,7 @@ def cli_main():
             stripped_file = getUnencryptedBook(infile, pidlist)
             file(outfile, 'wb').write(stripped_file)
         except DrmException, e:
-            print u"MobiDeDRM v{0} Error: {0:s}".format(__version__,e.args[0])
+            print u"MobiDeDRM v{0} Error: {1:s}".format(__version__,e.args[0])
             return 1
     return 0
 
