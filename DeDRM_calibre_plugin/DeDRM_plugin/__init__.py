@@ -48,6 +48,7 @@ __docformat__ = 'restructuredtext en'
 #   6.3.4 - Fixes for Kindle for Android, Linux, and Kobo 3.17
 #   6.3.5 - Fixes for Linux, and Kobo 3.19 and more logging
 #   6.3.6 - Fixes for ADE ePub and PDF introduced in 6.3.5
+#   6.4.0 - Updated for new Kindle for PC encryption
 
 
 """
@@ -55,7 +56,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 3, 6)
+PLUGIN_VERSION_TUPLE = (6, 4, 0)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'

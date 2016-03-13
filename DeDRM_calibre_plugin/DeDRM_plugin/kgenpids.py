@@ -199,9 +199,6 @@ def getK4Pids(rec209, token, kindleDatabase):
         # Get the Mazama Random number
         MazamaRandomNumber = (kindleDatabase[1])['MazamaRandomNumber'].decode('hex')
 
-        # Get the kindle account token
-        kindleAccountToken = (kindleDatabase[1])['kindle.account.tokens'].decode('hex')
-
         # Get the IDString used to decode the Kindle Info file
         IDString = (kindleDatabase[1])['IDString'].decode('hex')
 
@@ -211,6 +208,14 @@ def getK4Pids(rec209, token, kindleDatabase):
     except KeyError:
         print u"Keys not found in the database {0}.".format(kindleDatabase[0])
         return pids
+
+    try:
+        # Get the kindle account token, if present
+        kindleAccountToken = (kindleDatabase[1])['kindle.account.tokens'].decode('hex')
+
+    except KeyError:
+        kindleAccountToken=""
+        pass
 
     # Get the ID string used
     encodedIDString = encodeHash(IDString,charMap1)

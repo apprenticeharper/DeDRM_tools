@@ -993,7 +993,22 @@ if iswindows:
     # determine type of kindle info provided and return a
     # database of keynames and values
     def getDBfromFile(kInfoFile):
-        names = ['kindle.account.tokens','kindle.cookie.item','eulaVersionAccepted','login_date','kindle.token.item','login','kindle.key.item','kindle.name.info','kindle.device.info', 'MazamaRandomNumber', 'max_date', 'SIGVERIF']
+        names = [\
+			'kindle.account.tokens',\
+			'kindle.cookie.item',\
+			'eulaVersionAccepted',\
+			'login_date',\
+			'kindle.token.item',\
+			'login',\
+			'kindle.key.item',\
+			'kindle.name.info',\
+			'kindle.device.info',\
+			'MazamaRandomNumber',\
+			'max_date',\
+			'SIGVERIF',\
+			'build_version',\
+			]
+
         DB = {}
         with open(kInfoFile, 'rb') as infoReader:
             hdr = infoReader.read(1)
@@ -1134,6 +1149,8 @@ if iswindows:
                     if encodeHash(name,testMap8) == keyhash:
                         keyname = name
                         break
+                if keyname == "unknown":
+                    keyname = keyhash
 
                 # the testMap8 encoded contents data has had a length
                 # of chars (always odd) cut off of the front and moved
@@ -1158,14 +1175,17 @@ if iswindows:
                 # decode using new testMap8 to get the original CryptProtect Data
                 encryptedValue = decode(encdata,testMap8)
                 cleartext = CryptUnprotectData(encryptedValue, entropy, 1)
-                DB[keyname] = cleartext
+                if len(cleartext)>0:
+                    DB[keyname] = cleartext
+                #print keyname, cleartext
 
-        if 'kindle.account.tokens' in DB:
+        if len(DB)>4:
             # store values used in decryption
             DB['IDString'] = GetIDString()
             DB['UserName'] = GetUserName()
             print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex'))
         else:
+            print u"Couldn't decrypt file."
             DB = {}
         return DB
 elif isosx:
@@ -1577,7 +1597,21 @@ elif isosx:
     # determine type of kindle info provided and return a
     # database of keynames and values
     def getDBfromFile(kInfoFile):
-        names = ['kindle.account.tokens','kindle.cookie.item','eulaVersionAccepted','login_date','kindle.token.item','login','kindle.key.item','kindle.name.info','kindle.device.info', 'MazamaRandomNumber', 'max_date', 'SIGVERIF']
+        names = [\
+			'kindle.account.tokens',\
+			'kindle.cookie.item',\
+			'eulaVersionAccepted',\
+			'login_date',\
+			'kindle.token.item',\
+			'login',\
+			'kindle.key.item',\
+			'kindle.name.info',\
+			'kindle.device.info',\
+			'MazamaRandomNumber',\
+			'max_date',\
+			'SIGVERIF',\
+			'build_version',\
+			]
         with open(kInfoFile, 'rb') as infoReader:
             filehdr = infoReader.read(1)
             filedata = infoReader.read()
@@ -1683,7 +1717,7 @@ elif isosx:
                         if len(cleartext) > 0:
                             DB[keyname] = cleartext
 
-                    if 'MazamaRandomNumber' in DB and 'kindle.account.tokens' in DB:
+                    if len(DB)>4:
                         break
                 else:
                     # the latest .kinf2011 version for K4M 1.9.1
@@ -1772,11 +1806,11 @@ elif isosx:
                         if len(cleartext) > 0:
                             DB[keyname] = cleartext
 
-                    if 'MazamaRandomNumber' in DB and 'kindle.account.tokens' in DB:
+                    if len(DB)>4:
                         break
             except:
                 pass
-        if 'kindle.account.tokens' in DB:
+        if len(DB)>4:
             # store values used in decryption
             print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName())
             DB['IDString'] = IDString

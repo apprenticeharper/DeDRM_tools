@@ -21,8 +21,9 @@
 #   6.3.4 - Version bump to match plugin
 #   6.3.5 - Version bump to match plugin
 #   6.3.6 - Version bump to match plugin
+#   6.4.0 - Fix for Kindle for PC encryption change
 
-__version__ = '6.3.6'
+__version__ = '6.4.0'
 
 import sys
 import os, os.path
