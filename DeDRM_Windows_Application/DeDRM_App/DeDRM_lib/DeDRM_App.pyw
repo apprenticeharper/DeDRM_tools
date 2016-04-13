@@ -22,8 +22,9 @@
 #   6.3.5 - Version bump to match plugin
 #   6.3.6 - Version bump to match plugin
 #   6.4.0 - Fix for Kindle for PC encryption change
+#   6.4.1 - Fix for new tags in Topaz ebooks
 
-__version__ = '6.4.0'
+__version__ = '6.4.1'
 
 import sys
 import os, os.path
