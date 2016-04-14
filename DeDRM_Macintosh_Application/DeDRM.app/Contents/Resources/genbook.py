@@ -385,7 +385,7 @@ def generateBook(bookDir, raw, fixedimage):
     # print "first normal text page is", spage
 
     # get page height and width from first text page for use in stylesheet scaling
-    pname = 'page%04d.dat' % (pnum + 1)
+    pname = 'page%04d.dat' % (pnum - 1)
     fname = os.path.join(pageDir,pname)
     flat_xml = convert2xml.fromData(dict, fname)
 
