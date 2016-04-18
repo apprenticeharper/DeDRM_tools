@@ -48,6 +48,7 @@ __docformat__ = 'restructuredtext en'
 #   6.3.6 - Fixes for ADE ePub and PDF introduced in 6.3.5
 #   6.4.0 - Updated for new Kindle for PC encryption
 #   6.4.1 - Fix for some new tags in Topaz ebooks.
+#   6.4.2 - Fix for more new tags in Topaz ebooks and very small Topaz ebooks
 
 
 """
@@ -55,7 +56,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 4, 1)
+PLUGIN_VERSION_TUPLE = (6, 4, 2)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
