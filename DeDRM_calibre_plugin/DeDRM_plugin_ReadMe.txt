@@ -8,8 +8,28 @@ This plugin will remove the DRM from Amazon Kindle ebooks (Mobi, KF8, Topaz and 
 
 Installation
 ------------
-From the Preferences menu, do NOT select "Get plugins to enhance calibre" as this is reserved for 'official' calibre plugins. Instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (DeDRM_plugin.zip) and click the "Add" button. Click "Yes" in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+Open the Preferences menu.
 
+![Preferences menu](http://i.imgur.com/N9v6ZuL.png)
+
+Under "Advanced", select the option for "Plugins".
+
+![Select plugins](http://i.imgur.com/8zTVXgI.png)
+
+Click "Load plugin from file" in the bottom right corner.
+
+![](http://i.imgur.com/k4PB88a.png)
+
+Browse to the location of the downloaded plugin zip file - `DeDRM_plugin.zip`.
+You will get two popup dialogs for installing the plugin. Say "Yes" and "Ok", respectively.
+
+![Are you sure?](http://i.imgur.com/TB54DXC.png)
+
+![Success](http://i.imgur.com/j0T7J2i.png)
+
+Once the plugin is successfully loaded, the DeDRM plugin will appear under "File type plugins".
+
+![File type plugins](http://i.imgur.com/R1XkJ8d.png)
 
 Customization
 -------------
