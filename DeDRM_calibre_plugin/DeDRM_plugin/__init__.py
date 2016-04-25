@@ -49,6 +49,8 @@ __docformat__ = 'restructuredtext en'
 #   6.4.0 - Updated for new Kindle for PC encryption
 #   6.4.1 - Fix for some new tags in Topaz ebooks.
 #   6.4.2 - Fix for more new tags in Topaz ebooks and very small Topaz ebooks
+#   6.4.3 - Fix for error that only appears when not in debug mode
+#           Also includes fix for Macs with bonded ethernet ports
 
 
 """
@@ -56,7 +58,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 4, 2)
+PLUGIN_VERSION_TUPLE = (6, 4, 3)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -88,8 +90,12 @@ class SafeUnbuffered:
     def write(self, data):
         if isinstance(data,unicode):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        try:
+            self.stream.write(data)
+            self.stream.flush()
+        except:
+            # We can do nothing if a write fails
+            pass
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 

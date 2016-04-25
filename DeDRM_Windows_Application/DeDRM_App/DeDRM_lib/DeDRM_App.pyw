@@ -24,8 +24,9 @@
 #   6.4.0 - Fix for Kindle for PC encryption change
 #   6.4.1 - Fix for new tags in Topaz ebooks
 #   6.4.2 - Fix for new tags in Topaz ebooks, and very small Topaz ebooks
+#   6.4.3 - Version bump to match plugin & Mac app
 
-__version__ = '6.4.2'
+__version__ = '6.4.3'
 
 import sys
 import os, os.path

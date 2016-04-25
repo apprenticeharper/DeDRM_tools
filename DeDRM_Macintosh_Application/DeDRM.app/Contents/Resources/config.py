@@ -566,6 +566,19 @@ class AddBandNKeyDialog(QDialog):
         data_group_box_layout.addWidget(ccn_disclaimer_label)
         layout.addSpacing(10)
 
+        key_group = QHBoxLayout()
+        data_group_box_layout.addLayout(key_group)
+        key_group.addWidget(QLabel(u"Retrieved key:", self))
+        self.key_display = QLabel(u"", self)
+        self.key_display.setToolTip(_(u"Click the Retrieve Key button to fetch your B&N encryption key from the B&N servers"))
+        key_group.addWidget(self.key_display)
+        self.retrieve_button = QtGui.QPushButton(self)
+        self.retrieve_button.setToolTip(_(u"Click to retrieve your B&N encryption key from the B&N servers"))
+        self.retrieve_button.setText(u"Retrieve Key")
+        self.retrieve_button.clicked.connect(self.retrieve_key)
+        key_group.addWidget(self.retrieve_button)
+        layout.addSpacing(10)
+
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -579,8 +592,7 @@ class AddBandNKeyDialog(QDialog):
 
     @property
     def key_value(self):
-        from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as fetch_bandn_key
-        return fetch_bandn_key(self.user_name,self.cc_number)
+        return unicode(self.key_display.text()).strip()
 
     @property
     def user_name(self):
@@ -590,6 +602,14 @@ class AddBandNKeyDialog(QDialog):
     def cc_number(self):
         return unicode(self.cc_ledit.text()).strip()
 
+    def retrieve_key(self):
+        from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as fetch_bandn_key
+        fetched_key = fetch_bandn_key(self.user_name,self.cc_number)
+        if fetched_key == "":
+            errmsg = u"Could not retrieve key. Check username, password and intenet connectivity and try again."
+            error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        else:
+            self.key_display.setText(fetched_key)
 
     def accept(self):
         if len(self.key_name) == 0 or len(self.user_name) == 0 or len(self.cc_number) == 0 or self.key_name.isspace() or self.user_name.isspace() or self.cc_number.isspace():
@@ -598,6 +618,10 @@ class AddBandNKeyDialog(QDialog):
         if len(self.key_name) < 4:
             errmsg = u"Key name must be at <i>least</i> 4 characters long!"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        if len(self.key_value) == 0:
+            self.retrieve_key()
+            if len(self.key_value) == 0:
+                return
         QDialog.accept(self)
 
 class AddEReaderDialog(QDialog):

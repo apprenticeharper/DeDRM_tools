@@ -4,7 +4,7 @@
 from __future__ import with_statement
 
 # kindlekey.py
-# Copyright © 2010-2015 by some_updates, Apprentice Alf and Apprentice Harper
+# Copyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper
 
 # Revision history:
 #  1.0   - Kindle info file decryption, extracted from k4mobidedrm, etc.
@@ -19,6 +19,9 @@ from __future__ import with_statement
 #  1.8   - Fixes for Kindle for Mac, and non-ascii in Windows user names
 #  1.9   - Fixes for Unicode in Windows user names
 #  2.0   - Added comments and extra fix for non-ascii Windows user names
+#  2.1   - Fixed Kindle for PC encryption changes March 2016
+#  2.2   - Fixes for Macs with bonded ethernet ports
+#          Also removed old .kinfo file support (pre-2011)
 
 
 """
@@ -26,7 +29,7 @@ Retrieve Kindle for PC/Mac user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '1.9'
+__version__ = '2.2'
 
 import sys, os, re
 from struct import pack, unpack, unpack_from
@@ -926,7 +929,7 @@ if iswindows:
         # or the python interface to the 32 vs 64 bit registry is broken
         path = ""
         if 'LOCALAPPDATA' in os.environ.keys():
-			# Python 2.x does not return unicode env. Use Python 3.x
+            # Python 2.x does not return unicode env. Use Python 3.x
             path = winreg.ExpandEnvironmentStrings(u"%LOCALAPPDATA%")
             # this is just another alternative.
             # path = getEnvironmentVariable('LOCALAPPDATA')
@@ -994,192 +997,113 @@ if iswindows:
     # database of keynames and values
     def getDBfromFile(kInfoFile):
         names = [\
-			'kindle.account.tokens',\
-			'kindle.cookie.item',\
-			'eulaVersionAccepted',\
-			'login_date',\
-			'kindle.token.item',\
-			'login',\
-			'kindle.key.item',\
-			'kindle.name.info',\
-			'kindle.device.info',\
-			'MazamaRandomNumber',\
-			'max_date',\
-			'SIGVERIF',\
-			'build_version',\
-			]
+            'kindle.account.tokens',\
+            'kindle.cookie.item',\
+            'eulaVersionAccepted',\
+            'login_date',\
+            'kindle.token.item',\
+            'login',\
+            'kindle.key.item',\
+            'kindle.name.info',\
+            'kindle.device.info',\
+            'MazamaRandomNumber',\
+            'max_date',\
+            'SIGVERIF',\
+            'build_version',\
+            ]
 
         DB = {}
         with open(kInfoFile, 'rb') as infoReader:
-            hdr = infoReader.read(1)
             data = infoReader.read()
+        # assume newest .kinf2011 style .kinf file
+        # the .kinf file uses "/" to separate it into records
+        # so remove the trailing "/" to make it easy to use split
+        data = data[:-1]
+        items = data.split('/')
 
-        if data.find('{') != -1 :
-            # older style kindle-info file
-            items = data.split('{')
-            for item in items:
-                if item != '':
-                    keyhash, rawdata = item.split(':')
-                    keyname = "unknown"
-                    for name in names:
-                        if encodeHash(name,charMap2) == keyhash:
-                            keyname = name
-                            break
-                    if keyname == "unknown":
-                        keyname = keyhash
-                    encryptedValue = decode(rawdata,charMap2)
-                    DB[keyname] = CryptUnprotectData(encryptedValue, "", 0)
-        elif hdr == '/':
-            # else rainier-2-1-1 .kinf file
-            # the .kinf file uses "/" to separate it into records
-            # so remove the trailing "/" to make it easy to use split
-            data = data[:-1]
-            items = data.split('/')
+        # starts with an encoded and encrypted header blob
+        headerblob = items.pop(0)
+        encryptedValue = decode(headerblob, testMap1)
+        cleartext = UnprotectHeaderData(encryptedValue)
+        #print "header  cleartext:",cleartext
+        # now extract the pieces that form the added entropy
+        pattern = re.compile(r'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
+        for m in re.finditer(pattern, cleartext):
+            added_entropy = m.group(2) + m.group(4)
 
-            # loop through the item records until all are processed
-            while len(items) > 0:
 
-                # get the first item record
+        # loop through the item records until all are processed
+        while len(items) > 0:
+
+            # get the first item record
+            item = items.pop(0)
+
+            # the first 32 chars of the first record of a group
+            # is the MD5 hash of the key name encoded by charMap5
+            keyhash = item[0:32]
+
+            # the sha1 of raw keyhash string is used to create entropy along
+            # with the added entropy provided above from the headerblob
+            entropy = SHA1(keyhash) + added_entropy
+
+            # the remainder of the first record when decoded with charMap5
+            # has the ':' split char followed by the string representation
+            # of the number of records that follow
+            # and make up the contents
+            srcnt = decode(item[34:],charMap5)
+            rcnt = int(srcnt)
+
+            # read and store in rcnt records of data
+            # that make up the contents value
+            edlst = []
+            for i in xrange(rcnt):
                 item = items.pop(0)
+                edlst.append(item)
 
-                # the first 32 chars of the first record of a group
-                # is the MD5 hash of the key name encoded by charMap5
-                keyhash = item[0:32]
+            # key names now use the new testMap8 encoding
+            keyname = "unknown"
+            for name in names:
+                if encodeHash(name,testMap8) == keyhash:
+                    keyname = name
+                    #print "keyname found from hash:",keyname
+                    break
+            if keyname == "unknown":
+                keyname = keyhash
+                #print "keyname not found, hash is:",keyname
 
-                # the raw keyhash string is used to create entropy for the actual
-                # CryptProtectData Blob that represents that keys contents
-                entropy = SHA1(keyhash)
+            # the testMap8 encoded contents data has had a length
+            # of chars (always odd) cut off of the front and moved
+            # to the end to prevent decoding using testMap8 from
+            # working properly, and thereby preventing the ensuing
+            # CryptUnprotectData call from succeeding.
 
-                # the remainder of the first record when decoded with charMap5
-                # has the ':' split char followed by the string representation
-                # of the number of records that follow
-                # and make up the contents
-                srcnt = decode(item[34:],charMap5)
-                rcnt = int(srcnt)
+            # The offset into the testMap8 encoded contents seems to be:
+            # len(contents)-largest prime number <=  int(len(content)/3)
+            # (in other words split "about" 2/3rds of the way through)
 
-                # read and store in rcnt records of data
-                # that make up the contents value
-                edlst = []
-                for i in xrange(rcnt):
-                    item = items.pop(0)
-                    edlst.append(item)
-
-                keyname = "unknown"
-                for name in names:
-                    if encodeHash(name,charMap5) == keyhash:
-                        keyname = name
-                        break
-                if keyname == "unknown":
-                    keyname = keyhash
-                # the charMap5 encoded contents data has had a length
-                # of chars (always odd) cut off of the front and moved
-                # to the end to prevent decoding using charMap5 from
-                # working properly, and thereby preventing the ensuing
-                # CryptUnprotectData call from succeeding.
-
-                # The offset into the charMap5 encoded contents seems to be:
-                # len(contents)-largest prime number <=  int(len(content)/3)
-                # (in other words split "about" 2/3rds of the way through)
-
-                # move first offsets chars to end to align for decode by charMap5
-                encdata = "".join(edlst)
-                contlen = len(encdata)
-                noffset = contlen - primes(int(contlen/3))[-1]
-
-                # now properly split and recombine
-                # by moving noffset chars from the start of the
-                # string to the end of the string
-                pfx = encdata[0:noffset]
-                encdata = encdata[noffset:]
-                encdata = encdata + pfx
-
-                # decode using Map5 to get the CryptProtect Data
-                encryptedValue = decode(encdata,charMap5)
-                DB[keyname] = CryptUnprotectData(encryptedValue, entropy, 1)
-        else:
-            # else newest .kinf2011 style .kinf file
-            # the .kinf file uses "/" to separate it into records
-            # so remove the trailing "/" to make it easy to use split
-            # need to put back the first char read because it it part
-            # of the added entropy blob
-            data = hdr + data[:-1]
-            items = data.split('/')
-
-            # starts with and encoded and encrypted header blob
-            headerblob = items.pop(0)
-            encryptedValue = decode(headerblob, testMap1)
-            cleartext = UnprotectHeaderData(encryptedValue)
-            # now extract the pieces that form the added entropy
-            pattern = re.compile(r'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
-            for m in re.finditer(pattern, cleartext):
-                added_entropy = m.group(2) + m.group(4)
+            # move first offsets chars to end to align for decode by testMap8
+            # by moving noffset chars from the start of the
+            # string to the end of the string
+            encdata = "".join(edlst)
+            #print "encrypted data:",encdata
+            contlen = len(encdata)
+            noffset = contlen - primes(int(contlen/3))[-1]
+            pfx = encdata[0:noffset]
+            encdata = encdata[noffset:]
+            encdata = encdata + pfx
+            #print "rearranged data:",encdata
 
 
-            # loop through the item records until all are processed
-            while len(items) > 0:
+            # decode using new testMap8 to get the original CryptProtect Data
+            encryptedValue = decode(encdata,testMap8)
+            #print "decoded data:",encryptedValue.encode('hex')
+            cleartext = CryptUnprotectData(encryptedValue, entropy, 1)
+            if len(cleartext)>0:
+                #print "cleartext data:",cleartext,":end data"
+                DB[keyname] = cleartext
+            #print keyname, cleartext
 
-                # get the first item record
-                item = items.pop(0)
-
-                # the first 32 chars of the first record of a group
-                # is the MD5 hash of the key name encoded by charMap5
-                keyhash = item[0:32]
-
-                # the sha1 of raw keyhash string is used to create entropy along
-                # with the added entropy provided above from the headerblob
-                entropy = SHA1(keyhash) + added_entropy
-
-                # the remainder of the first record when decoded with charMap5
-                # has the ':' split char followed by the string representation
-                # of the number of records that follow
-                # and make up the contents
-                srcnt = decode(item[34:],charMap5)
-                rcnt = int(srcnt)
-
-                # read and store in rcnt records of data
-                # that make up the contents value
-                edlst = []
-                for i in xrange(rcnt):
-                    item = items.pop(0)
-                    edlst.append(item)
-
-                # key names now use the new testMap8 encoding
-                keyname = "unknown"
-                for name in names:
-                    if encodeHash(name,testMap8) == keyhash:
-                        keyname = name
-                        break
-                if keyname == "unknown":
-                    keyname = keyhash
-
-                # the testMap8 encoded contents data has had a length
-                # of chars (always odd) cut off of the front and moved
-                # to the end to prevent decoding using testMap8 from
-                # working properly, and thereby preventing the ensuing
-                # CryptUnprotectData call from succeeding.
-
-                # The offset into the testMap8 encoded contents seems to be:
-                # len(contents)-largest prime number <=  int(len(content)/3)
-                # (in other words split "about" 2/3rds of the way through)
-
-                # move first offsets chars to end to align for decode by testMap8
-                # by moving noffset chars from the start of the
-                # string to the end of the string
-                encdata = "".join(edlst)
-                contlen = len(encdata)
-                noffset = contlen - primes(int(contlen/3))[-1]
-                pfx = encdata[0:noffset]
-                encdata = encdata[noffset:]
-                encdata = encdata + pfx
-
-                # decode using new testMap8 to get the original CryptProtect Data
-                encryptedValue = decode(encdata,testMap8)
-                cleartext = CryptUnprotectData(encryptedValue, entropy, 1)
-                if len(cleartext)>0:
-                    DB[keyname] = cleartext
-                #print keyname, cleartext
-
-        if len(DB)>4:
+        if len(DB)>6:
             # store values used in decryption
             DB['IDString'] = GetIDString()
             DB['UserName'] = GetUserName()
@@ -1317,11 +1241,9 @@ elif isosx:
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
+        #print out1
         reslst = out1.split('\n')
         cnt = len(reslst)
-        bsdname = None
-        sernum = None
-        foundIt = False
         for j in xrange(cnt):
             resline = reslst[j]
             pp = resline.find('\"Serial Number\" = \"')
@@ -1330,31 +1252,24 @@ elif isosx:
                 sernums.append(sernum.strip())
         return sernums
 
-    def GetUserHomeAppSupKindleDirParitionName():
-        home = os.getenv('HOME')
-        dpath =  home + '/Library'
+    def GetDiskPartitionNames():
+        names = []
         cmdline = '/sbin/mount'
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
         reslst = out1.split('\n')
         cnt = len(reslst)
-        disk = ''
-        foundIt = False
         for j in xrange(cnt):
             resline = reslst[j]
             if resline.startswith('/dev'):
                 (devpart, mpath) = resline.split(' on ')
                 dpart = devpart[5:]
-                pp = mpath.find('(')
-                if pp >= 0:
-                    mpath = mpath[:pp-1]
-                if dpath.startswith(mpath):
-                    disk = dpart
-        return disk
+                names.append(dpart)
+        return names
 
-    # uses a sub process to get the UUID of the specified disk partition using ioreg
-    def GetDiskPartitionUUIDs(diskpart):
+    # uses a sub process to get the UUID of all disk partitions
+    def GetDiskPartitionUUIDs():
         uuids = []
         uuidnum = os.getenv('MYUUIDNUMBER')
         if uuidnum != None:
@@ -1363,46 +1278,16 @@ elif isosx:
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
+        #print out1
         reslst = out1.split('\n')
         cnt = len(reslst)
-        bsdname = None
-        uuidnum = None
-        foundIt = False
-        nest = 0
-        uuidnest = -1
-        partnest = -2
         for j in xrange(cnt):
             resline = reslst[j]
-            if resline.find('{') >= 0:
-                nest += 1
-            if resline.find('}') >= 0:
-                nest -= 1
             pp = resline.find('\"UUID\" = \"')
             if pp >= 0:
                 uuidnum = resline[pp+10:-1]
                 uuidnum = uuidnum.strip()
-                uuidnest = nest
-                if partnest == uuidnest and uuidnest > 0:
-                    foundIt = True
-                    break
-            bb = resline.find('\"BSD Name\" = \"')
-            if bb >= 0:
-                bsdname = resline[bb+14:-1]
-                bsdname = bsdname.strip()
-                if (bsdname == diskpart):
-                    partnest = nest
-                else :
-                    partnest = -2
-                if partnest == uuidnest and partnest > 0:
-                    foundIt = True
-                    break
-            if nest == 0:
-                partnest = -2
-                uuidnest = -1
-                uuidnum = None
-                bsdname = None
-        if foundIt:
-            uuids.append(uuidnum)
+                uuids.append(uuidnum)
         return uuids
 
     def GetMACAddressesMunged():
@@ -1410,28 +1295,26 @@ elif isosx:
         macnum = os.getenv('MYMACNUM')
         if macnum != None:
             macnums.append(macnum)
-        cmdline = '/sbin/ifconfig en0'
+        cmdline = 'networksetup -listallhardwareports' # en0'
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
         reslst = out1.split('\n')
         cnt = len(reslst)
-        macnum = None
-        foundIt = False
         for j in xrange(cnt):
             resline = reslst[j]
-            pp = resline.find('ether ')
+            pp = resline.find('Ethernet Address: ')
             if pp >= 0:
-                macnum = resline[pp+6:-1]
+                #print resline
+                macnum = resline[pp+18:]
                 macnum = macnum.strip()
-                # print 'original mac', macnum
-                # now munge it up the way Kindle app does
-                # by xoring it with 0xa5 and swapping elements 3 and 4
                 maclst = macnum.split(':')
                 n = len(maclst)
                 if n != 6:
-                    fountIt = False
-                    break
+                    continue
+                #print 'original mac', macnum
+                # now munge it up the way Kindle app does
+                # by xoring it with 0xa5 and swapping elements 3 and 4
                 for i in range(6):
                     maclst[i] = int('0x' + maclst[i], 0)
                 mlst = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -1442,16 +1325,15 @@ elif isosx:
                 mlst[1] = maclst[1] ^ 0xa5
                 mlst[0] = maclst[0] ^ 0xa5
                 macnum = '%0.2x%0.2x%0.2x%0.2x%0.2x%0.2x' % (mlst[0], mlst[1], mlst[2], mlst[3], mlst[4], mlst[5])
-                foundIt = True
-                break
-        if foundIt:
-            macnums.append(macnum)
+                #print 'munged mac', macnum
+                macnums.append(macnum)
         return macnums
 
 
     # uses unix env to get username instead of using sysctlbyname
     def GetUserName():
         username = os.getenv('USER')
+        #print "Username:",username
         return username
 
     def GetIDStrings():
@@ -1459,56 +1341,11 @@ elif isosx:
         strings = []
         strings.extend(GetMACAddressesMunged())
         strings.extend(GetVolumesSerialNumbers())
-        diskpart = GetUserHomeAppSupKindleDirParitionName()
-        strings.extend(GetDiskPartitionUUIDs(diskpart))
+        strings.extend(GetDiskPartitionNames())
+        strings.extend(GetDiskPartitionUUIDs())
         strings.append('9999999999')
-        #print strings
+        #print "ID Strings:\n",strings
         return strings
-
-
-    # implements an Pseudo Mac Version of Windows built-in Crypto routine
-    # used by Kindle for Mac versions < 1.6.0
-    class CryptUnprotectData(object):
-        def __init__(self, IDString):
-            sp = IDString + '!@#' + GetUserName()
-            passwdData = encode(SHA256(sp),charMap1)
-            salt = '16743'
-            self.crp = LibCrypto()
-            iter = 0x3e8
-            keylen = 0x80
-            key_iv = self.crp.keyivgen(passwdData, salt, iter, keylen)
-            self.key = key_iv[0:32]
-            self.iv = key_iv[32:48]
-            self.crp.set_decrypt_key(self.key, self.iv)
-
-        def decrypt(self, encryptedData):
-            cleartext = self.crp.decrypt(encryptedData)
-            cleartext = decode(cleartext,charMap1)
-            return cleartext
-
-
-    # implements an Pseudo Mac Version of Windows built-in Crypto routine
-    # used for Kindle for Mac Versions >= 1.6.0
-    class CryptUnprotectDataV2(object):
-        def __init__(self, IDString):
-            sp = GetUserName() + ':&%:' + IDString
-            passwdData = encode(SHA256(sp),charMap5)
-            # salt generation as per the code
-            salt = 0x0512981d * 2 * 1 * 1
-            salt = str(salt) + GetUserName()
-            salt = encode(salt,charMap5)
-            self.crp = LibCrypto()
-            iter = 0x800
-            keylen = 0x400
-            key_iv = self.crp.keyivgen(passwdData, salt, iter, keylen)
-            self.key = key_iv[0:32]
-            self.iv = key_iv[32:48]
-            self.crp.set_decrypt_key(self.key, self.iv)
-
-        def decrypt(self, encryptedData):
-            cleartext = self.crp.decrypt(encryptedData)
-            cleartext = decode(cleartext, charMap5)
-            return cleartext
 
 
     # unprotect the new header blob in .kinf2011
@@ -1528,8 +1365,7 @@ elif isosx:
 
 
     # implements an Pseudo Mac Version of Windows built-in Crypto routine
-    # used for Kindle for Mac Versions >= 1.9.0
-    class CryptUnprotectDataV3(object):
+    class CryptUnprotectData(object):
         def __init__(self, entropy, IDString):
             sp = GetUserName() + '+@#$%+' + IDString
             passwdData = encode(SHA256(sp),charMap2)
@@ -1598,219 +1434,117 @@ elif isosx:
     # database of keynames and values
     def getDBfromFile(kInfoFile):
         names = [\
-			'kindle.account.tokens',\
-			'kindle.cookie.item',\
-			'eulaVersionAccepted',\
-			'login_date',\
-			'kindle.token.item',\
-			'login',\
-			'kindle.key.item',\
-			'kindle.name.info',\
-			'kindle.device.info',\
-			'MazamaRandomNumber',\
-			'max_date',\
-			'SIGVERIF',\
-			'build_version',\
-			]
+            'kindle.account.tokens',\
+            'kindle.cookie.item',\
+            'eulaVersionAccepted',\
+            'login_date',\
+            'kindle.token.item',\
+            'login',\
+            'kindle.key.item',\
+            'kindle.name.info',\
+            'kindle.device.info',\
+            'MazamaRandomNumber',\
+            'max_date',\
+            'SIGVERIF',\
+            'build_version',\
+            ]
         with open(kInfoFile, 'rb') as infoReader:
-            filehdr = infoReader.read(1)
             filedata = infoReader.read()
 
+        data = filedata[:-1]
+        items = data.split('/')
         IDStrings = GetIDStrings()
         for IDString in IDStrings:
-            DB = {}
             #print "trying IDString:",IDString
             try:
-                hdr = filehdr
-                data = filedata
-                if data.find('[') != -1 :
-                    # older style kindle-info file
-                    cud = CryptUnprotectData(IDString)
-                    items = data.split('[')
-                    for item in items:
-                        if item != '':
-                            keyhash, rawdata = item.split(':')
-                            keyname = 'unknown'
-                            for name in names:
-                                if encodeHash(name,charMap2) == keyhash:
-                                    keyname = name
-                                    break
-                            if keyname == 'unknown':
-                                keyname = keyhash
-                            encryptedValue = decode(rawdata,charMap2)
-                            cleartext = cud.decrypt(encryptedValue)
-                            if len(cleartext) > 0:
-                                DB[keyname] = cleartext
-                    if 'MazamaRandomNumber' in DB and 'kindle.account.tokens' in DB:
-                        break
-                elif hdr == '/':
-                    # else newer style .kinf file used by K4Mac >= 1.6.0
-                    # the .kinf file uses '/' to separate it into records
-                    # so remove the trailing '/' to make it easy to use split
-                    data = data[:-1]
-                    items = data.split('/')
-                    cud = CryptUnprotectDataV2(IDString)
+                DB = {}
+                items = data.split('/')
+               
+                # the headerblob is the encrypted information needed to build the entropy string
+                headerblob = items.pop(0)
+                encryptedValue = decode(headerblob, charMap1)
+                cleartext = UnprotectHeaderData(encryptedValue)
 
-                    # loop through the item records until all are processed
-                    while len(items) > 0:
+                # now extract the pieces in the same way
+                # this version is different from K4PC it scales the build number by multipying by 735
+                pattern = re.compile(r'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
+                for m in re.finditer(pattern, cleartext):
+                    entropy = str(int(m.group(2)) * 0x2df) + m.group(4)
 
-                        # get the first item record
+                cud = CryptUnprotectData(entropy,IDString)
+
+                # loop through the item records until all are processed
+                while len(items) > 0:
+
+                    # get the first item record
+                    item = items.pop(0)
+
+                    # the first 32 chars of the first record of a group
+                    # is the MD5 hash of the key name encoded by charMap5
+                    keyhash = item[0:32]
+                    keyname = 'unknown'
+
+                    # unlike K4PC the keyhash is not used in generating entropy
+                    # entropy = SHA1(keyhash) + added_entropy
+                    # entropy = added_entropy
+
+                    # the remainder of the first record when decoded with charMap5
+                    # has the ':' split char followed by the string representation
+                    # of the number of records that follow
+                    # and make up the contents
+                    srcnt = decode(item[34:],charMap5)
+                    rcnt = int(srcnt)
+
+                    # read and store in rcnt records of data
+                    # that make up the contents value
+                    edlst = []
+                    for i in xrange(rcnt):
                         item = items.pop(0)
+                        edlst.append(item)
 
-                        # the first 32 chars of the first record of a group
-                        # is the MD5 hash of the key name encoded by charMap5
-                        keyhash = item[0:32]
-                        keyname = 'unknown'
+                    keyname = 'unknown'
+                    for name in names:
+                        if encodeHash(name,testMap8) == keyhash:
+                            keyname = name
+                            break
+                    if keyname == 'unknown':
+                        keyname = keyhash
 
-                        # the raw keyhash string is also used to create entropy for the actual
-                        # CryptProtectData Blob that represents that keys contents
-                        # 'entropy' not used for K4Mac only K4PC
-                        # entropy = SHA1(keyhash)
+                    # the testMap8 encoded contents data has had a length
+                    # of chars (always odd) cut off of the front and moved
+                    # to the end to prevent decoding using testMap8 from
+                    # working properly, and thereby preventing the ensuing
+                    # CryptUnprotectData call from succeeding.
 
-                        # the remainder of the first record when decoded with charMap5
-                        # has the ':' split char followed by the string representation
-                        # of the number of records that follow
-                        # and make up the contents
-                        srcnt = decode(item[34:],charMap5)
-                        rcnt = int(srcnt)
+                    # The offset into the testMap8 encoded contents seems to be:
+                    # len(contents) - largest prime number less than or equal to int(len(content)/3)
+                    # (in other words split 'about' 2/3rds of the way through)
 
-                        # read and store in rcnt records of data
-                        # that make up the contents value
-                        edlst = []
-                        for i in xrange(rcnt):
-                            item = items.pop(0)
-                            edlst.append(item)
+                    # move first offsets chars to end to align for decode by testMap8
+                    encdata = ''.join(edlst)
+                    contlen = len(encdata)
 
-                        keyname = 'unknown'
-                        for name in names:
-                            if encodeHash(name,charMap5) == keyhash:
-                                keyname = name
-                                break
-                        if keyname == 'unknown':
-                            keyname = keyhash
+                    # now properly split and recombine
+                    # by moving noffset chars from the start of the
+                    # string to the end of the string
+                    noffset = contlen - primes(int(contlen/3))[-1]
+                    pfx = encdata[0:noffset]
+                    encdata = encdata[noffset:]
+                    encdata = encdata + pfx
 
-                        # the charMap5 encoded contents data has had a length
-                        # of chars (always odd) cut off of the front and moved
-                        # to the end to prevent decoding using charMap5 from
-                        # working properly, and thereby preventing the ensuing
-                        # CryptUnprotectData call from succeeding.
+                    # decode using testMap8 to get the CryptProtect Data
+                    encryptedValue = decode(encdata,testMap8)
+                    cleartext = cud.decrypt(encryptedValue)
+                    # print keyname
+                    # print cleartext
+                    if len(cleartext) > 0:
+                        DB[keyname] = cleartext
 
-                        # The offset into the charMap5 encoded contents seems to be:
-                        # len(contents) - largest prime number less than or equal to int(len(content)/3)
-                        # (in other words split 'about' 2/3rds of the way through)
-
-                        # move first offsets chars to end to align for decode by charMap5
-                        encdata = ''.join(edlst)
-                        contlen = len(encdata)
-
-                        # now properly split and recombine
-                        # by moving noffset chars from the start of the
-                        # string to the end of the string
-                        noffset = contlen - primes(int(contlen/3))[-1]
-                        pfx = encdata[0:noffset]
-                        encdata = encdata[noffset:]
-                        encdata = encdata + pfx
-
-                        # decode using charMap5 to get the CryptProtect Data
-                        encryptedValue = decode(encdata,charMap5)
-                        cleartext = cud.decrypt(encryptedValue)
-                        if len(cleartext) > 0:
-                            DB[keyname] = cleartext
-
-                    if len(DB)>4:
-                        break
-                else:
-                    # the latest .kinf2011 version for K4M 1.9.1
-                    # put back the hdr char, it is needed
-                    data = hdr + data
-                    data = data[:-1]
-                    items = data.split('/')
-
-                    # the headerblob is the encrypted information needed to build the entropy string
-                    headerblob = items.pop(0)
-                    encryptedValue = decode(headerblob, charMap1)
-                    cleartext = UnprotectHeaderData(encryptedValue)
-
-                    # now extract the pieces in the same way
-                    # this version is different from K4PC it scales the build number by multipying by 735
-                    pattern = re.compile(r'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
-                    for m in re.finditer(pattern, cleartext):
-                        entropy = str(int(m.group(2)) * 0x2df) + m.group(4)
-
-                    cud = CryptUnprotectDataV3(entropy,IDString)
-
-                    # loop through the item records until all are processed
-                    while len(items) > 0:
-
-                        # get the first item record
-                        item = items.pop(0)
-
-                        # the first 32 chars of the first record of a group
-                        # is the MD5 hash of the key name encoded by charMap5
-                        keyhash = item[0:32]
-                        keyname = 'unknown'
-
-                        # unlike K4PC the keyhash is not used in generating entropy
-                        # entropy = SHA1(keyhash) + added_entropy
-                        # entropy = added_entropy
-
-                        # the remainder of the first record when decoded with charMap5
-                        # has the ':' split char followed by the string representation
-                        # of the number of records that follow
-                        # and make up the contents
-                        srcnt = decode(item[34:],charMap5)
-                        rcnt = int(srcnt)
-
-                        # read and store in rcnt records of data
-                        # that make up the contents value
-                        edlst = []
-                        for i in xrange(rcnt):
-                            item = items.pop(0)
-                            edlst.append(item)
-
-                        keyname = 'unknown'
-                        for name in names:
-                            if encodeHash(name,testMap8) == keyhash:
-                                keyname = name
-                                break
-                        if keyname == 'unknown':
-                            keyname = keyhash
-
-                        # the testMap8 encoded contents data has had a length
-                        # of chars (always odd) cut off of the front and moved
-                        # to the end to prevent decoding using testMap8 from
-                        # working properly, and thereby preventing the ensuing
-                        # CryptUnprotectData call from succeeding.
-
-                        # The offset into the testMap8 encoded contents seems to be:
-                        # len(contents) - largest prime number less than or equal to int(len(content)/3)
-                        # (in other words split 'about' 2/3rds of the way through)
-
-                        # move first offsets chars to end to align for decode by testMap8
-                        encdata = ''.join(edlst)
-                        contlen = len(encdata)
-
-                        # now properly split and recombine
-                        # by moving noffset chars from the start of the
-                        # string to the end of the string
-                        noffset = contlen - primes(int(contlen/3))[-1]
-                        pfx = encdata[0:noffset]
-                        encdata = encdata[noffset:]
-                        encdata = encdata + pfx
-
-                        # decode using testMap8 to get the CryptProtect Data
-                        encryptedValue = decode(encdata,testMap8)
-                        cleartext = cud.decrypt(encryptedValue)
-                        # print keyname
-                        # print cleartext
-                        if len(cleartext) > 0:
-                            DB[keyname] = cleartext
-
-                    if len(DB)>4:
-                        break
+                if len(DB)>6:
+                    break
             except:
                 pass
-        if len(DB)>4:
+        if len(DB)>6:
             # store values used in decryption
             print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName())
             DB['IDString'] = IDString
@@ -1874,7 +1608,7 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"{0} v{1}\nCopyright © 2010-2013 some_updates and Apprentice Alf".format(progname,__version__)
+    print u"{0} v{1}\nCopyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__)
 
     try:
         opts, args = getopt.getopt(argv[1:], "hk:")
@@ -1904,7 +1638,7 @@ def cli_main():
         # save to the same directory as the script
         outpath = os.path.dirname(argv[0])
 
-    # make sure the outpath is the
+    # make sure the outpath is canonical
     outpath = os.path.realpath(os.path.normpath(outpath))
 
     if not getkey(outpath, files):
