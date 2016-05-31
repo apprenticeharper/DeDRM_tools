@@ -1,7 +1,7 @@
 # DeDRM_tools
 DeDRM tools for ebooks
 
-This is a repository of all the scripts and other tools for removing DRM from ebooks that I could find, commited in date order as best as I could manage. (Except for the Requiem tools for Apple's iBooks, and Convert LIT for Microsoft's .lit ebooks.)
+This is a repository of all the scripts and other tools for removing DRM from ebooks that I could find, committed in date order as best as I could manage. (Except for the Requiem tools for Apple's iBooks, and Convert LIT for Microsoft's .lit ebooks.)
 
 Mostly it tracks the tools releases by Apprentice Alf, athough it also includes the individual tools and their histories from before Alf had a blog.
 
