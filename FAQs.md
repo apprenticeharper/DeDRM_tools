@@ -28,7 +28,7 @@ Install calibre. Install the DeDRM_plugin in calibre. Install the Obok_plugin in
  
 # Installing the Tools
 ## The calibre plugin
-### I am trying to install the calibre plugin, but calibre says "ERROR: Unhandled exception: InvalidPlugin: The plugin in u’[path]DeDRM_tools_6.4.3.zip’ is invalid. It does not contain a top-level __init__.py file"
+### I am trying to install the calibre plugin, but calibre says "ERROR: Unhandled exception: InvalidPlugin: The plugin in u’[path]DeDRM_tools_6.4.3.zip’ is invalid. It does not contain a top-level \_\_init\_\_.py file"
 You are trying to add the tools archive (e.g. DeDRM_tools_6.4.3.zip) instead of the plugin. The tools archive is not the plugin. It is a collection of DRM removal tools which includes the plugin. You must unzip the archive, and install the calibre plugin (DeDRM_plugin.zip) from a folder called “DeDRM_calibre_plugin” in the unzipped archive.
 
 ### I’ve unzipped the tools archive, but I can’t find the calibre plugin when I try to add them to calibre. I use Windows.
@@ -152,23 +152,23 @@ Amazon changed the way the key was generated for Kindle for iOS books, and the t
 Apple regularly change the details of their DRM and so the tools in the main tools archive will not work with these ebooks. Apple’s Fairplay DRM scheme can be removed using Requiem if the appropriate version of iTunes can still be installed and used. See the post Apple and ebooks: iBookstore DRM and how to remove it at Apprentice Alf's blog for more details and links.
 
 ## I’ve got the tools archive and I’ve read all the FAQs but I still can’t install the tools and/or the DRM removal doesn’t work
-•Read the ReadMe_First.txt file in the top level of the tools archive
-•Read the ReadMe file in the folder of the tools you want to use.
-•If you still can’t remove the DRM, ask in the comments section of Apprentice Alf's blog, reporting the error as precisely as you can, what platform you use, what tool you have tried, what errors you get, and what versions you are using. If the problem happens when running one of the tools, post a log (see previous questions on how to do this).
+* Read the ReadMe_First.txt file in the top level of the tools archive
+* Read the ReadMe file in the folder of the tools you want to use.
+* If you still can’t remove the DRM, ask in the comments section of Apprentice Alf's blog, reporting the error as precisely as you can, what platform you use, what tool you have tried, what errors you get, and what versions you are using. If the problem happens when running one of the tools, post a log (see previous questions on how to do this).
 
 ## Who wrote these scripts?
 The authors tend to identify themselves only by pseudonyms:
-•The Adobe Adept and Barnes & Noble scripts were created by i♥cabbages
-•The Amazon Mobipocket and eReader scripts were created by The Dark Reverser
-•The Amazon K4PC DRM/format was further decoded by Bart Simpson aka Skindle
-•The Amazon K4 Mobi tool was created by by some_updates, mdlnx and others
-•The Amazon Topaz DRM removal script was created by CMBDTC
-•The Amazon Topaz format conversion was created by some_updates, clarknova, and Bart Simpson
-•The DeDRM all-in-one AppleScript application was created by Apprentice Alf
-•The DeDRM all-in-one Python application was created by some_updates
-•The DeDRM all-in-one calibre plugins was created by Apprentice Alf
-•The Scuolabooks tool was created by Hex
-•The Microsoft code was created by drs
-•The Apple DRM removal tool was created by Brahms
+* The Adobe Adept and Barnes & Noble scripts were created by i♥cabbages
+* The Amazon Mobipocket and eReader scripts were created by The Dark Reverser
+* The Amazon K4PC DRM/format was further decoded by Bart Simpson aka Skindle
+* The Amazon K4 Mobi tool was created by by some_updates, mdlnx and others
+* The Amazon Topaz DRM removal script was created by CMBDTC
+* The Amazon Topaz format conversion was created by some_updates, clarknova, and Bart Simpson
+* The DeDRM all-in-one AppleScript application was created by Apprentice Alf
+* The DeDRM all-in-one Python application was created by some_updates
+* The DeDRM all-in-one calibre plugins was created by Apprentice Alf
+* The Scuolabooks tool was created by Hex
+* The Microsoft code was created by drs
+* The Apple DRM removal tool was created by Brahms
 
 Since the original versions of the scripts and programs were released, various people have helped to maintain and improve them.
