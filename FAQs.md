@@ -117,13 +117,14 @@ Adobe introduced a new DRM scheme with ADE 3.0 and later. Install ADE 2.0.1 and 
 ## The DRM wasn't removed and the log says "Failed to decrypt with error: Cannot decode library or rented ebooks." What now?
 You're trying to remove the DRM from an ebook that's only on loan to you. No help will be given to remove DRM from such ebooks. If you think that you have received this message for a book you own, please create an issue at github, or comment at the blog.
 
-## I cannot solve my problem the DeDRM plugin, and now I need to ‘post a log’. How do I do that?
+## I cannot solve my problem with the DeDRM plugin, and now I need to ‘post a log’. How do I do that?
 Remove the DRMed book from calibre. Click the Preferences drop-down menu and choose 'Restart in debug mode'. Once calibre has re-started, import the problem ebook. Now close calibre. A log will appear that you can copy and paste into a comment at Apprentice Alf's blog, or into a new issue at Apprentice Harper's github repository.
 
-# I cannot solve my problem with one of the DeDRM applications, and now I need to ‘post a log’. How do I do that?
-* On Macintosh, the DeDRM application creates a log file on your desktop every time it is run. Copy the contents of that (it is a simple text file) and paste it into your comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
+## I cannot solve my problem with the Macintosh DeDRM application, and now I need to ‘post a log’. How do I do that?
+The Macintosh DeDRM application creates a log file on your desktop every time it is run. After unsuccessfully removing DRM from one ebook, copy the contents of the log file (it is a simple text file) and paste it into your comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
 
-* On Windows, the DeDRM application creates a log file in your home directory every time it is run. Copy the contents of that (it is a simple text file) and paste it into your comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
+## I cannot solve my problem with the Windows DeDRM application, and now I need to ‘post a log’. How do I do that?
+The Windows DeDRM application creates a log file in your home directory (C:\Users\[username]) every time it is run. After unsuccessfully removing DRM from one ebook, copy the contents of the log file (it is a simple text file) and paste it into your comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
 
 
 # General Questions
