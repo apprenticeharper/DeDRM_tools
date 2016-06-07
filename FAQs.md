@@ -18,25 +18,29 @@ Just download and use these tools, that's all! Uh, almost. There are a few, uh, 
 But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the ebook stores selling ebooks compatible with Adobe Digital Editions 2.0.1, you should be able to free your books from DRM. 
 
 ## Where can I get the latest version of these free DRM removal tools?
-Right here at github. Just go to the [releases page](https://github.com/apprenticeharper/DeDRM_tools/releases) and download the latest zip archive of the tools, named DeDRM_tools_X.X.X.zip, where X.X.X is the version number. You do not need to download the source code archive.
+Right here at github. Just go to the [releases page](https://github.com/apprenticeharper/DeDRM_tools/releases) and download the latest zip archive of the tools, named DeDRM\_tools\_X.X.X.zip, where X.X.X is the version number. You do not need to download the source code archive.
 
 ## I've downloaded the tools archive. Now what?
-First, unzip the archive. You should now have a DeDRM folder containing several other folders and a ReadMe_First.txt file. Please read the ReadMe_First file! That will explain what the folders are, and you'll be able to work out which of the tools you need.
+First, unzip the archive. You should now have a DeDRM folder containing several other folders and a ReadMe\_First.txt file. Please read the ReadMe\_First file! That will explain what the folders are, and you'll be able to work out which of the tools you need.
 
 ## That's a big complicated ReadMe file! Isn't there a quick guide?
-Install calibre. Install the DeDRM_plugin in calibre. Install the Obok_plugin in calibre. Restart calibre. In the DeDRM_plugin customisation dialog add in any E-Ink Kindle serial numbers and your B&N account email address and password. Remember that the plugin only tries to remove DRM when ebooks are imported, not at any other time.
+Install calibre. Install the DeDRM\_plugin in calibre. Install the Obok\_plugin in calibre. Restart calibre. In the DeDRM_plugin customisation dialog add in any E-Ink Kindle serial numbers and your B&N account email address and password. Remember that the plugin only tries to remove DRM when ebooks are imported, not at any other time.
  
 # Installing the Tools
 ## The calibre plugin
-### I am trying to install the calibre plugin, but calibre says "ERROR: Unhandled exception: InvalidPlugin: The plugin in u’[path]DeDRM_tools_6.4.3.zip’ is invalid. It does not contain a top-level \_\_init\_\_.py file"
-You are trying to add the tools archive (e.g. DeDRM_tools_6.4.3.zip) instead of the plugin. The tools archive is not the plugin. It is a collection of DRM removal tools which includes the plugin. You must unzip the archive, and install the calibre plugin (DeDRM_plugin.zip) from a folder called “DeDRM_calibre_plugin” in the unzipped archive.
+### I am trying to install the calibre plugin, but calibre says "ERROR: Unhandled exception: InvalidPlugin: The plugin in u’[path]DeDRM\_tools\_6.4.3.zip’ is invalid. It does not contain a top-level \_\_init\_\_.py file"
+You are trying to add the tools archive (e.g. DeDRM\_tools\_6.4.3.zip) instead of the plugin. The tools archive is not the plugin. It is a collection of DRM removal tools which includes the plugin. You must unzip the archive, and install the calibre plugin (DeDRM\_plugin.zip) from a folder called “DeDRM\_calibre_plugin” in the unzipped archive.
 
 ### I’ve unzipped the tools archive, but I can’t find the calibre plugin when I try to add them to calibre. I use Windows.
-You should select the zip file that is in the “DeDRM_calibre_plugin” folder, not any files inside the plugin’s zip archive. Make sure you are selecting from the folder that you created when you right unzipped the tools archive and not selecting a file inside the still-zipped tools archive.
+You should select the zip file that is in the “DeDRM\_calibre\_plugin” folder, not any files inside the plugin’s zip archive. Make sure you are selecting from the folder that you created when you right unzipped the tools archive and not selecting a file inside the still-zipped tools archive.
 
-(The problem is that Windows will allow apps to browse inside zip archives without needing to unzip them first. If there are zip archives inside the main zip archives, Windows will show them as unzipped as well. So what happens is people will unzip the DeDRM_tools_X.X.X.zip to a folder, but when using calibre they will actually navigate to the still zipped file by mistake and cannot tell they have done so because they do not have file extensions showing. So to the unwary Windows user, it appears that the zip archive was unzipped and that everything inside it was unzipped as well so there is no way to install the plugins.
+(The problem is that Windows will allow apps to browse inside zip archives without needing to unzip them first. If there are zip archives inside the main zip archives, Windows will show them as unzipped as well. So what happens is people will unzip the DeDRM\_tools\_X.X.X.zip to a folder, but when using calibre they will actually navigate to the still zipped file by mistake and cannot tell they have done so because they do not have file extensions showing. So to the unwary Windows user, it appears that the zip archive was unzipped and that everything inside it was unzipped as well so there is no way to install the plugins.
 
-We strongly recommend renaming the DeDRM_tools_X.X.X.zip archive (after extracting its contents) to DeDRM_tools_X.X.X_archive.zip. If you do that, you are less likely to navigate to the wrong location from inside calibre.)
+We strongly recommend renaming the DeDRM\_tools\_X.X.X.zip archive (after extracting its contents) to DeDRM\_tools\_X.X.X_archive.zip. If you do that, you are less likely to navigate to the wrong location from inside calibre.)
+
+## The Windows Application
+### I've installed ActiveState Python and PyCrypto, but the Windows application won't run. What have I done wrong?
+Nothing. There's a bug in the current ActiveState Python Windows installer that puts the Tcl code in the wrong place. See [this comment of mine at ActiveState community](https://community.activestate.com/node/19090). Just move the Tcl code and the Windows app should run.
 
 # Using the Tools
 ## I can’t get the tools to work on my rented or library ebooks.
