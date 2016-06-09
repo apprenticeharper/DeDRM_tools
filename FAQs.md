@@ -153,6 +153,9 @@ Because no-one's found out how to remove the DRM from ebooks from Kindle Fire de
 ## Why don't the tools work with Kindle for iOS ebooks?
 Amazon changed the way the key was generated for Kindle for iOS books, and the tools can no longer find the key. The workaround is to install Kindle for PC or Kindle for Mac and use books from there instead.
 
+## Why don't the tools work with Kindle for Android ebooks?
+Amazon turned off backup for Kindle for Android, so the tools can no longer find the key. The workaround is to install Kindle for PC or Kindle for Mac and use books from there instead.
+
 ## Why don't the tools work on books from the Apple iBooks Store?
 Apple regularly change the details of their DRM and so the tools in the main tools archive will not work with these ebooks. Apple’s Fairplay DRM scheme can be removed using Requiem if the appropriate version of iTunes can still be installed and used. See the post Apple and ebooks: iBookstore DRM and how to remove it at Apprentice Alf's blog for more details and links.
 
