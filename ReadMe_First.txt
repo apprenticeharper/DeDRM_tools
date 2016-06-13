@@ -1,21 +1,22 @@
 ﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.3.4 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.4.4 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
 
 The is archive includes tools to remove DRM from:
 
- - Kindle ebooks (from Kindle for Mac/PC, eInk Kindles and Kindle for Android).
+ - Kindle ebooks (from Kindle for Mac/PC and eInk Kindles).
  - Barnes and Noble ePubs
- - Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
+ - Adobe Digital Editions (v2.0.1*) ePubs (including Kobo and Google ePubs downloaded to ADE)
  - Kobo kePubs from the Kobo Desktop application
- - Adobe Digital Editions PDFs
+ - Adobe Digital Editions (v2.0.1) PDFs
  - Mobipocket ebooks
  - eReader PDB books
  - Scuolabooks (Link to solution by Hex)
 
 These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
+* With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of June 2016.
 
 About the tools
 ---------------
@@ -25,11 +26,11 @@ If you re-post these tools, a link to the blog would be appreciated.
 
 DeDRM plugin for calibre (Mac OS X, Windows, and Linux)
 -------------------------------------------------------
-Calibre is an open source freeware ebook library manager. It is the best tool around for keeping track of your ebooks. The DeDRM plugin for calibre provides the simplest way, especially on Windows, to remove DRM from your ebooks. Just install the DeDRM plugin from the DeDRM_calibre_plugin folder, following the instructions and configuration directions provided in the ReadMe and the help links.
+Calibre is an open source freeware ebook library manager. It is the best tool around for keeping track of your ebooks. The DeDRM plugin for calibre provides the simplest way, especially on Windows, to remove DRM from your ebooks. Just install the DeDRM plugin from the DeDRM_calibre_plugin folder, following the instructions and configuration directions provided in the ReadMe file and the help links in the plugin's configuration dialogs.
 
-Once installed and configured, you can simply add a DRM book to calibre and the DeDRMed version will be imported into the calibre database. Note that DRM removal only occurs on IMPORT not on CONVERSION or at any other time, not even conversion to other formats. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
+Once installed and configured, you can simply add a DRM book to calibre and the DRM-free version will be imported into the calibre database. Note that DRM removal only occurs on IMPORT not on CONVERSION or at any other time. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
 
-Linux users should read the section at the end the DeDRM_plugin_ReadMe.txt file.
+Linux users should read the section at the end of the DeDRM_plugin_ReadMe.txt file.
 
 
 DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
@@ -41,7 +42,7 @@ For instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Macintosh_Applica
 N.B. Mac OS X 10.4 users need to take extra steps before using the application, see the ReadMe.
 
 
-DeDRM application for Windows users: (Windows XP through Windows 8)
+DeDRM application for Windows users: (Windows XP through Windows 10)
 ------------------------------------------------------------------
 ***This program requires that Python and PyCrypto be properly installed.***
 ***See below for details on recommended versions and how to install them.***
@@ -66,10 +67,10 @@ B_and_N_Download_Helper
 A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Only for the adventurous.
 
 DRM_Key_Scripts
-This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble ePubs, Adobe Digital Editions ePubs, Kindle for Mac/PC and Kindle for Android ebooks.
+This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble, Adobe Digital Editions, Kindle for Mac/PC and old versons of Kindle for Android.
 
 Kindle_for_Android_Patches
-Definitely only for the adventurous, this folder contains information on how to modify the Kindle for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin). This is now of historical interest only, as Android support has now been added to the tools more simply.
+Definitely only for the adventurous, this folder contains information on how to modify the Kindle for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin). 
 
 Kobo
 Contains the standalone obok python script for removing DRM from kePubs downloaded using the kobo desktop application.
@@ -89,9 +90,9 @@ http://www.activestate.com/activepython/downloads
 
 We do **NOT** recommend the version of Python from python.org as it is missing various Windows specific libraries, does not install the Tk Widget kit (for graphical user interfaces) by default, and does not properly update the system PATH environment variable. Therefore using the default python.org build on Windows is simply an exercise in frustration for most Windows users.
 
-In addition, Windows Users need one of PyCrypto OR OpenSSL. Because of potential conflicts with other software, we recommend using PyCrypto.
+Note that currently (June 2016) ActiveState Python puts the tcl library in the wrong place, and it needs to be manually moved. See this thread at activestate.com for the latest information: https://community.activestate.com/node/19090
 
-For PyCrypto:
+In addition, Windows Users need PyCrypto:
 
     There are many places to get PyCrypto installers for Windows. One such place is:
 
@@ -99,18 +100,7 @@ For PyCrypto:
 
     Please get the latest (currently 2.6) PyCrypto meant for Windows Python version 2.7
 
-For OpenSSL:
-
-    Win32 OpenSSL v0.9.8o (8Mb)
-    http://www.slproweb.com/download/Win32OpenSSL-0_9_8o.exe
-    (if you get an error message about missing Visual C++
-    redistributables... cancel the install and install the
-    below support program from Microsoft, THEN install OpenSSL)
-
-    Visual C++ 2008 Redistributables (1.7Mb)
-    http://www.microsoft.com/downloads/details.aspx?familyid=9B2DA534-3E03-4391-8A4D-074B9F2BC1BF
-
-Once Windows users have installed Python 2.7, and the matching OpenSSL OR PyCrypto pieces, they are ready to run the DeDRM application or individual scripts.
+Once Windows users have installed Python 2.7, and the matching PyCrypto, they are ready to run the DeDRM application or individual scripts.
 
 
 

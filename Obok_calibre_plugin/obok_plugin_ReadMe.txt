@@ -6,7 +6,7 @@ This plugin will remove the DRM from Kobo ebooks download on Mac or Windows usin
 
 Installation
 ------------
-Do NOT select "Get plugins to enhance calibre" as this is reserved for 'official' calibre plugins, instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (obok_plugin.zip) and click the "Add" button. Click "Yes" in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+Open calibre's Preferences dialog.  Click on the "Plugins" button.  Next, click on the button, "Load plugin from file".  Navigate to the unzipped DeDRM_tools folder and, in the folder "obok_calibre_plugin", find the file "obok_plugin.zip".  Click to select the file and select "Open".  Click "Yes" in the "Are you sure?" dialog box. Click the "OK" button in the "Success" dialog box.
 
 
 Customization

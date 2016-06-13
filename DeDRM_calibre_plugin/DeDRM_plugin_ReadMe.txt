@@ -1,23 +1,43 @@
 ﻿DeDRM_plugin.zip
 ================
 
-This calibre plugin replaces all previous DRM removal plugins. Before you install this plugin, you should uninstall any older individual DRM removal plugins, e.g. K4MobiDeDRM.
+This calibre plugin replaces many previously separate DRM removal plugins. Before you install this plugin, you should uninstall any older individual DRM removal plugins, e.g. K4MobiDeDRM. The exception is the obok plugin, which should not be removed.
 
-This plugin will remove the DRM from Amazon Kindle ebooks (Mobi, KF8, Topaz and Print Replica), Mobipocket, Adobe Digital Edition ePubs (including Sony and Kobo ePubs), Barnes and Noble (nook) ePubs, Adobe Digital Edition PDFs, and Fictionwise eReader ebooks.
+This plugin will remove the DRM from
+ - Kindle ebooks (from Kindle for Mac/PC and eInk Kindles).
+ - Barnes and Noble ePubs
+ - Adobe Digital Editions (v2.0.1*) ePubs (including Kobo and Google ePubs downloaded to ADE)
+ - Adobe Digital Editions (v2.0.1) PDFs
+ - Mobipocket ebooks
+ - eReader PDB books
+ 
+These tools do NOT work with kepubs downloaded using Kobo's desktop app (see the separate obok plugin) nor Apple's iBooks FairPlay DRM (see details about Requiem at the end of this file.)
+
+* With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of June 2016.
 
 
 Installation
 ------------
-From the Preferences menu, do NOT select "Get plugins to enhance calibre" as this is reserved for 'official' calibre plugins. Instead select "Change calibre behavior" to go to Calibre's Preferences page.  Under "Advanced" click on the Plugins button. Use the "Load plugin from file" button to select the plugin's zip file (DeDRM_plugin.zip) and click the "Add" button. Click "Yes" in the the "Are you sure?" dialog. Click OK in the "Success" dialog.
+Open calibre's Preferences dialog.  Click on the "Plugins" button.  Next, click on the button, "Load plugin from file".  Navigate to the unzipped DeDRM_tools folder and, in the folder "DeDRM_calibre_plugin", find the file "DeDRM_plugin.zip".  Click to select the file and select "Open".  Click "Yes" in the "Are you sure?" dialog box. Click the "OK" button in the "Success" dialog box.
 
 
 Customization
 -------------
-The keys for ebooks downloaded using Kindle for Mac/PC, Adobe Digital Editions and NOOK Study are automatically generated and saved when needed. If all your DRMed ebooks can be downloaded and read in Kindle for Mac/PC, Adobe Digital Editions or NOOK Study on the same computer and user account on which you are running calibre, you do not need to do add any customisation data to this plugin. (Linux users should see the Linux section at the end of this ReadMe.)
+You MUST add some key information for the following kinds of ebooks:
+ - Kindle ebooks from an E-Ink based Kindle (e.g. Voyage).
+ - Barnes & Noble ePubs other than those downloaded using NOOK Study
+ - Mobipocket ebooks
+ - eReader PDB books
+ 
+ You do not need to add any key information for eBooks
+  - downloaded using Kindle for Mac/PC
+  - downloaded using Adobe Digital Editions (v2.0.1)
+  - downloaded using NOOK Study
+ as the necessary keys are automatically retrieved from files on your computer.
 
-If you have books from other sources (e.g. from an eInk Kindle), highlight the plugin (DeDRM under the "File type plugins" category) and click the "Customize Plugin" button.
+ To add needed key information for other books, highlight the plugin (DeDRM under the "File type plugins" category) and click the "Customize Plugin" button.
 
-The buttons in the configuration dialog will open individual configuration dialogs that will allow you to enter the needed information, depending on the type and source of your DRMed eBooks. Additional help on the information required is available in each of the the dialogs.
+The buttons in the configuration dialog will open individual configuration dialogs that will allow you to enter the needed information, depending on the type and source of your DRMed eBooks. Additional help on the information required is available in each of the the dialogs vias the [?] help button.
 
 If you have used previous versions of the various DeDRM plugins on this machine, you may find that some of the configuration dialogs already contain the information you entered through those previous plugins.
 
@@ -26,25 +46,14 @@ When you have finished entering your configuration information, you must click t
 
 Troubleshooting
 ---------------
-If you find that it's not working for you (imported ebooks still have DRM - that is, they won't convert or open in the calibre ebook viewer), you should make a log of import process by deleting the DRMed ebook from calibre and then adding the ebook to calibre when it's running in debug mode. This will generate a lot of helpful debugging info that can be copied into any online help requests. Here's how to do it:
+If you find that the DeDRM plugin  is not working for you (imported ebooks still have DRM - that is, they won't convert or open in the calibre ebook viewer), you should make a log of the import process by deleting the DRMed ebook from calibre and then adding the ebook to calibre when it's running in debug mode. This will generate a lot of helpful debugging info that can be copied into any online help requests. Here's how to do it:
 
-On Windows, open a terminal/command window. (Start/Run… and then type 'cmd.exe' (without the 's) as the program to run).
-On Macintosh, open the Terminal application (in your Utilities folder).
-On Linux open a command window. Hopefully all Linux users know how to do this.
+ - Remove the DRMed book from calibre. 
+ - Click the Preferences drop-down menu and choose 'Restart in debug mode'. 
+ - Once calibre has re-started, import the problem ebook.
+ - Now close calibre.
 
-You should now have a text-based command-line window open.
-
-Type in "calibre-debug -g" (without the "s but with the space before the -g) and press the return/enter key. Calibre will launch and run as normal, but with debugging information output to the terminal window.
-
-Import the DRMed eBook into calibre in any of the the normal ways. (I usually drag&drop onto the calibre window.)
-
-Debug information will be written to the terminal window.
-
-Copy the output from the terminal window.
-On Windows, you must use the window menu (little icon at left of window bar) to select all the text and then to copy it.
-On Macintosh and Linux, just use the normal text select and copy commands.
-
-Paste the information into a comment at my blog, http://apprenticealf.wordpress.com/ describing your problem.
+A log will appear that you can copy and paste into a comment at Apprentice Alf's blog, http://apprenticealf.wordpress.com/ . You should also give details of your computer, and how you obtained the ebook file.
 
 
 Credits

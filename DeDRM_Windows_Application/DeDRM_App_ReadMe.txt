@@ -1,16 +1,15 @@
 ﻿DeDRM_App - DeDRM_App.pyw and DeDRM_Drop_Target.bat
 ===================================================
 
-DeDRM_App.pyw is a python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto the DeDRM_Drop_Target.bat to have the DRM removed.  It repackages all the "tools" python software (except obok) in one easy to use program that remembers preferences and settings.
+DeDRM_App.pyw is a python drag and drop application that allows users to drag and drop ebooks or folders of ebooks onto the DeDRM_Drop_Target.bat to have the DRM removed.  It repackages all the tools (except obok) in one easy to use program that remembers preferences and settings.
 
-It will work without manual configuration for Kindle for PC ebooks, Adobe Digital Edition epub and pdf ebooks and Barnes & Noble NOOK Study ePubs when Kindle for PC, Adobe Digital Editions and NOOK Study are installed on the same computer and user account.
+It will work without manual configuration for Kindle for PC ebooks, Adobe Digital Edition (2.0.1) epub and pdf ebooks and Barnes & Noble NOOK Study ePubs when Kindle for PC, Adobe Digital Editions and NOOK Study are installed on the same computer and user account.
 
-To remove the DRM from eInk Kindle ebooks, Kindle for Android ebooks, Mobipocket ebooks and Fictionwise eReader ebooks requires the user to double-click the DeDRM_Drop_Target.bat file and set some additional Preferences including:
+To remove the DRM from eInk Kindle ebooks, Mobipocket ebooks and Fictionwise eReader ebooks requires the user to double-click the DeDRM_Drop_Target.bat file and set some additional Preferences including:
 
 eInk Kindle: 16 digit Serial Number
-Kindle for Android: backup.ab file, details below.
-eReader Social DRM: Name:Last 8 digits of CC number
 MobiPocket: 10 digit PID
+eReader Social DRM: Name:Last 8 digits of CC number
 
 Once these preferences have been set, the user can simply drag and drop ebooks onto the DeDRM_Drop_Target to remove the DRM. Note that after setting preferences it is necessary to click on "Set Prefs" button and then quit the application for the change in preferences to fully take effect.
 
@@ -21,22 +20,11 @@ Installation
 ------------
 0. If you don't already have a correct version of Python and PyCrypto installed, follow the "Installing Python on Windows" and "Installing PyCrypto on Windows" sections below before continuing.
 
-1. Drag the DeDRM_App folder from tools_v6.2.2/DeDRM_Application_Windows to your "My Documents" folder.
+1. Drag the DeDRM_App folder from tools_v6.3.4a/DeDRM_Application_Windows to your "My Documents" folder.
 
 2. Open the DeDRM_App folder you've just dragged, and make a short-cut of the DeDRM_Drop_Target.bat file (right-click/Create Shortcut). Drag the shortcut file onto your Desktop.
 
 3. To set the preferences simply double-click on the short-cut you've just created.
-
-
-Kindle for Android
-------------------
-The backup.ab file needs to be obtained using Android-specific tools.
-
-Obtain and install adb (Android Debug Bridge) on your computer. Details of how to do this are beyond the scope of this readme file, but there are plenty of on-line guides.
-
-Enable developer mode on your Android device. Again, look for an on-line guide for your device.
-
-Once you have adb installed and your device in developer mode, connect your device to your computer with a USB cable and then open up a command line (Terminal on Mac OS X and cmd.exe on Windows) and enter "adb backup com.amazon.kindle" (without the quotation marks!) and press return. A file "backup.ab" should be created in your home directory.
 
 
 Credits
@@ -58,7 +46,7 @@ Installing Python on Windows
 ----------------------------
 I strongly recommend fully installing ActiveState’s Active Python, free Community Edition for Windows. This is a free, full version of the Python.  It comes with some important additional modules that are not included in the bare-bones version from www.python.org unless you choose to install everything.
 
-1. Download ActivePython 2.7.8 for Windows (or later 2.7.x version for Windows) from http://www.activestate.com/activepython/downloads.
+1. Download ActivePython 2.7.8 for Windows (or later 2.7.x version for Windows, but NOT 3.x) from http://www.activestate.com/activepython/downloads.
 
 2. When it has finished downloading, run the installer. Accept the default options.
 
