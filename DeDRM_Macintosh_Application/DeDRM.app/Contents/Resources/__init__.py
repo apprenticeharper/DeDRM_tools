@@ -51,8 +51,9 @@ __docformat__ = 'restructuredtext en'
 #   6.4.2 - Fix for more new tags in Topaz ebooks and very small Topaz ebooks
 #   6.4.3 - Fix for error that only appears when not in debug mode
 #           Also includes fix for Macs with bonded ethernet ports
-#   6.4.4 - Fix for some more 'new' tags in Topaz ebooks.
-#           Also fix an error in wineutils.py
+#   6.5.0 - Big update to Macintosh app
+#           Fix for some more 'new' tags in Topaz ebooks.
+#           Fix an error in wineutils.py
 
 
 """
@@ -60,7 +61,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 4, 4)
+PLUGIN_VERSION_TUPLE = (6, 5, 0)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'

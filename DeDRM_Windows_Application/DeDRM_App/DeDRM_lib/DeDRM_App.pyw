@@ -25,9 +25,9 @@
 #   6.4.1 - Fix for new tags in Topaz ebooks
 #   6.4.2 - Fix for new tags in Topaz ebooks, and very small Topaz ebooks
 #   6.4.3 - Version bump to match plugin & Mac app
-#   6.4.4 - Fix for some new tags in Topaz ebooks
+#   6.5.0 - Fix for some new tags in Topaz ebooks
 
-__version__ = '6.4.4'
+__version__ = '6.5.0'
 
 import sys
 import os, os.path
