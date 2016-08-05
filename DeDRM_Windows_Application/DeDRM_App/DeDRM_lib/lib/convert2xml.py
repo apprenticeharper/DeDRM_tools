@@ -391,6 +391,18 @@ class PageParser(object):
         'startID'      : (0, 'number', 1, 1),
         'startID.page' : (1, 'number', 0, 0),
         'startID.id'   : (1, 'number', 0, 0),
+    
+        'median_d'          : (1, 'number', 0, 0),
+        'median_h'          : (1, 'number', 0, 0),
+        'median_firsty'     : (1, 'number', 0, 0),
+        'median_lasty'      : (1, 'number', 0, 0),
+
+        'num_footers_maybe' : (1, 'number', 0, 0),
+        'num_footers_yes'   : (1, 'number', 0, 0),
+        'num_headers_maybe' : (1, 'number', 0, 0),
+        'num_headers_yes'   : (1, 'number', 0, 0),
+
+        'tracking'          : (1, 'number', 0, 0),
 
      }
 

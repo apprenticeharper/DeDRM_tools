@@ -31,7 +31,7 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
          cmdline = u"WINEPREFIX=\"{2}\" wine python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath,wineprefix)
     else:
         cmdline = u"wine python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath)
-    print u"{0} v{1}: Command line: “{2}”".format(PLUGIN_NAME, PLUGIN_VERSION, cmdline)
+    print u"{0} v{1}: Command line: '{2}'".format(PLUGIN_NAME, PLUGIN_VERSION, cmdline)
 
     try:
         cmdline = cmdline.encode(sys.getfilesystemencoding())

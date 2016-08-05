@@ -11,7 +11,7 @@ When your ebooks have DRM you are unable to convert the ebook from one format to
 ## So how can I remove DRM from my ebooks?
 Just download and use these tools, that's all! Uh, almost. There are a few, uh, provisos, a, a couple of quid pro quos. 
 * The tools don't work on all ebooks. For example, they don't work on any ebooks from Apple's iBooks store.
-* You must own the ebook - the tools won't work on library ebooks or rented ebooks.
+* You must own the ebook - the tools won't work on library ebooks or rented ebooks or books from a friend.
 * You must not use these tools to give your ebooks to a hundred of your closest friends. Or to a million strangers. Authors need to sell books to be able to write more books. Don't be mean to the authors.
 * Do NOT use Adobe Digital Editions 3.0 or later to download your ePubs. ADE 3.0 and later can use a new encryption scheme that the tools can't handle. While major ebook stores aren't using the new scheme yet, using ADE 2.0.1 will ensure that your ebooks are downloaded using the old scheme. Once a book has been downloaded with the new scheme, it's IMPOSSIBLE to re-download using the old scheme (without buying it again).
 
@@ -32,7 +32,7 @@ Install calibre. Install the DeDRM\_plugin in calibre. Install the Obok\_plugin 
 You are trying to add the tools archive (e.g. DeDRM\_tools\_6.4.3.zip) instead of the plugin. The tools archive is not the plugin. It is a collection of DRM removal tools which includes the plugin. You must unzip the archive, and install the calibre plugin (DeDRM\_plugin.zip) from a folder called “DeDRM\_calibre_plugin” in the unzipped archive.
 
 ### I’ve unzipped the tools archive, but I can’t find the calibre plugin when I try to add them to calibre. I use Windows.
-You should select the zip file that is in the “DeDRM\_calibre\_plugin” folder, not any files inside the plugin’s zip archive. Make sure you are selecting from the folder that you created when you right unzipped the tools archive and not selecting a file inside the still-zipped tools archive.
+You should select the zip file that is in the “DeDRM\_calibre\_plugin” folder, not any files inside the plugin’s zip archive. Make sure you are selecting from the folder that you created when you unzipped the tools archive and not selecting a file inside the still-zipped tools archive.
 
 (The problem is that Windows will allow apps to browse inside zip archives without needing to unzip them first. If there are zip archives inside the main zip archives, Windows will show them as unzipped as well. So what happens is people will unzip the DeDRM\_tools\_X.X.X.zip to a folder, but when using calibre they will actually navigate to the still zipped file by mistake and cannot tell they have done so because they do not have file extensions showing. So to the unwary Windows user, it appears that the zip archive was unzipped and that everything inside it was unzipped as well so there is no way to install the plugins.
 
@@ -41,6 +41,10 @@ We strongly recommend renaming the DeDRM\_tools\_X.X.X.zip archive (after extrac
 ## The Windows Application
 ### I've installed ActiveState Python and PyCrypto, but the Windows application won't run. What have I done wrong?
 Nothing. There's a bug in the current ActiveState Python Windows installer that puts the Tcl code in the wrong place. See [this comment of mine at ActiveState community](https://community.activestate.com/node/19090). Just move the Tcl code and the Windows app should run.
+
+## The Macintosh Application
+### I can't open the Macintosh Application. Some message about it not being signed or something.
+Try right-clicking and select open. That might give you the option to open it anyway. Otherwise you'll need to change your security settings to allow unsigned applications to run. You can probably change these back after running it for the first time.
 
 # Using the Tools
 ## I can’t get the tools to work on my rented or library ebooks.
@@ -77,6 +81,8 @@ If you cannot read the ebook on your current device or installed software, the t
 ## I have installed the calibre plugin, and the book is not already in calibre, but the DRM does not get removed. It is a Kindle book.
 If you are on Windows 8 and using the Windows 8 AppStore Kindle app, you must download and install the Kindle for PC application directly from the Amazon website. The tools do not work with the Windows 8 AppStore Kindle app.
 
+If you are on Windows, using the Kindle for PC application, and your windows user name has accented or other non-ASCII characters in it, this might cause the plugin to fail. Create a new user account with an ASCII-only username. Install and register Kindle for PC there, and see if things work running calibre and the plugin in that user account.
+
 If this book is from an eInk Kindle, you must enter the serial number into the configuration dialog. The serial number is sixteen characters long, and is case-sensitive.
 
 If this book is from Kindle for Mac or Kindle for PC, you must have the Kindle Software installed on the same computer as your copy of calibre.
@@ -91,9 +97,6 @@ If the book is from Kindle for PC or Kindle for Mac and you think you are doing 
 1. Reinstall Kindle for PC(Mac)
 1. Re-register Kindle for PC(Mac) with your Amazon account
 1. Download the ebook again. Do not use the files you have downloaded previously.
-
-## I use the Macintosh application, but the DRM does not get removed. It is a Kindle book it used to work before I reinstalled Kindle for Mac.
-You need to delete the Kindle for Mac key that the Macintosh app has stored, so that it will generate the new key from your new installation of Kindle for Mac. You can do this in the application settings, or just delete the file ~/Library/Preferences/com.apprenticealf.dedrm/Local Kindle Key.k4i (where ~ is your home folder).
 
 ## Some of my books had their DRM removed, but some still say that they have DRM and will not convert.
 There are several possible reasons why only some books get their DRM removed.
