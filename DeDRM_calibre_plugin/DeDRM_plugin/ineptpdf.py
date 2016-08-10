@@ -57,6 +57,7 @@ from __future__ import with_statement
 #   8.0.2 - Add additional check on DER file sanity
 #   8.0.3 - Remove erroneous check on DER file sanity
 #   8.0.4 - Completely remove erroneous check on DER file sanity
+#   8.0.5 - Do not process DRM-free documents
 
 
 """
@@ -64,7 +65,7 @@ Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "8.0.4"
+__version__ = "8.0.5"
 
 import sys
 import os
@@ -1468,6 +1469,7 @@ class PDFDocument(object):
         if not self.encryption:
             self.is_printable = self.is_modifiable = self.is_extractable = True
             self.ready = True
+            raise PDFEncryptionError('Document is not encrypted.')
             return
         (docid, param) = self.encryption
         type = literal_name(param['Filter'])
@@ -2180,11 +2182,11 @@ def decryptBook(userkey, inpath, outpath):
     if RSA is None:
         raise ADEPTError(u"PyCrypto or OpenSSL must be installed.")
     with open(inpath, 'rb') as inf:
-        try:
-            serializer = PDFSerializer(inf, userkey)
-        except:
-            print u"Error serializing pdf {0}. Probably wrong key.".format(os.path.basename(inpath))
-            return 2
+        #try:
+        serializer = PDFSerializer(inf, userkey)
+        #except:
+        #    print u"Error serializing pdf {0}. Probably wrong key.".format(os.path.basename(inpath))
+        #    return 2
         # hope this will fix the 'bad file descriptor' problem
         with open(outpath, 'wb') as outf:
             # help construct to make sure the method runs to the end
