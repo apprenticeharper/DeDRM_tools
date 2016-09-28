@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.2.1 September 2016
+# Update for v4.0 of Windows Desktop app.
+#
 # Version 3.2.0 January 2016
 # Update for latest version of Windows Desktop app.
 # Support Kobo devices in the command line version.
@@ -136,13 +139,13 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.1.9'
-__about__ =  u"Obok v{0}\nCopyright © 2012-2015 Physisticated et al.".format(__version__)
+__version__ = '3.2.1'
+__about__ =  u"Obok v{0}\nCopyright © 2012-2016 Physisticated et al.".format(__version__)
 
 import sys
 import os
 import subprocess
-import sqlite3
+import apsw
 import base64
 import binascii
 import re
@@ -162,7 +165,7 @@ except ImportError:
   # print u"Cannot find xml.etree, disabling extraction of serial numbers"
 
 # List of all known hash keys
-KOBO_HASH_KEYS = ['88b3a2e13', 'XzUhGYdFp', 'NoCanLook']
+KOBO_HASH_KEYS = ['88b3a2e13', 'XzUhGYdFp', 'NoCanLook','QJhwzAtXL']
 
 class ENCRYPTIONError(Exception):
     pass
@@ -355,7 +358,7 @@ class KoboLibrary(object):
         
         if (self.kobodir != u""):
             self.bookdir = os.path.join(self.kobodir, u"kepub")
-            self.__sqlite = sqlite3.connect(kobodb)
+            self.__sqlite = apsw.Connection(kobodb)
             self.__cursor = self.__sqlite.cursor()
             self._userkeys = []
             self._books = []
@@ -390,11 +393,13 @@ class KoboLibrary(object):
         """Drm-free"""
         for f in os.listdir(self.bookdir):
             if(f not in self._volumeID):
-                row = self.__cursor.execute("SELECT Title, Attribution, Series FROM content WHERE ContentID = '" + f + "'").fetchone()
-                if row is not None:
+                try:
+                    row = self.__cursor.execute("SELECT Title, Attribution, Series FROM content WHERE ContentID = '" + f + "'").next()
                     fTitle = row[0]
                     self._books.append(KoboBook(f, fTitle, self.__bookfile(f), 'drm-free', self.__cursor, author=row[1], series=row[2]))
                     self._volumeID.append(f)
+                except StopIteration:
+                    pass
         """Sort"""
         self._books.sort(key=lambda x: x.title)
         return self._books
@@ -436,14 +441,9 @@ class KoboLibrary(object):
     def __getuserids (self):
         userids = []
         cursor = self.__cursor.execute('SELECT UserID FROM user')
-        row = cursor.fetchone()
-        while row is not None:
-            try:
-                userid = row[0]
-                userids.append(userid)
-            except:
-                pass
-            row = cursor.fetchone()
+        for row in cursor.next():
+            userid = row
+            userids.append(userid)
         return userids
                
     def __getuserkeys (self, macaddr):
@@ -558,12 +558,19 @@ class KoboFile(object):
         Returns True if the content was checked, False if it was not
         checked."""
         if self.mimetype == 'application/xhtml+xml':
-            if contents[:5]=="<?xml":
+            if contents[:5]=="<?xml" or contents[:8]=="\xef\xbb\xbf<?xml":
+                # utf-8
+                return True
+            elif contents[:14]=="\xfe\xff\x00<\x00?\x00x\x00m\x00l":
+                # utf-16BE
+                return True
+            elif contents[:14]=="\xff\xfe<\x00?\x00x\x00m\x00l\x00":
+                # utf-16LE
                 return True
             else:
-                print u"Bad XML: {0}".format(contents[:5])
+                print u"Bad XML: {0}".format(contents[:8])
                 raise ValueError
-        if self.mimetype == 'image/jpeg':
+        elif self.mimetype == 'image/jpeg':
             if contents[:3] == '\xff\xd8\xff':
                 return True
             else:
