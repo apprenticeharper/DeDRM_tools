@@ -352,7 +352,7 @@ class TopazBook:
                 break
 
         if not bookKey:
-            raise DrmException(u"No key found in {0:d} keys tried. Read the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(len(pidlst)))
+            raise DrmException(u"No key found in {0:d} keys tried. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(len(pidlst)))
 
         self.setBookKey(bookKey)
         self.createBookDirectory()

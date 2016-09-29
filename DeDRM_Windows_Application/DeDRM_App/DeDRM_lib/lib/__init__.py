@@ -55,6 +55,7 @@ __docformat__ = 'restructuredtext en'
 #           Fix for some more 'new' tags in Topaz ebooks.
 #           Fix an error in wineutils.py
 #   6.5.1 - Updated version number, added PDF check for DRM-free documents
+#   6.5.2 - Another Topaz fix
 
 
 """
@@ -62,7 +63,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 5, 1)
+PLUGIN_VERSION_TUPLE = (6, 5, 2)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -286,7 +287,7 @@ class DeDRM(FileTypePlugin):
                 except Exception, e:
                     pass
 
-            print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+            print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
             raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
         # import the Adobe Adept ePub handler
@@ -386,7 +387,7 @@ class DeDRM(FileTypePlugin):
                     pass
 
             # Something went wrong with decryption.
-            print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+            print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
             raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
         # Not a Barnes & Noble nor an Adobe Adept
@@ -486,7 +487,7 @@ class DeDRM(FileTypePlugin):
                 pass
 
         # Something went wrong with decryption.
-        print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+        print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
         raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
 
@@ -554,7 +555,7 @@ class DeDRM(FileTypePlugin):
                     pass
             if not decoded:
                 #if you reached here then no luck raise and exception
-                print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+                print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
                 raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
         of = self.temporary_file(book.getBookExtension())
@@ -589,7 +590,7 @@ class DeDRM(FileTypePlugin):
 
             print u"{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname_masked,time.time()-self.starttime)
 
-        print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Alf's blog: http://apprenticealf.wordpress.com/".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+        print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
         raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
 

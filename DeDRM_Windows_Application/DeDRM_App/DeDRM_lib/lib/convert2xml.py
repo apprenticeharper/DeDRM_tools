@@ -403,6 +403,7 @@ class PageParser(object):
         'num_headers_yes'   : (1, 'number', 0, 0),
 
         'tracking'          : (1, 'number', 0, 0),
+        'src'               : (1, 'text', 0, 0),
 
      }
 

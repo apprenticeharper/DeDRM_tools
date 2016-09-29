@@ -53,7 +53,7 @@ If you find that the DeDRM plugin  is not working for you (imported ebooks still
  - Once calibre has re-started, import the problem ebook.
  - Now close calibre.
 
-A log will appear that you can copy and paste into a comment at Apprentice Alf's blog, http://apprenticealf.wordpress.com/ . You should also give details of your computer, and how you obtained the ebook file.
+A log will appear that you can copy and paste into a comment at Apprentice Alf's blog, http://apprenticealf.wordpress.com/ or an issue at Apprentice Harper's repository, https://github.com/apprenticeharper/DeDRM_tools/issues . You should also give details of your computer, and how you obtained the ebook file.
 
 
 Credits
