@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.2.2 October 2016
+# Change to the way the new database version is handled.
+#
+# Version 3.2.1 September 2016
+# Update for v4.0 of Windows Desktop app.
+#
 # Version 3.2.0 January 2016
 # Update for latest version of Windows Desktop app.
 # Support Kobo devices in the command line version.
@@ -136,8 +142,8 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.1.9'
-__about__ =  u"Obok v{0}\nCopyright © 2012-2015 Physisticated et al.".format(__version__)
+__version__ = '3.2.2'
+__about__ =  u"Obok v{0}\nCopyright © 2012-2016 Physisticated et al.".format(__version__)
 
 import sys
 import os
@@ -152,6 +158,7 @@ import xml.etree.ElementTree as ET
 import string
 import shutil
 import argparse
+import tempfile
 
 can_parse_xml = True
 try:
@@ -162,7 +169,7 @@ except ImportError:
   # print u"Cannot find xml.etree, disabling extraction of serial numbers"
 
 # List of all known hash keys
-KOBO_HASH_KEYS = ['88b3a2e13', 'XzUhGYdFp', 'NoCanLook']
+KOBO_HASH_KEYS = ['88b3a2e13', 'XzUhGYdFp', 'NoCanLook','QJhwzAtXL']
 
 class ENCRYPTIONError(Exception):
     pass
@@ -355,7 +362,18 @@ class KoboLibrary(object):
         
         if (self.kobodir != u""):
             self.bookdir = os.path.join(self.kobodir, u"kepub")
-            self.__sqlite = sqlite3.connect(kobodb)
+            # make a copy of the database in a temporary file
+            # so we can ensure it's not using WAL logging which sqlite3 can't do.
+            self.newdb = tempfile.NamedTemporaryFile(mode='wb', delete=False)
+            print self.newdb.name
+            olddb = open(kobodb, 'rb')
+            self.newdb.write(olddb.read(18))
+            self.newdb.write('\x01\x01')
+            olddb.read(2)
+            self.newdb.write(olddb.read())
+            olddb.close()
+            self.newdb.close()
+            self.__sqlite = sqlite3.connect(self.newdb.name)
             self.__cursor = self.__sqlite.cursor()
             self._userkeys = []
             self._books = []
@@ -366,6 +384,8 @@ class KoboLibrary(object):
         """Closes the database used by the library."""
         self.__cursor.close()
         self.__sqlite.close()
+        # delete the temporary copy of the database
+        os.remove(self.newdb.name)
 
     @property
     def userkeys (self):
@@ -558,12 +578,19 @@ class KoboFile(object):
         Returns True if the content was checked, False if it was not
         checked."""
         if self.mimetype == 'application/xhtml+xml':
-            if contents[:5]=="<?xml":
+            if contents[:5]=="<?xml" or contents[:8]=="\xef\xbb\xbf<?xml":
+                # utf-8
+                return True
+            elif contents[:14]=="\xfe\xff\x00<\x00?\x00x\x00m\x00l":
+                # utf-16BE
+                return True
+            elif contents[:14]=="\xff\xfe<\x00?\x00x\x00m\x00l\x00":
+                # utf-16LE
                 return True
             else:
-                print u"Bad XML: {0}".format(contents[:5])
+                print u"Bad XML: {0}".format(contents[:8])
                 raise ValueError
-        if self.mimetype == 'image/jpeg':
+        elif self.mimetype == 'image/jpeg':
             if contents[:3] == '\xff\xd8\xff':
                 return True
             else:

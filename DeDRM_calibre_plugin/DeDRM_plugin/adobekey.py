@@ -3,13 +3,13 @@
 
 from __future__ import with_statement
 
-# adobekey.pyw, version 5.7
+# adobekey.pyw, version 6.0
 # Copyright © 2009-2010 i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
-# Modified 2010–2013 by some_updates, DiapDealer and Apprentice Alf
+# Modified 2010–2016 by several people
 
 # Windows users: Before running this program, you must first install Python.
 #   We recommend ActiveState Python 2.7.X for Windows (x86) from
