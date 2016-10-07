@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.2.2 October 2016
+# Change to the way the new database version is handled.
+#
 # Version 3.2.1 September 2016
 # Update for v4.0 of Windows Desktop app.
 #
@@ -139,13 +142,13 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.2.1'
+__version__ = '3.2.2'
 __about__ =  u"Obok v{0}\nCopyright © 2012-2016 Physisticated et al.".format(__version__)
 
 import sys
 import os
 import subprocess
-import apsw
+import sqlite3
 import base64
 import binascii
 import re
@@ -155,6 +158,7 @@ import xml.etree.ElementTree as ET
 import string
 import shutil
 import argparse
+import tempfile
 
 can_parse_xml = True
 try:
@@ -358,7 +362,18 @@ class KoboLibrary(object):
         
         if (self.kobodir != u""):
             self.bookdir = os.path.join(self.kobodir, u"kepub")
-            self.__sqlite = apsw.Connection(kobodb)
+            # make a copy of the database in a temporary file
+            # so we can ensure it's not using WAL logging which sqlite3 can't do.
+            self.newdb = tempfile.NamedTemporaryFile(mode='wb', delete=False)
+            print self.newdb.name
+            olddb = open(kobodb, 'rb')
+            self.newdb.write(olddb.read(18))
+            self.newdb.write('\x01\x01')
+            olddb.read(2)
+            self.newdb.write(olddb.read())
+            olddb.close()
+            self.newdb.close()
+            self.__sqlite = sqlite3.connect(self.newdb.name)
             self.__cursor = self.__sqlite.cursor()
             self._userkeys = []
             self._books = []
@@ -369,6 +384,8 @@ class KoboLibrary(object):
         """Closes the database used by the library."""
         self.__cursor.close()
         self.__sqlite.close()
+        # delete the temporary copy of the database
+        os.remove(self.newdb.name)
 
     @property
     def userkeys (self):
@@ -393,13 +410,11 @@ class KoboLibrary(object):
         """Drm-free"""
         for f in os.listdir(self.bookdir):
             if(f not in self._volumeID):
-                try:
-                    row = self.__cursor.execute("SELECT Title, Attribution, Series FROM content WHERE ContentID = '" + f + "'").next()
+                row = self.__cursor.execute("SELECT Title, Attribution, Series FROM content WHERE ContentID = '" + f + "'").fetchone()
+                if row is not None:
                     fTitle = row[0]
                     self._books.append(KoboBook(f, fTitle, self.__bookfile(f), 'drm-free', self.__cursor, author=row[1], series=row[2]))
                     self._volumeID.append(f)
-                except StopIteration:
-                    pass
         """Sort"""
         self._books.sort(key=lambda x: x.title)
         return self._books
@@ -441,9 +456,14 @@ class KoboLibrary(object):
     def __getuserids (self):
         userids = []
         cursor = self.__cursor.execute('SELECT UserID FROM user')
-        for row in cursor.next():
-            userid = row
-            userids.append(userid)
+        row = cursor.fetchone()
+        while row is not None:
+            try:
+                userid = row[0]
+                userids.append(userid)
+            except:
+                pass
+            row = cursor.fetchone()
         return userids
                
     def __getuserkeys (self, macaddr):
