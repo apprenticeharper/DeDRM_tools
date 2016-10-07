@@ -27,7 +27,7 @@ First, unzip the archive. You should now have a DeDRM folder containing several 
 Install calibre. Install the DeDRM\_plugin in calibre. Install the Obok\_plugin in calibre. Restart calibre. In the DeDRM_plugin customisation dialog add in any E-Ink Kindle serial numbers and your B&N account email address and password. Remember that the plugin only tries to remove DRM when ebooks are imported, not at any other time.
 
 # Breaking News
-### The recent (September 2016) Kobo Desktop update to version 4.0.x has added encryption to the database of ebooks. The obok plugin does not currently work with Kobo Desktop 4.0.x.
+### The recent (September 2016) Kobo Desktop update to version 4.0.x has added encryption to the database of ebooks. A test version of the obok plugin can be downloaded directly from the repository here: https://github.com/apprenticeharper/DeDRM_tools/tree/master/Obok_calibre_plugin
  
 # Installing the Tools
 ## The calibre plugin
