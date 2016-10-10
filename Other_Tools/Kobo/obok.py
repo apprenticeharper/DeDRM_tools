@@ -142,7 +142,7 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.2.2'
+__version__ = '3.2.3'
 __about__ =  u"Obok v{0}\nCopyright © 2012-2016 Physisticated et al.".format(__version__)
 
 import sys
@@ -428,7 +428,8 @@ class KoboLibrary(object):
         macaddrs = []
         if sys.platform.startswith('win'):
             c = re.compile('\s(' + '[0-9a-f]{2}-' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
-            for line in os.popen('ipconfig /all'):
+            (p_in, p_out, p_err) = os.popen3('ipconfig /all')
+            for line in p_out:
                 m = c.search(line)
                 if m:
                     macaddrs.append(re.sub("-", ":", m.group(1)).upper())
@@ -586,6 +587,15 @@ class KoboFile(object):
                 return True
             elif contents[:14]=="\xff\xfe<\x00?\x00x\x00m\x00l\x00":
                 # utf-16LE
+                return True
+            elif contents[:9]=="<!DOCTYPE" or contents[:12]=="\xef\xbb\xbf<!DOCTYPE":
+                # utf-8 of weird <!DOCTYPE start
+                return True
+            elif contents[:22]=="\xfe\xff\x00<\x00!\x00D\x00O\x00C\x00T\x00Y\x00P\x00E":
+                # utf-16BE of weird <!DOCTYPE start
+                return True
+            elif contents[:22]=="\xff\xfe<\x00!\x00D\x00O\x00C\x00T\x00Y\x00P\x00E\x00":
+                # utf-16LE of weird <!DOCTYPE start
                 return True
             else:
                 print u"Bad XML: {0}".format(contents[:8])
