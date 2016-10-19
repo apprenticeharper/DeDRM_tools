@@ -1,41 +1,50 @@
 ﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.5.1 archive from Apprentice Alf's Blog: http://apprenticealf.wordpress.com/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.5.3 archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
 
 The is archive includes tools to remove DRM from:
 
- - Kindle ebooks (from Kindle for Mac/PC and eInk Kindles).
- - Barnes and Noble ePubs
+ - Kindle ebooks (files from Kindle for Mac/PC and eInk Kindles).
  - Adobe Digital Editions (v2.0.1*) ePubs (including Kobo and Google ePubs downloaded to ADE)
  - Kobo kePubs from the Kobo Desktop application
+ - Barnes and Noble ePubs
  - Adobe Digital Editions (v2.0.1) PDFs
- - Mobipocket ebooks
- - eReader PDB books
  - Scuolabooks (Link to solution by Hex)
+ - Mobipocket ebooks
+ - eReader PDB ebooks
+ - Rocket ebooks (source only)
 
 These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
-* With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of June 2016.
+* With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of October 2016.
 
 About the tools
 ---------------
-These tools are updated and maintained by Apprentice Alf and Apprentice Harper. You can find links to the latest updates and get support at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
-If you re-post these tools, a link to the blog would be appreciated.
+These tools are updated and maintained by Apprentice Alf and Apprentice Harper. You can find the latest updates at Apprentice Harper's github repository https://github.com/apprenticeharper/DeDRM_tools/ and get support by creating an issue at the repository (github account required) or by posting a comment at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
+
+If you re-post these tools, a link to the repository and/or the blog would be appreciated.
 
 
 DeDRM plugin for calibre (Mac OS X, Windows, and Linux)
 -------------------------------------------------------
-Calibre is an open source freeware ebook library manager. It is the best tool around for keeping track of your ebooks. The DeDRM plugin for calibre provides the simplest way, especially on Windows, to remove DRM from your ebooks. Just install the DeDRM plugin from the DeDRM_calibre_plugin folder, following the instructions and configuration directions provided in the ReadMe file and the help links in the plugin's configuration dialogs.
+Calibre is an open source freeware ebook library manager. It is the best tool around for keeping track of your ebooks. The DeDRM plugin for calibre provides the simplest way, especially on Windows, to remove DRM from your Kindle and Adobe DRM ebooks. Just install the DeDRM plugin from the DeDRM_calibre_plugin folder, following the instructions and configuration directions provided in the ReadMe file and the help links in the plugin's configuration dialogs.
 
 Once installed and configured, you can simply add a DRM book to calibre and the DRM-free version will be imported into the calibre database. Note that DRM removal only occurs on IMPORT not on CONVERSION or at any other time. If you have already imported DRM books you'll need to remove them from calibre and re-import them.
 
-Linux users should read the section at the end of the DeDRM_plugin_ReadMe.txt file.
+For instructions, see the DeDRM_plugin_ReadMe.txt file in the DeDRM_calibre_plugin folder.
+
+
+Obok plugin for calibre (Mac OS X and Windows)
+----------------------------------------------
+To import ebooks from the Kobo Desktop app or from a Kobo ebook reader, install the Obok plugin. This works in a different way to the DeDRM plugin, in that it finds your ebooks downloaded using the Kobo Desktop app, or on an attached Kobo ebooks reader, and displays them in a list, so that you can choose the ones you want to import into calibre.
+
+For instructions, see the obok_plugin_ReadMe.txt file in the Obok_calibre_plugin folder.
 
 
 DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
 ---------------------------------------------------------------
-This application is a stand-alone DRM removal application for Mac OS X users.
+This application is a stand-alone DRM removal application for Mac OS X users. It is only needed for people who cannot or will not use the calibre plugin.
 
 For instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Macintosh_Application folder.
 
@@ -47,16 +56,9 @@ DeDRM application for Windows users: (Windows XP through Windows 10)
 ***This program requires that Python and PyCrypto be properly installed.***
 ***See below for details on recommended versions and how to install them.***
 
-This application is a stand-alone application for Windows users.
+This application is a stand-alone application for Windows users. It is only needed for people who cannot or will not use the calibre plugin.
 
 For instructions, see the DeDRM_App_ReadMe.txt file in the DeDRM_Windows_Applications folder.
-
-
-Obok plugin for calibre (Mac OS X, Windows)
--------------------------------------------
-This plugin allows you to import kePub ebooks from your kobo desktop application. It is separate from the DeDRM application because it has to work in a different way. It will find all the books downloaded to your kobo desktop application, and let you choose which ones to import, removing the DRM as they are imported.
-
-For instructions, see the obok_plugin_ReadMe.txt file in the Obok_calibre_plugin folder.
 
 
 Other_Tools
@@ -90,7 +92,7 @@ http://www.activestate.com/activepython/downloads
 
 We do **NOT** recommend the version of Python from python.org as it is missing various Windows specific libraries, does not install the Tk Widget kit (for graphical user interfaces) by default, and does not properly update the system PATH environment variable. Therefore using the default python.org build on Windows is simply an exercise in frustration for most Windows users.
 
-Note that currently (June 2016) ActiveState Python puts the tcl library in the wrong place, and it needs to be manually moved. See this thread at activestate.com for the latest information: https://community.activestate.com/node/19090
+Note that currently (October 2016) ActiveState Python puts the tcl library in the wrong place, and it needs to be manually moved. See this thread at activestate.com for the latest information: https://community.activestate.com/node/19090
 
 In addition, Windows Users need PyCrypto:
 
@@ -98,7 +100,7 @@ In addition, Windows Users need PyCrypto:
 
     http://www.voidspace.org.uk/python/modules.shtml
 
-    Please get the latest (currently 2.6) PyCrypto meant for Windows Python version 2.7
+    Please get the latest (currently 2.6) PyCrypto meant for Windows Python version 2.7. Note that the PyCrypto binaries have two version numbers. The first is the PyCrypto version, and the second is the python version that they work with. This can be confusing.
 
 Once Windows users have installed Python 2.7, and the matching PyCrypto, they are ready to run the DeDRM application or individual scripts.
 
@@ -124,7 +126,7 @@ MD5: 1636862796d573c693d56bcc526b60bd
 
 If you have any problems with Requiem, I suggest you contact Brahms directly through their Tor website.
 
-No support for requiem is provided at Apprentice Alf's blog.
+No support for requiem is provided at Apprentice Alf's blog or Apprentice Harper's github repository.
 
 
 Credits
