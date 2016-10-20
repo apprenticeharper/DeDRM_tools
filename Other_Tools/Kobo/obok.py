@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.2.3 October 2016
+# Fix for windows network user and more xml fixes
+#
 # Version 3.2.2 October 2016
 # Change to the way the new database version is handled.
 #
