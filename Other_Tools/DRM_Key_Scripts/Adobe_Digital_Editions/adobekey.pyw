@@ -79,7 +79,7 @@ try:
     from calibre.constants import iswindows, isosx
 except:
     iswindows = sys.platform.startswith('win')
-    isosx = sys.platform.startswith('darwin')
+    isosx = sys.platform.startswith('darwin') or sys.platform.startswith('cygwin')
 
 def unicode_argv():
     if iswindows:
