@@ -423,7 +423,7 @@ elif isosx:
         warnings.filterwarnings('ignore', category=FutureWarning)
 
         home = os.getenv('HOME')
-        cmdline = 'find "' + home + '/Library/Application Support/Adobe/Digital Editions" -name "activation.dat"'
+        cmdline = 'find . "' + home + '/Library/Application Support/Adobe/Digital Editions" -name "activation.dat"'
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p2.communicate()
