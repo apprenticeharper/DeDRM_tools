@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.2.4 December 2016
+# Remove incorrect support for Kobo Desktop under Wine
+#
 # Version 3.2.3 October 2016
 # Fix for windows network user and more xml fixes
 #
@@ -145,7 +148,7 @@
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
 
-__version__ = '3.2.3'
+__version__ = '3.2.4'
 __about__ =  u"Obok v{0}\nCopyright © 2012-2016 Physisticated et al.".format(__version__)
 
 import sys
@@ -351,9 +354,9 @@ class KoboLibrary(object):
                 self.kobodir = os.path.join(self.kobodir, u"Kobo", u"Kobo Desktop Edition")
             elif sys.platform.startswith('darwin'):
                 self.kobodir = os.path.join(os.environ['HOME'], u"Library", u"Application Support", u"Kobo", u"Kobo Desktop Edition")
-            elif linux_path != None:
+            #elif linux_path != None:
                 # Probably Linux, let's get the wine prefix and path to Kobo.
-                self.kobodir = os.path.join(linux_path, u"Local Settings", u"Application Data", u"Kobo", u"Kobo Desktop Edition")
+            #   self.kobodir = os.path.join(linux_path, u"Local Settings", u"Application Data", u"Kobo", u"Kobo Desktop Edition")
             # desktop versions use Kobo.sqlite
             kobodb = os.path.join(self.kobodir, u"Kobo.sqlite")
             # check for existence of file
