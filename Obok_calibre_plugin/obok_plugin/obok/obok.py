@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 3.2.5 December 2016
+# Improve detection of good text decryption.
+#
 # Version 3.2.4 December 2016
 # Remove incorrect support for Kobo Desktop under Wine
 #
@@ -585,6 +588,36 @@ class KoboFile(object):
         Returns True if the content was checked, False if it was not
         checked."""
         if self.mimetype == 'application/xhtml+xml':
+            # assume utf-8 with no BOM
+            textoffset = 0
+            stride = 1
+            print u"Checking text:{0}:".format(contents[:10])
+            # check for byte order mark
+            if contents[:3]=="\xef\xbb\xbf":
+                # seems to be utf-8 with BOM
+                print u"Could be utf-8 with BOM"
+                textoffset = 3
+            elif contents[:2]=="\xfe\xff":
+                # seems to be utf-16BE
+                print u"Could be  utf-16BE"
+                textoffset = 3
+                stride = 2
+            elif contents[:2]=="\xff\xfe":
+                # seems to be utf-16LE
+                print u"Could be  utf-16LE"
+                textoffset = 2
+                stride = 2
+            else:
+                print u"Perhaps utf-8 without BOM"
+                
+            # now check that the first few characters are in the ASCII range
+            for i in xrange(textoffset,textoffset+5*stride,stride):
+                if ord(contents[i])<32 or ord(contents[i])>127:
+                    # Non-ascii, so decryption probably failed
+                    print u"Bad character at {0}, value {1}".format(i,ord(contents[i]))
+                    raise ValueError
+            print u"Seems to be good text"
+            return True
             if contents[:5]=="<?xml" or contents[:8]=="\xef\xbb\xbf<?xml":
                 # utf-8
                 return True
