@@ -17,6 +17,9 @@ Just download and use these tools, that's all! Uh, almost. There are a few, uh, 
 
 But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the ebook stores selling ebooks compatible with Adobe Digital Editions 2.0.1, you should be able to remove the DRM that's been applied to your ebooks.
 
+### A Recent Change to Kindle for PC/Kindle for Mac
+Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which these tools can't handle. Stick with version 1.17 or earlier. Kindle for PC 1.17 can be downloaded from https://s3.amazonaws.com/kindleforpc/44183/KindleForPC-installer-1.17.44183.exe and Kindle for Mac 1.17 can be downloaded from https://s3.amazonaws.com/kindleformac/44182/KindleForMac-44182.dmg
+
 ## Where can I get the latest version of these free DRM removal tools?
 Right here at github. Just go to the [releases page](https://github.com/apprenticeharper/DeDRM_tools/releases) and download the latest zip archive of the tools, named DeDRM\_tools\_X.X.X.zip, where X.X.X is the version number. You do not need to download the source code archive.
 
