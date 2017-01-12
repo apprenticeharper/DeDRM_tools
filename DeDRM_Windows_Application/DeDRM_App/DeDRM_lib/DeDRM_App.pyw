@@ -28,8 +28,9 @@
 #   6.5.0 - Fix for some new tags in Topaz ebooks
 #   6.5.1 - Version bump to match plugin & Mac app
 #   6.5.2 - Fix for a new tag in Topaz ebooks
+#   6.5.3 - Explicitly warn about KFX files
 
-__version__ = '6.5.2'
+__version__ = '6.5.3'
 
 import sys
 import os, os.path

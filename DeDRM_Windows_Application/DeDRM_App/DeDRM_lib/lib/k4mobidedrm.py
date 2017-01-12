@@ -56,8 +56,9 @@ from __future__ import with_statement
 #  5.1 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  5.2 - Fixed error in command line processing of unicode arguments
 #  5.3 - Changed Android support to allow passing of backup .ab files
+#  5.4 - Recognise KFX files masquerading as azw, even if we can't decrypt them yet.
 
-__version__ = '5.3'
+__version__ = '5.4'
 
 
 import sys, os, re
@@ -194,7 +195,11 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
         raise DrmException(u"Input file does not exist.")
 
     mobi = True
-    magic3 = open(infile,'rb').read(3)
+    magic8 = open(infile,'rb').read(8)
+    if magic8 == '\xeaDRMION\xee':
+        raise DrmException(u"KFX format detected. This format cannot be decrypted yet.")
+        
+    magic3 = magic8[:3]
     if magic3 == 'TPZ':
         mobi = False
 
@@ -215,8 +220,9 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
     md1, md2 = mb.getPIDMetaInfo()
     totalpids.extend(kgenpids.getPidList(md1, md2, serials, kDatabases))
     # remove any duplicates
-    totalpid = list(set(totalpids))
+    totalpids = list(set(totalpids))
     print u"Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(totalpids))
+    #print totalpids
 
     try:
         mb.processBook(totalpids)
