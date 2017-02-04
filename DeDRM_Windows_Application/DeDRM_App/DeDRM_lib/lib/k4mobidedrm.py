@@ -3,8 +3,8 @@
 
 from __future__ import with_statement
 
-# k4mobidedrm.py, version 5.3
-# Copyright © 2009-2015 by ApprenticeHarper et al.
+# k4mobidedrm.py, version 5.5
+# Copyright © 2009-2017 by ApprenticeHarper et al.
 
 # engine to remove drm from Kindle and Mobipocket ebooks
 # for personal use for archiving and converting your ebooks
@@ -57,6 +57,7 @@ from __future__ import with_statement
 #  5.2 - Fixed error in command line processing of unicode arguments
 #  5.3 - Changed Android support to allow passing of backup .ab files
 #  5.4 - Recognise KFX files masquerading as azw, even if we can't decrypt them yet.
+#  5.5 - Support multiple input files
 
 __version__ = '5.4'
 
@@ -64,6 +65,7 @@ __version__ = '5.4'
 import sys, os, re
 import csv
 import getopt
+import glob
 import re
 import traceback
 import time
@@ -287,7 +289,7 @@ def decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids):
 def usage(progname):
     print u"Removes DRM protection from Mobipocket, Amazon KF8, Amazon Print Replica and Amazon Topaz ebooks"
     print u"Usage:"
-    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] [ -a <AmazonSecureStorage.xml|backup.ab> ] <infile> <outdir>".format(progname)
+    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] [ -a <AmazonSecureStorage.xml|backup.ab> ] <infile, infiles, or indir> <outdir>".format(progname)
 
 #
 # Main
@@ -307,8 +309,7 @@ def cli_main():
         usage(progname)
         sys.exit(2)
 
-    infile = args[0]
-    outdir = args[1]
+    outdir = args.pop()
     kDatabaseFiles = []
     androidFiles = []
     serials = []
@@ -335,7 +336,17 @@ def cli_main():
     # try with built in Kindle Info files if not on Linux
     k4 = not sys.platform.startswith('linux')
 
-    return decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids)
+    if len(args) == 1:
+        arg = args[0]
+        if os.path.isdir(arg):
+            args = glob.glob(os.path.join(arg, '*.azw'))
+
+    for infile in args:
+        result = decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids)
+        if result != 0:
+            print u'Error with %r' % infile
+    # return last result only
+    return result
 
 
 if __name__ == '__main__':
