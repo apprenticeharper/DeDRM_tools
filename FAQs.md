@@ -73,10 +73,7 @@ Kindle for Mac ebooks are in either Library/Application Support/Kindle/My Kindle
 Adobe Digital Editions ebooks are in Documents/Digital Editions
 
 ### Windows
-
-Windows 7 and later, ebooks are in `%USERPROFILE%\Documents\My Kindle Content`. I.e.
-
-Navigating from your My Documents folder
+Navigating from your "Documents" folder ("My Documents" folder, pre-Windows 7)
 
 Kindle for PC ebooks are in My Kindle Content
 
