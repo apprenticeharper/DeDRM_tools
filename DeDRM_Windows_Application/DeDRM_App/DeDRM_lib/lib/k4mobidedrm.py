@@ -59,7 +59,7 @@ from __future__ import with_statement
 #  5.4 - Recognise KFX files masquerading as azw, even if we can't decrypt them yet.
 #  5.5 - Support multiple input files
 
-__version__ = '5.4'
+__version__ = '5.5'
 
 
 import sys, os, re
@@ -336,12 +336,16 @@ def cli_main():
     # try with built in Kindle Info files if not on Linux
     k4 = not sys.platform.startswith('linux')
 
-    if len(args) == 1:
-        arg = args[0]
-        if os.path.isdir(arg):
-            args = glob.glob(os.path.join(arg, '*.azw'))
+    filenames = []
+    for filename in args:
+        if os.path.isdir(filename):
+            for file_extension in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.pobi']:
+                filenames += glob.glob(os.path.join(filename, '*%s' % file_extension))
+        else:
+            # Assume a filename
+            filenames.append(filename)
 
-    for infile in args:
+    for infile in filenames:
         result = decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids)
         if result != 0:
             print u'Error with %r' % infile
