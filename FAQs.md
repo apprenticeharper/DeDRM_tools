@@ -10,6 +10,7 @@ When your ebooks have DRM you are unable to convert the ebook from one format to
 
 ## So how can I remove DRM from my ebooks?
 Just download and use these tools, that's all! Uh, almost. There are a few, uh, provisos, a, a couple of quid pro quos. 
+
 * The tools don't work on all ebooks. For example, they don't work on any ebooks from Apple's iBooks store.
 * You must own the ebook - the tools won't work on library ebooks or rented ebooks or books from a friend.
 * You must not use these tools to give your ebooks to a hundred of your closest friends. Or to a million strangers. Authors need to sell books to be able to write more books. Don't be mean to the authors.
@@ -19,6 +20,8 @@ But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the 
 
 ### A Recent Change to Kindle for PC/Kindle for Mac
 Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which these tools can't handle. Stick with version 1.17 or earlier. Kindle for PC 1.17 can be downloaded from https://s3.amazonaws.com/kindleforpc/44183/KindleForPC-installer-1.17.44183.exe and Kindle for Mac 1.17 can be downloaded from https://s3.amazonaws.com/kindleformac/44182/KindleForMac-44182.dmg
+
+If you have already installed or have been updated to 1.19, just go to the preferences and uncheck the auto update checkbox. The download and install 1.17 over the top of the 1.19 installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
 
 ## Where can I get the latest version of these free DRM removal tools?
 Right here at github. Just go to the [releases page](https://github.com/apprenticeharper/DeDRM_tools/releases) and download the latest zip archive of the tools, named DeDRM\_tools\_X.X.X.zip, where X.X.X is the version number. You do not need to download the source code archive.
@@ -50,6 +53,7 @@ Nothing. There's a bug in the current ActiveState Python Windows installer that 
 Try right-clicking and select open. That might give you the option to open it anyway. Otherwise you'll need to change your security settings to allow unsigned applications to run. You can probably change these back after running it for the first time.
 
 ### I can't open the Macintosh Application at all. I get 'The aplication "DeDRM" can't be opened'
+
 Some unzip applications do not respect the execution bit setting. Try unzipping the main tools archive using the built-in Mac unzip utility.
 
 # Using the Tools
@@ -90,6 +94,8 @@ If you are on Windows 8 and using the Windows 8 AppStore Kindle app, you must do
 If you are on Windows, using the Kindle for PC application, and your windows user name has accented or other non-ASCII characters in it, this will cause the plugin to fail. Create a new user account with an ASCII-only username. Install and register Kindle for PC there, and see if things work running calibre and the plugin in that user account.
 
 If this book is from an eInk Kindle, you must enter the serial number into the configuration dialog. The serial number is sixteen characters long, and is case-sensitive.
+
+O
 
 If this book is from Kindle for Mac or Kindle for PC, you must have the Kindle Software installed on the same computer and user account as your copy of calibre.
 
