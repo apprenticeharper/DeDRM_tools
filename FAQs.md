@@ -53,7 +53,6 @@ Nothing. There's a bug in the current ActiveState Python Windows installer that 
 Try right-clicking and select open. That might give you the option to open it anyway. Otherwise you'll need to change your security settings to allow unsigned applications to run. You can probably change these back after running it for the first time.
 
 ### I can't open the Macintosh Application at all. I get 'The aplication "DeDRM" can't be opened'
-
 Some unzip applications do not respect the execution bit setting. Try unzipping the main tools archive using the built-in Mac unzip utility.
 
 # Using the Tools
@@ -93,11 +92,11 @@ If you are on Windows 8 and using the Windows 8 AppStore Kindle app, you must do
 
 If you are on Windows, using the Kindle for PC application, and your windows user name has accented or other non-ASCII characters in it, this will cause the plugin to fail. Create a new user account with an ASCII-only username. Install and register Kindle for PC there, and see if things work running calibre and the plugin in that user account.
 
-If this book is from an eInk Kindle, you must enter the serial number into the configuration dialog. The serial number is sixteen characters long, and is case-sensitive.
-
-O
+If this book is from an eInk Kindle (e.g. Paperwhite), you must enter the serial number into the configuration dialog. The serial number is sixteen characters long, and is case-sensitive.
 
 If this book is from Kindle for Mac or Kindle for PC, you must have the Kindle Software installed on the same computer and user account as your copy of calibre.
+
+If this book is from Kindle for Mac or Kindle for PC, you must be using version 1.17 or below, see note at top of this file.
 
 If the book is from Kindle for PC or Kindle for Mac and you think you are doing everything right, and you are getting this message, it is possible that the files containing the encryption key aren’t quite in the format the tools expect. To try to fix this:
 
@@ -106,14 +105,13 @@ If the book is from Kindle for PC or Kindle for Mac and you think you are doing 
 1. Delete the Kindle for PC(Mac) preferences
     * PC: Delete the directory [home folder]\AppData\Local\Amazon (it might be hidden) and [home folder]\My Documents\My Kindle Content
     * Mac: Delete the directory [home folder]/Library/Application Support/Kindle/and/or [home folder]/Library/Containers/com.amazon.Kindle/Data/Library/Application Support/Kindle/ (one or both may be present and should be deleted)
-1. Reinstall Kindle for PC(Mac)
+1. Reinstall Kindle for PC(Mac) version 1.17 or earlier (see above for download links).
 1. Re-register Kindle for PC(Mac) with your Amazon account
 1. Download the ebook again. Do not use the files you have downloaded previously.
 
 ## Some of my books had their DRM removed, but some still say that they have DRM and will not convert.
 There are several possible reasons why only some books get their DRM removed.
 * You still don’t have the DRM removal tools working correctly, but some of your books didn’t have DRM in the first place.
-* You added your books to calibre in large batches. For some unknown reason, sometimes calibre stops using the plugin after a while on a single import. Please see [this issue](https://github.com/apprenticeharper/DeDRM_tools/issues/??/) at Apprentice Harper's github repository. As a work-around, delete the books that still have DRM and import them into calibre in batches of twenty.
 * Kindle only: It is a Topaz format book and contains some coding that the tools do not understand. You will need to get a log of the DeDRM attempt, and then create a [new issue at Apprentice Harper's github repository](https://github.com/apprenticeharper/DeDRM_tools/issues/), attaching the book and the log, so that the tools can be updated.
 
 If you are still having problems with particular books, you will need to create a log of the DRM removal attempt for one of the problem books, and post that in a comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
