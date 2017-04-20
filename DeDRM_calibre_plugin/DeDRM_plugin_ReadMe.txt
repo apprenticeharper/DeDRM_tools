@@ -4,16 +4,20 @@
 This calibre plugin replaces many previously separate DRM removal plugins. Before you install this plugin, you should uninstall any older individual DRM removal plugins, e.g. K4MobiDeDRM. The exception is the obok plugin, which should not be removed.
 
 This plugin will remove the DRM from
- - Kindle ebooks (from Kindle for Mac/PC and eInk Kindles).
+ - Kindle ebooks (files from Kindle for Mac/PC (v1.17*) and eInk Kindles**).
  - Barnes and Noble ePubs
- - Adobe Digital Editions (v2.0.1*) ePubs (including Kobo and Google ePubs downloaded to ADE)
+ - Adobe Digital Editions (v2.0.1***) ePubs (including Kobo and Google ePubs downloaded to ADE)
  - Adobe Digital Editions (v2.0.1) PDFs
  - Mobipocket ebooks
  - eReader PDB books
  
 These tools do NOT work with kepubs downloaded using Kobo's desktop app (see the separate obok plugin) nor Apple's iBooks FairPlay DRM (see details about Requiem at the end of this file.)
 
-* With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of June 2016.
+* With Kindle for PC/Mac 1.19 and later, Amazon included support for their new KFX format which uses a new DRM scheme that these tools cannot remove. Using 1.17 or earlier prevents downloads of the new format.
+
+** Some later Kindles support Amazon's new KFX format which uses a new DRM scheme that these tools cannot remove. To avoid this problem, instead of using files downloaded directly to your Kindle, download from Amazon's web site 'for transfer via USB'. This will give you an older format file that the tools can decrypt.
+
+*** With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of April 2017.
 
 
 Installation
@@ -78,7 +82,7 @@ Linux Systems Only
 Instructions for installing Wine, Kindle for PC, Adobe Digital Editions, Python and PyCrypto
 --------------------------------------------------------------------------------------------
 
-These instructions have been tested with Wine 1.4 on Ubuntu.
+These instructions have been tested with Wine 1.4 on Ubuntu. 
 
  1. First download the software you're going to to have to install.
     a. Kindle for PC from http://www.amazon.co.uk/gp/kindle/pc/
@@ -88,6 +92,7 @@ These instructions have been tested with Wine 1.4 on Ubuntu.
     d. PyCrypto 2.1 for 32bit Windows and Python 2.7 from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
        (PyCrypto downloads as a zip file. You will need to unzip it.)
  2. Install Wine for 32-bit x86.  (e.g. on Ubuntu, Open the Ubuntu Software Center, search for Wine, and install "Wine Windows Program Loader".)
+ 2a. [update] Kindle for PC now requires Windows 7, so in the following setups, choose any option for Windows 7, not Windows XP.
  3. Run "Configure Wine", which will set up the default 'wineprefix'
  4. Run winetricks, select the default wineprefix and install component vcrun2008
  5. Run the mis-named "Uninstall Wine Software", which also allows installation of software.

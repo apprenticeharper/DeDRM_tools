@@ -1,12 +1,12 @@
 ﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.5.3 archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.5.4 archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
 
 The is archive includes tools to remove DRM from:
 
- - Kindle ebooks (files from Kindle for Mac/PC and eInk Kindles).
- - Adobe Digital Editions (v2.0.1*) ePubs (including Kobo and Google ePubs downloaded to ADE)
+ - Kindle ebooks (files from Kindle for Mac/PC (v1.17*) and eInk Kindles**).
+ - Adobe Digital Editions (v2.0.1***) ePubs (including Kobo and Google ePubs downloaded to ADE)
  - Kobo kePubs from the Kobo Desktop application
  - Barnes and Noble ePubs
  - Adobe Digital Editions (v2.0.1) PDFs
@@ -17,7 +17,11 @@ The is archive includes tools to remove DRM from:
 
 These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
-* With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of October 2016.
+* With Kindle for PC/Mac 1.19 and later, Amazon included support for their new KFX format which uses a new DRM scheme that these tools cannot remove. Using 1.17 or earlier prevents downloads of the new format.
+
+** Some later Kindles support Amazon's new KFX format which uses a new DRM scheme that these tools cannot remove. To avoid this problem, instead of using files downloaded directly to your Kindle, download from Amazon's web site 'for transfer via USB'. This will give you an older format file that the tools can decrypt.
+
+*** With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of April 2017.
 
 About the tools
 ---------------
