@@ -706,6 +706,7 @@ def cli_main():
     epilog = u"Parsing of arguments failed."
     parser = argparse.ArgumentParser(prog=sys.argv[0], description=description, epilog=epilog)
     parser.add_argument('--devicedir', default='/media/KOBOeReader', help="directory of connected Kobo device")
+    parser.add_argument('--all', action='store_true', help="flag for converting all books on device")
     args = vars(parser.parse_args())
     serials = []
     devicedir = u""
@@ -714,20 +715,23 @@ def cli_main():
 
     lib = KoboLibrary(serials, devicedir)
 
-    for i, book in enumerate(lib.books):
-        print u"{0}: {1}".format(i + 1, book.title)
-    print u"Or 'all'"
-
-    choice = raw_input(u"Convert book number... ")
-    if choice == u'all':
-        books = list(lib.books)
+    if args['all']:
+        books = lib.books
     else:
-        try:
-            num = int(choice)
-            books = [lib.books[num - 1]]
-        except (ValueError, IndexError):
-            print u"Invalid choice. Exiting..."
-            exit()
+        for i, book in enumerate(lib.books):
+            print u"{0}: {1}".format(i + 1, book.title)
+        print u"Or 'all'"
+
+        choice = raw_input(u"Convert book number... ")
+        if choice == u'all':
+            books = list(lib.books)
+        else:
+            try:
+                num = int(choice)
+                books = [lib.books[num - 1]]
+            except (ValueError, IndexError):
+                print u"Invalid choice. Exiting..."
+                exit()
 
     results = [decrypt_book(book, lib) for book in books]
     lib.close()
