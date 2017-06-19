@@ -93,13 +93,13 @@ These instructions have been tested with Wine 1.4 on Ubuntu.
  2. Install Wine for 32-bit x86.  (e.g. on Ubuntu, Open the Ubuntu Software Center, search for Wine, and install "Wine Windows Program Loader".)
  2a. [update] Kindle for PC now requires Windows 7, so in the following setups, choose any option for Windows 7, not Windows XP.
  3. Run "Configure Wine", which will set up the default 'wineprefix'
- 5. Navigate to "Install an application" and install Kindle. Alternatively, run `winetricks kindle`
- 7. Install Adobe Digital Editions. Accept all defaults and register with your Adobe ID.
- 8. Install Python 2.7.x using `msiexec /i python-2.7.8.msi`. Accept all defaults.
- 9. Install PyCrypto 2.1. Accept all defaults.
- 10. Unzip DeDRM_plugin.zip and move kindlekey.py to somewhere in drive_c, such as ~/.wine/drive_c/DeDRM/libraryfiles/kindlekey.py.
- 11. Run `wine 'C:\Python27/python.exe' 'C:DeDRM/libraryfiles/kindlekey.py'`, or wherever you copied kindlekey.py to.
- 12. Import the resulting key file to the Calibre plugin through the Kindle for Mac/PC ebooks option.
+ 4. Navigate to "Install an application" and install Kindle. Alternatively, run `winetricks kindle`
+ 5. Install Adobe Digital Editions. Accept all defaults and register with your Adobe ID.
+ 6. Install Python 2.7.x using `msiexec /i python-2.7.8.msi`. Accept all defaults.
+ 7. Install PyCrypto 2.1. Accept all defaults.
+ 8. Unzip DeDRM_plugin.zip and move kindlekey.py to somewhere in drive_c, such as ~/.wine/drive_c/DeDRM/libraryfiles/kindlekey.py.
+ 9. Run `wine 'C:\Python27/python.exe' 'C:DeDRM/libraryfiles/kindlekey.py'`, or wherever you copied kindlekey.py to.
+ 10. Import the resulting key file to the Calibre plugin through the Kindle for Mac/PC ebooks option.
 
 
 Instructions for getting Kindle for PC and Adobe Digital Editions default decryption keys
