@@ -1,4 +1,4 @@
-﻿DeDRM_plugin.zip
+DeDRM_plugin.zip
 ================
 
 This calibre plugin replaces many previously separate DRM removal plugins. Before you install this plugin, you should uninstall any older individual DRM removal plugins, e.g. K4MobiDeDRM. The exception is the obok plugin, which should not be removed.
@@ -85,21 +85,21 @@ Instructions for installing Wine, Kindle for PC, Adobe Digital Editions, Python 
 These instructions have been tested with Wine 1.4 on Ubuntu. 
 
  1. First download the software you're going to to have to install.
-    a. Kindle for PC from http://www.amazon.co.uk/gp/kindle/pc/
-    b. Adobe Digital Editions 1.7.x from http://helpx.adobe.com/digital-editions/kb/cant-install-digital-editions.html
+    a. Adobe Digital Editions 1.7.x from http://helpx.adobe.com/digital-editions/kb/cant-install-digital-editions.html
        (Adobe Digital Editions 2.x doesn't work with Wine.)
-    c. ActivePython 2.7.X for Windows (x86) from http://www.activestate.com/activepython/downloads
-    d. PyCrypto 2.1 for 32bit Windows and Python 2.7 from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
+    b. Python 2.7.X for Windows (x86) from https://www.python.org/ftp/python/2.7.13/python-2.7.13.msi
+    c. PyCrypto 2.1 for 32bit Windows and Python 2.7 from http://www.voidspace.org.uk/python/modules.shtml#pycrypto
        (PyCrypto downloads as a zip file. You will need to unzip it.)
  2. Install Wine for 32-bit x86.  (e.g. on Ubuntu, Open the Ubuntu Software Center, search for Wine, and install "Wine Windows Program Loader".)
  2a. [update] Kindle for PC now requires Windows 7, so in the following setups, choose any option for Windows 7, not Windows XP.
  3. Run "Configure Wine", which will set up the default 'wineprefix'
- 4. Run winetricks, select the default wineprefix and install component vcrun2008
- 5. Run the mis-named "Uninstall Wine Software", which also allows installation of software.
- 6. Install Kindle for PC. Accept all defaults and register with your Amazon Account.
- 7. Install Adobe Digital Editions. Accept all defaults and register with your Adobe ID.
- 8. Install ActiveState Python 2.7.x. Accept all defaults.
- 9. Install PyCrypto 2.1. Accept all defaults.
+ 4. Navigate to "Install an application" and install Kindle. Alternatively, run `winetricks kindle`
+ 5. Install Adobe Digital Editions. Accept all defaults and register with your Adobe ID.
+ 6. Install Python 2.7.x using `msiexec /i python-2.7.8.msi`. Accept all defaults.
+ 7. Install PyCrypto 2.1. Accept all defaults.
+ 8. Unzip DeDRM_plugin.zip and move kindlekey.py to somewhere in drive_c, such as ~/.wine/drive_c/DeDRM/libraryfiles/kindlekey.py.
+ 9. Run `wine 'C:\Python27/python.exe' 'C:DeDRM/libraryfiles/kindlekey.py'`, or wherever you copied kindlekey.py to.
+ 10. Import the resulting key file to the Calibre plugin through the Kindle for Mac/PC ebooks option.
 
 
 Instructions for getting Kindle for PC and Adobe Digital Editions default decryption keys
