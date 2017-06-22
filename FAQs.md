@@ -24,9 +24,11 @@ Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which
 If you have already installed or have been updated to 1.19, just go to the preferences and uncheck the auto update checkbox. The download and install 1.17 over the top of the 1.19 installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
 
 A second possible solution is to use 1.19 or later, but disable KFX by renaming or disabling a necessary component of the application. This may or may not work on versions after 1.20. In a command window, enter the following commands when Kindle for PC/Mac is not running:
-####Windows
+
+#### Windows
 ren %localappdata%\Amazon\Kindle\application\renderer-test.exe renderer-test.xxx
-####Macintosh
+
+#### Macintosh
 chmod -x /Applications/Kindle.app/Contents/MacOS/renderer-test
 
 After restarting the Kindle program any books previously downloaded in KFX format will no longer open. You will need to remove them from your device and re-download them. All future downloads will use the older Kindle formats instead of KFX although they will continue to be placed in one individual subdirectory per book.
