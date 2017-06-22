@@ -23,6 +23,14 @@ Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which
 
 If you have already installed or have been updated to 1.19, just go to the preferences and uncheck the auto update checkbox. The download and install 1.17 over the top of the 1.19 installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
 
+A second possible solution is to use 1.19 or later, but disable KFX by renaming or disabling a necessary component of the application. This may or may not work on versions after 1.20. In a command window, enter the following commands when Kindle for PC/Mac is not running:
+####Windows
+ren %localappdata%\Amazon\Kindle\application\renderer-test.exe renderer-test.xxx
+####Macintosh
+chmod -x /Applications/Kindle.app/Contents/MacOS/renderer-test
+
+After restarting the Kindle program any books previously downloaded in KFX format will no longer open. You will need to remove them from your device and re-download them. All future downloads will use the older Kindle formats instead of KFX although they will continue to be placed in one individual subdirectory per book.
+
 ## Where can I get the latest version of these free DRM removal tools?
 Right here at github. Just go to the [releases page](https://github.com/apprenticeharper/DeDRM_tools/releases) and download the latest zip archive of the tools, named DeDRM\_tools\_X.X.X.zip, where X.X.X is the version number. You do not need to download the source code archive.
 
