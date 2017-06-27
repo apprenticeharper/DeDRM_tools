@@ -3,14 +3,14 @@
 
 from __future__ import with_statement
 
-# ineptepub.pyw, version 6.5
+# ineptepub.pyw, version 6.6
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
 # Modified 2010–2013 by some_updates, DiapDealer and Apprentice Alf
-# Modified 2015–2016 by Apprentice Harper
+# Modified 2015–2017 by Apprentice Harper
 
 # Windows users: Before running this program, you must first install Python 2.7
 #   from <http://www.python.org/download/> and PyCrypto from
@@ -42,13 +42,14 @@ from __future__ import with_statement
 #   6.3 - Add additional check on DER file sanity
 #   6.4 - Remove erroneous check on DER file sanity
 #   6.5 - Completely remove erroneous check on DER file sanity
+#   6.6 - Import tkFileDialog, don't assume something else will import it.
 
 """
 Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "6.5"
+__version__ = "6.6"
 
 import sys
 import os
@@ -484,6 +485,7 @@ def gui_main():
     try:
         import Tkinter
         import Tkconstants
+        import tkFileDialog
         import tkMessageBox
         import traceback
     except:

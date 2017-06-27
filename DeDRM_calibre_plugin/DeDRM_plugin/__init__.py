@@ -57,6 +57,7 @@ __docformat__ = 'restructuredtext en'
 #   6.5.1 - Updated version number, added PDF check for DRM-free documents
 #   6.5.2 - Another Topaz fix
 #   6.5.3 - Warn about KFX files explicitly
+#   6.5.4 - Mac App Fix, improve PDF decryption, handle latest tcl changes in ActivePython
 
 
 """
@@ -64,7 +65,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 5, 3)
+PLUGIN_VERSION_TUPLE = (6, 5, 4)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'

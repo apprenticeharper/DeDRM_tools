@@ -56,7 +56,7 @@ We strongly recommend renaming the DeDRM\_tools\_X.X.X.zip archive (after extrac
 
 ## The Windows Application
 ### I've installed ActiveState Python and PyCrypto, but the Windows application won't run. What have I done wrong?
-Nothing. There's a bug in the current ActiveState Python Windows installer that puts the Tcl code in the wrong place. See [this comment of mine at ActiveState community](https://community.activestate.com/node/19090). Just move the Tcl code to the correct place manually and the Windows app should run.
+Nothing. There's a bug in the some older ActiveState Python Windows installers that puts the Tcl code in the wrong place. See [this comment of mine at ActiveState community](https://community.activestate.com/node/19090). Just move the Tcl code to the correct place manually and the Windows app should run.
 
 ## The Macintosh Application
 ### I can't open the Macintosh Application. Some message about it not being signed or something.

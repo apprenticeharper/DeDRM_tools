@@ -4,7 +4,7 @@
 from __future__ import with_statement
 
 # kindlekey.py
-# Copyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper
+# Copyright © 2010-2017 by some_updates, Apprentice Alf and Apprentice Harper
 
 # Revision history:
 #  1.0   - Kindle info file decryption, extracted from k4mobidedrm, etc.
@@ -22,6 +22,7 @@ from __future__ import with_statement
 #  2.1   - Fixed Kindle for PC encryption changes March 2016
 #  2.2   - Fixes for Macs with bonded ethernet ports
 #          Also removed old .kinfo file support (pre-2011)
+#  2.3   - Added more field names thanks to concavegit's KFX code.
 
 
 """
@@ -29,7 +30,7 @@ Retrieve Kindle for PC/Mac user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '2.2'
+__version__ = '2.3'
 
 import sys, os, re
 from struct import pack, unpack, unpack_from
@@ -1010,8 +1011,11 @@ if iswindows:
             'max_date',\
             'SIGVERIF',\
             'build_version',\
+            'SerialNumber',\
+            'UsernameHash',\
+            'kindle.directedid.info',\
+            'DSN'
             ]
-
         DB = {}
         with open(kInfoFile, 'rb') as infoReader:
             data = infoReader.read()
@@ -1447,6 +1451,10 @@ elif isosx:
             'max_date',\
             'SIGVERIF',\
             'build_version',\
+            'SerialNumber',\
+            'UsernameHash',\
+            'kindle.directedid.info',\
+            'DSN'
             ]
         with open(kInfoFile, 'rb') as infoReader:
             filedata = infoReader.read()

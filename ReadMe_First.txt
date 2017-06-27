@@ -19,9 +19,9 @@ These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
 * With Kindle for PC/Mac 1.19 and later, Amazon included support for their new KFX format which uses a new DRM scheme that these tools cannot remove. Using 1.17 or earlier prevents downloads of the new format.
 
-** Some later Kindles support Amazon's new KFX format which uses a new DRM scheme that these tools cannot remove. To avoid this problem, instead of using files downloaded directly to your Kindle, download from Amazon's web site 'for transfer via USB'. This will give you an older format file that the tools can decrypt.
+** Some later Kindles support Amazon's new KFX format which uses a new DRM scheme that these tools cannot remove. To avoid this problem, instead of using files downloaded directly to your Kindle, download from Amazon's web site 'for transfer via USB'. This will give you an older format file that the tools can decrypt. See also the FAQ entry about this.
 
-*** With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of April 2017.
+*** With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of June 2017.
 
 About the tools
 ---------------
@@ -95,8 +95,6 @@ We **strongly** recommend ActiveState's Active Python 2.7 Community Edition for 
 http://www.activestate.com/activepython/downloads
 
 We do **NOT** recommend the version of Python from python.org as it is missing various Windows specific libraries, does not install the Tk Widget kit (for graphical user interfaces) by default, and does not properly update the system PATH environment variable. Therefore using the default python.org build on Windows is simply an exercise in frustration for most Windows users.
-
-Note that currently (October 2016) ActiveState Python puts the tcl library in the wrong place, and it needs to be manually moved. See this thread at activestate.com for the latest information: https://community.activestate.com/node/19090
 
 In addition, Windows Users need PyCrypto:
 

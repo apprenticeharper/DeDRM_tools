@@ -665,41 +665,16 @@ class KoboFile(object):
             contents = contents[:-padding]
         return contents
 
-def cli_main():
-    description = __about__
-    epilog = u"Parsing of arguments failed."
-    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description, epilog=epilog)
-    parser.add_argument('--devicedir', default='/media/KOBOeReader', help="directory of connected Kobo device")
-    args = vars(parser.parse_args())
-    serials = []
-    devicedir = u""
-    if args['devicedir']:
-        devicedir = args['devicedir']
-
-    lib = KoboLibrary(serials, devicedir)
-
-    for i, book in enumerate(lib.books):
-        print u"{0}: {1}".format(i + 1, book.title)
-
-    num_string = raw_input(u"Convert book number... ")
-    try:
-        num = int(num_string)
-        book = lib.books[num - 1]
-    except (ValueError, IndexError):
-        exit()
-
+def decrypt_book(book, lib):
     print u"Converting {0}".format(book.title)
-
     zin = zipfile.ZipFile(book.filename, "r")
     # make filename out of Unicode alphanumeric and whitespace equivalents from title
     outname = u"{0}.epub".format(re.sub('[^\s\w]', '_', book.title, 0, re.UNICODE))
-
     if (book.type == 'drm-free'):
         print u"DRM-free book, conversion is not needed"
         shutil.copyfile(book.filename, outname)
         print u"Book saved as {0}".format(os.path.join(os.getcwd(), outname))
-        exit(0)
-
+        return 0
     result = 1
     for userkey in lib.userkeys:
         print u"Trying key: {0}".format(userkey.encode('hex_codec'))
@@ -722,12 +697,49 @@ def cli_main():
             print u"Decryption failed."
             zout.close()
             os.remove(outname)
-
     zin.close()
-    lib.close()
-    if result != 0:
-        print u"Could not decrypt book with any of the keys found."
     return result
+
+
+def cli_main():
+    description = __about__
+    epilog = u"Parsing of arguments failed."
+    parser = argparse.ArgumentParser(prog=sys.argv[0], description=description, epilog=epilog)
+    parser.add_argument('--devicedir', default='/media/KOBOeReader', help="directory of connected Kobo device")
+    parser.add_argument('--all', action='store_true', help="flag for converting all books on device")
+    args = vars(parser.parse_args())
+    serials = []
+    devicedir = u""
+    if args['devicedir']:
+        devicedir = args['devicedir']
+
+    lib = KoboLibrary(serials, devicedir)
+
+    if args['all']:
+        books = lib.books
+    else:
+        for i, book in enumerate(lib.books):
+            print u"{0}: {1}".format(i + 1, book.title)
+        print u"Or 'all'"
+
+        choice = raw_input(u"Convert book number... ")
+        if choice == u'all':
+            books = list(lib.books)
+        else:
+            try:
+                num = int(choice)
+                books = [lib.books[num - 1]]
+            except (ValueError, IndexError):
+                print u"Invalid choice. Exiting..."
+                exit()
+
+    results = [decrypt_book(book, lib) for book in books]
+    lib.close()
+    overall_result = all(result != 0 for result in results)
+    if overall_result != 0:
+        print u"Could not decrypt book with any of the keys found."
+    return overall_result
+
 
 if __name__ == '__main__':
     sys.stdout=SafeUnbuffered(sys.stdout)

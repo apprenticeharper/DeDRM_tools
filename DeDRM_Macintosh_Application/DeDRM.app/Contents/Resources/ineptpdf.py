@@ -3,14 +3,14 @@
 
 from __future__ import with_statement
 
-# ineptpdf.pyw, version 8.0.4
+# ineptpdf.pyw, version 8.0.6
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
 # Modified 2010–2012 by some_updates, DiapDealer and Apprentice Alf
-# Modified 2015-2016 by Apprentice Harper
+# Modified 2015-2017 by Apprentice Harper
 
 # Windows users: Before running this program, you must first install Python 2.7
 #   from <http://www.python.org/download/> and PyCrypto from
@@ -58,6 +58,7 @@ from __future__ import with_statement
 #   8.0.3 - Remove erroneous check on DER file sanity
 #   8.0.4 - Completely remove erroneous check on DER file sanity
 #   8.0.5 - Do not process DRM-free documents
+#   8.0.6 - Replace use of float by Decimal for greater precision, and import tkFileDialog
 
 
 """
@@ -65,7 +66,7 @@ Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "8.0.5"
+__version__ = "8.0.6"
 
 import sys
 import os
@@ -73,6 +74,7 @@ import re
 import zlib
 import struct
 import hashlib
+from decimal import *
 from itertools import chain, islice
 import xml.etree.ElementTree as etree
 
@@ -653,7 +655,7 @@ class PSBaseParser(object):
             return (self.parse_number, j+1)
         if c == '.':
             self.token = c
-            return (self.parse_float, j+1)
+            return (self.parse_decimal, j+1)
         if c.isalpha():
             self.token = c
             return (self.parse_keyword, j+1)
@@ -718,20 +720,21 @@ class PSBaseParser(object):
         c = s[j]
         if c == '.':
             self.token += c
-            return (self.parse_float, j+1)
+            return (self.parse_decimal, j+1)
         try:
             self.add_token(int(self.token))
         except ValueError:
             pass
         return (self.parse_main, j)
-    def parse_float(self, s, i):
+        
+    def parse_decimal(self, s, i):
         m = END_NUMBER.search(s, i)
         if not m:
             self.token += s[i:]
-            return (self.parse_float, len(s))
+            return (self.parse_decimal, len(s))
         j = m.start(0)
         self.token += s[i:j]
-        self.add_token(float(self.token))
+        self.add_token(Decimal(self.token))
         return (self.parse_main, j)
 
     def parse_keyword(self, s, i):
@@ -933,7 +936,7 @@ class PSStackParser(PSBaseParser):
             (pos, token) = self.nexttoken()
             ##print (pos,token), (self.curtype, self.curstack)
             if (isinstance(token, int) or
-                    isinstance(token, float) or
+                    isinstance(token, Decimal) or
                     isinstance(token, bool) or
                     isinstance(token, str) or
                     isinstance(token, PSLiteral)):
@@ -1062,17 +1065,17 @@ def int_value(x):
         return 0
     return x
 
-def float_value(x):
+def decimal_value(x):
     x = resolve1(x)
-    if not isinstance(x, float):
+    if not isinstance(x, Decimal):
         if STRICT:
-            raise PDFTypeError('Float required: %r' % x)
+            raise PDFTypeError('Decimal required: %r' % x)
         return 0.0
     return x
 
 def num_value(x):
     x = resolve1(x)
-    if not (isinstance(x, int) or isinstance(x, float)):
+    if not (isinstance(x, int) or isinstance(x, Decimal)):
         if STRICT:
             raise PDFTypeError('Int or Float required: %r' % x)
         return 0
@@ -2142,7 +2145,11 @@ class PDFSerializer(object):
             if self.last.isalnum():
                 self.write(' ')
             self.write(str(obj).lower())
-        elif isinstance(obj, (int, long, float)):
+        elif isinstance(obj, (int, long)):
+            if self.last.isalnum():
+                self.write(' ')
+            self.write(str(obj))
+        elif isinstance(obj, Decimal):
             if self.last.isalnum():
                 self.write(' ')
             self.write(str(obj))
@@ -2218,6 +2225,7 @@ def gui_main():
     try:
         import Tkinter
         import Tkconstants
+        import tkFileDialog
         import tkMessageBox
         import traceback
     except:

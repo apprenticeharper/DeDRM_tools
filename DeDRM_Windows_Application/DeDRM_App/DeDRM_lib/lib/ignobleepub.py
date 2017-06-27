@@ -3,13 +3,14 @@
 
 from __future__ import with_statement
 
-# ignobleepub.pyw, version 3.8
+# ignobleepub.pyw, version 4.1
 # Copyright © 2009-2010 by i♥cabbages
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
 # Modified 2010–2013 by some_updates, DiapDealer and Apprentice Alf
+# Modified 2015–2017 by Apprentice Harper
 
 # Windows users: Before running this program, you must first install Python 2.6
 #   from <http://www.python.org/download/> and PyCrypto from
@@ -35,13 +36,14 @@ from __future__ import with_statement
 #   3.8 - Fixed to retain zip file metadata (e.g. file modification date)
 #   3.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   4.0 - Work if TkInter is missing
+#   4.1 - Import tkFileDialog, don't assume something else will import it.
 
 """
 Decrypt Barnes & Noble encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "4.0"
+__version__ = "4.1"
 
 import sys
 import os
@@ -337,6 +339,7 @@ def gui_main():
     try:
         import Tkinter
         import Tkconstants
+        import tkFileDialog
         import tkMessageBox
         import traceback
     except:
