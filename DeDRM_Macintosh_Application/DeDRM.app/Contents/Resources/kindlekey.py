@@ -23,6 +23,7 @@ from __future__ import with_statement
 #  2.2   - Fixes for Macs with bonded ethernet ports
 #          Also removed old .kinfo file support (pre-2011)
 #  2.3   - Added more field names thanks to concavegit's KFX code.
+#  2.4   - Fix for complex Mac disk setups, thanks to Tibs
 
 
 """
@@ -30,7 +31,7 @@ Retrieve Kindle for PC/Mac user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '2.3'
+__version__ = '2.4'
 
 import sys, os, re
 from struct import pack, unpack, unpack_from
@@ -1267,7 +1268,7 @@ elif isosx:
         for j in xrange(cnt):
             resline = reslst[j]
             if resline.startswith('/dev'):
-                (devpart, mpath) = resline.split(' on ')
+                (devpart, mpath) = resline.split(' on ')[:2]
                 dpart = devpart[5:]
                 names.append(dpart)
         return names
