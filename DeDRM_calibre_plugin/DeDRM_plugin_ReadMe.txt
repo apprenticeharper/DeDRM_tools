@@ -98,7 +98,7 @@ These instructions have been tested with Wine 1.4 on Ubuntu.
  6. Install Python 2.7.x using `msiexec /i python-2.7.8.msi`. Accept all defaults.
  7. Install PyCrypto 2.1. Accept all defaults.
  8. Unzip DeDRM_plugin.zip and move kindlekey.py to somewhere in drive_c, such as ~/.wine/drive_c/DeDRM/libraryfiles/kindlekey.py.
- 9. Run `wine 'C:\Python27/python.exe' 'C:DeDRM/libraryfiles/kindlekey.py'`, or wherever you copied kindlekey.py to.
+ 9. Run `wine 'C:\Python27/python.exe' 'C:\DeDRM/libraryfiles/kindlekey.py'`, or wherever you copied kindlekey.py to.
  10. Import the resulting key file to the Calibre plugin through the Kindle for Mac/PC ebooks option.
 
 
