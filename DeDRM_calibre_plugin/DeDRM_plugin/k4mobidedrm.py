@@ -3,10 +3,13 @@
 
 from __future__ import with_statement
 
-# k4mobidedrm.py, version 5.3
-# Copyright © 2009-2015 by ApprenticeHarper et al.
+# k4mobidedrm.py
+# Copyright © 2008-2017 by Apprentice Harper et al.
 
-# engine to remove drm from Kindle and Mobipocket ebooks
+__license__ = 'GPL v3'
+__version__ = '5.5'
+
+# Engine to remove drm from Kindle and Mobipocket ebooks
 # for personal use for archiving and converting your ebooks
 
 # PLEASE DO NOT PIRATE EBOOKS!
@@ -17,11 +20,10 @@ from __future__ import with_statement
 # readable for a long, long time
 
 # This borrows very heavily from works by CMBDTC, IHeartCabbages, skindle,
-#    unswindle, DarkReverser, ApprenticeAlf, DiapDealer, some_updates
-#    and many many others
+#    unswindle, DarkReverser, ApprenticeAlf, and many many others
+
 # Special thanks to The Dark Reverser for MobiDeDrm and CMBDTC for cmbdtc_dump
 # from which this script borrows most unashamedly.
-
 
 # Changelog
 #  1.0 - Name change to k4mobidedrm. Adds Mac support, Adds plugin code
@@ -57,9 +59,7 @@ from __future__ import with_statement
 #  5.2 - Fixed error in command line processing of unicode arguments
 #  5.3 - Changed Android support to allow passing of backup .ab files
 #  5.4 - Recognise KFX files masquerading as azw, even if we can't decrypt them yet.
-
-__version__ = '5.4'
-
+#  5.5 - Added GPL v3 licence explicitly.
 
 import sys, os, re
 import csv
@@ -295,7 +295,7 @@ def usage(progname):
 def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2013 The Dark Reverser et al.".format(__version__)
+    print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2017 Apprentice Harper et al.".format(__version__)
 
     try:
         opts, args = getopt.getopt(argv[1:], "k:p:s:a:")
