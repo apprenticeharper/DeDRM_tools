@@ -65,6 +65,9 @@ Try right-clicking and select open. That might give you the option to open it an
 ### I can't open the Macintosh Application at all. I get 'The aplication "DeDRM" can't be opened'
 Some unzip applications do not respect the execution bit setting. Try unzipping the main tools archive using the built-in Mac unzip utility.
 
+### I can't open the Macintosh Application at all. I get 'spawn_via_launchd() failed, errno=111'
+There seems to be a bug in Apple's launch services. Try using the free [Maintenance utility](https://www.titanium-software.fr/en/maintenance.html) from Titanium Software to clear the launch cache and database.
+
 # Using the Tools
 ## I can’t get the tools to work on my rented or library ebooks.
 The tools are not designed to remove DRM from rented or library ebooks.
