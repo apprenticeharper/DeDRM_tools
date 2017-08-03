@@ -113,9 +113,9 @@ Apple's iBooks FairPlay DRM
 
 The only tool that removes Apple's iBooks Fairplay DRM is Requiem by Brahms version 3.3.6 and works with iTunes 10.5. Requiem 4.0 and later do not remove DRM from ebooks.
 
-Requiem has a Tor website: http://tag3ulp55xczs3pn.onion. To reach the site using Tor, you will need to install Tor (http://www.torproject.org). If you're willing to sacrifice your anonymity, you can use the regular web with tor2web. Just go to http://tag3ulp55xczs3pn.tor2web.com.
+Requiem is no longer developed as of 2012, with the last version 4.1.
 
-Alternatively, you can download it from these download links:
+Youu can download it from these download links:
 
 Requiem 3.3.6 for Windows: http://www.datafilehost.com/download-f7916922.html
 MD5: 10ab191f2d86c692d57f6a07b4622cf8
@@ -125,8 +125,6 @@ MD5: 6d4167d47e6982ddbb8528212198b520
 
 Requiem 3.3.6 source code: http://www.datafilehost.com/download-172920e9.html
 MD5: 1636862796d573c693d56bcc526b60bd
-
-If you have any problems with Requiem, I suggest you contact Brahms directly through their Tor website.
 
 No support for requiem is provided at Apprentice Alf's blog or Apprentice Harper's github repository.
 
