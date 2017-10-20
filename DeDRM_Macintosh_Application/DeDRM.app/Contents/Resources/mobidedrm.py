@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# mobidedrm.py, version 0.38
+# mobidedrm.py
 # Copyright © 2008 The Dark Reverser
-#
-# Modified 2008–2012 by some_updates, DiapDealer and Apprentice Alf
+# Portions © 2008–2017 Apprentice Harper et al.
+
+__license__ = 'GPL v3'
+__version__ = u"0.42"
 
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
@@ -69,9 +71,7 @@
 #  0.39 - Fixed problem with TEXtREAd and getBookType interface
 #  0.40 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  0.41 - Fixed potential unicode problem in command line calls
-
-
-__version__ = u"0.41"
+#  0.42 - Added GPL v3 licence. updated/removed some print statements
 
 import sys
 import os
@@ -244,7 +244,7 @@ class MobiBook:
         pass
 
     def __init__(self, infile):
-        print u"MobiDeDrm v{0:s}.\nCopyright © 2008-2012 The Dark Reverser et al.".format(__version__)
+        print u"MobiDeDrm v{0:s}.\nCopyright © 2008-2017 The Dark Reverser, Apprentice Harper et al.".format(__version__)
 
         try:
             from alfcrypto import Pukall_Cipher
@@ -288,10 +288,10 @@ class MobiBook:
         self.mobi_length, = struct.unpack('>L',self.sect[0x14:0x18])
         self.mobi_codepage, = struct.unpack('>L',self.sect[0x1c:0x20])
         self.mobi_version, = struct.unpack('>L',self.sect[0x68:0x6C])
-        print u"MOBI header version {0:d}, header length {1:d}".format(self.mobi_version, self.mobi_length)
+        #print u"MOBI header version {0:d}, header length {1:d}".format(self.mobi_version, self.mobi_length)
         if (self.mobi_length >= 0xE4) and (self.mobi_version >= 5):
             self.extra_data_flags, = struct.unpack('>H', self.sect[0xF2:0xF4])
-            print u"Extra Data Flags: {0:d}".format(self.extra_data_flags)
+            #print u"Extra Data Flags: {0:d}".format(self.extra_data_flags)
         if (self.compression != 17480):
             # multibyte utf8 data is included in the encryption for PalmDoc compression
             # so clear that byte so that we leave it to be decrypted.
@@ -516,7 +516,7 @@ def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv)<3 or len(argv)>4:
-        print u"MobiDeDrm v{0}.\nCopyright © 2008-2012 The Dark Reverser et al.".format(__version__)
+        print u"MobiDeDrm v{0:s}.\nCopyright © 2008-2017 The Dark Reverser, Apprentice Harper et al.".format(__version__)
         print u"Removes protection from Kindle/Mobipocket, Kindle/KF8 and Kindle/Print Replica ebooks"
         print u"Usage:"
         print u"    {0} <infile> <outfile> [<Comma separated list of PIDs to try>]".format(progname)

@@ -21,7 +21,7 @@ But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the 
 ### A Recent Change to Kindle for PC/Kindle for Mac
 Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which these tools can't handle. Stick with version 1.17 or earlier. Kindle for PC 1.17 can be downloaded from https://s3.amazonaws.com/kindleforpc/44183/KindleForPC-installer-1.17.44183.exe and Kindle for Mac 1.17 can be downloaded from https://s3.amazonaws.com/kindleformac/44182/KindleForMac-44182.dmg
 
-If you have already installed or have been updated to 1.19, just go to the preferences and uncheck the auto update checkbox. The download and install 1.17 over the top of the 1.19 installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
+If you have already installed or have been updated to 1.19 or later, just go to the preferences and uncheck the auto update checkbox. The download and install 1.17 over the top of the 1.19 installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
 
 A second possible solution is to use 1.19 or later, but disable KFX by renaming or disabling a necessary component of the application. This may or may not work on versions after 1.20. In a command window, enter the following commands when Kindle for PC/Mac is not running:
 
@@ -99,8 +99,6 @@ If you cannot read the ebook on your current device or installed software, the t
 
 ## I have installed the calibre plugin, and the book is not already in calibre, but the DRM does not get removed. It is a Kindle book.
 If you are on Windows 8 and using the Windows 8 AppStore Kindle app, you must download and install the Kindle for PC application directly from the Amazon website. The tools do not work with the Windows 8 AppStore Kindle app.
-
-If you are on Windows, using the Kindle for PC application, and your windows user name has accented or other non-ASCII characters in it, this will cause the plugin to fail. Create a new user account with an ASCII-only username. Install and register Kindle for PC there, and see if things work running calibre and the plugin in that user account.
 
 If this book is from an eInk Kindle (e.g. Paperwhite), you must enter the serial number into the configuration dialog. The serial number is sixteen characters long, and is case-sensitive.
 

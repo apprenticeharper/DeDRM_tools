@@ -4,10 +4,14 @@
 from __future__ import with_statement
 
 # kgenpids.py
-# Copyright © 2010-2015 by some_updates, Apprentice Alf and Apprentice Harper
+# Copyright © 2008-2017 Apprentice Harper et al.
+
+__license__ = 'GPL v3'
+__version__ = '2.1'
 
 # Revision history:
 #  2.0   - Fix for non-ascii Windows user names
+#  2.1   - Actual fix for non-ascii WIndows user names.
 
 import sys
 import os, csv
@@ -194,21 +198,7 @@ keynames = ['kindle.account.tokens','kindle.cookie.item','eulaVersionAccepted','
 def getK4Pids(rec209, token, kindleDatabase):
     global charMap1
     pids = []
-
-    try:
-        # Get the Mazama Random number
-        MazamaRandomNumber = (kindleDatabase[1])['MazamaRandomNumber'].decode('hex')
-
-        # Get the IDString used to decode the Kindle Info file
-        IDString = (kindleDatabase[1])['IDString'].decode('hex')
-
-        # Get the UserName stored when the Kindle Info file was decoded
-        UserName = (kindleDatabase[1])['UserName'].decode('hex')
-
-    except KeyError:
-        print u"Keys not found in the database {0}.".format(kindleDatabase[0])
-        return pids
-
+    
     try:
         # Get the kindle account token, if present
         kindleAccountToken = (kindleDatabase[1])['kindle.account.tokens'].decode('hex')
@@ -217,14 +207,47 @@ def getK4Pids(rec209, token, kindleDatabase):
         kindleAccountToken=""
         pass
 
-    # Get the ID string used
-    encodedIDString = encodeHash(IDString,charMap1)
+    try:
+        # Get the DSN token, if present
+        DSN = (kindleDatabase[1])['DSN'].decode('hex')
+        print u"Got DSN key from database {0}".format(kindleDatabase[0])
+    except KeyError:
+        # See if we have the info to generate the DSN
+        try:
+            # Get the Mazama Random number
+            MazamaRandomNumber = (kindleDatabase[1])['MazamaRandomNumber'].decode('hex')
+            #print u"Got MazamaRandomNumber from database {0}".format(kindleDatabase[0])
+            
+            try:
+                # Get the SerialNumber token, if present
+                IDString = (kindleDatabase[1])['SerialNumber'].decode('hex')
+                print u"Got SerialNumber from database {0}".format(kindleDatabase[0])
+            except KeyError:
+                 # Get the IDString we added
+                IDString = (kindleDatabase[1])['IDString'].decode('hex')
 
-    # Get the current user name
-    encodedUsername = encodeHash(UserName,charMap1)
+            try:
+                # Get the UsernameHash token, if present
+                encodedUsername = (kindleDatabase[1])['UsernameHash'].decode('hex')
+                print u"Got UsernameHash from database {0}".format(kindleDatabase[0])
+            except KeyError:
+                # Get the UserName we added
+                UserName = (kindleDatabase[1])['UserName'].decode('hex')
+                # encode it
+                encodedUsername = encodeHash(UserName,charMap1)
+                #print u"encodedUsername",encodedUsername.encode('hex')
+        except KeyError:
+            print u"Keys not found in the database {0}.".format(kindleDatabase[0])
+            return pids
 
-    # concat, hash and encode to calculate the DSN
-    DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
+        # Get the ID string used
+        encodedIDString = encodeHash(IDString,charMap1)
+        #print u"encodedIDString",encodedIDString.encode('hex')
+
+        # concat, hash and encode to calculate the DSN
+        DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
+        #print u"DSN",DSN.encode('hex')
+        pass
 
     # Compute the device PID (for which I can tell, is used for nothing).
     table =  generatePidEncryptionTable()

@@ -4,7 +4,10 @@
 from __future__ import with_statement
 
 # kindlekey.py
-# Copyright © 2010-2017 by some_updates, Apprentice Alf and Apprentice Harper
+# Copyright © 2008-2017 Apprentice Harper et al.
+
+__license__ = 'GPL v3'
+__version__ = '2.5'
 
 # Revision history:
 #  1.0   - Kindle info file decryption, extracted from k4mobidedrm, etc.
@@ -24,14 +27,12 @@ from __future__ import with_statement
 #          Also removed old .kinfo file support (pre-2011)
 #  2.3   - Added more field names thanks to concavegit's KFX code.
 #  2.4   - Fix for complex Mac disk setups, thanks to Tibs
+#  2.5   - Final Fix for Windows user names with non-ascii characters, thanks to oneofusoneofus
 
 
 """
 Retrieve Kindle for PC/Mac user key.
 """
-
-__license__ = 'GPL v3'
-__version__ = '2.4'
 
 import sys, os, re
 from struct import pack, unpack, unpack_from
@@ -887,10 +888,18 @@ if iswindows:
                 if errcd == 234:
                     # bad wine implementation up through wine 1.3.21
                     return "AlternateUserName"
+                # double the buffer size
                 buffer = create_unicode_buffer(len(buffer) * 2)
                 size.value = len(buffer)
-            # return low byte of the unicode value of each character of the username
-            return buffer.value.encode('utf-16-le')[::2]
+            
+            # replace any non-ASCII values with 0xfffd
+            for i in xrange(0,len(buffer)):
+                if buffer[i]>u"\u007f":
+                    #print u"swapping char "+str(i)+" ("+buffer[i]+")"
+                    buffer[i] = u"\ufffd"
+            # return utf-8 encoding of modified username
+            #print u"modified username:"+buffer.value
+            return buffer.value.encode('utf-8')
         return GetUserName
     GetUserName = GetUserName()
 
@@ -1015,7 +1024,12 @@ if iswindows:
             'SerialNumber',\
             'UsernameHash',\
             'kindle.directedid.info',\
-            'DSN'
+            'DSN',\
+            'kindle.accounttype.info',\
+            'krx.flashcardsplugin.data.encryption_key',\
+            'krx.notebookexportplugin.data.encryption_key',\
+            'proxy.http.password',\
+            'proxy.http.username'
             ]
         DB = {}
         with open(kInfoFile, 'rb') as infoReader:

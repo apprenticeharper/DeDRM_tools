@@ -1,7 +1,7 @@
 ﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.5.4 archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.5.5 archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
 
 The is archive includes tools to remove DRM from:
 
@@ -90,11 +90,12 @@ A link to the tool for removing DRM from ScuolaBooks PDFs, created by "Hex".
 
 Windows and Python
 ------------------
-We **strongly** recommend ActiveState's Active Python 2.7 Community Edition for Windows. This can be downloaded for free from:
+We **strongly** recommend using calibre and the plugin.
+
+If you really want to use the WIndows app or the individual scripts, you'll need to install python.
+ActiveState's Active Python 2.7 Community Edition for Windowscan be downloaded for free from:
 
 http://www.activestate.com/activepython/downloads
-
-We do **NOT** recommend the version of Python from python.org as it is missing various Windows specific libraries, does not install the Tk Widget kit (for graphical user interfaces) by default, and does not properly update the system PATH environment variable. Therefore using the default python.org build on Windows is simply an exercise in frustration for most Windows users.
 
 In addition, Windows Users need PyCrypto:
 

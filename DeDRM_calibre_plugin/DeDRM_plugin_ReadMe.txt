@@ -17,7 +17,7 @@ These tools do NOT work with kepubs downloaded using Kobo's desktop app (see the
 
 ** Some later Kindles support Amazon's new KFX format which uses a new DRM scheme that these tools cannot remove. To avoid this problem, instead of using files downloaded directly to your Kindle, download from Amazon's web site 'for transfer via USB'. This will give you an older format file that the tools can decrypt.
 
-*** With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of April 2017.
+*** With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of October 2017.
 
 
 Installation
@@ -82,7 +82,7 @@ Linux Systems Only
 Instructions for installing Wine, Kindle for PC, Adobe Digital Editions, Python and PyCrypto
 --------------------------------------------------------------------------------------------
 
-These instructions have been tested with Wine 1.4 on Ubuntu. 
+These instructions have been tested with Wine 1.4 on Ubuntu but may now be a bit out of date.. 
 
  1. First download the software you're going to to have to install.
     a. Adobe Digital Editions 1.7.x from http://helpx.adobe.com/digital-editions/kb/cant-install-digital-editions.html

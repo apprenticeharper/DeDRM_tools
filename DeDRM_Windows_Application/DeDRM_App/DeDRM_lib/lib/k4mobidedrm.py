@@ -3,10 +3,13 @@
 
 from __future__ import with_statement
 
-# k4mobidedrm.py, version 5.5
-# Copyright © 2009-2017 by ApprenticeHarper et al.
+# k4mobidedrm.py
+# Copyright © 2008-2017 by Apprentice Harper et al.
 
-# engine to remove drm from Kindle and Mobipocket ebooks
+__license__ = 'GPL v3'
+__version__ = '5.5'
+
+# Engine to remove drm from Kindle and Mobipocket ebooks
 # for personal use for archiving and converting your ebooks
 
 # PLEASE DO NOT PIRATE EBOOKS!
@@ -17,11 +20,10 @@ from __future__ import with_statement
 # readable for a long, long time
 
 # This borrows very heavily from works by CMBDTC, IHeartCabbages, skindle,
-#    unswindle, DarkReverser, ApprenticeAlf, DiapDealer, some_updates
-#    and many many others
+#    unswindle, DarkReverser, ApprenticeAlf, and many many others
+
 # Special thanks to The Dark Reverser for MobiDeDrm and CMBDTC for cmbdtc_dump
 # from which this script borrows most unashamedly.
-
 
 # Changelog
 #  1.0 - Name change to k4mobidedrm. Adds Mac support, Adds plugin code
@@ -57,15 +59,11 @@ from __future__ import with_statement
 #  5.2 - Fixed error in command line processing of unicode arguments
 #  5.3 - Changed Android support to allow passing of backup .ab files
 #  5.4 - Recognise KFX files masquerading as azw, even if we can't decrypt them yet.
-#  5.5 - Support multiple input files
-
-__version__ = '5.5'
-
+#  5.5 - Added GPL v3 licence explicitly.
 
 import sys, os, re
 import csv
 import getopt
-import glob
 import re
 import traceback
 import time
@@ -289,7 +287,7 @@ def decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids):
 def usage(progname):
     print u"Removes DRM protection from Mobipocket, Amazon KF8, Amazon Print Replica and Amazon Topaz ebooks"
     print u"Usage:"
-    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] [ -a <AmazonSecureStorage.xml|backup.ab> ] <infile, infiles, or indir> <outdir>".format(progname)
+    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] [ -a <AmazonSecureStorage.xml|backup.ab> ] <infile> <outdir>".format(progname)
 
 #
 # Main
@@ -297,7 +295,7 @@ def usage(progname):
 def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2013 The Dark Reverser et al.".format(__version__)
+    print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2017 Apprentice Harper et al.".format(__version__)
 
     try:
         opts, args = getopt.getopt(argv[1:], "k:p:s:a:")
@@ -309,7 +307,8 @@ def cli_main():
         usage(progname)
         sys.exit(2)
 
-    outdir = args.pop()
+    infile = args[0]
+    outdir = args[1]
     kDatabaseFiles = []
     androidFiles = []
     serials = []
@@ -336,21 +335,7 @@ def cli_main():
     # try with built in Kindle Info files if not on Linux
     k4 = not sys.platform.startswith('linux')
 
-    filenames = []
-    for filename in args:
-        if os.path.isdir(filename):
-            for file_extension in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.pobi']:
-                filenames += glob.glob(os.path.join(filename, '*%s' % file_extension))
-        else:
-            # Assume a filename
-            filenames.append(filename)
-
-    for infile in filenames:
-        result = decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids)
-        if result != 0:
-            print u'Error with %r' % infile
-    # return last result only
-    return result
+    return decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids)
 
 
 if __name__ == '__main__':

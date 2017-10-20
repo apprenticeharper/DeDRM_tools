@@ -30,8 +30,9 @@
 #   6.5.2 - Fix for a new tag in Topaz ebooks
 #   6.5.3 - Explicitly warn about KFX files
 #   6.5.4 - PDF float fix.
+#   6.5.5 - Kindle for PC/Accented characters in username fix.
 
-__version__ = '6.5.4'
+__version__ = '6.5.5'
 
 import sys
 import os, os.path

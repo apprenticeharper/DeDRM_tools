@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+
+# __init__.py for DeDRM_plugin
+# Copyright © 2008-2017 Apprentice Harper et al.
+
 __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
 
@@ -58,6 +62,7 @@ __docformat__ = 'restructuredtext en'
 #   6.5.2 - Another Topaz fix
 #   6.5.3 - Warn about KFX files explicitly
 #   6.5.4 - Mac App Fix, improve PDF decryption, handle latest tcl changes in ActivePython
+#   6.5.5 - Finally a fix for the Windows non-ASCII user names.
 
 
 """
@@ -65,7 +70,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 5, 4)
+PLUGIN_VERSION_TUPLE = (6, 5, 5)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
@@ -289,8 +294,8 @@ class DeDRM(FileTypePlugin):
                 except Exception, e:
                     pass
 
-            print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-            raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+            print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+            raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
         # import the Adobe Adept ePub handler
         import calibre_plugins.dedrm.ineptepub as ineptepub
@@ -380,17 +385,19 @@ class DeDRM(FileTypePlugin):
                             except:
                                 print u"{0} v{1}: Exception when saving a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
                                 traceback.print_exc()
-                            print u"{0} v{1}: Decrypted with new default key after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+                            print u"{0} v{1}: Decrypted with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
                             # Return the modified PersistentTemporary file to calibre.
                             return of.name
 
                         print u"{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
                 except Exception, e:
+                    print u"{0} v{1}: Unexpected Exception trying a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime)
+                    traceback.print_exc()
                     pass
 
             # Something went wrong with decryption.
-            print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-            raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+            print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+            raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
         # Not a Barnes & Noble nor an Adobe Adept
         # Import the fixed epub.
@@ -489,8 +496,8 @@ class DeDRM(FileTypePlugin):
                 pass
 
         # Something went wrong with decryption.
-        print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-        raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+        print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+        raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
 
     def KindleMobiDecrypt(self,path_to_ebook):
@@ -557,8 +564,8 @@ class DeDRM(FileTypePlugin):
                     pass
             if not decoded:
                 #if you reached here then no luck raise and exception
-                print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-                raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+                print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+                raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
         of = self.temporary_file(book.getBookExtension())
         book.getFile(of.name)
@@ -592,8 +599,8 @@ class DeDRM(FileTypePlugin):
 
             print u"{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname_masked,time.time()-self.starttime)
 
-        print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.\nRead the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
-        raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+        print u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime)
+        raise DeDRMError(u"{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
 
     def run(self, path_to_ebook):
