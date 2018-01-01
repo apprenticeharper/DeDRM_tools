@@ -449,6 +449,10 @@ class KoboLibrary(object):
             for m in matches:
                 # print u"m:{0}".format(m[0])
                 macaddrs.append(m[0].upper())
+        elif sys.platform.startswith('linux'):
+            p_out = subprocess.check_output("ip -br link show | awk '{print $3}'", shell=True)
+            for line in p_out:
+              macaddrs.append(line.upper())
         else:
             # probably linux, let's try ipconfig under wine
             c = re.compile('\s(' + '[0-9a-f]{2}-' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
