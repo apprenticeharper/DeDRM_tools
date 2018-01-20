@@ -19,19 +19,40 @@ Just download and use these tools, that's all! Uh, almost. There are a few, uh, 
 But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the ebook stores selling ebooks compatible with Adobe Digital Editions 2.0.1, you should be able to remove the DRM that's been applied to your ebooks.
 
 ### A Recent Change to Kindle for PC/Kindle for Mac
-Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which these tools can't handle. Stick with version 1.17 or earlier. Kindle for PC 1.17 can be downloaded from https://s3.amazonaws.com/kindleforpc/44183/KindleForPC-installer-1.17.44183.exe and Kindle for Mac 1.17 can be downloaded from https://s3.amazonaws.com/kindleformac/44182/KindleForMac-44182.dmg
+Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which these tools can't handle. There are two options to get the older formats that the tools can decrypt. Either stick with version 1.17 or earlier, or modify the executable by changing a file name.
 
-If you have already installed or have been updated to 1.19 or later, just go to the preferences and uncheck the auto update checkbox. The download and install 1.17 over the top of the 1.19 installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
+Version 1.17 of Kindle is are no longer available directly from Amazon, so you will need to search for the proper file name and find it on a third party site. The name is "KindleForPC-installer-1.17.44170.exe" for PC and "KindleForMac-44182.dmg" for Mac.
+Verify the one of the following cryptographic hash values, using software of your choice, before installing the downloaded file in order to avoid viruses. If the hash does not match, delete the downloaded file and try again from another site.
+Kindle for PC:
+MD-5: 53F793B562F4823721AA47D7DE099869
+SHA-1: 73C404D719F0DD8D4AE1C2C96612B095D6C86255
+SHA-256: 14E0F0053F1276C0C7C446892DC170344F707FBFE99B695176 2C120144163200
+Kindle for Mac:
+MD-5: E7E36D5369E1F3CF1D28E5D9115DF15F
+SHA-1: 7AB9A86B954CB23D622BD79E3257F8E2182D791C
+SHA-256: 28DC21246A9C7CDEDD2D6F0F4082E6BF7EF9DB9CE9D485548E 8A9E1D19EAE2AC. 
+
+You will need to go to the preferences and uncheck the auto update checkbox. Then download and install 1.17 over the top of the 1.19 installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
 
 A second possible solution is to use 1.19 or later, but disable KFX by renaming or disabling a necessary component of the application. This may or may not work on versions after 1.20. In a command window, enter the following commands when Kindle for PC/Mac is not running:
 
 #### Windows
 ren %localappdata%\Amazon\Kindle\application\renderer-test.exe renderer-test.xxx
 
+PC Note: The renderer-test program may be in a different location in some Kindle for PC installations. If the rename command fails look in other folders, such as C:\Program Files\Amazon\Kindle.
+
 #### Macintosh
 chmod -x /Applications/Kindle.app/Contents/MacOS/renderer-test
 
+Mac Note: If the chmod command fails with a permission error try again using sudo before chmod - sudo chmod [...]
+
 After restarting the Kindle program any books previously downloaded in KFX format will no longer open. You will need to remove them from your device and re-download them. All future downloads will use the older Kindle formats instead of KFX although they will continue to be placed in one individual subdirectory per book.
+
+#### Another Note on KFX
+It now possible, but not easy, to convert books from KFX to other formats in calibre by installing the optional KFX Input plugin. The lack of automatic DRM removal makes this process difficult so it is not recommended unless there is no other alternative, such as for Indic language books only available in KFX. There is a windows-only KFX DRM rmeoval program in the repository, but not yet integrated into the tools.
+
+#### Thanks
+Thanks to jhowell for his investigations into KFX format and workarounds. Some of these instructions are from [his thread on the subject](https://www.mobileread.com/forums/showthread.php?t=283371) at MobileRead.
 
 ## Where can I get the latest version of these free DRM removal tools?
 Right here at github. Just go to the [releases page](https://github.com/apprenticeharper/DeDRM_tools/releases) and download the latest zip archive of the tools, named DeDRM\_tools\_X.X.X.zip, where X.X.X is the version number. You do not need to download the source code archive.
