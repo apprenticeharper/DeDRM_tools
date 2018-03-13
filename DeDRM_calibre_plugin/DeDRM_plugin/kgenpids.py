@@ -12,6 +12,7 @@ __version__ = '2.1'
 # Revision history:
 #  2.0   - Fix for non-ascii Windows user names
 #  2.1   - Actual fix for non-ascii WIndows user names.
+#  x.x   - Return information needed for KFX decryption
 
 import sys
 import os, csv
@@ -172,6 +173,9 @@ def pidFromSerial(s, l):
 
 # Parse the EXTH header records and use the Kindle serial number to calculate the book pid.
 def getKindlePids(rec209, token, serialnum):
+    if rec209 is None:
+        return [serialnum]
+
     pids=[]
 
     if isinstance(serialnum,unicode):
@@ -198,7 +202,7 @@ keynames = ['kindle.account.tokens','kindle.cookie.item','eulaVersionAccepted','
 def getK4Pids(rec209, token, kindleDatabase):
     global charMap1
     pids = []
-    
+
     try:
         # Get the kindle account token, if present
         kindleAccountToken = (kindleDatabase[1])['kindle.account.tokens'].decode('hex')
@@ -217,7 +221,7 @@ def getK4Pids(rec209, token, kindleDatabase):
             # Get the Mazama Random number
             MazamaRandomNumber = (kindleDatabase[1])['MazamaRandomNumber'].decode('hex')
             #print u"Got MazamaRandomNumber from database {0}".format(kindleDatabase[0])
-            
+
             try:
                 # Get the SerialNumber token, if present
                 IDString = (kindleDatabase[1])['SerialNumber'].decode('hex')
@@ -248,6 +252,10 @@ def getK4Pids(rec209, token, kindleDatabase):
         DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
         #print u"DSN",DSN.encode('hex')
         pass
+
+    if rec209 is None:
+        pids.append(DSN+kindleAccountToken)
+        return pids
 
     # Compute the device PID (for which I can tell, is used for nothing).
     table =  generatePidEncryptionTable()
