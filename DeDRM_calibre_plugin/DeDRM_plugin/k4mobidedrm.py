@@ -60,6 +60,7 @@ __version__ = '5.5'
 #  5.3 - Changed Android support to allow passing of backup .ab files
 #  5.4 - Recognise KFX files masquerading as azw, even if we can't decrypt them yet.
 #  5.5 - Added GPL v3 licence explicitly.
+#  5.x - Invoke KFXZipBook to handle zipped KFX files
 
 import sys, os, re
 import csv
@@ -83,11 +84,13 @@ if inCalibre:
     from calibre_plugins.dedrm import topazextract
     from calibre_plugins.dedrm import kgenpids
     from calibre_plugins.dedrm import androidkindlekey
+    from calibre_plugins.dedrm import kfxdedrm
 else:
     import mobidedrm
     import topazextract
     import kgenpids
     import androidkindlekey
+    import kfxdedrm
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -197,13 +200,15 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
     mobi = True
     magic8 = open(infile,'rb').read(8)
     if magic8 == '\xeaDRMION\xee':
-        raise DrmException(u"KFX format detected. This format cannot be decrypted yet.")
-        
+        raise DrmException(u"The .kfx DRMION file cannot be decrypted by itself. A .kfx-zip archive containing a DRM voucher is required.")
+
     magic3 = magic8[:3]
     if magic3 == 'TPZ':
         mobi = False
 
-    if mobi:
+    if magic8[:4] == 'PK\x03\x04':
+        mb = kfxdedrm.KFXZipBook(infile)
+    elif mobi:
         mb = mobidedrm.MobiBook(infile)
     else:
         mb = topazextract.TopazBook(infile)
