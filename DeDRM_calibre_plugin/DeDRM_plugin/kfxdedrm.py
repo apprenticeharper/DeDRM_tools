@@ -36,8 +36,11 @@ class KFXZipBook:
     def processBook(self, totalpids):
         with zipfile.ZipFile(self.infile, 'r') as zf:
             for filename in zf.namelist():
-                data = zf.read(filename)
-                if data.startswith('\xeaDRMION\xee'):
+                with zf.open(filename) as fh:
+                    data = fh.read(8)
+                    if data != '\xeaDRMION\xee':
+                        continue
+                    data += fh.read()
                     if self.voucher is None:
                         self.decrypt_voucher(totalpids)
                     print u'Decrypting KFX DRMION: {0}'.format(filename)
@@ -51,9 +54,13 @@ class KFXZipBook:
     def decrypt_voucher(self, totalpids):
         with zipfile.ZipFile(self.infile, 'r') as zf:
             for info in zf.infolist():
-                if info.file_size < 0x10000:
-                    data = zf.read(info.filename)
-                    if data.startswith('\xe0\x01\x00\xea') and 'ProtectedData' in data:
+                with zf.open(info.filename) as fh:
+                    data = fh.read(4)
+                    if data != '\xe0\x01\x00\xea':
+                        continue
+
+                    data += fh.read()
+                    if 'ProtectedData' in data:
                         break   # found DRM voucher
             else:
                 raise Exception(u'The .kfx-zip archive contains an encrypted DRMION file without a DRM voucher')
