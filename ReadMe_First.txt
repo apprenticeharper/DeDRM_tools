@@ -1,11 +1,11 @@
 ﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.5.5 archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.6.0 archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
 
 The is archive includes tools to remove DRM from:
 
- - Kindle ebooks (files from Kindle for Mac/PC (v1.17*) and eInk Kindles**).
+ - Kindle ebooks (files from Kindle for Mac/PC* and eInk Kindles**).
  - Adobe Digital Editions (v2.0.1***) ePubs (including Kobo and Google ePubs downloaded to ADE)
  - Kobo kePubs from the Kobo Desktop application
  - Barnes and Noble ePubs
@@ -17,15 +17,15 @@ The is archive includes tools to remove DRM from:
 
 These tools do NOT work with Apple's iBooks FairPlay DRM (see end of this file.)
 
-* With Kindle for PC/Mac 1.19 and later, Amazon included support for their new KFX format which uses a new DRM scheme that these tools cannot remove. Using 1.17 or earlier prevents downloads of the new format.
+* With Kindle for PC/Mac 1.19 and later, Amazon included support for their new KFX format. While the tools now include a first attempt at supporting drm removal for KFX format, we recommend using Kindle for PC/Mac 1.17 or earlier which prevents downloads of the new format, as conversions from the olde KF8 format are likely to be more successful.
 
-** Some later Kindles support Amazon's new KFX format which uses a new DRM scheme that these tools cannot remove. To avoid this problem, instead of using files downloaded directly to your Kindle, download from Amazon's web site 'for transfer via USB'. This will give you an older format file that the tools can decrypt. See also the FAQ entry about this.
+** Some later Kindles support Amazon's new KFX format. And some books download in a split azw3/azw6 format. For best results, instead of using files downloaded directly to your Kindle, download from Amazon's web site 'for transfer via USB'. This will give you an single file to import. See also the FAQ entry about this.
 
 *** With Adobe Digital Editions 3.0 and later, Adobe have introduced a new, optional, DRM scheme. To avoid this new scheme, you should use Adobe Digital Editions 2.0.1. Some books are required to use the new DRM scheme and so will not download with ADE 2.0.1. If you still want such a book, you will need to use ADE 3.0 or later to download it, but you should remember that no tools to remove Adobe's new DRM scheme exist as of June 2017.
 
 About the tools
 ---------------
-These tools are updated and maintained by Apprentice Alf and Apprentice Harper. You can find the latest updates at Apprentice Harper's github repository https://github.com/apprenticeharper/DeDRM_tools/ and get support by creating an issue at the repository (github account required) or by posting a comment at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
+These tools are updated and maintained by Apprentice Harper and many others. You can find the latest updates at Apprentice Harper's github repository https://github.com/apprenticeharper/DeDRM_tools/ and get support by creating an issue at the repository (github account required) or by posting a comment at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
 
 If you re-post these tools, a link to the repository and/or the blog would be appreciated.
 
@@ -48,7 +48,7 @@ For instructions, see the obok_plugin_ReadMe.txt file in the Obok_calibre_plugin
 
 DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
 ---------------------------------------------------------------
-This application is a stand-alone DRM removal application for Mac OS X users. It is only needed for people who cannot or will not use the calibre plugin.
+This application is a stand-alone DRM removal application for Mac OS X users. It is only needed for people who cannot or will not use the calibre plugin. KFX support has not been tested yet.
 
 For instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Macintosh_Application folder.
 
@@ -60,7 +60,7 @@ DeDRM application for Windows users: (Windows XP through Windows 10)
 ***This program requires that Python and PyCrypto be properly installed.***
 ***See below for details on recommended versions and how to install them.***
 
-This application is a stand-alone application for Windows users. It is only needed for people who cannot or will not use the calibre plugin.
+This application is a stand-alone application for Windows users. It is only needed for people who cannot or will not use the calibre plugin. KFX support has not been tested yet.
 
 For instructions, see the DeDRM_App_ReadMe.txt file in the DeDRM_Windows_Applications folder.
 
@@ -138,6 +138,8 @@ The original inept and ignoble scripts were by i♥cabbages
 The original mobidedrm and erdr2pml scripts were by The Dark Reverser
 The original topaz DRM removal script was by CMBDTC
 The original topaz format conversion scripts were by some_updates, clarknova and Bart Simpson
+The original KFX format decryption was by lulzkabulz, converted to python by Apprentice Naomi and integrated into the tools by tomthumb1997
+
 The original obok script was by Physisticated
 
 The alfcrypto library is by some_updates

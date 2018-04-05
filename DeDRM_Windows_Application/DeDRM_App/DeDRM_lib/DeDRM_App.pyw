@@ -31,8 +31,9 @@
 #   6.5.3 - Explicitly warn about KFX files
 #   6.5.4 - PDF float fix.
 #   6.5.5 - Kindle for PC/Accented characters in username fix.
+#   6.6.0 - Initial KFX support from TomThumb
 
-__version__ = '6.5.5'
+__version__ = '6.6.0'
 
 import sys
 import os, os.path
@@ -383,6 +384,9 @@ class PrefsDialog(Toplevel):
                     ('Kindle','.azw3'),
                     ('Kindle','.azw4'),
                     ('Kindle','.tpz'),
+                    ('Kindle','.azw8'),
+                    ('Kindle','.kfx'),
+                    ('Kindle','.kfx-zip'),
                     ('Kindle','.mobi'),
                     ('Kindle','.prc'),
                     ('eReader','.pdb'),
@@ -598,7 +602,7 @@ class ConvDialog(Toplevel):
             self.p2 = Process(target=processPDB, args=(q, infile, outdir, rscpath))
             self.p2.start()
             return 0
-        if ext in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.pobi', '.tpz']:
+        if ext in ['.azw', '.azw1', '.azw3', '.azw4', '.prc', '.mobi', '.pobi', '.tpz', '.azw8', '.kfx', '.kfx-zip']:
             self.p2 = Process(target=processK4MOBI,args=(q, infile, outdir, rscpath))
             self.p2.start()
             return 0

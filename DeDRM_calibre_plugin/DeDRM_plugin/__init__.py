@@ -4,7 +4,7 @@
 from __future__ import with_statement
 
 # __init__.py for DeDRM_plugin
-# Copyright © 2008-2017 Apprentice Harper et al.
+# Copyright © 2008-2018 Apprentice Harper et al.
 
 __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
@@ -63,7 +63,7 @@ __docformat__ = 'restructuredtext en'
 #   6.5.3 - Warn about KFX files explicitly
 #   6.5.4 - Mac App Fix, improve PDF decryption, handle latest tcl changes in ActivePython
 #   6.5.5 - Finally a fix for the Windows non-ASCII user names.
-#   6.x.x - Add kfx and kfx-zip as supported file types (also invoke this plugin if the original
+#   6.6.0 - Add kfx and kfx-zip as supported file types (also invoke this plugin if the original
 #           imported format was azw8 since that may be converted to kfx)
 
 
@@ -72,7 +72,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 5, 5)
+PLUGIN_VERSION_TUPLE = (6, 6, 0)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
