@@ -15,9 +15,9 @@ except ImportError:
     from StringIO import StringIO
 
 try:
-    import ion
-except:
     from calibre_plugins.dedrm import ion
+except ImportError:
+    import ion
 
 
 __license__ = 'GPL v3'
