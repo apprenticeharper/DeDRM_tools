@@ -262,12 +262,16 @@ def decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids):
         traceback.print_exc()
         return 1
 
-    # if we're saving to the same folder as the original, use file name_
-    # if to a different folder, use book name
-    if os.path.normcase(os.path.normpath(outdir)) == os.path.normcase(os.path.normpath(os.path.dirname(infile))):
-        outfilename = os.path.splitext(os.path.basename(infile))[0]
-    else:
-        outfilename = cleanup_name(book.getBookTitle())
+    # Try to infer a reasonable name
+    orig_fn_root = os.path.splitext(os.path.basename(infile))[0]
+    if (
+        re.match('^B[A-Z0-9]{9}(_EBOK|_EBSP|_sample)?$', orig_fn_root) or
+        re.match('^{0-9A-F-}{36}$', orig_fn_root)
+    ):  # Kindle for PC / Mac / Android / Fire / iOS
+        clean_title = cleanup_name(book.getBookTitle())
+        outfilename = '{}_{}'.format(orig_fn_root, clean_title)
+    else:  # E Ink Kindle, which already uses a reasonable name
+        outfilename = orig_fn_root
 
     # avoid excessively long file names
     if len(outfilename)>150:
