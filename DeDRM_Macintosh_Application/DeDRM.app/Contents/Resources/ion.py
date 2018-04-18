@@ -23,13 +23,17 @@ from Crypto.Util.py3compat import bchr, bord
 try:
     # lzma library from calibre 2.35.0 or later
     import lzma.lzma1 as calibre_lzma
-except:
+except ImportError:
     calibre_lzma = None
     try:
         import lzma
-    except:
+    except ImportError:
         # Need pip backports.lzma on Python <3.3
-        from backports import lzma
+        try:
+            from backports import lzma
+        except ImportError:
+            # Windows-friendly choice: pylzma wheels
+            import pylzma as lzma
 
 
 TID_NULL = 0
