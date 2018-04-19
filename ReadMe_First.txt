@@ -115,7 +115,7 @@ The only tool that removes Apple's iBooks Fairplay DRM is Requiem by Brahms vers
 
 Requiem is no longer developed as of 2012, with the last version 4.1.
 
-Youu can download it from these download links:
+You can download it from these download links:
 
 Requiem 3.3.6 for Windows: http://www.datafilehost.com/download-f7916922.html
 MD5: 10ab191f2d86c692d57f6a07b4622cf8
