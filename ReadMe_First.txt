@@ -107,6 +107,15 @@ In addition, Windows Users need PyCrypto:
 
 Once Windows users have installed Python 2.7, and the matching PyCrypto, they are ready to run the DeDRM application or individual scripts.
 
+For (experimental) KFX support, you also need LZMA support. LZMA is built-in
+in Python 3.3+ but not present in Python 2. Choices are backports.lzma and
+pylzma, both of which need compiling. Compiling Python extensions on Windows
+requires Visual Studio and is a PITA. The recommended way is to install wheels
+(binary) directly.
+
+Windows binary wheels for backports.lzma and pylzma could be found here:
+
+https://www.lfd.uci.edu/~gohlke/pythonlibs/
 
 
 Apple's iBooks FairPlay DRM
