@@ -32,8 +32,9 @@
 #   6.5.4 - PDF float fix.
 #   6.5.5 - Kindle for PC/Accented characters in username fix.
 #   6.6.0 - Initial KFX support from TomThumb
+#   6.6.1 - Standalong app fix from wzyboy
 
-__version__ = '6.6.0'
+__version__ = '6.6.1'
 
 import sys
 import os, os.path
