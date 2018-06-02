@@ -62,7 +62,7 @@ import traceback
 
 from Queue import Full
 from Queue import Empty
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, freeze_support
 
 from scriptinterface import decryptepub, decryptpdb, decryptpdf, decryptk4mobi
 
@@ -282,7 +282,21 @@ class PrefsDialog(Toplevel):
         button.grid(row=cur_row, column=2)
 
         cur_row = cur_row + 1
-        Tkinter.Label(body, font=("Helvetica", "10", "italic"), text='*To DeDRM multiple ebooks simultaneously, set your preferences and quit.\nThen drag and drop ebooks or folders onto the DeDRM_Drop_Target').grid(row=cur_row, column=1, sticky=Tkconstants.E)
+
+        if getattr(sys, 'frozen', False):
+            multiple_ebook_prompt = '*To DeDRM multiple ebooks simultaneously, set your preferences and quit.\nThen drag and drop ebooks or folders onto DeDRM_App.exe'
+        else:
+            multiple_ebook_prompt = '*To DeDRM multiple ebooks simultaneously, set your preferences and quit.\nThen drag and drop ebooks or folders onto the DeDRM_Drop_Target'
+
+        Tkinter.Label(
+            body,
+            font=("Helvetica", "10", "italic"),
+            text=multiple_ebook_prompt).grid(
+            row=cur_row,
+            column=1,
+            sticky=Tkconstants.E
+        )
+
 
         cur_row = cur_row + 1
         Tkinter.Label(body, text='').grid(row=cur_row, column=0, columnspan=2, sticky=Tkconstants.E)
@@ -699,4 +713,5 @@ def main():
 
 
 if __name__ == "__main__":
+    freeze_support()
     sys.exit(main())

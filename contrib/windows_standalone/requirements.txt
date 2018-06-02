@@ -1,0 +1,3 @@
+pylzma==0.4.9
+PyInstaller==3.3.1
+pycrypto==2.6.1

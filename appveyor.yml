@@ -1,0 +1,19 @@
+# Equivalent to Win8.1+
+os: Windows Server 2012
+
+environment:
+  matrix:
+    - PYTHON: "C:\\Python27"
+
+install:
+  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - pip install -r contrib\windows_standalone\requirements.txt
+
+build_script:
+  - ps: python make_release.py $(git describe);
+
+artifacts:
+  - path: dist\*.zip
+
+# on_finish:
+#   - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
