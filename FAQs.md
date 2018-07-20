@@ -180,6 +180,8 @@ The Macintosh DeDRM application creates a log file on your desktop every time it
 ## I cannot solve my problem with the Windows DeDRM application, and now I need to ‘post a log’. How do I do that?
 The Windows DeDRM application creates a log file in your home directory (C:\Users\[username]) every time it is run. After unsuccessfully removing DRM from one ebook, copy the contents of the log file (it is a simple text file) and paste it into your comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
 
+## Is there a way to use the DeDRM tools from the command line?
+See the [command line interface (CLI) instructions](CLI_INSTRUCTIONS.md).
 
 # General Questions
 
