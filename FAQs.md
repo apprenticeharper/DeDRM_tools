@@ -91,7 +91,8 @@ Alternatively, sometimes the execution bit isn't set correctly in the archive. I
 ### I can't open the Macintosh Application at all. I get 'spawn_via_launchd() failed, errno=111'
 There seems to be a bug in Apple's launch services. Try using the free [Maintenance utility](https://www.titanium-software.fr/en/maintenance.html) from Titanium Software to clear the launch cache and database.
 
-###
+### The application opens, but always gives an error in the log 'ImportError: No module named Crypto.Cipher'
+Some version of MacOS don't include PyCrpto. Your should be able to install it by using this command in the Terminal app: python -m pip pycrypto
 
 # Using the Tools
 ## I can’t get the tools to work on my rented or library ebooks.
