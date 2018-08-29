@@ -86,8 +86,12 @@ Try right-clicking and select open. That might give you the option to open it an
 ### I can't open the Macintosh Application at all. I get 'The aplication "DeDRM" can't be opened'
 Some unzip applications do not respect the execution bit setting. Try unzipping the main tools archive using the built-in Mac unzip utility.
 
+Alternatively, sometimes the execution bit isn't set correctly in the archive. If you put the extracted DeDRM application in your Applications folder, you can set the executable bit on the 'droplet' file from the terminal using the command chmod +x /Applications/DeDRM.app/Contents/MacOS/droplet
+
 ### I can't open the Macintosh Application at all. I get 'spawn_via_launchd() failed, errno=111'
 There seems to be a bug in Apple's launch services. Try using the free [Maintenance utility](https://www.titanium-software.fr/en/maintenance.html) from Titanium Software to clear the launch cache and database.
+
+###
 
 # Using the Tools
 ## I can’t get the tools to work on my rented or library ebooks.
