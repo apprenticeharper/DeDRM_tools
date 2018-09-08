@@ -126,23 +126,26 @@ def SHA256(message):
 # For K4M/PC 1.6.X and later
 # generate table of prime number less than or equal to int n
 def primes(n):
-    if n==2: return [2]
-    elif n<2: return []
-    s=range(3,n+1,2)
-    mroot = n ** 0.5
-    half=(n+1)/2-1
-    i=0
-    m=3
-    while m <= mroot:
-        if s[i]:
-            j=(m*m-3)/2
-            s[j]=0
-            while j<half:
-                s[j]=0
-                j+=m
-        i=i+1
-        m=2*i+3
-    return [2]+[x for x in s if x]
+    """
+    Return a list of prime integers smaller than or equal to n
+    :param n: int
+    :return: list->int
+    """
+    if n == 2:
+        return [2]
+    elif n < 2:
+        return []
+    primeList = [2]
+
+    for potentialPrime in range(3, n + 1, 2):
+        isItPrime = True
+        for prime in primeList:
+            if potentialPrime % prime == 0:
+                isItPrime = False
+        if isItPrime is True:
+            primeList.append(potentialPrime)
+
+    return primeList
 
 # Encode the bytes in data with the characters in map
 def encode(data, map):
