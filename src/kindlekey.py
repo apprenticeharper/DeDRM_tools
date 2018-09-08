@@ -124,7 +124,6 @@ def SHA256(message):
     return ctx.digest()
 
 # For K4M/PC 1.6.X and later
-# generate table of prime number less than or equal to int n
 def primes(n):
     """
     Return a list of prime integers smaller than or equal to n
