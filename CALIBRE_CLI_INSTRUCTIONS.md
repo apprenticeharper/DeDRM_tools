@@ -1,7 +1,7 @@
-# Command Line Interface Installation Instructions
+# Using the DeDRM plugin with the Calibre command line interface
 
-If you're not a fan of GUIs, but you still want to take DRM off of your
-ebooks, then this guide is for you.
+If you prefer the Calibre CLI instead of the GUI, follow this guide to
+install and use the DeDRM plugin.
 
 This guide assumes you are on Linux, but it may very well work on other
 platforms.
