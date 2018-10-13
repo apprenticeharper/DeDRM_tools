@@ -154,7 +154,7 @@ There are several possible reasons why only some books get their DRM removed.
 If you are still having problems with particular books, you will need to create a log of the DRM removal attempt for one of the problem books, and post that in a comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
 
 ## My Kindle book has imported and the DRM has been removed, but all the pictures are gone.
-Most likely, this is a book downloaded from Amazon directly to an eInk Kindle (e.g. Paperwhite). Unfortunately, the pictures are probably in a .azw6 file that the tools don't understand. You must download the book manually from Amazon's web site "For transfer via USB" to your Kindle. When you download the eboook in this manner, Amazon will package the pictures in the with text in a single file that the tools will be able to import successfully.
+Most likely, this is a book downloaded from Amazon directly to an eInk Kindle (e.g. Paperwhite). Unfortunately, the pictures are probably in a .azw6 file that the tools don't understand. You must download the book manually from Amazon's web site "For transfer via USB" to your Kindle. When you download the eBook in this manner, Amazon will package the pictures in the with text in a single file that the tools will be able to import successfully.
 
 ## My Kindle book has imported, but it's showing up as an AZW4 format. Conversions take a long time and/or are very poor.
 You have found a Print Replica Kindle ebook. This is a PDF in a Kindle wrapper. Now the DRM has been removed, you can extract the PDF from the wrapper using the KindleUnpack plugin. Conversion of PDFs rarely gives good results.
