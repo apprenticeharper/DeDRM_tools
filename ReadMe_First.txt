@@ -73,7 +73,7 @@ B_and_N_Download_Helper
 A Javascript to enable a download button at the B&N website for ebooks that normally won't download to your PC. Only for the adventurous.
 
 DRM_Key_Scripts
-This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble, Adobe Digital Editions, Kindle for Mac/PC and old versons of Kindle for Android.
+This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble, Adobe Digital Editions, Kindle for Mac/PC and old versions of Kindle for Android.
 
 Kindle_for_Android_Patches
 Definitely only for the adventurous, this folder contains information on how to modify the Kindle for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin). 
@@ -158,4 +158,4 @@ The DeDRM python GUI was by some_updates and is maintained by Apprentice Alf and
 
 The Scuolabooks tool is by Hex
 
-Many fixes, updates and enhancements to the scripts and applicatons have been made by many other people. For more details, see the commments in the individual scripts.
+Many fixes, updates and enhancements to the scripts and applicatons have been made by many other people. For more details, see the comments in the individual scripts.
