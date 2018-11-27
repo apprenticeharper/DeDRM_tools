@@ -25,8 +25,10 @@ Retrieve Kindle for Android Serial Number.
 __license__ = 'GPL v3'
 __version__ = '1.5'
 
+import io
 import os
 import sys
+import binascii
 import traceback
 import getopt
 import tempfile
@@ -35,31 +37,43 @@ import tarfile
 from hashlib import md5
 from cStringIO import StringIO
 from binascii import a2b_hex, b2a_hex
+from pbkdf2 import PBKDF2
+from aescbc import AES_CBC, Pad, DecryptNotBlockAlignedError
+
+AES_BLOCK_SIZE = 128
+PBKDF2_SALT_SIZE = 512
+PBKDF2_KEY_SIZE = 256
 
 # Routines common to Mac and PC
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
 # encoded using "replace" before writing them.
+
+
 class SafeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
         self.encoding = stream.encoding
         if self.encoding == None:
             self.encoding = "utf-8"
+
     def write(self, data):
-        if isinstance(data,unicode):
-            data = data.encode(self.encoding,"replace")
+        if isinstance(data, unicode):
+            data = data.encode(self.encoding, "replace")
         self.stream.write(data)
         self.stream.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
+
 
 try:
     from calibre.constants import iswindows, isosx
 except:
     iswindows = sys.platform.startswith('win')
     isosx = sys.platform.startswith('darwin')
+
 
 def unicode_argv():
     if iswindows:
@@ -97,14 +111,17 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return [arg if (type(arg) == unicode) else unicode(arg, argvencoding) for arg in sys.argv]
+
 
 class DrmException(Exception):
     pass
 
-STORAGE  = u"backup.ab"
+
+STORAGE = u"backup.ab"
 STORAGE1 = u"AmazonSecureStorage.xml"
 STORAGE2 = u"map_data_storage.db"
+
 
 class AndroidObfuscation(object):
     '''AndroidObfuscation
@@ -132,6 +149,7 @@ class AndroidObfuscation(object):
             from aescbc import AES, noPadding
             return AES(self.key, padding=noPadding())
 
+
 class AndroidObfuscationV2(AndroidObfuscation):
     '''AndroidObfuscationV2
     '''
@@ -147,12 +165,13 @@ class AndroidObfuscationV2(AndroidObfuscation):
         self.iv = key[8:16]
 
     def _get_cipher(self):
-        try :
+        try:
             from Crypto.Cipher import DES
             return DES.new(self.key, DES.MODE_CBC, self.iv)
         except ImportError:
             from python_des import Des, CBC
             return Des(self.key, CBC, self.iv)
+
 
 def parse_preference(path):
     ''' parse android's shared preference xml '''
@@ -168,6 +187,7 @@ def parse_preference(path):
             storage[key] = value
     read.close()
     return storage
+
 
 def get_serials1(path=STORAGE1):
     ''' get serials from android's shared preference xml '''
@@ -210,6 +230,7 @@ def get_serials1(path=STORAGE1):
             serials.append(token)
     return serials
 
+
 def get_serials2(path=STORAGE2):
     ''' get serials from android's sql database '''
     if not os.path.isfile(path):
@@ -218,7 +239,8 @@ def get_serials2(path=STORAGE2):
     import sqlite3
     connection = sqlite3.connect(path)
     cursor = connection.cursor()
-    cursor.execute('''select userdata_value from userdata where userdata_key like '%/%token.device.deviceserialname%' ''')
+    cursor.execute(
+        '''select userdata_value from userdata where userdata_key like '%/%token.device.deviceserialname%' ''')
     userdata_keys = cursor.fetchall()
     dsns = []
     for userdata_row in userdata_keys:
@@ -233,7 +255,8 @@ def get_serials2(path=STORAGE2):
             pass
     dsns = list(set(dsns))
 
-    cursor.execute('''select userdata_value from userdata where userdata_key like '%/%kindle.account.tokens%' ''')
+    cursor.execute(
+        '''select userdata_value from userdata where userdata_key like '%/%kindle.account.tokens%' ''')
     userdata_keys = cursor.fetchall()
     tokens = []
     for userdata_row in userdata_keys:
@@ -247,7 +270,7 @@ def get_serials2(path=STORAGE2):
             traceback.print_exc()
             pass
     tokens = list(set(tokens))
- 
+
     serials = []
     for x in dsns:
         serials.append(x)
@@ -257,7 +280,8 @@ def get_serials2(path=STORAGE2):
         serials.append(y)
     return serials
 
-def get_serials(path=STORAGE):
+
+def get_serials(path=STORAGE, passwd=""):
     '''get serials from files in from android backup.ab
     backup.ab can be get using adb command:
     shell> adb backup com.amazon.kindle
@@ -273,13 +297,73 @@ def get_serials(path=STORAGE):
         return get_serials2(path)
 
     output = None
-    try :
+    try:
         read = open(path, 'rb')
-        head = read.read(24)
-        if head[:14] == 'ANDROID BACKUP':
-            output = StringIO(zlib.decompress(read.read()))
+        magic = read.readline().strip()  # line 1
+
+        if magic == 'ANDROID BACKUP':
+            version = int(read.readline().strip())  # line 2
+            compressed = int(read.readline().strip()) != 0  # line 3
+            algo = read.readline().strip()  # line 4
+
+            if algo == 'none':
+                data = read.read()
+            elif algo == 'AES-256':
+                user_salt = binascii.unhexlify(
+                    read.readline().strip())  # line 5
+                assert len(user_salt) == PBKDF2_SALT_SIZE / 8
+
+                checksum_salt = binascii.unhexlify(
+                    read.readline().strip())  # line 6
+                assert len(checksum_salt) == PBKDF2_SALT_SIZE / 8
+
+                rounds = int(read.readline().strip())  # line 7
+
+                user_iv = binascii.unhexlify(
+                    read.readline().strip())  # line 8
+                assert len(user_iv) == AES_BLOCK_SIZE / 8
+
+                encrypted_master_key_blob = binascii.unhexlify(
+                    read.readline().strip())  # line 9
+
+                user_key = buildPasswordKey(passwd, user_salt, rounds)
+                assert len(user_key) == PBKDF2_KEY_SIZE / 8
+
+                cipher = AES_CBC(user_key, keySize=len(user_key))
+                master_key_blob = cipher.decrypt(
+                    encrypted_master_key_blob, iv=user_iv)
+
+                s = StringIO(master_key_blob)
+
+                # first, the master key IV
+                master_key_iv = s.read(ord(s.read(1)[0]))
+                assert len(master_key_iv) == AES_BLOCK_SIZE / 8
+
+                # then the master key itself
+                master_key = s.read(ord(s.read(1)[0]))
+                assert len(master_key) == PBKDF2_KEY_SIZE / 8
+
+                # and finally the master key checksum hash
+                master_key_checksum = s.read(ord(s.read(1)[0]))
+                assert len(master_key_checksum) == PBKDF2_KEY_SIZE / 8
+
+                assert s.tell() == len(master_key_blob)
+
+                use_utf8 = version >= 2
+
+                calculated_checksum = makeKeyChecksum(
+                    master_key, checksum_salt, rounds, use_utf8)
+                assert calculated_checksum == master_key_checksum
+
+                cipher = AES_CBC(master_key, keySize=len(master_key))
+                data = cipher.decrypt(read.read(), iv=master_key_iv)
+
+            if compressed:
+                output = StringIO(zlib.decompress(data))
+            else:
+                output = StringIO(data)
     except Exception:
-        pass
+        raise
     finally:
         read.close()
 
@@ -305,12 +389,33 @@ def get_serials(path=STORAGE):
             os.remove(write_path)
     return list(set(serials))
 
-__all__ = [ 'get_serials', 'getkey']
+
+def buildPasswordKey(passwd, salt, rounds):
+    return androidPBKDF2(passwd, salt, rounds)
+
+
+def makeKeyChecksum(key, salt, rounds, use_utf8):
+    if use_utf8:
+        key = u''.join([unichr(c if c < 0x80 else 0xFF00 | c)
+                        for c in [ord(c) for c in key]]).encode("utf-8")
+
+    return androidPBKDF2(key, salt, rounds)
+
+
+def androidPBKDF2(passwd, salt, rounds):
+    generator = PBKDF2(passwd, salt, rounds)
+
+    return generator.read(PBKDF2_KEY_SIZE / 8)
+
+
+__all__ = ['get_serials', 'getkey']
 
 # procedure for CLI and GUI interfaces
 # returns single or multiple keys (one per line) in the specified file
-def getkey(outfile, inpath):
-    keys = get_serials(inpath)
+
+
+def getkey(outfile, inpath, passwd):
+    keys = get_serials(inpath, passwd)
     if len(keys) > 0:
         with file(outfile, 'w') as keyfileout:
             for key in keys:
@@ -327,30 +432,35 @@ def usage(progname):
     print u"Or map_data_storage.db from /data/data/com.amazon.kindle/databases/map_data_storage.db"
     print u""
     print u"Usage:"
-    print u"    {0:s} [-h] [-b <backup.ab>] [<outfile.k4a>]".format(progname)
+    print u"    {0:s} [-h] [-b <backup.ab>] [-p <password>] [<outfile.k4a>]".format(
+        progname)
 
 
 def cli_main():
-    sys.stdout=SafeUnbuffered(sys.stdout)
-    sys.stderr=SafeUnbuffered(sys.stderr)
-    argv=unicode_argv()
+    sys.stdout = SafeUnbuffered(sys.stdout)
+    sys.stderr = SafeUnbuffered(sys.stderr)
+    argv = unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"{0} v{1}\nCopyright © 2010-2015 Thom, some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__)
+    print u"{0} v{1}\nCopyright © 2010-2015 Thom, some_updates, Apprentice Alf and Apprentice Harper".format(
+        progname, __version__)
 
     try:
-        opts, args = getopt.getopt(argv[1:], "hb:")
+        opts, args = getopt.getopt(argv[1:], "hb:p:")
     except getopt.GetoptError, err:
         usage(progname)
         print u"\nError in options or arguments: {0}".format(err.args[0])
         return 2
 
     inpath = ""
+    passwd = ""
     for o, a in opts:
         if o == "-h":
             usage(progname)
             return 0
         if o == "-b":
             inpath = a
+        elif o == "-p":
+            passwd = a
 
     if len(args) > 1:
         usage(progname)
@@ -360,13 +470,15 @@ def cli_main():
         # save to the specified file or directory
         outfile = args[0]
         if not os.path.isabs(outfile):
-           outfile = os.path.join(os.path.dirname(argv[0]),outfile)
-           outfile = os.path.abspath(outfile)
+            outfile = os.path.join(os.path.dirname(argv[0]), outfile)
+            outfile = os.path.abspath(outfile)
         if os.path.isdir(outfile):
-           outfile = os.path.join(os.path.dirname(argv[0]),"androidkindlekey.k4a")
+            outfile = os.path.join(os.path.dirname(
+                argv[0]), "androidkindlekey.k4a")
     else:
         # save to the same directory as the script
-        outfile = os.path.join(os.path.dirname(argv[0]),"androidkindlekey.k4a")
+        outfile = os.path.join(os.path.dirname(
+            argv[0]), "androidkindlekey.k4a")
 
     # make sure the outpath is OK
     outfile = os.path.realpath(os.path.normpath(outfile))
@@ -376,7 +488,7 @@ def cli_main():
         print u"\n{0:s} file not found".format(inpath)
         return 2
 
-    if getkey(outfile, inpath):
+    if getkey(outfile, inpath, passwd):
         print u"\nSaved Kindle for Android key to {0}".format(outfile)
     else:
         print u"\nCould not retrieve Kindle for Android key."
@@ -406,7 +518,8 @@ def gui_main():
             self.keypath = Tkinter.Entry(body, width=40)
             self.keypath.grid(row=0, column=1, sticky=sticky)
             self.keypath.insert(2, u"backup.ab")
-            button = Tkinter.Button(body, text=u"...", command=self.get_keypath)
+            button = Tkinter.Button(
+                body, text=u"...", command=self.get_keypath)
             button.grid(row=0, column=2)
             buttons = Tkinter.Frame(self)
             buttons.pack()
@@ -439,20 +552,22 @@ def gui_main():
                 for key in keys:
                     while True:
                         keycount += 1
-                        outfile = os.path.join(progpath,u"kindlekey{0:d}.k4a".format(keycount))
+                        outfile = os.path.join(
+                            progpath, u"kindlekey{0:d}.k4a".format(keycount))
                         if not os.path.exists(outfile):
                             break
 
                     with file(outfile, 'w') as keyfileout:
                         keyfileout.write(key)
                     success = True
-                    tkMessageBox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
+                    tkMessageBox.showinfo(
+                        progname, u"Key successfully retrieved to {0}".format(outfile))
             except Exception, e:
                 self.status['text'] = u"Error: {0}".format(e.args[0])
                 return
             self.status['text'] = u"Select backup.ab file"
 
-    argv=unicode_argv()
+    argv = unicode_argv()
     progpath, progname = os.path.split(argv[0])
     root = Tkinter.Tk()
     root.title(u"Kindle for Android Key Extraction v.{0}".format(__version__))
@@ -461,6 +576,7 @@ def gui_main():
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
     root.mainloop()
     return 0
+
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
