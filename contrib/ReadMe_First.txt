@@ -1,7 +1,7 @@
 ﻿Welcome to the tools!
 =====================
 
-This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.6.0 archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
+This ReadMe_First.txt is meant to give users a quick overview of what is available and how to get started. This document is part of the Tools v6.6.2 archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
 
 The is archive includes tools to remove DRM from:
 
@@ -46,13 +46,11 @@ To import ebooks from the Kobo Desktop app or from a Kobo ebook reader, install 
 For instructions, see the obok_plugin_ReadMe.txt file in the Obok_calibre_plugin folder.
 
 
-DeDRM application for Mac OS X users: (Mac OS X 10.4 and above)
+DeDRM application for Mac OS X users: (Mac OS X 10.6 and above)
 ---------------------------------------------------------------
 This application is a stand-alone DRM removal application for Mac OS X users. It is only needed for people who cannot or will not use the calibre plugin. KFX support has not been tested yet.
 
 For instructions, see the "DeDRM ReadMe.rtf" file in the DeDRM_Macintosh_Application folder.
-
-N.B. Mac OS X 10.4 users need to take extra steps before using the application, see the ReadMe.
 
 
 DeDRM application for Windows users: (Windows XP through Windows 10)
@@ -76,7 +74,7 @@ DRM_Key_Scripts
 This folder contains python scripts that create or extract or fetch encryption keyfiles for Barnes and Noble, Adobe Digital Editions, Kindle for Mac/PC and old versions of Kindle for Android.
 
 Kindle_for_Android_Patches
-Definitely only for the adventurous, this folder contains information on how to modify the Kindle for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin). 
+Definitely only for the adventurous, this folder contains information on how to modify the Kindle for Android app to b able to get a PID for use with the other Kindle tools (DeDRM apps and calibre plugin).
 
 Kobo
 Contains the standalone obok python script for removing DRM from kePubs downloaded using the kobo desktop application.

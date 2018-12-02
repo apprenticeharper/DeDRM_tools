@@ -66,6 +66,7 @@ __docformat__ = 'restructuredtext en'
 #   6.6.0 - Add kfx and kfx-zip as supported file types (also invoke this plugin if the original
 #           imported format was azw8 since that may be converted to kfx)
 #   6.6.1 - Thanks to wzyboy for a fix for stand-alone tools, and the new folder structure.
+#   6.6.2 - revamp of folders to get Mac OS X app working. Updated to 64-bit app. Various fixes.
 
 
 """
@@ -73,7 +74,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 6, 1)
+PLUGIN_VERSION_TUPLE = (6, 6, 2)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'

@@ -23,12 +23,10 @@
 	</array>
 	<key>CFBundleExecutable</key>
 	<string>droplet</string>
-	<key>CFBundleGetInfoString</key>
-	<string>DeDRM AppleScript 6.6.1 Written 2010–2018 by Apprentice Alf et al.</string>
 	<key>CFBundleIconFile</key>
 	<string>DeDRM</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.apple.ScriptEditor.id.707CCCD5-0C6C-4BEB-B67C-B6E866ADE85A</string>
+	<string>com.apple.ScriptEditor.id.DeDRM</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -36,9 +34,14 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>6.6.1</string>
+	<string>6.6.2</string>
 	<key>CFBundleSignature</key>
 	<string>dplt</string>
+	<key>LSMinimumSystemVersionByArchitecture</key>
+	<dict>
+		<key>x86_64</key>
+		<string>10.6</string>
+	</dict>
 	<key>LSRequiresCarbon</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
