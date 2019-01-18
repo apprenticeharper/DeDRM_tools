@@ -61,7 +61,7 @@ __version__ = '5.7'
 #  5.4 - Recognise KFX files masquerading as azw, even if we can't decrypt them yet.
 #  5.5 - Added GPL v3 licence explicitly.
 #  5.x - Invoke KFXZipBook to handle zipped KFX files
-#  5.6 - Missed some invalid characters in cleanup_name
+#  5.7 - Missed some invalid characters in cleanup_name
 
 import sys, os, re
 import csv
