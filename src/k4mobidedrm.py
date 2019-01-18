@@ -7,7 +7,7 @@ from __future__ import with_statement
 # Copyright © 2008-2017 by Apprentice Harper et al.
 
 __license__ = 'GPL v3'
-__version__ = '5.5'
+__version__ = '5.7'
 
 # Engine to remove drm from Kindle and Mobipocket ebooks
 # for personal use for archiving and converting your ebooks
@@ -61,6 +61,7 @@ __version__ = '5.5'
 #  5.4 - Recognise KFX files masquerading as azw, even if we can't decrypt them yet.
 #  5.5 - Added GPL v3 licence explicitly.
 #  5.x - Invoke KFXZipBook to handle zipped KFX files
+#  5.6 - Missed some invalid characters in cleanup_name
 
 import sys, os, re
 import csv
@@ -160,6 +161,8 @@ def cleanup_name(name):
     name = name.replace(u"<",u"[").replace(u">",u"]").replace(u" : ",u" – ").replace(u": ",u" – ").replace(u":",u"—").replace(u"/",u"_").replace(u"\\",u"_").replace(u"|",u"_").replace(u"\"",u"\'").replace(u"*",u"_").replace(u"?",u"")
     # delete control characters
     name = u"".join(char for char in name if ord(char)>=32)
+    # delete extended characters
+    name = u"".join(char for char in name if ord(char)<=126)
     # white space to single space, delete leading and trailing while space
     name = re.sub(ur"\s", u" ", name).strip()
     # remove leading dots
