@@ -44,8 +44,30 @@
 	</dict>
 	<key>LSRequiresCarbon</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>This script needs to control other applications to run.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>This script needs access to your music to run.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>This script needs access to your calendars to run.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This script needs access to your camera to run.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This script needs access to your contacts to run.</string>
+	<key>NSHomeKitUsageDescription</key>
+	<string>This script needs access to your HomeKit Home to run.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2010–2018 Apprentice Alf</string>
+	<string>Copyright © 2010–2019 Apprentice Alf</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This script needs access to your microphone to run.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This script needs access to your photos to run.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>This script needs access to your reminders to run.</string>
+	<key>NSSiriUsageDescription</key>
+	<string>This script needs access to Siri to run.</string>
+	<key>NSSystemAdministrationUsageDescription</key>
+	<string>This script needs access to administer this system to run.</string>
 	<key>WindowState</key>
 	<dict>
 		<key>bundleDividerCollapsed</key>
