@@ -15,11 +15,12 @@ Just download and use these tools, that's all! Uh, almost. There are a few, uh, 
 * You must own the ebook - the tools won't work on library ebooks or rented ebooks or books from a friend.
 * You must not use these tools to give your ebooks to a hundred of your closest friends. Or to a million strangers. Authors need to sell books to be able to write more books. Don't be mean to the authors.
 * Do NOT use Adobe Digital Editions 3.0 or later to download your ePubs. ADE 3.0 and later might use a new encryption scheme that the tools can't handle. While major ebook stores aren't using the new scheme yet, using ADE 2.0.1 will ensure that your ebooks are downloaded using the old scheme. Once a book has been downloaded with the new scheme, it's IMPOSSIBLE to re-download using the old scheme (without buying it again).
+* Do NOT use Kindle for PC/Mac version 1.25 or later. The tools don't current work with those versions.
 
 But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the ebook stores selling ebooks compatible with Adobe Digital Editions 2.0.1, you should be able to remove the DRM that's been applied to your ebooks.
 
 ### A Recent Change to Kindle for PC/Kindle for Mac
-Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source fro conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name. Note that with Kindle for Mac 1.25 and later, there is no current solution even for FKX. You must use 1.24 or earlier.
+Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source fro conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name. Note that with Kindle for PC/Mac 1.25 and later, there is no current solution even for FKX. You must use 1.24 or earlier.
 
 Version 1.17 of Kindle is are no longer available directly from Amazon, so you will need to search for the proper file name and find it on a third party site. The name is "KindleForPC-installer-1.17.44170.exe" for PC and "KindleForMac-44182.dmg" for Mac.
 Verify the one of the following cryptographic hash values, using software of your choice, before installing the downloaded file in order to avoid viruses. If the hash does not match, delete the downloaded file and try again from another site.
