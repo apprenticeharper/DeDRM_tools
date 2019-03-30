@@ -4,10 +4,10 @@
 from __future__ import with_statement
 
 # k4mobidedrm.py
-# Copyright © 2008-2017 by Apprentice Harper et al.
+# Copyright © 2008-2019 by Apprentice Harper et al.
 
 __license__ = 'GPL v3'
-__version__ = '5.5'
+__version__ = '5.7'
 
 # Engine to remove drm from Kindle and Mobipocket ebooks
 # for personal use for archiving and converting your ebooks
@@ -60,7 +60,8 @@ __version__ = '5.5'
 #  5.3 - Changed Android support to allow passing of backup .ab files
 #  5.4 - Recognise KFX files masquerading as azw, even if we can't decrypt them yet.
 #  5.5 - Added GPL v3 licence explicitly.
-#  5.x - Invoke KFXZipBook to handle zipped KFX files
+#  5.6 - Invoke KFXZipBook to handle zipped KFX files
+#  5.7 - Revamp cleanup_name
 
 import sys, os, re
 import csv
@@ -155,19 +156,24 @@ def unicode_argv():
 # added in removal of control (<32) chars
 # and removal of . at start and end
 # and with some (heavily edited) code from Paul Durrant's kindlenamer.py
+# and some improvements suggested by jhaisley
 def cleanup_name(name):
     # substitute filename unfriendly characters
     name = name.replace(u"<",u"[").replace(u">",u"]").replace(u" : ",u" – ").replace(u": ",u" – ").replace(u":",u"—").replace(u"/",u"_").replace(u"\\",u"_").replace(u"|",u"_").replace(u"\"",u"\'").replace(u"*",u"_").replace(u"?",u"")
-    # delete control characters
-    name = u"".join(char for char in name if ord(char)>=32)
     # white space to single space, delete leading and trailing while space
     name = re.sub(ur"\s", u" ", name).strip()
+    # delete control characters
+    name = u"".join(char for char in name if ord(char)>=32)
+    # delete non-ascii characters
+    name = u"".join(char for char in name if ord(char)<=126)
     # remove leading dots
     while len(name)>0 and name[0] == u".":
         name = name[1:]
     # remove trailing dots (Windows doesn't like them)
-    if name.endswith(u'.'):
+    while name.endswith(u'.'):
         name = name[:-1]
+    if len(name)==0:
+        name=u"DecryptedBook"
     return name
 
 # must be passed unicode

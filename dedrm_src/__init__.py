@@ -4,9 +4,10 @@
 from __future__ import with_statement
 
 # __init__.py for DeDRM_plugin
-# Copyright © 2008-2018 Apprentice Harper et al.
+# Copyright © 2008-2019 Apprentice Harper et al.
 
 __license__   = 'GPL v3'
+__version__ = '6.6.3'
 __docformat__ = 'restructuredtext en'
 
 
@@ -67,6 +68,7 @@ __docformat__ = 'restructuredtext en'
 #           imported format was azw8 since that may be converted to kfx)
 #   6.6.1 - Thanks to wzyboy for a fix for stand-alone tools, and the new folder structure.
 #   6.6.2 - revamp of folders to get Mac OS X app working. Updated to 64-bit app. Various fixes.
+#   6.6.3 - More cleanup of kindle book names and start of support for .kinf2018
 
 
 """
@@ -74,7 +76,7 @@ Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 6, 2)
+PLUGIN_VERSION_TUPLE = (6, 6, 3)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # DeDRM.pyw
-# Copyright 2010-2016 some_updates, Apprentice Alf and Apprentice Harper
+# Copyright 2010-2019 some_updates, Apprentice Alf and Apprentice Harper
 
 # Revision history:
 #   6.0.0 - Release along with unified plugin
@@ -34,8 +34,9 @@
 #   6.6.0 - Initial KFX support from TomThumb
 #   6.6.1 - Standalong app fix from wzyboy
 #   6.6.2 - Version bump for 64-bit Mac OS X app and various fixes.
+#   6.6.3 - Version bump for Kindle book name fixes and start of support for .kinf2018
 
-__version__ = '6.6.2'
+__version__ = '6.6.3'
 
 import sys
 import os, os.path

@@ -7,7 +7,7 @@ from __future__ import with_statement
 # Copyright © 2008-2017 Apprentice Harper et al.
 
 __license__ = 'GPL v3'
-__version__ = '2.5'
+__version__ = '2.6'
 
 # Revision history:
 #  1.0   - Kindle info file decryption, extracted from k4mobidedrm, etc.
@@ -28,6 +28,7 @@ __version__ = '2.5'
 #  2.3   - Added more field names thanks to concavegit's KFX code.
 #  2.4   - Fix for complex Mac disk setups, thanks to Tibs
 #  2.5   - Final Fix for Windows user names with non-ascii characters, thanks to oneofusoneofus
+#  2.6   - Start adding support for Kindle 2.25+ .kinf2018 file
 
 
 """
@@ -973,6 +974,13 @@ if iswindows:
             # Probably not the best. To Fix (shouldn't ignore in encoding) or use utf-8
             print(u'searching for kinfoFiles in ' + path.encode('ascii', 'ignore'))
 
+            # look for (K4PC 2.25.1and later) .kinf2018 file
+            kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2018'
+            if os.path.isfile(kinfopath):
+                found = True
+                print('Found K4PC 2.25+ kinf2018 file: ' + kinfopath.encode('ascii','ignore'))
+                kInfoFiles.append(kinfopath)
+                
             # look for (K4PC 1.9.0 and later) .kinf2011 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
             if os.path.isfile(kinfopath):
