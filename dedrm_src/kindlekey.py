@@ -28,7 +28,7 @@ __version__ = '2.6'
 #  2.3   - Added more field names thanks to concavegit's KFX code.
 #  2.4   - Fix for complex Mac disk setups, thanks to Tibs
 #  2.5   - Final Fix for Windows user names with non-ascii characters, thanks to oneofusoneofus
-#  2.6   - Start adding support for Kindle 2.25+ .kinf2018 file
+#  2.6   - Start adding support for Kindle 1.25+ .kinf2018 file
 
 
 """
@@ -974,11 +974,11 @@ if iswindows:
             # Probably not the best. To Fix (shouldn't ignore in encoding) or use utf-8
             print(u'searching for kinfoFiles in ' + path.encode('ascii', 'ignore'))
 
-            # look for (K4PC 2.25.1and later) .kinf2018 file
+            # look for (K4PC 1.25.1 and later) .kinf2018 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2018'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 2.25+ kinf2018 file: ' + kinfopath.encode('ascii','ignore'))
+                print('Found K4PC 1.25+ kinf2018 file: ' + kinfopath.encode('ascii','ignore'))
                 kInfoFiles.append(kinfopath)
                 
             # look for (K4PC 1.9.0 and later) .kinf2011 file
