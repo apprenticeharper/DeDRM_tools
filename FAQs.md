@@ -97,13 +97,18 @@ Some version of MacOS don't include PyCrpto. You'll need to install it manually.
 
 sudo python -m pip install pycrypto
 
-if error “No module named pip”, type: sudo easy_install pip
+if error “No module named pip”, type:
+
+sudo easy_install pip
+
 try again: sudo python -m pip install pycrypto
 
 if installation fails because “C compiler cannot create executables” and pop-up window asks you to install Command Line Tools for XCode, agree by clicking “Continue”
+
 try again: sudo python -m pip install pycrypto
 
 If after installing pycrypto decryption still fails with something about pylzma in error log, try: 
+
 sudo python -m pip install pylzma
 
 # Using the Tools
