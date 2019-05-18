@@ -12,6 +12,8 @@ For the latest Amazon KFX format, users of the calibre plugin should also instal
 
 I welcome contributions from others to improve these tools, from expanding the range of books handled, improving key retrieval,  to just general bug fixes, speed improvements and UI enhancements.
 
+I urge people to read the FAQs. But to cover the most common: Use ADE 2.0.1 to be sure not to get the new DRM scheme that these tools can't handle. Use Kindle for Mac/PC 1.24 or earlier, the tools don't currently work with 1.25 or later. Do remember to unzip the downloaded archive to get the plugin. You can't load the whole archive into calibre.
+
 My special thanks to all those developers who have done the hard work of reverse engineering to provide the initial tools.
 
 Apprentice Harper.
