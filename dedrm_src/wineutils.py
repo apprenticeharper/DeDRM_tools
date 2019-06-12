@@ -26,7 +26,9 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
     if not os.path.exists(outdirpath):
         os.makedirs(outdirpath)
 
-    wineprefix = os.path.abspath(os.path.expanduser(os.path.expandvars(wineprefix)))
+    if wineprefix != "":
+        wineprefix = os.path.abspath(os.path.expanduser(os.path.expandvars(wineprefix)))
+
     if wineprefix != "" and os.path.exists(wineprefix):
          cmdline = u"WINEPREFIX=\"{2}\" wine python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath,wineprefix)
     else:
