@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
+from __future__ import print_function
 import sys
 import os
 import re
@@ -23,7 +24,7 @@ def decryptepub(infile, outdir, rscpath):
     zippath = os.path.join(bpath,name + '_temp.zip')
     rv = zipfix.repairBook(infile, zippath)
     if rv != 0:
-        print "Error while trying to fix epub"
+        print("Error while trying to fix epub")
         return rv
 
     # determine a good name for the output file
@@ -43,7 +44,7 @@ def decryptepub(infile, outdir, rscpath):
                 try:
                     rv = ineptepub.decryptBook(userkey, zippath, outfile)
                     if rv == 0:
-                        print "Decrypted Adobe ePub with key file {0}".format(filename)
+                        print("Decrypted Adobe ePub with key file {0}".format(filename))
                         break
                 except Exception, e:
                     errlog += traceback.format_exc()
@@ -63,7 +64,7 @@ def decryptepub(infile, outdir, rscpath):
                 try:
                     rv = ignobleepub.decryptBook(userkey, zippath, outfile)
                     if rv == 0:
-                        print "Decrypted B&N ePub with key file {0}".format(filename)
+                        print("Decrypted B&N ePub with key file {0}".format(filename))
                         break
                 except Exception, e:
                     errlog += traceback.format_exc()
@@ -72,14 +73,14 @@ def decryptepub(infile, outdir, rscpath):
     else:
         encryption = epubtest.encryption(zippath)
         if encryption == "Unencrypted":
-            print "{0} is not DRMed.".format(name)
+            print("{0} is not DRMed.".format(name))
             rv = 0
         else:
-            print "{0} has an unknown encryption.".format(name)
+            print("{0} has an unknown encryption.".format(name))
 
     os.remove(zippath)
     if rv != 0:
-        print errlog
+        print(errlog)
     return rv
 
 
@@ -109,7 +110,7 @@ def decryptpdf(infile, outdir, rscpath):
                 rv = 1
 
     if rv != 0:
-        print errlog
+        print(errlog)
     return rv
 
 
@@ -126,7 +127,7 @@ def decryptpdb(infile, outdir, rscpath):
             try:
                 name, cc8 = i.split(':')
             except ValueError:
-                print '   Error parsing user supplied social drm data.'
+                print('   Error parsing user supplied social drm data.')
                 return 1
             try:
                 rv = erdr2pml.decryptBook(infile, outpath, True, erdr2pml.getuser_key(name, cc8))

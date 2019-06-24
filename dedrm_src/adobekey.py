@@ -52,6 +52,7 @@ from __future__ import with_statement
 """
 Retrieve Adobe ADEPT user key.
 """
+from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = '6.0'
@@ -407,7 +408,7 @@ if iswindows:
                 keys.append(userkey)
         if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')
-        print u"Found {0:d} keys".format(len(keys))
+        print(u"Found {0:d} keys".format(len(keys)))
         return keys
 
 
@@ -465,7 +466,7 @@ def getkey(outpath):
             outfile = outpath
             with file(outfile, 'wb') as keyfileout:
                 keyfileout.write(keys[0])
-            print u"Saved a key to {0}".format(outfile)
+            print(u"Saved a key to {0}".format(outfile))
         else:
             keycount = 0
             for key in keys:
@@ -476,28 +477,28 @@ def getkey(outpath):
                         break
                 with file(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
-                print u"Saved a key to {0}".format(outfile)
+                print(u"Saved a key to {0}".format(outfile))
         return True
     return False
 
 def usage(progname):
-    print u"Finds, decrypts and saves the default Adobe Adept encryption key(s)."
-    print u"Keys are saved to the current directory, or a specified output directory."
-    print u"If a file name is passed instead of a directory, only the first key is saved, in that file."
-    print u"Usage:"
-    print u"    {0:s} [-h] [<outpath>]".format(progname)
+    print(u"Finds, decrypts and saves the default Adobe Adept encryption key(s).")
+    print(u"Keys are saved to the current directory, or a specified output directory.")
+    print(u"If a file name is passed instead of a directory, only the first key is saved, in that file.")
+    print(u"Usage:")
+    print(u"    {0:s} [-h] [<outpath>]".format(progname))
 
 def cli_main():
     sys.stdout=SafeUnbuffered(sys.stdout)
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"{0} v{1}\nCopyright © 2009-2013 i♥cabbages and Apprentice Alf".format(progname,__version__)
+    print(u"{0} v{1}\nCopyright © 2009-2013 i♥cabbages and Apprentice Alf".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "h")
     except getopt.GetoptError, err:
-        print u"Error in options or arguments: {0}".format(err.args[0])
+        print(u"Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
 
@@ -528,7 +529,7 @@ def cli_main():
             outfile = outpath
             with file(outfile, 'wb') as keyfileout:
                 keyfileout.write(keys[0])
-            print u"Saved a key to {0}".format(outfile)
+            print(u"Saved a key to {0}".format(outfile))
         else:
             keycount = 0
             for key in keys:
@@ -539,9 +540,9 @@ def cli_main():
                         break
                 with file(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
-                print u"Saved a key to {0}".format(outfile)
+                print(u"Saved a key to {0}".format(outfile))
     else:
-        print u"Could not retrieve Adobe Adept key."
+        print(u"Could not retrieve Adobe Adept key.")
     return 0
 
 

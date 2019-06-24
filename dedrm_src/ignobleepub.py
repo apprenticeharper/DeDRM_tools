@@ -41,6 +41,7 @@ from __future__ import with_statement
 """
 Decrypt Barnes & Noble encrypted ePub books.
 """
+from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = "4.1"
@@ -262,7 +263,7 @@ def decryptBook(keyb64, inpath, outpath):
         namelist = set(inf.namelist())
         if 'META-INF/rights.xml' not in namelist or \
            'META-INF/encryption.xml' not in namelist:
-            print u"{0:s} is DRM-free.".format(os.path.basename(inpath))
+            print(u"{0:s} is DRM-free.".format(os.path.basename(inpath)))
             return 1
         for name in META_NAMES:
             namelist.remove(name)
@@ -272,7 +273,7 @@ def decryptBook(keyb64, inpath, outpath):
             expr = './/%s' % (adept('encryptedKey'),)
             bookkey = ''.join(rights.findtext(expr))
             if len(bookkey) != 64:
-                print u"{0:s} is not a secure Barnes & Noble ePub.".format(os.path.basename(inpath))
+                print(u"{0:s} is not a secure Barnes & Noble ePub.".format(os.path.basename(inpath)))
                 return 1
             bookkey = aes.decrypt(bookkey.decode('base64'))
             bookkey = bookkey[:-ord(bookkey[-1])]
@@ -315,7 +316,7 @@ def decryptBook(keyb64, inpath, outpath):
                         pass
                     outf.writestr(zi, decryptor.decrypt(path, data))
         except:
-            print u"Could not decrypt {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc())
+            print(u"Could not decrypt {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc()))
             return 2
     return 0
 
@@ -326,13 +327,13 @@ def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
-        print u"usage: {0} <keyfile.b64> <inbook.epub> <outbook.epub>".format(progname)
+        print(u"usage: {0} <keyfile.b64> <inbook.epub> <outbook.epub>".format(progname))
         return 1
     keypath, inpath, outpath = argv[1:]
     userkey = open(keypath,'rb').read()
     result = decryptBook(userkey, inpath, outpath)
     if result == 0:
-        print u"Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath))
+        print(u"Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath)))
     return result
 
 def gui_main():

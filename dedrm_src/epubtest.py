@@ -45,6 +45,7 @@
 #
 
 from __future__ import with_statement
+from __future__ import print_function
 
 __version__ = '1.01'
 
@@ -199,7 +200,7 @@ def encryption(infile):
 
 def main():
     argv=unicode_argv()
-    print encryption(argv[1])
+    print(encryption(argv[1]))
     return 0
 
 if __name__ == "__main__":

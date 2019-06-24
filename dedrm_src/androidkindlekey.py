@@ -21,6 +21,7 @@ from __future__ import with_statement
 """
 Retrieve Kindle for Android Serial Number.
 """
+from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = '1.5'
@@ -228,7 +229,7 @@ def get_serials2(path=STORAGE2):
                 if len(userdata_utf8) > 0:
                     dsns.append(userdata_utf8)
         except:
-            print "Error getting one of the device serial name keys"
+            print("Error getting one of the device serial name keys")
             traceback.print_exc()
             pass
     dsns = list(set(dsns))
@@ -243,7 +244,7 @@ def get_serials2(path=STORAGE2):
                 if len(userdata_utf8) > 0:
                     tokens.append(userdata_utf8)
         except:
-            print "Error getting one of the account token keys"
+            print("Error getting one of the account token keys")
             traceback.print_exc()
             pass
     tokens = list(set(tokens))
@@ -321,13 +322,13 @@ def getkey(outfile, inpath):
 
 
 def usage(progname):
-    print u"Decrypts the serial number(s) of Kindle For Android from Android backup or file"
-    print u"Get backup.ab file using adb backup com.amazon.kindle for Android 4.0+."
-    print u"Otherwise extract AmazonSecureStorage.xml from /data/data/com.amazon.kindle/shared_prefs/AmazonSecureStorage.xml"
-    print u"Or map_data_storage.db from /data/data/com.amazon.kindle/databases/map_data_storage.db"
-    print u""
-    print u"Usage:"
-    print u"    {0:s} [-h] [-b <backup.ab>] [<outfile.k4a>]".format(progname)
+    print(u"Decrypts the serial number(s) of Kindle For Android from Android backup or file")
+    print(u"Get backup.ab file using adb backup com.amazon.kindle for Android 4.0+.")
+    print(u"Otherwise extract AmazonSecureStorage.xml from /data/data/com.amazon.kindle/shared_prefs/AmazonSecureStorage.xml")
+    print(u"Or map_data_storage.db from /data/data/com.amazon.kindle/databases/map_data_storage.db")
+    print(u"")
+    print(u"Usage:")
+    print(u"    {0:s} [-h] [-b <backup.ab>] [<outfile.k4a>]".format(progname))
 
 
 def cli_main():
@@ -335,13 +336,13 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"{0} v{1}\nCopyright © 2010-2015 Thom, some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__)
+    print(u"{0} v{1}\nCopyright © 2010-2015 Thom, some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "hb:")
     except getopt.GetoptError, err:
         usage(progname)
-        print u"\nError in options or arguments: {0}".format(err.args[0])
+        print(u"\nError in options or arguments: {0}".format(err.args[0]))
         return 2
 
     inpath = ""
@@ -373,13 +374,13 @@ def cli_main():
 
     if not os.path.isfile(inpath):
         usage(progname)
-        print u"\n{0:s} file not found".format(inpath)
+        print(u"\n{0:s} file not found".format(inpath))
         return 2
 
     if getkey(outfile, inpath):
-        print u"\nSaved Kindle for Android key to {0}".format(outfile)
+        print(u"\nSaved Kindle for Android key to {0}".format(outfile))
     else:
-        print u"\nCould not retrieve Kindle for Android key."
+        print(u"\nCould not retrieve Kindle for Android key.")
     return 0
 
 
@@ -390,7 +391,7 @@ def gui_main():
         import tkMessageBox
         import tkFileDialog
     except:
-        print "Tkinter not installed"
+        print("Tkinter not installed")
         return cli_main()
 
     class DecryptionDialog(Tkinter.Frame):

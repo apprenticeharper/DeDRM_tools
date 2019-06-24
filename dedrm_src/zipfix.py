@@ -14,6 +14,7 @@
 """
 Re-write zip (or ePub) fixing problems with file names (and mimetype entry).
 """
+from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = "1.1"
@@ -156,22 +157,22 @@ class fixZip:
 
 
 def usage():
-    print """usage: zipfix.py inputzip outputzip
+    print("""usage: zipfix.py inputzip outputzip
      inputzip is the source zipfile to fix
      outputzip is the fixed zip archive
-    """
+    """)
 
 
 def repairBook(infile, outfile):
     if not os.path.exists(infile):
-        print "Error: Input Zip File does not exist"
+        print("Error: Input Zip File does not exist")
         return 1
     try:
         fr = fixZip(infile, outfile)
         fr.fix()
         return 0
     except Exception, e:
-        print "Error Occurred ", e
+        print("Error Occurred ", e)
         return 2
 
 

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+from __future__ import print_function
 
 # kgenpids.py
 # Copyright © 2008-2017 Apprentice Harper et al.
@@ -214,7 +215,7 @@ def getK4Pids(rec209, token, kindleDatabase):
     try:
         # Get the DSN token, if present
         DSN = (kindleDatabase[1])['DSN'].decode('hex')
-        print u"Got DSN key from database {0}".format(kindleDatabase[0])
+        print(u"Got DSN key from database {0}".format(kindleDatabase[0]))
     except KeyError:
         # See if we have the info to generate the DSN
         try:
@@ -225,7 +226,7 @@ def getK4Pids(rec209, token, kindleDatabase):
             try:
                 # Get the SerialNumber token, if present
                 IDString = (kindleDatabase[1])['SerialNumber'].decode('hex')
-                print u"Got SerialNumber from database {0}".format(kindleDatabase[0])
+                print(u"Got SerialNumber from database {0}".format(kindleDatabase[0]))
             except KeyError:
                  # Get the IDString we added
                 IDString = (kindleDatabase[1])['IDString'].decode('hex')
@@ -233,7 +234,7 @@ def getK4Pids(rec209, token, kindleDatabase):
             try:
                 # Get the UsernameHash token, if present
                 encodedUsername = (kindleDatabase[1])['UsernameHash'].decode('hex')
-                print u"Got UsernameHash from database {0}".format(kindleDatabase[0])
+                print(u"Got UsernameHash from database {0}".format(kindleDatabase[0]))
             except KeyError:
                 # Get the UserName we added
                 UserName = (kindleDatabase[1])['UserName'].decode('hex')
@@ -241,7 +242,7 @@ def getK4Pids(rec209, token, kindleDatabase):
                 encodedUsername = encodeHash(UserName,charMap1)
                 #print u"encodedUsername",encodedUsername.encode('hex')
         except KeyError:
-            print u"Keys not found in the database {0}.".format(kindleDatabase[0])
+            print(u"Keys not found in the database {0}.".format(kindleDatabase[0]))
             return pids
 
         # Get the ID string used
@@ -297,14 +298,14 @@ def getPidList(md1, md2, serials=[], kDatabases=[]):
         try:
             pidlst.extend(getK4Pids(md1, md2, kDatabase))
         except Exception, e:
-            print u"Error getting PIDs from database {0}: {1}".format(kDatabase[0],e.args[0])
+            print(u"Error getting PIDs from database {0}: {1}".format(kDatabase[0],e.args[0]))
             traceback.print_exc()
 
     for serialnum in serials:
         try:
             pidlst.extend(getKindlePids(md1, md2, serialnum))
         except Exception, e:
-            print u"Error getting PIDs from serial number {0}: {1}".format(serialnum ,e.args[0])
+            print(u"Error getting PIDs from serial number {0}: {1}".format(serialnum ,e.args[0]))
             traceback.print_exc()
 
     return pidlst
