@@ -3,9 +3,9 @@ from __future__ import (unicode_literals, division, absolute_import,
                         print_function)
 
 try:
-    from PyQt5.Qt import (Qt, QGroupBox, QListWidget, QLineEdit, QDialogButtonBox, QWidget, QLabel, QDialog, QVBoxLayout, QAbstractItemView, QIcon, QHBoxLayout, QComboBox, QListWidgetItem)
+    from PyQt5.Qt import (Qt, QGroupBox, QListWidget, QLineEdit, QDialogButtonBox, QWidget, QLabel, QDialog, QVBoxLayout, QAbstractItemView, QIcon, QHBoxLayout, QComboBox, QListWidgetItem, QFileDialog)
 except ImportError:
-    from PyQt4.Qt import (Qt, QGroupBox, QListWidget, QLineEdit, QDialogButtonBox, QWidget, QLabel, QDialog, QVBoxLayout, QAbstractItemView, QIcon, QHBoxLayout, QComboBox, QListWidgetItem)
+    from PyQt4.Qt import (Qt, QGroupBox, QListWidget, QLineEdit, QDialogButtonBox, QWidget, QLabel, QDialog, QVBoxLayout, QAbstractItemView, QIcon, QHBoxLayout, QComboBox, QListWidgetItem, QFileDialog)
 
 try:
     from PyQt5 import Qt as QtGui
@@ -18,6 +18,7 @@ from calibre.utils.config import JSONConfig, config_dir
 plugin_prefs = JSONConfig('plugins/obok_dedrm_prefs')
 plugin_prefs.defaults['finding_homes_for_formats'] = 'Ask'
 plugin_prefs.defaults['kobo_serials'] = []
+plugin_prefs.defaults['kobo_directory'] = u''
 
 from calibre_plugins.obok_dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 from calibre_plugins.obok_dedrm.utilities import (debug_print)
@@ -37,6 +38,7 @@ class ConfigWidget(QWidget):
 
         # copy of preferences
         self.tmpserials = plugin_prefs['kobo_serials']
+        self.kobodirectory = plugin_prefs['kobo_directory']
 
         combo_label = QLabel(_('When should Obok try to insert EPUBs into existing calibre entries?'), self)
         layout.addWidget(combo_label)
@@ -53,15 +55,30 @@ class ConfigWidget(QWidget):
         self.serials_button.clicked.connect(self.edit_serials)
         layout.addWidget(self.serials_button)
 
+        self.kobo_directory_button = QtGui.QPushButton(self)
+        self.kobo_directory_button.setToolTip(_(u"Click to specify the Kobo directory"))
+        self.kobo_directory_button.setText(u"Kobo directory")
+        self.kobo_directory_button.clicked.connect(self.edit_kobo_directory)
+        layout.addWidget(self.kobo_directory_button)
+
 
     def edit_serials(self):
-        d = ManageKeysDialog(self,u"Kobo device serial numbers",self.tmpserials, AddSerialDialog)
+        d = ManageKeysDialog(self,u"Kobo device serial number",self.tmpserials, AddSerialDialog)
         d.exec_()
 
-    
+
+    def edit_kobo_directory(self):
+        tmpkobodirectory = QFileDialog.getExistingDirectory(self, u"Select Kobo directory", self.kobodirectory or "/home", QFileDialog.ShowDirsOnly)
+
+        if tmpkobodirectory != u"" and tmpkobodirectory is not None:
+            self.kobodirectory = tmpkobodirectory
+
+
     def save_settings(self):
         plugin_prefs['finding_homes_for_formats'] = unicode(self.find_homes.currentText())
         plugin_prefs['kobo_serials'] = self.tmpserials
+        plugin_prefs['kobo_directory'] = self.kobodirectory
+
 
 
 

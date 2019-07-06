@@ -290,7 +290,7 @@ class KoboLibrary(object):
     written by the Kobo Desktop Edition application, including the list
     of books, their titles, and the user's encryption key(s)."""
 
-    def __init__ (self, serials = [], device_path = None):
+    def __init__ (self, serials = [], device_path = None, desktopkobodir = u""):
         print __about__
         self.kobodir = u""
         kobodb = u""
@@ -344,19 +344,23 @@ class KoboLibrary(object):
 
         if (self.kobodir == u""):
             # step 4. we haven't found a device with serials, so try desktop apps
-            if sys.platform.startswith('win'):
-                import _winreg as winreg
-                if sys.getwindowsversion().major > 5:
-                    if 'LOCALAPPDATA' in os.environ.keys():
-                        # Python 2.x does not return unicode env. Use Python 3.x
-                        self.kobodir = winreg.ExpandEnvironmentStrings(u"%LOCALAPPDATA%")
-                if (self.kobodir == u""):
-                    if 'USERPROFILE' in os.environ.keys():
-                        # Python 2.x does not return unicode env. Use Python 3.x
-                        self.kobodir = os.path.join(winreg.ExpandEnvironmentStrings(u"%USERPROFILE%"), u"Local Settings", u"Application Data")
-                self.kobodir = os.path.join(self.kobodir, u"Kobo", u"Kobo Desktop Edition")
-            elif sys.platform.startswith('darwin'):
-                self.kobodir = os.path.join(os.environ['HOME'], u"Library", u"Application Support", u"Kobo", u"Kobo Desktop Edition")
+            if desktopkobodir != u'':
+                self.kobodir = desktopkobodir
+
+            if (self.kobodir == u""):
+                if sys.platform.startswith('win'):
+                    import _winreg as winreg
+                    if sys.getwindowsversion().major > 5:
+                        if 'LOCALAPPDATA' in os.environ.keys():
+                            # Python 2.x does not return unicode env. Use Python 3.x
+                            self.kobodir = winreg.ExpandEnvironmentStrings(u"%LOCALAPPDATA%")
+                    if (self.kobodir == u""):
+                        if 'USERPROFILE' in os.environ.keys():
+                            # Python 2.x does not return unicode env. Use Python 3.x
+                            self.kobodir = os.path.join(winreg.ExpandEnvironmentStrings(u"%USERPROFILE%"), u"Local Settings", u"Application Data")
+                    self.kobodir = os.path.join(self.kobodir, u"Kobo", u"Kobo Desktop Edition")
+                elif sys.platform.startswith('darwin'):
+                    self.kobodir = os.path.join(os.environ['HOME'], u"Library", u"Application Support", u"Kobo", u"Kobo Desktop Edition")
             #elif linux_path != None:
                 # Probably Linux, let's get the wine prefix and path to Kobo.
             #   self.kobodir = os.path.join(linux_path, u"Local Settings", u"Application Data", u"Kobo", u"Kobo Desktop Edition")
@@ -368,7 +372,6 @@ class KoboLibrary(object):
                 self.kobodir = u""
                 kobodb  = u""
 
-        
         if (self.kobodir != u""):
             self.bookdir = os.path.join(self.kobodir, u"kepub")
             # make a copy of the database in a temporary file
@@ -450,7 +453,16 @@ class KoboLibrary(object):
                 # print u"m:{0}".format(m[0])
                 macaddrs.append(m[0].upper())
         else:
-            # probably linux, let's try ipconfig under wine
+            # probably linux
+
+            # let's try ip
+            c = re.compile('\s(' + '[0-9a-f]{2}:' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
+            for line in os.popen('ip -br link'):
+                m = c.search(line)
+                if m:
+                    macaddrs.append(m.group(1).upper())
+
+            # let's try ipconfig under wine
             c = re.compile('\s(' + '[0-9a-f]{2}-' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
             for line in os.popen('ipconfig /all'):
                 m = c.search(line)
