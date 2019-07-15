@@ -11,7 +11,7 @@ Open calibre's Preferences dialog.  Click on the "Plugins" button.  Next, click 
 
 Customization
 -------------
-No customization is required, except choosing which menus will show the plugin. Altough the ability to enter a device serial number is given, this should not need to be filled in, as the serial number should be picked up automatically from the attached Kobo reader.
+No customization is required, except choosing which menus will show the plugin. Although the ability to enter a device serial number is given, this should not need to be filled in, as the serial number should be picked up automatically from the attached Kobo reader.
 
 
 Using the plugin
