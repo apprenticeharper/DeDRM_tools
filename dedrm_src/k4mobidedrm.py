@@ -86,12 +86,14 @@ if inCalibre:
     from calibre_plugins.dedrm import kgenpids
     from calibre_plugins.dedrm import androidkindlekey
     from calibre_plugins.dedrm import kfxdedrm
+    from calibre_plugins.dedrm import mobimergehdimage
 else:
     import mobidedrm
     import topazextract
     import kgenpids
     import androidkindlekey
     import kfxdedrm
+    import mobimergehdimage
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -242,6 +244,27 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
         raise
 
     print u"Decryption succeeded after {0:.1f} seconds".format(time.time()-starttime)
+
+    if mobi:
+        import glob
+
+        bookparentpath = os.path.dirname(os.path.abspath(infile))
+        azwresfiles = glob.glob(bookparentpath + "/*.azw.res")
+        if azwresfiles != []:
+            if len(azwresfiles) == 1:
+                print u"HDImage Container file is found: %s" % os.path.basename(azwresfiles[0])
+                print u"HDImage merge start..."
+                try:
+                    hdimage_merger = mobimergehdimage.MobiMergeHDImage(mb.mobi_data)
+                    hdimage_merger.load_azwres(azwresfiles[0])
+                    mb.mobi_data = hdimage_merger.merge()
+                    print u"HDImage merge succeeded after {0:.1f} seconds".format(time.time()-starttime)
+                except:
+                    print u"Merge failed. Skipping..."
+            else:
+                for azwres in azwresfiles:
+                    print u"HDImage Containor is exist more then 1. Skipping..."
+
     return mb
 
 
