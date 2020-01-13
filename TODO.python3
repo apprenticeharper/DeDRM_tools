@@ -1,3 +1,6 @@
+conversion is done mostly with
+	python-modernize --future-unicode <FILE> 
+
 Obok:
 =====
 
