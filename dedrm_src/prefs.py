@@ -2,6 +2,9 @@
 # vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 
 from __future__ import with_statement
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
 __license__ = 'GPL v3'
 
 # Standard Python modules.
@@ -15,7 +18,7 @@ from calibre.constants import iswindows, isosx
 
 class DeDRM_Prefs():
     def __init__(self):
-        JSON_PATH = os.path.join(u"plugins", PLUGIN_NAME.strip().lower().replace(' ', '_') + '.json')
+        JSON_PATH = os.path.join("plugins", PLUGIN_NAME.strip().lower().replace(' ', '_') + '.json')
         self.dedrmprefs = JSONConfig(JSON_PATH)
 
         self.dedrmprefs.defaults['configured'] = False
@@ -61,7 +64,7 @@ class DeDRM_Prefs():
 
     def addnamedvaluetoprefs(self, prefkind, keyname, keyvalue):
         try:
-            if keyvalue not in self.dedrmprefs[prefkind].values():
+            if keyvalue not in list(self.dedrmprefs[prefkind].values()):
                 # ensure that the keyname is unique
                 # by adding a number (starting with 2) to the name if it is not
                 namecount = 1
@@ -98,12 +101,12 @@ def convertprefs(always = False):
             try:
                 name, ccn = keystring.split(',')
                 # Generate Barnes & Noble EPUB user key from name and credit card number.
-                keyname = u"{0}_{1}".format(name.strip(),ccn.strip()[-4:])
+                keyname = "{0}_{1}".format(name.strip(),ccn.strip()[-4:])
                 keyvalue = generate_key(name, ccn)
                 userkeys.append([keyname,keyvalue])
-            except Exception, e:
+            except Exception as e:
                 traceback.print_exc()
-                print e.args[0]
+                print(e.args[0])
                 pass
         return userkeys
 
@@ -115,12 +118,12 @@ def convertprefs(always = False):
             try:
                 name, cc = keystring.split(',')
                 # Generate eReader user key from name and credit card number.
-                keyname = u"{0}_{1}".format(name.strip(),cc.strip()[-4:])
+                keyname = "{0}_{1}".format(name.strip(),cc.strip()[-4:])
                 keyvalue = getuser_key(name,cc).encode('hex')
                 userkeys.append([keyname,keyvalue])
-            except Exception, e:
+            except Exception as e:
                 traceback.print_exc()
-                print e.args[0]
+                print(e.args[0])
                 pass
         return userkeys
 
@@ -161,15 +164,15 @@ def convertprefs(always = False):
         return
 
 
-    print u"{0} v{1}: Importing configuration data from old DeDRM plugins".format(PLUGIN_NAME, PLUGIN_VERSION)
+    print("{0} v{1}: Importing configuration data from old DeDRM plugins".format(PLUGIN_NAME, PLUGIN_VERSION))
 
     IGNOBLEPLUGINNAME = "Ignoble Epub DeDRM"
     EREADERPLUGINNAME = "eReader PDB 2 PML"
     OLDKINDLEPLUGINNAME = "K4PC, K4Mac, Kindle Mobi and Topaz DeDRM"
 
     # get prefs from older tools
-    kindleprefs = JSONConfig(os.path.join(u"plugins", u"K4MobiDeDRM"))
-    ignobleprefs = JSONConfig(os.path.join(u"plugins", u"ignoble_epub_dedrm"))
+    kindleprefs = JSONConfig(os.path.join("plugins", "K4MobiDeDRM"))
+    ignobleprefs = JSONConfig(os.path.join("plugins", "ignoble_epub_dedrm"))
 
     # Handle the old ignoble plugin's customization string by converting the
     # old string to stored keys... get that personal data out of plain sight.
@@ -177,7 +180,7 @@ def convertprefs(always = False):
     sc = config['plugin_customization']
     val = sc.pop(IGNOBLEPLUGINNAME, None)
     if val is not None:
-        print u"{0} v{1}: Converting old Ignoble plugin configuration string.".format(PLUGIN_NAME, PLUGIN_VERSION)
+        print("{0} v{1}: Converting old Ignoble plugin configuration string.".format(PLUGIN_NAME, PLUGIN_VERSION))
         priorkeycount = len(dedrmprefs['bandnkeys'])
         userkeys = parseIgnobleString(str(val))
         for keypair in userkeys:
@@ -185,7 +188,7 @@ def convertprefs(always = False):
             value = keypair[1]
             dedrmprefs.addnamedvaluetoprefs('bandnkeys', name, value)
         addedkeycount = len(dedrmprefs['bandnkeys'])-priorkeycount
-        print u"{0} v{1}: {2:d} Barnes and Noble {3} imported from old Ignoble plugin configuration string".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, u"key" if addedkeycount==1 else u"keys")
+        print("{0} v{1}: {2:d} Barnes and Noble {3} imported from old Ignoble plugin configuration string".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, "key" if addedkeycount==1 else "keys"))
     # Make the json write all the prefs to disk
     dedrmprefs.writeprefs(False)
 
@@ -193,7 +196,7 @@ def convertprefs(always = False):
     # old string to stored keys... get that personal data out of plain sight.
     val = sc.pop(EREADERPLUGINNAME, None)
     if val is not None:
-        print u"{0} v{1}: Converting old eReader plugin configuration string.".format(PLUGIN_NAME, PLUGIN_VERSION)
+        print("{0} v{1}: Converting old eReader plugin configuration string.".format(PLUGIN_NAME, PLUGIN_VERSION))
         priorkeycount = len(dedrmprefs['ereaderkeys'])
         userkeys = parseeReaderString(str(val))
         for keypair in userkeys:
@@ -201,14 +204,14 @@ def convertprefs(always = False):
             value = keypair[1]
             dedrmprefs.addnamedvaluetoprefs('ereaderkeys', name, value)
         addedkeycount = len(dedrmprefs['ereaderkeys'])-priorkeycount
-        print u"{0} v{1}: {2:d} eReader {3} imported from old eReader plugin configuration string".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, u"key" if addedkeycount==1 else u"keys")
+        print("{0} v{1}: {2:d} eReader {3} imported from old eReader plugin configuration string".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, "key" if addedkeycount==1 else "keys"))
     # Make the json write all the prefs to disk
     dedrmprefs.writeprefs(False)
 
     # get old Kindle plugin configuration string
     val = sc.pop(OLDKINDLEPLUGINNAME, None)
     if val is not None:
-        print u"{0} v{1}: Converting old Kindle plugin configuration string.".format(PLUGIN_NAME, PLUGIN_VERSION)
+        print("{0} v{1}: Converting old Kindle plugin configuration string.".format(PLUGIN_NAME, PLUGIN_VERSION))
         priorpidcount = len(dedrmprefs['pids'])
         priorserialcount = len(dedrmprefs['serials'])
         pids, serials = parseKindleString(val)
@@ -218,7 +221,7 @@ def convertprefs(always = False):
             dedrmprefs.addvaluetoprefs('serials',serial)
         addedpidcount = len(dedrmprefs['pids']) - priorpidcount
         addedserialcount = len(dedrmprefs['serials']) - priorserialcount
-        print u"{0} v{1}: {2:d} {3} and {4:d} {5} imported from old Kindle plugin configuration string.".format(PLUGIN_NAME, PLUGIN_VERSION, addedpidcount, u"PID" if addedpidcount==1 else u"PIDs", addedserialcount, u"serial number" if addedserialcount==1 else u"serial numbers")
+        print("{0} v{1}: {2:d} {3} and {4:d} {5} imported from old Kindle plugin configuration string.".format(PLUGIN_NAME, PLUGIN_VERSION, addedpidcount, "PID" if addedpidcount==1 else "PIDs", addedserialcount, "serial number" if addedserialcount==1 else "serial numbers"))
     # Make the json write all the prefs to disk
     dedrmprefs.writeprefs(False)
 
@@ -234,7 +237,7 @@ def convertprefs(always = False):
         dedrmprefs.addnamedvaluetoprefs('bandnkeys', name, value)
     addedkeycount = len(dedrmprefs['bandnkeys'])-priorkeycount
     if addedkeycount > 0:
-        print u"{0} v{1}: {2:d} Barnes and Noble {3} imported from config folder.".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, u"key file" if addedkeycount==1 else u"key files")
+        print("{0} v{1}: {2:d} Barnes and Noble {3} imported from config folder.".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, "key file" if addedkeycount==1 else "key files"))
     # Make the json write all the prefs to disk
     dedrmprefs.writeprefs(False)
 
@@ -247,7 +250,7 @@ def convertprefs(always = False):
         dedrmprefs.addnamedvaluetoprefs('adeptkeys', name, value)
     addedkeycount = len(dedrmprefs['adeptkeys'])-priorkeycount
     if addedkeycount > 0:
-        print u"{0} v{1}: {2:d} Adobe Adept {3} imported from config folder.".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, u"keyfile" if addedkeycount==1 else u"keyfiles")
+        print("{0} v{1}: {2:d} Adobe Adept {3} imported from config folder.".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, "keyfile" if addedkeycount==1 else "keyfiles"))
     # Make the json write all the prefs to disk
     dedrmprefs.writeprefs(False)
 
@@ -260,7 +263,7 @@ def convertprefs(always = False):
         addedkeycount = len(dedrmprefs['bandnkeys']) - priorkeycount
         # no need to delete old prefs, since they contain no recoverable private data
         if addedkeycount > 0:
-            print u"{0} v{1}: {2:d} Barnes and Noble {3} imported from Ignoble plugin preferences.".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, u"key" if addedkeycount==1 else u"keys")
+            print("{0} v{1}: {2:d} Barnes and Noble {3} imported from Ignoble plugin preferences.".format(PLUGIN_NAME, PLUGIN_VERSION, addedkeycount, "key" if addedkeycount==1 else "keys"))
     # Make the json write all the prefs to disk
     dedrmprefs.writeprefs(False)
 
@@ -277,19 +280,19 @@ def convertprefs(always = False):
             dedrmprefs.addvaluetoprefs('serials',serial)
     addedpidcount = len(dedrmprefs['pids']) - priorpidcount
     if addedpidcount > 0:
-        print u"{0} v{1}: {2:d} {3} imported from Kindle plugin preferences".format(PLUGIN_NAME, PLUGIN_VERSION, addedpidcount, u"PID" if addedpidcount==1 else u"PIDs")
+        print("{0} v{1}: {2:d} {3} imported from Kindle plugin preferences".format(PLUGIN_NAME, PLUGIN_VERSION, addedpidcount, "PID" if addedpidcount==1 else "PIDs"))
     addedserialcount = len(dedrmprefs['serials']) - priorserialcount
     if addedserialcount > 0:
-        print u"{0} v{1}: {2:d} {3} imported from Kindle plugin preferences".format(PLUGIN_NAME, PLUGIN_VERSION, addedserialcount, u"serial number" if addedserialcount==1 else u"serial numbers")
+        print("{0} v{1}: {2:d} {3} imported from Kindle plugin preferences".format(PLUGIN_NAME, PLUGIN_VERSION, addedserialcount, "serial number" if addedserialcount==1 else "serial numbers"))
     try:
         if 'wineprefix' in kindleprefs and kindleprefs['wineprefix'] != "":
             dedrmprefs.set('adobewineprefix',kindleprefs['wineprefix'])
             dedrmprefs.set('kindlewineprefix',kindleprefs['wineprefix'])
-            print u"{0} v{1}: WINEPREFIX ‘(2)’ imported from Kindle plugin preferences".format(PLUGIN_NAME, PLUGIN_VERSION, kindleprefs['wineprefix'])
+            print("{0} v{1}: WINEPREFIX ‘(2)’ imported from Kindle plugin preferences".format(PLUGIN_NAME, PLUGIN_VERSION, kindleprefs['wineprefix']))
     except:
         traceback.print_exc()
 
 
     # Make the json write all the prefs to disk
     dedrmprefs.writeprefs()
-    print u"{0} v{1}: Finished setting up configuration data.".format(PLUGIN_NAME, PLUGIN_VERSION)
+    print("{0} v{1}: Finished setting up configuration data.".format(PLUGIN_NAME, PLUGIN_VERSION))
