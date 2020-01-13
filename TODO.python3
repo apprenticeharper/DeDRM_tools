@@ -1,0 +1,18 @@
+Obok:
+=====
+
+Running Obok DeDRM v6.5.4
+DEBUG:   13.7 get_device_settings - device_path= /media/norbert/KOBOeReader/
+Obok v3.2.4
+Copyright © 2012-2016 Physisticated et al.
+/tmp/tmplnonkwo7
+DEBUG:   14.1 got kobodir /media/norbert/KOBOeReader/.kobo
+Error parsing Kobo plist: no legacy user key found.
+/bin/sh: 1: ipconfig: not found
+Trouble retrieving keys with newer obok method.
+Traceback (most recent call last):
+  File "calibre_plugins.obok_dedrm.action", line 120, in launchObok
+  File "calibre_plugins.obok_dedrm.obok.obok", line 412, in userkeys
+  File "calibre_plugins.obok_dedrm.obok.obok", line 488, in __getuserkeys
+TypeError: Unicode-objects must be encoded before hashing
+
