@@ -6,6 +6,11 @@ from __future__ import with_statement
 # kindlekey.py
 # Copyright © 2008-2017 Apprentice Harper et al.
 
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
+from six.moves import range
+from six.moves import zip
 __license__ = 'GPL v3'
 __version__ = '2.6'
 
@@ -52,7 +57,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,str):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -93,15 +98,15 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"kindlekey.py"]
+        return ["kindlekey.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return [arg if (type(arg) == str) else str(arg,argvencoding) for arg in sys.argv]
 
 class DrmException(Exception):
     pass
@@ -180,7 +185,7 @@ if iswindows:
         create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
         string_at, Structure, c_void_p, cast
 
-    import _winreg as winreg
+    import six.moves.winreg as winreg
     MAX_PATH = 255
     kernel32 = windll.kernel32
     advapi32 = windll.advapi32
@@ -188,7 +193,7 @@ if iswindows:
 
     try:
         # try to get fast routines from alfcrypto
-        from alfcrypto import AES_CBC, KeyIVGen
+        from .alfcrypto import AES_CBC, KeyIVGen
     except:
         # alfcrypto not available, so use python implementations
         """
@@ -292,7 +297,7 @@ if iswindows:
                 numBlocks, numExtraBytes = divmod(len(self.bytesToDecrypt), self.blockSize)
                 if more == None:  # no more calls to decrypt, should have all the data
                     if numExtraBytes  != 0:
-                        raise DecryptNotBlockAlignedError, 'Data not block aligned on decrypt'
+                        raise DecryptNotBlockAlignedError('Data not block aligned on decrypt')
 
                 # hold back some bytes in case last decrypt has zero len
                 if (more != None) and (numExtraBytes == 0) and (numBlocks >0) :
@@ -334,7 +339,7 @@ if iswindows:
             def removePad(self, paddedBinaryString, blockSize):
                 """ Remove padding from a binary string """
                 if not(0<len(paddedBinaryString)):
-                    raise DecryptNotBlockAlignedError, 'Expected More Data'
+                    raise DecryptNotBlockAlignedError('Expected More Data')
                 return paddedBinaryString[:-ord(paddedBinaryString[-1])]
 
         class noPadding(Pad):
@@ -364,8 +369,8 @@ if iswindows:
                 self.blockSize  = blockSize  # blockSize is in bytes
                 self.padding    = padding    # change default to noPadding() to get normal ECB behavior
 
-                assert( keySize%4==0 and NrTable[4].has_key(keySize/4)),'key size must be 16,20,24,29 or 32 bytes'
-                assert( blockSize%4==0 and NrTable.has_key(blockSize/4)), 'block size must be 16,20,24,29 or 32 bytes'
+                assert( keySize%4==0 and keySize/4 in NrTable[4]),'key size must be 16,20,24,29 or 32 bytes'
+                assert( blockSize%4==0 and blockSize/4 in NrTable), 'block size must be 16,20,24,29 or 32 bytes'
 
                 self.Nb = self.blockSize/4          # Nb is number of columns of 32 bit words
                 self.Nk = keySize/4                 # Nk is the key length in 32-bit words
@@ -642,7 +647,7 @@ if iswindows:
             def __init__(self, key = None, padding = padWithPadLen(), keySize=16):
                 """ Initialize AES, keySize is in bytes """
                 if  not (keySize == 16 or keySize == 24 or keySize == 32) :
-                    raise BadKeySizeError, 'Illegal AES key size, must be 16, 24, or 32 bytes'
+                    raise BadKeySizeError('Illegal AES key size, must be 16, 24, or 32 bytes')
 
                 Rijndael.__init__( self, key, padding=padding, keySize=keySize, blockSize=16 )
 
@@ -896,10 +901,10 @@ if iswindows:
                 size.value = len(buffer)
             
             # replace any non-ASCII values with 0xfffd
-            for i in xrange(0,len(buffer)):
-                if buffer[i]>u"\u007f":
+            for i in range(0,len(buffer)):
+                if buffer[i]>"\u007f":
                     #print u"swapping char "+str(i)+" ("+buffer[i]+")"
-                    buffer[i] = u"\ufffd"
+                    buffer[i] = "\ufffd"
             # return utf-8 encoding of modified username
             #print u"modified username:"+buffer.value
             return buffer.value.encode('utf-8')
@@ -928,11 +933,11 @@ if iswindows:
     # Returns Environmental Variables that contain unicode
     def getEnvironmentVariable(name):
         import ctypes
-        name = unicode(name) # make sure string argument is unicode
+        name = str(name) # make sure string argument is unicode
         n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
         if n == 0:
             return None
-        buf = ctypes.create_unicode_buffer(u'\0'*n)
+        buf = ctypes.create_unicode_buffer('\0'*n)
         ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
         return buf.value
 
@@ -942,9 +947,9 @@ if iswindows:
         # some 64 bit machines do not have the proper registry key for some reason
         # or the python interface to the 32 vs 64 bit registry is broken
         path = ""
-        if 'LOCALAPPDATA' in os.environ.keys():
+        if 'LOCALAPPDATA' in list(os.environ.keys()):
             # Python 2.x does not return unicode env. Use Python 3.x
-            path = winreg.ExpandEnvironmentStrings(u"%LOCALAPPDATA%")
+            path = winreg.ExpandEnvironmentStrings("%LOCALAPPDATA%")
             # this is just another alternative.
             # path = getEnvironmentVariable('LOCALAPPDATA')
             if not os.path.isdir(path):
@@ -972,41 +977,41 @@ if iswindows:
             print ('Could not find the folder in which to look for kinfoFiles.')
         else:
             # Probably not the best. To Fix (shouldn't ignore in encoding) or use utf-8
-            print(u'searching for kinfoFiles in ' + path.encode('ascii', 'ignore'))
+            print(('searching for kinfoFiles in ' + path.encode('ascii', 'ignore')))
 
             # look for (K4PC 1.25.1 and later) .kinf2018 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2018'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 1.25+ kinf2018 file: ' + kinfopath.encode('ascii','ignore'))
+                print(('Found K4PC 1.25+ kinf2018 file: ' + kinfopath.encode('ascii','ignore')))
                 kInfoFiles.append(kinfopath)
                 
             # look for (K4PC 1.9.0 and later) .kinf2011 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 1.9+ kinf2011 file: ' + kinfopath.encode('ascii','ignore'))
+                print(('Found K4PC 1.9+ kinf2011 file: ' + kinfopath.encode('ascii','ignore')))
                 kInfoFiles.append(kinfopath)
 
             # look for (K4PC 1.6.0 and later) rainier.2.1.1.kinf file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\rainier.2.1.1.kinf'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 1.6-1.8 kinf file: ' + kinfopath)
+                print(('Found K4PC 1.6-1.8 kinf file: ' + kinfopath))
                 kInfoFiles.append(kinfopath)
 
             # look for (K4PC 1.5.0 and later) rainier.2.1.1.kinf file
             kinfopath = path +'\\Amazon\\Kindle For PC\\storage\\rainier.2.1.1.kinf'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 1.5 kinf file: ' + kinfopath)
+                print(('Found K4PC 1.5 kinf file: ' + kinfopath))
                 kInfoFiles.append(kinfopath)
 
            # look for original (earlier than K4PC 1.5.0) kindle-info files
             kinfopath = path +'\\Amazon\\Kindle For PC\\{AMAwzsaPaaZAzmZzZQzgZCAkZ3AjA_AY}\\kindle.info'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC kindle.info file: ' + kinfopath)
+                print(('Found K4PC kindle.info file: ' + kinfopath))
                 kInfoFiles.append(kinfopath)
 
         if not found:
@@ -1085,7 +1090,7 @@ if iswindows:
             # read and store in rcnt records of data
             # that make up the contents value
             edlst = []
-            for i in xrange(rcnt):
+            for i in range(rcnt):
                 item = items.pop(0)
                 edlst.append(item)
 
@@ -1136,9 +1141,9 @@ if iswindows:
             # store values used in decryption
             DB['IDString'] = GetIDString()
             DB['UserName'] = GetUserName()
-            print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex'))
+            print("Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex')))
         else:
-            print u"Couldn't decrypt file."
+            print("Couldn't decrypt file.")
             DB = {}
         return DB
 elif isosx:
@@ -1153,7 +1158,7 @@ elif isosx:
 
         libcrypto = find_library('crypto')
         if libcrypto is None:
-            raise DrmException(u"libcrypto not found")
+            raise DrmException("libcrypto not found")
         libcrypto = CDLL(libcrypto)
 
         # From OpenSSL's crypto aes header
@@ -1211,14 +1216,14 @@ elif isosx:
             def set_decrypt_key(self, userkey, iv):
                 self._blocksize = len(userkey)
                 if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                    raise DrmException(u"AES improper key used")
+                    raise DrmException("AES improper key used")
                     return
                 keyctx = self._keyctx = AES_KEY()
                 self._iv = iv
                 self._userkey = userkey
                 rv = AES_set_decrypt_key(userkey, len(userkey) * 8, keyctx)
                 if rv < 0:
-                    raise DrmException(u"Failed to initialize AES key")
+                    raise DrmException("Failed to initialize AES key")
 
             def decrypt(self, data):
                 out = create_string_buffer(len(data))
@@ -1226,7 +1231,7 @@ elif isosx:
                 keyctx = self._keyctx
                 rv = AES_cbc_encrypt(data, out, len(data), keyctx, mutable_iv, 0)
                 if rv == 0:
-                    raise DrmException(u"AES decryption failed")
+                    raise DrmException("AES decryption failed")
                 return out.raw
 
             def keyivgen(self, passwd, salt, iter, keylen):
@@ -1273,7 +1278,7 @@ elif isosx:
         #print out1
         reslst = out1.split('\n')
         cnt = len(reslst)
-        for j in xrange(cnt):
+        for j in range(cnt):
             resline = reslst[j]
             pp = resline.find('\"Serial Number\" = \"')
             if pp >= 0:
@@ -1289,7 +1294,7 @@ elif isosx:
         out1, out2 = p.communicate()
         reslst = out1.split('\n')
         cnt = len(reslst)
-        for j in xrange(cnt):
+        for j in range(cnt):
             resline = reslst[j]
             if resline.startswith('/dev'):
                 (devpart, mpath) = resline.split(' on ')[:2]
@@ -1310,7 +1315,7 @@ elif isosx:
         #print out1
         reslst = out1.split('\n')
         cnt = len(reslst)
-        for j in xrange(cnt):
+        for j in range(cnt):
             resline = reslst[j]
             pp = resline.find('\"UUID\" = \"')
             if pp >= 0:
@@ -1330,7 +1335,7 @@ elif isosx:
         out1, out2 = p.communicate()
         reslst = out1.split('\n')
         cnt = len(reslst)
-        for j in xrange(cnt):
+        for j in range(cnt):
             resline = reslst[j]
             pp = resline.find('Ethernet Address: ')
             if pp >= 0:
@@ -1423,37 +1428,37 @@ elif isosx:
         testpath = home + '/Library/Containers/com.amazon.Kindle/Data/Library/Application Support/Kindle/storage/.kinf2011'
         if os.path.isfile(testpath):
             kInfoFiles.append(testpath)
-            print('Found k4Mac kinf2011 file: ' + testpath)
+            print(('Found k4Mac kinf2011 file: ' + testpath))
             found = True
         # check for  .kinf2011 files from 1.10
         testpath = home + '/Library/Application Support/Kindle/storage/.kinf2011'
         if os.path.isfile(testpath):
             kInfoFiles.append(testpath)
-            print('Found k4Mac kinf2011 file: ' + testpath)
+            print(('Found k4Mac kinf2011 file: ' + testpath))
             found = True
         # check for  .rainier-2.1.1-kinf files from 1.6
         testpath = home + '/Library/Application Support/Kindle/storage/.rainier-2.1.1-kinf'
         if os.path.isfile(testpath):
             kInfoFiles.append(testpath)
-            print('Found k4Mac rainier file: ' + testpath)
+            print(('Found k4Mac rainier file: ' + testpath))
             found = True
         # check for  .kindle-info files from 1.4
         testpath = home + '/Library/Application Support/Kindle/storage/.kindle-info'
         if os.path.isfile(testpath):
             kInfoFiles.append(testpath)
-            print('Found k4Mac kindle-info file: ' + testpath)
+            print(('Found k4Mac kindle-info file: ' + testpath))
             found = True
         # check for  .kindle-info file from 1.2.2
         testpath = home + '/Library/Application Support/Amazon/Kindle/storage/.kindle-info'
         if os.path.isfile(testpath):
             kInfoFiles.append(testpath)
-            print('Found k4Mac kindle-info file: ' + testpath)
+            print(('Found k4Mac kindle-info file: ' + testpath))
             found = True
         # check for  .kindle-info file from 1.0 beta 1 (27214)
         testpath = home + '/Library/Application Support/Amazon/Kindle for Mac/storage/.kindle-info'
         if os.path.isfile(testpath):
             kInfoFiles.append(testpath)
-            print('Found k4Mac kindle-info file: ' + testpath)
+            print(('Found k4Mac kindle-info file: ' + testpath))
             found = True
         if not found:
             print('No k4Mac kindle-info/rainier/kinf2011 files have been found.')
@@ -1531,7 +1536,7 @@ elif isosx:
                     # read and store in rcnt records of data
                     # that make up the contents value
                     edlst = []
-                    for i in xrange(rcnt):
+                    for i in range(rcnt):
                         item = items.pop(0)
                         edlst.append(item)
 
@@ -1579,16 +1584,16 @@ elif isosx:
                 pass
         if len(DB)>6:
             # store values used in decryption
-            print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName())
+            print("Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName()))
             DB['IDString'] = IDString
             DB['UserName'] = GetUserName()
         else:
-            print u"Couldn't decrypt file."
+            print("Couldn't decrypt file.")
             DB = {}
         return DB
 else:
     def getDBfromFile(kInfoFile):
-        raise DrmException(u"This script only runs under Windows or Mac OS X.")
+        raise DrmException("This script only runs under Windows or Mac OS X.")
         return {}
 
 def kindlekeys(files = []):
@@ -1611,29 +1616,29 @@ def getkey(outpath, files=[]):
     if len(keys) > 0:
         if not os.path.isdir(outpath):
             outfile = outpath
-            with file(outfile, 'w') as keyfileout:
+            with open(outfile, 'w') as keyfileout:
                 keyfileout.write(json.dumps(keys[0]))
-            print u"Saved a key to {0}".format(outfile)
+            print("Saved a key to {0}".format(outfile))
         else:
             keycount = 0
             for key in keys:
                 while True:
                     keycount += 1
-                    outfile = os.path.join(outpath,u"kindlekey{0:d}.k4i".format(keycount))
+                    outfile = os.path.join(outpath,"kindlekey{0:d}.k4i".format(keycount))
                     if not os.path.exists(outfile):
                         break
-                with file(outfile, 'w') as keyfileout:
+                with open(outfile, 'w') as keyfileout:
                     keyfileout.write(json.dumps(key))
-                print u"Saved a key to {0}".format(outfile)
+                print("Saved a key to {0}".format(outfile))
         return True
     return False
 
 def usage(progname):
-    print u"Finds, decrypts and saves the default Kindle For Mac/PC encryption keys."
-    print u"Keys are saved to the current directory, or a specified output directory."
-    print u"If a file name is passed instead of a directory, only the first key is saved, in that file."
-    print u"Usage:"
-    print u"    {0:s} [-h] [-k <kindle.info>] [<outpath>]".format(progname)
+    print("Finds, decrypts and saves the default Kindle For Mac/PC encryption keys.")
+    print("Keys are saved to the current directory, or a specified output directory.")
+    print("If a file name is passed instead of a directory, only the first key is saved, in that file.")
+    print("Usage:")
+    print("    {0:s} [-h] [-k <kindle.info>] [<outpath>]".format(progname))
 
 
 def cli_main():
@@ -1641,12 +1646,12 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"{0} v{1}\nCopyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__)
+    print("{0} v{1}\nCopyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "hk:")
-    except getopt.GetoptError, err:
-        print u"Error in options or arguments: {0}".format(err.args[0])
+    except getopt.GetoptError as err:
+        print("Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
 
@@ -1675,33 +1680,33 @@ def cli_main():
     outpath = os.path.realpath(os.path.normpath(outpath))
 
     if not getkey(outpath, files):
-        print u"Could not retrieve Kindle for Mac/PC key."
+        print("Could not retrieve Kindle for Mac/PC key.")
     return 0
 
 
 def gui_main():
     try:
-        import Tkinter
-        import Tkconstants
-        import tkMessageBox
+        import six.moves.tkinter
+        import six.moves.tkinter_constants
+        import six.moves.tkinter_messagebox
         import traceback
     except:
         return cli_main()
 
-    class ExceptionDialog(Tkinter.Frame):
+    class ExceptionDialog(six.moves.tkinter.Frame):
         def __init__(self, root, text):
-            Tkinter.Frame.__init__(self, root, border=5)
-            label = Tkinter.Label(self, text=u"Unexpected error:",
-                                  anchor=Tkconstants.W, justify=Tkconstants.LEFT)
-            label.pack(fill=Tkconstants.X, expand=0)
-            self.text = Tkinter.Text(self)
-            self.text.pack(fill=Tkconstants.BOTH, expand=1)
+            six.moves.tkinter.Frame.__init__(self, root, border=5)
+            label = six.moves.tkinter.Label(self, text="Unexpected error:",
+                                  anchor=six.moves.tkinter_constants.W, justify=six.moves.tkinter_constants.LEFT)
+            label.pack(fill=six.moves.tkinter_constants.X, expand=0)
+            self.text = six.moves.tkinter.Text(self)
+            self.text.pack(fill=six.moves.tkinter_constants.BOTH, expand=1)
 
-            self.text.insert(Tkconstants.END, text)
+            self.text.insert(six.moves.tkinter_constants.END, text)
 
 
     argv=unicode_argv()
-    root = Tkinter.Tk()
+    root = six.moves.tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
     success = False
@@ -1711,21 +1716,21 @@ def gui_main():
         for key in keys:
             while True:
                 keycount += 1
-                outfile = os.path.join(progpath,u"kindlekey{0:d}.k4i".format(keycount))
+                outfile = os.path.join(progpath,"kindlekey{0:d}.k4i".format(keycount))
                 if not os.path.exists(outfile):
                     break
 
-            with file(outfile, 'w') as keyfileout:
+            with open(outfile, 'w') as keyfileout:
                 keyfileout.write(json.dumps(key))
             success = True
-            tkMessageBox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
-    except DrmException, e:
-        tkMessageBox.showerror(progname, u"Error: {0}".format(str(e)))
+            six.moves.tkinter_messagebox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
+    except DrmException as e:
+        six.moves.tkinter_messagebox.showerror(progname, "Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
         root.title(progname)
         text = traceback.format_exc()
-        ExceptionDialog(root, text).pack(fill=Tkconstants.BOTH, expand=1)
+        ExceptionDialog(root, text).pack(fill=six.moves.tkinter_constants.BOTH, expand=1)
         root.mainloop()
     if not success:
         return 1

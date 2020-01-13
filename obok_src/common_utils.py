@@ -2,6 +2,7 @@
 # vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 from __future__ import (unicode_literals, division, absolute_import,
                         print_function)
+import six
 
 __license__   = 'GPL v3'
 __copyright__ = '2012, David Forrester <davidfor@internode.on.net>'
@@ -417,7 +418,7 @@ class KeyValueComboBox(QComboBox):
     def populate_combo(self, selected_key):
         self.clear()
         selected_idx = idx = -1
-        for key, value in self.values.iteritems():
+        for key, value in six.iteritems(self.values):
             idx = idx + 1
             self.addItem(value)
             if key == selected_key:
@@ -425,8 +426,8 @@ class KeyValueComboBox(QComboBox):
         self.setCurrentIndex(selected_idx)
 
     def selected_key(self):
-        for key, value in self.values.iteritems():
-            if value == unicode(self.currentText()).strip():
+        for key, value in six.iteritems(self.values):
+            if value == str(self.currentText()).strip():
                 return key
 
 
@@ -448,8 +449,8 @@ class KeyComboBox(QComboBox):
         self.setCurrentIndex(selected_idx)
 
     def selected_key(self):
-        for key, value in self.values.iteritems():
-            if key == unicode(self.currentText()).strip():
+        for key, value in six.iteritems(self.values):
+            if key == str(self.currentText()).strip():
                 return key
 
 

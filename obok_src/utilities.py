@@ -7,7 +7,10 @@ __docformat__ = 'restructuredtext en'
 
 
 import os, struct, time
-from StringIO import StringIO
+try:
+    from StringIO import StringIO ## for Python 2
+except ImportError:
+    from io import StringIO ## for Python 3
 from traceback import print_exc
 
 try:
@@ -39,7 +42,7 @@ else:
     def convert_qvariant(x):
         vt = x.type()
         if vt == x.String:
-            return unicode(x.toString())
+            return str(x.toString())
         if vt == x.List:
             return [convert_qvariant(i) for i in x.toList()]
         return x.toPyObject()
