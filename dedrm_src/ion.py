@@ -21,19 +21,24 @@ from Crypto.Cipher import AES
 from Crypto.Util.py3compat import bchr, bord
 
 try:
-    # lzma library from calibre 2.35.0 or later
-    import lzma.lzma1 as calibre_lzma
+    # lzma library from calibre 4.6.0 or later
+    import calibre_lzma.lzma1 as calibre_lzma
 except ImportError:
     calibre_lzma = None
+    # lzma library from calibre 2.35.0 or later
     try:
-        import lzma
+        import lzma.lzma1 as calibre_lzma
     except ImportError:
-        # Need pip backports.lzma on Python <3.3
+        calibre_lzma = None
         try:
-            from backports import lzma
+            import lzma
         except ImportError:
-            # Windows-friendly choice: pylzma wheels
-            import pylzma as lzma
+            # Need pip backports.lzma on Python <3.3
+            try:
+                from backports import lzma
+            except ImportError:
+                # Windows-friendly choice: pylzma wheels
+                import pylzma as lzma
 
 
 TID_NULL = 0
