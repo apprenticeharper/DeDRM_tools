@@ -1308,7 +1308,7 @@ elif isosx:
         uuids = []
         uuidnum = os.getenv('MYUUIDNUMBER')
         if uuidnum != None:
-            uuids.append(strip(uuidnum))
+            uuids.append(uuidnum.strip())
         cmdline = '/usr/sbin/ioreg -l -S -w 0 -r -c AppleAHCIDiskDriver'
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
