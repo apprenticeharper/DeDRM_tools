@@ -40,6 +40,12 @@ from struct import pack, unpack, unpack_from
 import json
 import getopt
 
+try:
+    RegError
+except NameError:
+    class RegError(Exception):
+        pass
+
 # Routines common to Mac and PC
 
 # Wrap a stream so that output gets flushed immediately
