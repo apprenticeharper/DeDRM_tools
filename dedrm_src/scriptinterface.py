@@ -142,6 +142,7 @@ def decryptpdb(infile, outdir, rscpath):
 
 
 def decryptk4mobi(infile, outdir, rscpath):
+    errlog = ''
     rv = 1
     pidnums = []
     pidspath = os.path.join(rscpath,'pidlist.txt')
