@@ -90,6 +90,7 @@ from zipfile import ZipFile
 import erdr2pml
 import ineptpdf
 import k4mobidedrm
+import zipfix
 
 class DeDRMError(Exception):
     pass
