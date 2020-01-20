@@ -114,6 +114,7 @@ def decryptpdf(infile, outdir, rscpath):
 
 
 def decryptpdb(infile, outdir, rscpath):
+    errlog = ''
     outname = os.path.splitext(os.path.basename(infile))[0] + ".pmlz"
     outpath = os.path.join(outdir, outname)
     rv = 1
