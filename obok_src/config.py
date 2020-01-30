@@ -162,28 +162,6 @@ class ManageKeysDialog(QDialog):
         self.listy.clear()
         self.populate_list()
 
-    def rename_key(self):
-        if not self.listy.currentItem():
-            errmsg = u"No {0} selected to rename. Highlight a keyfile first.".format(self.key_type_name)
-            r = error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
-                                    _(errmsg), show=True, show_copy_button=False)
-            return
-
-        d = RenameKeyDialog(self)
-        d.exec_()
-
-        if d.result() != d.Accepted:
-            # rename cancelled or moot.
-            return
-        keyname = unicode(self.listy.currentItem().text())
-        if not question_dialog(self, "{0} {1}: Confirm Rename".format(PLUGIN_NAME, PLUGIN_VERSION), u"Do you really want to rename the {2} named <strong>{0}</strong> to <strong>{1}</strong>?".format(keyname,d.key_name,self.key_type_name), show_copy_button=False, default_yes=False):
-            return
-        self.plugin_keys[d.key_name] = self.plugin_keys[keyname]
-        del self.plugin_keys[keyname]
-
-        self.listy.clear()
-        self.populate_list()
-
     def delete_key(self):
         if not self.listy.currentItem():
             return

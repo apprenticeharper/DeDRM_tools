@@ -3,6 +3,8 @@
 
 from __future__ import with_statement
 
+from ignoblekeygen import generate_key
+
 __license__ = 'GPL v3'
 
 DETAILED_MESSAGE = \

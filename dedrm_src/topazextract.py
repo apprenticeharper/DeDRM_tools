@@ -8,6 +8,7 @@
 #  4.9  - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  5.0  - Fixed potential unicode problem with command line interface
 
+from __future__ import print_function
 __version__ = '5.0'
 
 import sys
@@ -213,7 +214,7 @@ class TopazBook:
             # Read and return the data of one header record at the current book file position
             # [[offset,decompressedLength,compressedLength],...]
             nbValues = bookReadEncodedNumber(self.fo)
-            if debug: print "%d records in header " % nbValues,
+            if debug: print("%d records in header " % nbValues, end=' ')
             values = []
             for i in range (0,nbValues):
                 values.append([bookReadEncodedNumber(self.fo),bookReadEncodedNumber(self.fo),bookReadEncodedNumber(self.fo)])
@@ -227,10 +228,10 @@ class TopazBook:
             record = bookReadHeaderRecordData()
             return [tag,record]
         nbRecords = bookReadEncodedNumber(self.fo)
-        if debug: print "Headers: %d" % nbRecords
+        if debug: print("Headers: %d" % nbRecords)
         for i in range (0,nbRecords):
             result = parseTopazHeaderRecord()
-            if debug: print result[0], ": ", result[1]
+            if debug: print(result[0], ": ", result[1])
             self.bookHeaderRecords[result[0]] = result[1]
         if ord(self.fo.read(1))  != 0x64 :
             raise DrmException(u"Parse Error : Invalid Header")
@@ -244,12 +245,12 @@ class TopazBook:
             raise DrmException(u"Parse Error : Record Names Don't Match")
         flags = ord(self.fo.read(1))
         nbRecords = ord(self.fo.read(1))
-        if debug: print "Metadata Records: %d" % nbRecords
+        if debug: print("Metadata Records: %d" % nbRecords)
         for i in range (0,nbRecords) :
             keyval = bookReadString(self.fo)
             content = bookReadString(self.fo)
-            if debug: print keyval
-            if debug: print content
+            if debug: print(keyval)
+            if debug: print(content)
             self.bookMetadata[keyval] = content
         return self.bookMetadata
 
@@ -319,11 +320,11 @@ class TopazBook:
         try:
             keydata = self.getBookPayloadRecord('dkey', 0)
         except DrmException, e:
-            print u"no dkey record found, book may not be encrypted"
-            print u"attempting to extrct files without a book key"
+            print(u"no dkey record found, book may not be encrypted")
+            print(u"attempting to extrct files without a book key")
             self.createBookDirectory()
             self.extractFiles()
-            print u"Successfully Extracted Topaz contents"
+            print(u"Successfully Extracted Topaz contents")
             if inCalibre:
                 from calibre_plugins.dedrm import genbook
             else:
@@ -331,7 +332,7 @@ class TopazBook:
 
             rv = genbook.generateBook(self.outdir, raw, fixedimage)
             if rv == 0:
-                print u"Book Successfully generated."
+                print(u"Book Successfully generated.")
             return rv
 
         # try each pid to decode the file
@@ -339,7 +340,7 @@ class TopazBook:
         for pid in pidlst:
             # use 8 digit pids here
             pid = pid[0:8]
-            print u"Trying: {0}".format(pid)
+            print(u"Trying: {0}".format(pid))
             bookKeys = []
             data = keydata
             try:
@@ -348,7 +349,7 @@ class TopazBook:
                 pass
             else:
                 bookKey = bookKeys[0]
-                print u"Book Key Found! ({0})".format(bookKey.encode('hex'))
+                print(u"Book Key Found! ({0})".format(bookKey.encode('hex')))
                 break
 
         if not bookKey:
@@ -357,7 +358,7 @@ class TopazBook:
         self.setBookKey(bookKey)
         self.createBookDirectory()
         self.extractFiles() 
-        print u"Successfully Extracted Topaz contents"
+        print(u"Successfully Extracted Topaz contents")
         if inCalibre:
             from calibre_plugins.dedrm import genbook
         else:
@@ -365,7 +366,7 @@ class TopazBook:
 
         rv = genbook.generateBook(self.outdir, raw, fixedimage)
         if rv == 0:
-            print u"Book Successfully generated"
+            print(u"Book Successfully generated")
         return rv
 
     def createBookDirectory(self):
@@ -394,7 +395,7 @@ class TopazBook:
                 ext = u".dat"
                 if name == 'img': ext = u".jpg"
                 if name == 'color' : ext = u".jpg"
-                print u"Processing Section: {0}\n. . .".format(name),
+                print(u"Processing Section: {0}\n. . .".format(name), end=' ')
                 for index in range (0,len(self.bookHeaderRecords[name])) :
                     fname = u"{0}{1:04d}{2}".format(name,index,ext)
                     destdir = outdir
@@ -407,11 +408,11 @@ class TopazBook:
                     if name == 'glyphs':
                         destdir =  os.path.join(outdir,u"glyphs")
                     outputFile = os.path.join(destdir,fname)
-                    print u".",
+                    print(u".", end=' ')
                     record = self.getBookPayloadRecord(name,index)
                     if record != '':
                         file(outputFile, 'wb').write(record)
-                print u" "
+                print(u" ")
 
     def getFile(self, zipname):
         htmlzip = zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED, False)
@@ -441,20 +442,20 @@ class TopazBook:
             shutil.rmtree(self.outdir, True)
 
 def usage(progname):
-    print u"Removes DRM protection from Topaz ebooks and extracts the contents"
-    print u"Usage:"
-    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname)
+    print(u"Removes DRM protection from Topaz ebooks and extracts the contents")
+    print(u"Usage:")
+    print(u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] <infile> <outdir>".format(progname))
 
 # Main
 def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"TopazExtract v{0}.".format(__version__)
+    print(u"TopazExtract v{0}.".format(__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "k:p:s:x")
     except getopt.GetoptError, err:
-        print u"Error in options or arguments: {0}".format(err.args[0])
+        print(u"Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         return 1
     if len(args)<2:
@@ -464,11 +465,11 @@ def cli_main():
     infile = args[0]
     outdir = args[1]
     if not os.path.isfile(infile):
-        print u"Input File {0} Does Not Exist.".format(infile)
+        print(u"Input File {0} Does Not Exist.".format(infile))
         return 1
 
     if not os.path.exists(outdir):
-        print u"Output Directory {0} Does Not Exist.".format(outdir)
+        print(u"Output Directory {0} Does Not Exist.".format(outdir))
         return 1
 
     kDatabaseFiles = []
@@ -493,19 +494,19 @@ def cli_main():
 
     tb = TopazBook(infile)
     title = tb.getBookTitle()
-    print u"Processing Book: {0}".format(title)
+    print(u"Processing Book: {0}".format(title))
     md1, md2 = tb.getPIDMetaInfo()
     pids.extend(kgenpids.getPidList(md1, md2, serials, kDatabaseFiles))
 
     try:
-        print u"Decrypting Book"
+        print(u"Decrypting Book")
         tb.processBook(pids)
 
-        print u"   Creating HTML ZIP Archive"
+        print(u"   Creating HTML ZIP Archive")
         zipname = os.path.join(outdir, bookname + u"_nodrm.htmlz")
         tb.getFile(zipname)
 
-        print u"   Creating SVG ZIP Archive"
+        print(u"   Creating SVG ZIP Archive")
         zipname = os.path.join(outdir, bookname + u"_SVG.zip")
         tb.getSVGZip(zipname)
 
@@ -513,7 +514,7 @@ def cli_main():
         tb.cleanup()
 
     except DrmException, e:
-        print u"Decryption failed\n{0}".format(traceback.format_exc())
+        print(u"Decryption failed\n{0}".format(traceback.format_exc()))
 
         try:
             tb.cleanup()
@@ -522,7 +523,7 @@ def cli_main():
         return 1
 
     except Exception, e:
-        print u"Decryption failed\m{0}".format(traceback.format_exc())
+        print(u"Decryption failed\m{0}".format(traceback.format_exc()))
         try:
             tb.cleanup()
         except:

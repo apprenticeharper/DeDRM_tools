@@ -50,7 +50,7 @@ When you have finished entering your configuration information, you must click t
 
 Troubleshooting
 ---------------
-If you find that the DeDRM plugin  is not working for you (imported ebooks still have DRM - that is, they won't convert or open in the calibre ebook viewer), you should make a log of the import process by deleting the DRMed ebook from calibre and then adding the ebook to calibre when it's running in debug mode. This will generate a lot of helpful debugging info that can be copied into any online help requests. Here's how to do it:
+If you find that the DeDRM plugin is not working for you (imported ebooks still have DRM - that is, they won't convert or open in the calibre ebook viewer), you should make a log of the import process by deleting the DRMed ebook from calibre and then adding the ebook to calibre when it's running in debug mode. This will generate a lot of helpful debugging info that can be copied into any online help requests. Here's how to do it:
 
  - Remove the DRMed book from calibre. 
  - Click the Preferences drop-down menu and choose 'Restart in debug mode'. 
@@ -83,7 +83,9 @@ Linux Systems Only
 Instructions for installing Wine, Kindle for PC, Adobe Digital Editions, Python and PyCrypto
 --------------------------------------------------------------------------------------------
 
-These instructions have been tested with Wine 1.4 on Ubuntu but are now very out of date. 
+These instructions have been tested with Wine 1.4 on Ubuntu but some of them are now very out of date. Parts of the instructions (those relevant to Kindle for PC and Python, but not Adobe Digital Editions and PyCrypto) have been tested with Wine 3.0 on Ubuntu.
+
+If you only use Kindle for PC, version 1.17, then you won't need PyCrypto nor Adobe Digital Editions, so you can skip the pertinent steps.
 
  1. First download the software you're going to to have to install.
     a. Adobe Digital Editions 1.7.x from http://helpx.adobe.com/digital-editions/kb/cant-install-digital-editions.html
@@ -93,19 +95,23 @@ These instructions have been tested with Wine 1.4 on Ubuntu but are now very out
        (PyCrypto downloads as a zip file. You will need to unzip it.)
  2. Install Wine for 32-bit x86.  (e.g. on Ubuntu, Open the Ubuntu Software Center, search for Wine, and install "Wine Windows Program Loader".)
  2a. [update] Kindle for PC now requires Windows 7, so in the following setups, choose any option for Windows 7, not Windows XP.
- 3. Run "Configure Wine", which will set up the default 'wineprefix'
- 4. Navigate to "Install an application" and install Kindle. Alternatively, run `winetricks kindle`
+ 3. Run "Configure Wine", which will set up the default 'wineprefix'.
+ 4. Navigate to "Install an application" and install Kindle. Alternatively, run `winetricks kindle`. Note that using `winetricks kindle` will give you version 1.20, which might not be what you want.
  5. Install Adobe Digital Editions. Accept all defaults and register with your Adobe ID.
- 6. Install Python 2.7.x using `msiexec /i python-2.7.8.msi`. Accept all defaults.
+ 6. Install Python 2.7.x using `msiexec /i python-2.7.8.msi ALLUSERS=1`. Accept all defaults. Alternatively, run `winetricks python26`. However, if you do that, the automatic retrieval of keys (described in the next section) will be impossible, as dedrm_src/wineutils.py currently hardcodes the path for Python27. For manual extraction, you will also need to change Python27 to Python26 in step 2, below.
  7. Install PyCrypto 2.1. Accept all defaults.
- 8. Unzip DeDRM_plugin.zip and move kindlekey.py to somewhere in drive_c, such as ~/.wine/drive_c/DeDRM/libraryfiles/kindlekey.py.
- 9. Run `wine 'C:\Python27/python.exe' 'C:\DeDRM/libraryfiles/kindlekey.py'`, or wherever you copied kindlekey.py to.
- 10. Import the resulting key file to the Calibre plugin through the Kindle for Mac/PC ebooks option.
-
 
 Instructions for getting Kindle for PC and Adobe Digital Editions default decryption keys
 -----------------------------------------------------------------------------------------
 
-If everything has been installed in wine as above, the keys will be retrieved automatically.
+If everything has been installed in wine as above, the keys should be retrieved automatically.
 
-If you have a more complex wine installation, you may enter the appropriate WINEPREFIX in the configuration dialogs for Kindle for PC and Adobe Digital Editions. You can also test that you have entered the WINEPREFIX correctly by trying to add the default keys to the preferences by clicking on the green plus button in the configuration dialogs.
+If you have a more complex wine installation, or something goes wrong, you may enter the appropriate WINEPREFIX (by default ~/.wine) in the configuration dialogs for Kindle for PC and Adobe Digital Editions (Preferences > Advanced > Plugins > File type plugins > DeDRM > Customize plugin). You can also test that you have entered the WINEPREFIX correctly by trying to add the default keys to the preferences by clicking on the green plus button in the configuration dialogs.
+
+Alternatively, if that also doesn't work for some reason, you can extract the keys manually.
+
+ 1. Unzip DeDRM_plugin.zip and move kindlekey.py to somewhere in drive_c, such as ~/.wine/drive_c/DeDRM/libraryfiles/kindlekey.py.
+ 2. Run `wine 'C:\Python27/python.exe' 'C:\DeDRM/libraryfiles/kindlekey.py'`, or wherever you copied kindlekey.py to.
+ 3. Import the resulting key file to the Calibre plugin through the Kindle for Mac/PC ebooks option.
+
+

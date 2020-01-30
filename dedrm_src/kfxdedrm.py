@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+from __future__ import print_function
 
 # Engine to remove drm from Kindle KFX ebooks
 
@@ -43,7 +44,7 @@ class KFXZipBook:
                     data += fh.read()
                     if self.voucher is None:
                         self.decrypt_voucher(totalpids)
-                    print u'Decrypting KFX DRMION: {0}'.format(filename)
+                    print(u'Decrypting KFX DRMION: {0}'.format(filename))
                     outfile = StringIO()
                     ion.DrmIon(StringIO(data[8:-8]), lambda name: self.voucher).parse(outfile)
                     self.decrypted[filename] = outfile.getvalue()
@@ -65,10 +66,10 @@ class KFXZipBook:
             else:
                 raise Exception(u'The .kfx-zip archive contains an encrypted DRMION file without a DRM voucher')
 
-        print u'Decrypting KFX DRM voucher: {0}'.format(info.filename)
+        print(u'Decrypting KFX DRM voucher: {0}'.format(info.filename))
 
         for pid in [''] + totalpids:
-            for dsn_len,secret_len in [(0,0), (16,0), (16,40), (32,40), (40,40)]:
+            for dsn_len,secret_len in [(0,0), (16,0), (16,40), (32,40), (40,0), (40,40)]:
                 if len(pid) == dsn_len + secret_len:
                     break       # split pid into DSN and account secret
             else:
@@ -84,7 +85,7 @@ class KFXZipBook:
         else:
             raise Exception(u'Failed to decrypt KFX DRM voucher with any key')
 
-        print u'KFX DRM voucher successfully decrypted'
+        print(u'KFX DRM voucher successfully decrypted')
 
         license_type = voucher.getlicensetype()
         if license_type != "Purchase":

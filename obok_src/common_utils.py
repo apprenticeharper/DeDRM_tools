@@ -8,6 +8,7 @@ __copyright__ = '2012, David Forrester <davidfor@internode.on.net>'
 __docformat__ = 'restructuredtext en'
 
 import os, time, re, sys
+from datetime import datetime
 try:
     from PyQt5.Qt import (Qt, QIcon, QPixmap, QLabel, QDialog, QHBoxLayout, QProgressBar,
                           QTableWidgetItem, QFont, QLineEdit, QComboBox,

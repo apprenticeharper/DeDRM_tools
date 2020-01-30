@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+from __future__ import print_function
 
 __license__ = 'GPL v3'
 
@@ -457,7 +458,7 @@ class ManageKeysDialog(QDialog):
 
 class RenameKeyDialog(QDialog):
     def __init__(self, parent=None,):
-        print repr(self), repr(parent)
+        print(repr(self), repr(parent))
         QDialog.__init__(self, parent)
         self.parent = parent
         self.setWindowTitle("{0} {1}: Rename {0}".format(PLUGIN_NAME, PLUGIN_VERSION, parent.key_type_name))
@@ -879,7 +880,7 @@ class AddSerialDialog(QDialog):
 
     @property
     def key_value(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text()).replace(' ', '')
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():

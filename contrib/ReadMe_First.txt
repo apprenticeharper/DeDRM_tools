@@ -90,7 +90,7 @@ Windows and Python
 ------------------
 We **strongly** recommend using calibre and the plugin.
 
-If you really want to use the WIndows app or the individual scripts, you'll need to install python.
+If you really want to use the Windows app or the individual scripts, you'll need to install python.
 ActiveState's Active Python 2.7 Community Edition for Windowscan be downloaded for free from:
 
 http://www.activestate.com/activepython/downloads

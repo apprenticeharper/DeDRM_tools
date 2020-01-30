@@ -2,6 +2,7 @@
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 # For use with Topaz Scripts Version 2.6
 
+from __future__ import print_function
 import sys
 import csv
 import os
@@ -750,11 +751,11 @@ class DocParser(object):
                         hlst.append('<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc))
 
                 else :
-                    print '          Making region type', regtype,
+                    print('          Making region type', regtype, end=' ')
                     (pos, temp) = self.findinDoc('paragraph',start,end)
                     (pos2, temp) = self.findinDoc('span',start,end)
                     if pos != -1 or pos2 != -1:
-                        print ' a "text" region'
+                        print(' a "text" region')
                         orig_regtype = regtype
                         regtype = 'fixed'
                         ptype = 'full'
@@ -779,7 +780,7 @@ class DocParser(object):
                         else :
                             hlst.append(self.buildParagraph(pclass, pdesc, ptype, regtype))
                     else :
-                        print ' a "graphic" region'
+                        print(' a "graphic" region')
                         (pos, simgsrc) = self.findinDoc('img.src',start,end)
                         if simgsrc:
                             hlst.append('<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc))

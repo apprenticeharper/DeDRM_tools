@@ -38,6 +38,7 @@ from __future__ import with_statement
 """
 Generate Barnes & Noble EPUB user key from name and credit card number.
 """
+from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = "2.8"
@@ -223,12 +224,12 @@ def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if AES is None:
-        print "%s: This script requires OpenSSL or PyCrypto, which must be installed " \
+        print("%s: This script requires OpenSSL or PyCrypto, which must be installed " \
               "separately.  Read the top-of-script comment for details." % \
-              (progname,)
+              (progname,))
         return 1
     if len(argv) != 4:
-        print u"usage: {0} <Name> <CC#> <keyfileout.b64>".format(progname)
+        print(u"usage: {0} <Name> <CC#> <keyfileout.b64>".format(progname))
         return 1
     name, ccn, keypath = argv[1:]
     userkey = generate_key(name, ccn)

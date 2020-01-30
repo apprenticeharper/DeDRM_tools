@@ -28,6 +28,7 @@ from __future__ import with_statement
 """
 Fetch Barnes & Noble EPUB user key from B&N servers using email and password
 """
+from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = "1.1"
@@ -155,14 +156,14 @@ def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
-        print u"usage: {0} <email> <password> <keyfileout.b64>".format(progname)
+        print(u"usage: {0} <email> <password> <keyfileout.b64>".format(progname))
         return 1
     email, password, keypath = argv[1:]
     userkey = fetch_key(email, password)
     if len(userkey) == 28:
         open(keypath,'wb').write(userkey)
         return 0
-    print u"Failed to fetch key."
+    print(u"Failed to fetch key.")
     return 1
 
 
