@@ -69,7 +69,7 @@ class KFXZipBook:
         print(u'Decrypting KFX DRM voucher: {0}'.format(info.filename))
 
         for pid in [''] + totalpids:
-            for dsn_len,secret_len in [(0,0), (16,0), (16,40), (32,40), (40,40)]:
+            for dsn_len,secret_len in [(0,0), (16,0), (16,40), (32,40), (40,0), (40,40)]:
                 if len(pid) == dsn_len + secret_len:
                     break       # split pid into DSN and account secret
             else:
