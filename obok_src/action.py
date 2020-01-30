@@ -93,7 +93,7 @@ class InterfacePluginAction(InterfaceAction):
             debug_print("Exception getting device path. Probably not an E-Ink Kobo device")
 
         # Get the Kobo Library object (obok v3.01)
-        self.library = KoboLibrary(tmpserials, device_path)
+        self.library = KoboLibrary(tmpserials, device_path, cfg['kobo_directory'])
         debug_print ("got kobodir %s" % self.library.kobodir)
         if (self.library.kobodir == ''):
             # linux and no device connected, but could be extended
