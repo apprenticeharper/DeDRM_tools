@@ -115,6 +115,7 @@ def decryptpdf(infile, outdir, rscpath):
 
 
 def decryptpdb(infile, outdir, rscpath):
+    errlog = ''
     outname = os.path.splitext(os.path.basename(infile))[0] + ".pmlz"
     outpath = os.path.join(outdir, outname)
     rv = 1
@@ -142,6 +143,7 @@ def decryptpdb(infile, outdir, rscpath):
 
 
 def decryptk4mobi(infile, outdir, rscpath):
+    errlog = ''
     rv = 1
     pidnums = []
     pidspath = os.path.join(rscpath,'pidlist.txt')

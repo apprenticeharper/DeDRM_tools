@@ -49,7 +49,7 @@ from __future__ import print_function
 
 __version__ = '1.01'
 
-import sys, struct, os
+import sys, struct, os, traceback
 import zlib
 import zipfile
 import xml.etree.ElementTree as etree

@@ -7,7 +7,7 @@ from __future__ import print_function
 __license__ = 'GPL v3'
 
 # Standard Python modules.
-import os, sys, re, hashlib
+import os, sys, re, hashlib, traceback
 from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 
 def WineGetKeys(scriptpath, extension, wineprefix=""):

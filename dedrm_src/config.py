@@ -880,7 +880,7 @@ class AddSerialDialog(QDialog):
 
     @property
     def key_value(self):
-        return unicode(self.key_ledit.text()).strip()
+        return unicode(self.key_ledit.text()).replace(' ', '')
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():

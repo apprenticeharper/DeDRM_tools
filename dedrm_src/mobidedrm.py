@@ -525,7 +525,7 @@ def cli_main():
     else:
         infile = argv[1]
         outfile = argv[2]
-        if len(argv) is 4:
+        if len(argv) == 4:
             pidlist = argv[3].split(',')
         else:
             pidlist = []

@@ -50,7 +50,7 @@ When you have finished entering your configuration information, you must click t
 
 Troubleshooting
 ---------------
-If you find that the DeDRM plugin  is not working for you (imported ebooks still have DRM - that is, they won't convert or open in the calibre ebook viewer), you should make a log of the import process by deleting the DRMed ebook from calibre and then adding the ebook to calibre when it's running in debug mode. This will generate a lot of helpful debugging info that can be copied into any online help requests. Here's how to do it:
+If you find that the DeDRM plugin is not working for you (imported ebooks still have DRM - that is, they won't convert or open in the calibre ebook viewer), you should make a log of the import process by deleting the DRMed ebook from calibre and then adding the ebook to calibre when it's running in debug mode. This will generate a lot of helpful debugging info that can be copied into any online help requests. Here's how to do it:
 
  - Remove the DRMed book from calibre. 
  - Click the Preferences drop-down menu and choose 'Restart in debug mode'. 

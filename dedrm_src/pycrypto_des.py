@@ -11,7 +11,7 @@ def load_pycrypto():
     class DES(object):
         def __init__(self, key):
             if len(key) != 8 :
-                raise Error('DES improper key used')
+                raise ValueError('DES improper key used')
             self.key = key
             self._des = _DES.new(key,_DES.MODE_ECB)
         def desdecrypt(self, data):
