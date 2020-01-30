@@ -1,6 +1,8 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
+from .convert2xml import encodeNumber
+
 class Unbuffered:
     def __init__(self, stream):
         self.stream = stream
