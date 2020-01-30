@@ -11,6 +11,7 @@
 #  0.4 Added support for serial numbers starting with '9', fixed unicode bugs.
 #  0.5 moved unicode_argv call inside main for Windows DeDRM compatibility
 
+from __future__ import print_function
 import sys
 import binascii
 
@@ -73,7 +74,7 @@ def unicode_argv():
         return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
 
 if sys.hexversion >= 0x3000000:
-    print 'This script is incompatible with Python 3.x. Please install Python 2.7.x.'
+    print('This script is incompatible with Python 3.x. Please install Python 2.7.x.')
     sys.exit(2)
 
 letters = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
@@ -113,28 +114,28 @@ def pidFromSerial(s, l):
     return pid
 
 def cli_main():
-    print u"Mobipocket PID calculator for Amazon Kindle. Copyright © 2007, 2009 Igor Skochinsky"
+    print(u"Mobipocket PID calculator for Amazon Kindle. Copyright © 2007, 2009 Igor Skochinsky")
     argv=unicode_argv()
     if len(argv)==2:
         serial = argv[1]
     else:
-        print u"Usage: kindlepid.py <Kindle Serial Number>/<iPhone/iPod Touch UDID>"
+        print(u"Usage: kindlepid.py <Kindle Serial Number>/<iPhone/iPod Touch UDID>")
         return 1
     if len(serial)==16:
         if serial.startswith("B") or serial.startswith("9"):
-            print u"Kindle serial number detected"
+            print(u"Kindle serial number detected")
         else:
-            print u"Warning: unrecognized serial number. Please recheck input."
+            print(u"Warning: unrecognized serial number. Please recheck input.")
             return 1
         pid = pidFromSerial(serial.encode("utf-8"),7)+'*'
-        print u"Mobipocket PID for Kindle serial#{0} is {1}".format(serial,checksumPid(pid))
+        print(u"Mobipocket PID for Kindle serial#{0} is {1}".format(serial,checksumPid(pid)))
         return 0
     elif len(serial)==40:
-        print u"iPhone serial number (UDID) detected"
+        print(u"iPhone serial number (UDID) detected")
         pid = pidFromSerial(serial.encode("utf-8"),8)
-        print u"Mobipocket PID for iPhone serial#{0} is {1}".format(serial,checksumPid(pid))
+        print(u"Mobipocket PID for iPhone serial#{0} is {1}".format(serial,checksumPid(pid)))
         return 0
-    print u"Warning: unrecognized serial number. Please recheck input."
+    print(u"Warning: unrecognized serial number. Please recheck input.")
     return 1
 
 

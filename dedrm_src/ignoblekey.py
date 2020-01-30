@@ -18,6 +18,7 @@ from __future__ import with_statement
 """
 Get Barnes & Noble EPUB user key from nook Studio log file
 """
+from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = "1.1"
@@ -198,7 +199,7 @@ def nookkeys(files = []):
     for file in files:
         fileKeys = getKeysFromLog(file)
         if fileKeys:
-            print u"Found {0} keys in the Nook Study log files".format(len(fileKeys))
+            print(u"Found {0} keys in the Nook Study log files".format(len(fileKeys)))
             keys.extend(fileKeys)
     return list(set(keys))
 
@@ -211,7 +212,7 @@ def getkey(outpath, files=[]):
             outfile = outpath
             with file(outfile, 'w') as keyfileout:
                 keyfileout.write(keys[-1])
-            print u"Saved a key to {0}".format(outfile)
+            print(u"Saved a key to {0}".format(outfile))
         else:
             keycount = 0
             for key in keys:
@@ -222,16 +223,16 @@ def getkey(outpath, files=[]):
                         break
                 with file(outfile, 'w') as keyfileout:
                     keyfileout.write(key)
-                print u"Saved a key to {0}".format(outfile)
+                print(u"Saved a key to {0}".format(outfile))
         return True
     return False
 
 def usage(progname):
-    print u"Finds the nook Study encryption keys."
-    print u"Keys are saved to the current directory, or a specified output directory."
-    print u"If a file name is passed instead of a directory, only the first key is saved, in that file."
-    print u"Usage:"
-    print u"    {0:s} [-h] [-k <logFile>] [<outpath>]".format(progname)
+    print(u"Finds the nook Study encryption keys.")
+    print(u"Keys are saved to the current directory, or a specified output directory.")
+    print(u"If a file name is passed instead of a directory, only the first key is saved, in that file.")
+    print(u"Usage:")
+    print(u"    {0:s} [-h] [-k <logFile>] [<outpath>]".format(progname))
 
 
 def cli_main():
@@ -239,12 +240,12 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"{0} v{1}\nCopyright © 2015 Apprentice Alf".format(progname,__version__)
+    print(u"{0} v{1}\nCopyright © 2015 Apprentice Alf".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "hk:")
     except getopt.GetoptError, err:
-        print u"Error in options or arguments: {0}".format(err.args[0])
+        print(u"Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
 
@@ -273,7 +274,7 @@ def cli_main():
     outpath = os.path.realpath(os.path.normpath(outpath))
 
     if not getkey(outpath, files):
-        print u"Could not retrieve nook Study key."
+        print(u"Could not retrieve nook Study key.")
     return 0
 
 
@@ -307,7 +308,7 @@ def gui_main():
         keys = nookkeys()
         keycount = 0
         for key in keys:
-            print key
+            print(key)
             while True:
                 keycount += 1
                 outfile = os.path.join(progpath,u"nookkey{0:d}.b64".format(keycount))

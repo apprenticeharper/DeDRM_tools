@@ -2,6 +2,7 @@
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 # For use with Topaz Scripts Version 2.6
 
+from __future__ import print_function
 class Unbuffered:
     def __init__(self, stream):
         self.stream = stream
@@ -139,7 +140,7 @@ class Dictionary(object):
             self.pos = val
             return self.stable[self.pos]
         else:
-            print "Error - %d outside of string table limits" % val
+            print("Error - %d outside of string table limits" % val)
             raise TpzDRMError('outside of string table limits')
             # sys.exit(-1)
 
@@ -151,7 +152,7 @@ class Dictionary(object):
 
     def dumpDict(self):
         for i in xrange(self.size):
-            print "%d %s %s" % (i, convert(i), self.stable[i])
+            print("%d %s %s" % (i, convert(i), self.stable[i]))
         return
 
 # parses the xml snippets that are represented by each page*.dat file.
@@ -457,7 +458,7 @@ class PageParser(object):
         elif (argtype == 'snippets') :
             result = arg
         else :
-            print "Error Unknown argtype %s" % argtype
+            print("Error Unknown argtype %s" % argtype)
             sys.exit(-2)
         return result
 
@@ -469,7 +470,7 @@ class PageParser(object):
         known_token = False
         self.tag_push(token)
 
-        if self.debug : print 'Processing: ', self.get_tagpath(0)
+        if self.debug : print('Processing: ', self.get_tagpath(0))
         cnt = self.tagpath_len()
         for j in xrange(cnt):
             tkn = self.get_tagpath(j)
@@ -495,7 +496,7 @@ class PageParser(object):
 
             if (subtags == 1):
                 ntags = readEncodedNumber(self.fo)
-                if self.debug : print 'subtags: ' + token + ' has ' + str(ntags)
+                if self.debug : print('subtags: ' + token + ' has ' + str(ntags))
                 for j in xrange(ntags):
                     val = readEncodedNumber(self.fo)
                     subtagres.append(self.procToken(self.dict.lookup(val)))
@@ -529,7 +530,7 @@ class PageParser(object):
         else:
             result = []
             if (self.debug or self.first_unknown):
-                print 'Unknown Token:', token
+                print('Unknown Token:', token)
                 self.first_unknown = False
             self.tag_pop()
             return result
@@ -544,9 +545,9 @@ class PageParser(object):
             result = 'Set of '+ str(cnt) + ' xml snippets. The overall structure \n'
             result += 'of the document is indicated by snippet number sets at the\n'
             result += 'end of each snippet. \n'
-            print result
+            print(result)
         for i in xrange(cnt):
-            if self.debug: print 'Snippet:',str(i)
+            if self.debug: print('Snippet:',str(i))
             snippet = []
             snippet.append(i)
             val = readEncodedNumber(self.fo)
@@ -588,10 +589,10 @@ class PageParser(object):
             cnt = readEncodedNumber(self.fo)
             mode = readEncodedNumber(self.fo)
 
-            if self.debug : print 'Loop for', cnt, 'with  mode', mode,  ':  '
+            if self.debug : print('Loop for', cnt, 'with  mode', mode,  ':  ')
             return self.doLoop76Mode(argtype, cnt, mode)
 
-        if self.dbug: print  "Unknown command", cmd
+        if self.dbug: print("Unknown command", cmd)
         result = []
         return result
 
@@ -720,7 +721,7 @@ class PageParser(object):
                 else:
                     rlst.append(self.formatTag(j))
         result = "".join(rlst)
-        if self.debug : print result
+        if self.debug : print(result)
         return result
 
 
@@ -775,7 +776,7 @@ class PageParser(object):
                     self.doc.append(tag)
             else:
                 if self.debug:
-                    print "Main Loop:  Unknown value: %x" % v
+                    print("Main Loop:  Unknown value: %x" % v)
                 if (v == 0):
                     if (self.peek(1) == 0x5f):
                         skip = self.fo.read(1)
@@ -783,11 +784,11 @@ class PageParser(object):
 
         # now do snippet injection
         if len(self.snippetList) > 0 :
-            if self.debug : print 'Injecting Snippets:'
+            if self.debug : print('Injecting Snippets:')
             snippet = self.injectSnippets(self.snippetList[0])
             snipno = snippet[0]
             tag_add = snippet[1]
-            if self.debug : print self.formatTag(tag_add)
+            if self.debug : print(self.formatTag(tag_add))
             if len(tag_add) > 0:
                 self.doc.append(tag_add)
 
@@ -812,19 +813,19 @@ def getXML(dict, fname):
     return xmlpage
 
 def usage():
-    print 'Usage: '
-    print '    convert2xml.py dict0000.dat infile.dat '
-    print ' '
-    print ' Options:'
-    print '   -h            print this usage help message '
-    print '   -d            turn on debug output to check for potential errors '
-    print '   --flat-xml    output the flattened xml page description only '
-    print ' '
-    print '     This program will attempt to convert a page*.dat file or '
-    print ' glyphs*.dat file, using the dict0000.dat file, to its xml description. '
-    print ' '
-    print ' Use "cmbtc_dump.py" first to unencrypt, uncompress, and dump '
-    print ' the *.dat files from a Topaz format e-book.'
+    print('Usage: ')
+    print('    convert2xml.py dict0000.dat infile.dat ')
+    print(' ')
+    print(' Options:')
+    print('   -h            print this usage help message ')
+    print('   -d            turn on debug output to check for potential errors ')
+    print('   --flat-xml    output the flattened xml page description only ')
+    print(' ')
+    print('     This program will attempt to convert a page*.dat file or ')
+    print(' glyphs*.dat file, using the dict0000.dat file, to its xml description. ')
+    print(' ')
+    print(' Use "cmbtc_dump.py" first to unencrypt, uncompress, and dump ')
+    print(' the *.dat files from a Topaz format e-book.')
 
 #
 # Main
@@ -846,7 +847,7 @@ def main(argv):
     except getopt.GetoptError, err:
 
         # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        print(str(err)) # will print something like "option -a not recognized"
         usage()
         sys.exit(2)
 
@@ -875,7 +876,7 @@ def main(argv):
     xmlpage = pp.process()
 
     if printOutput:
-        print xmlpage
+        print(xmlpage)
         return 0
 
     return xmlpage

@@ -2,6 +2,7 @@
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 # For use with Topaz Scripts Version 2.6
 
+from __future__ import print_function
 import csv
 import sys
 import os
@@ -114,9 +115,9 @@ class DocParser(object):
 
         # process each style converting what you can
 
-        if debug: print '          ', 'Processing styles.'
+        if debug: print('          ', 'Processing styles.')
         for j in xrange(stylecnt):
-            if debug: print '          ', 'Processing style %d' %(j)
+            if debug: print('          ', 'Processing style %d' %(j))
             start = styleList[j]
             end = styleList[j+1]
 
@@ -135,7 +136,7 @@ class DocParser(object):
                 else :
                     sclass = ''
 
-                if debug: print 'sclass', sclass
+                if debug: print('sclass', sclass)
 
                 # check for any "after class" specifiers
                 (pos, aftclass) = self.findinDoc('style._after_class',start,end)
@@ -145,7 +146,7 @@ class DocParser(object):
                 else :
                     aftclass = ''
 
-                if debug: print 'aftclass', aftclass
+                if debug: print('aftclass', aftclass)
 
                 cssargs = {}
 
@@ -154,8 +155,8 @@ class DocParser(object):
                     (pos1, attr) = self.findinDoc('style.rule.attr', start, end)
                     (pos2, val) = self.findinDoc('style.rule.value', start, end)
 
-                    if debug: print 'attr', attr
-                    if debug: print 'val', val
+                    if debug: print('attr', attr)
+                    if debug: print('val', val)
 
                     if attr == None : break
 
@@ -182,7 +183,7 @@ class DocParser(object):
                                 try:
                                     f = float(val)
                                 except:
-                                    print "Warning: unrecognised val, ignoring"
+                                    print("Warning: unrecognised val, ignoring")
                                     val = 0
                                 pv = float(val)/scale
                                 cssargs[attr] = (self.attr_val_map[attr], pv)
@@ -194,7 +195,7 @@ class DocParser(object):
                 if aftclass != "" : keep = False
 
                 if keep :
-                    if debug: print 'keeping style'
+                    if debug: print('keeping style')
                     # make sure line-space does not go below 100% or above 300% since
                     # it can be wacky in some styles
                     if 'line-space' in cssargs:
@@ -266,15 +267,15 @@ class DocParser(object):
 
 def convert2CSS(flatxml, fontsize, ph, pw):
 
-    print '          ', 'Using font size:',fontsize
-    print '          ', 'Using page height:', ph
-    print '          ', 'Using page width:', pw
+    print('          ', 'Using font size:',fontsize)
+    print('          ', 'Using page height:', ph)
+    print('          ', 'Using page width:', pw)
 
     # create a document parser
     dp = DocParser(flatxml, fontsize, ph, pw)
-    if debug: print '          ', 'Created DocParser.'
+    if debug: print('          ', 'Created DocParser.')
     csspage = dp.process()
-    if debug: print '          ', 'Processed DocParser.'
+    if debug: print('          ', 'Processed DocParser.')
     return csspage
 
 

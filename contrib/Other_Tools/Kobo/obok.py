@@ -150,6 +150,7 @@
 # after all.
 #
 """Manage all Kobo books, either encrypted or DRM-free."""
+from __future__ import print_function
 
 __version__ = '3.2.4'
 __about__ =  u"Obok v{0}\nCopyright © 2012-2016 Physisticated et al.".format(__version__)
@@ -291,7 +292,7 @@ class KoboLibrary(object):
     of books, their titles, and the user's encryption key(s)."""
 
     def __init__ (self, serials = [], device_path = None):
-        print __about__
+        print(__about__)
         self.kobodir = u""
         kobodb = u""
 
@@ -374,7 +375,7 @@ class KoboLibrary(object):
             # make a copy of the database in a temporary file
             # so we can ensure it's not using WAL logging which sqlite3 can't do.
             self.newdb = tempfile.NamedTemporaryFile(mode='wb', delete=False)
-            print self.newdb.name
+            print(self.newdb.name)
             olddb = open(kobodb, 'rb')
             self.newdb.write(olddb.read(18))
             self.newdb.write('\x01\x01')
@@ -595,32 +596,32 @@ class KoboFile(object):
             # assume utf-8 with no BOM
             textoffset = 0
             stride = 1
-            print u"Checking text:{0}:".format(contents[:10])
+            print(u"Checking text:{0}:".format(contents[:10]))
             # check for byte order mark
             if contents[:3]=="\xef\xbb\xbf":
                 # seems to be utf-8 with BOM
-                print u"Could be utf-8 with BOM"
+                print(u"Could be utf-8 with BOM")
                 textoffset = 3
             elif contents[:2]=="\xfe\xff":
                 # seems to be utf-16BE
-                print u"Could be  utf-16BE"
+                print(u"Could be  utf-16BE")
                 textoffset = 3
                 stride = 2
             elif contents[:2]=="\xff\xfe":
                 # seems to be utf-16LE
-                print u"Could be  utf-16LE"
+                print(u"Could be  utf-16LE")
                 textoffset = 2
                 stride = 2
             else:
-                print u"Perhaps utf-8 without BOM"
+                print(u"Perhaps utf-8 without BOM")
                 
             # now check that the first few characters are in the ASCII range
             for i in xrange(textoffset,textoffset+5*stride,stride):
                 if ord(contents[i])<32 or ord(contents[i])>127:
                     # Non-ascii, so decryption probably failed
-                    print u"Bad character at {0}, value {1}".format(i,ord(contents[i]))
+                    print(u"Bad character at {0}, value {1}".format(i,ord(contents[i])))
                     raise ValueError
-            print u"Seems to be good text"
+            print(u"Seems to be good text")
             return True
             if contents[:5]=="<?xml" or contents[:8]=="\xef\xbb\xbf<?xml":
                 # utf-8
@@ -641,13 +642,13 @@ class KoboFile(object):
                 # utf-16LE of weird <!DOCTYPE start
                 return True
             else:
-                print u"Bad XML: {0}".format(contents[:8])
+                print(u"Bad XML: {0}".format(contents[:8]))
                 raise ValueError
         elif self.mimetype == 'image/jpeg':
             if contents[:3] == '\xff\xd8\xff':
                 return True
             else:
-                print u"Bad JPEG: {0}".format(contents[:3].encode('hex'))
+                print(u"Bad JPEG: {0}".format(contents[:3].encode('hex')))
                 raise ValueError()
         return False
 
@@ -670,18 +671,18 @@ class KoboFile(object):
         return contents
 
 def decrypt_book(book, lib):
-    print u"Converting {0}".format(book.title)
+    print(u"Converting {0}".format(book.title))
     zin = zipfile.ZipFile(book.filename, "r")
     # make filename out of Unicode alphanumeric and whitespace equivalents from title
     outname = u"{0}.epub".format(re.sub('[^\s\w]', '_', book.title, 0, re.UNICODE))
     if (book.type == 'drm-free'):
-        print u"DRM-free book, conversion is not needed"
+        print(u"DRM-free book, conversion is not needed")
         shutil.copyfile(book.filename, outname)
-        print u"Book saved as {0}".format(os.path.join(os.getcwd(), outname))
+        print(u"Book saved as {0}".format(os.path.join(os.getcwd(), outname)))
         return 0
     result = 1
     for userkey in lib.userkeys:
-        print u"Trying key: {0}".format(userkey.encode('hex_codec'))
+        print(u"Trying key: {0}".format(userkey.encode('hex_codec')))
         try:
             zout = zipfile.ZipFile(outname, "w", zipfile.ZIP_DEFLATED)
             for filename in zin.namelist():
@@ -693,12 +694,12 @@ def decrypt_book(book, lib):
                     file.check(contents)
                 zout.writestr(filename, contents)
             zout.close()
-            print u"Decryption succeeded."
-            print u"Book saved as {0}".format(os.path.join(os.getcwd(), outname))
+            print(u"Decryption succeeded.")
+            print(u"Book saved as {0}".format(os.path.join(os.getcwd(), outname)))
             result = 0
             break
         except ValueError:
-            print u"Decryption failed."
+            print(u"Decryption failed.")
             zout.close()
             os.remove(outname)
     zin.close()
@@ -723,8 +724,8 @@ def cli_main():
         books = lib.books
     else:
         for i, book in enumerate(lib.books):
-            print u"{0}: {1}".format(i + 1, book.title)
-        print u"Or 'all'"
+            print(u"{0}: {1}".format(i + 1, book.title))
+        print(u"Or 'all'")
 
         choice = raw_input(u"Convert book number... ")
         if choice == u'all':
@@ -734,14 +735,14 @@ def cli_main():
                 num = int(choice)
                 books = [lib.books[num - 1]]
             except (ValueError, IndexError):
-                print u"Invalid choice. Exiting..."
+                print(u"Invalid choice. Exiting...")
                 exit()
 
     results = [decrypt_book(book, lib) for book in books]
     lib.close()
     overall_result = all(result != 0 for result in results)
     if overall_result != 0:
-        print u"Could not decrypt book with any of the keys found."
+        print(u"Could not decrypt book with any of the keys found.")
     return overall_result
 
 
