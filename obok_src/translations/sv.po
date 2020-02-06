@@ -1,0 +1,366 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-11-17 12:51+0100\n"
+"PO-Revision-Date: 2020-02-02 09:18+0100\n"
+"Language: sv\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"X-Generator: Poedit 2.2.4\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:80
+msgid ""
+"<p>No books found in Kobo Library\n"
+"Are you sure it's installed\\configured\\synchronized?"
+msgstr ""
+"<p>Inga böcker finns i Kobo-bibliotek\n"
+"Är du säker på att den är installerad\\konfigurerad\\synkroniserad?"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:87
+msgid "Legacy key found: "
+msgstr "Äldre nyckel hittades: "
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:93
+msgid "Trouble retrieving keys with newer obok method."
+msgstr "Problem med att hämta nycklar med nyare obok-metod."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:97
+msgid "Found {0} possible keys to try."
+msgstr "Hittade {0} möjliga nycklar att pröva med."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:99
+msgid "<p>No userkeys found to decrypt books with. No point in proceeding."
+msgstr ""
+"<p>Inga användarnycklar hittades för att dekryptera böcker med. Det är ingen "
+"idé att fortsätta."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:115
+msgid "{} - Decryption canceled by user."
+msgstr "{} - Dekryptering avbryts av användaren."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:135
+msgid "{} - \"Add books\" canceled by user."
+msgstr "{} - \"Lägg till böcker\" avbröts av användaren."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:137
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:156
+msgid "{} - wrapping up results."
+msgstr "{} - samlar in resultat."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:153
+msgid "{} - User opted not to try to insert EPUB formats"
+msgstr "{} - Användaren valde att inte försöka infoga EPUB-format"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:188
+msgid "{0} - Decrypting {1}"
+msgstr "{0} - Dekrypterar {1}"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:197
+msgid "{0} - Couldn't decrypt {1}"
+msgstr "{0} - Kunde inte dekryptera {1}"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:198
+msgid "decryption errors"
+msgstr "dekrypteringsfel"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:213
+msgid "{0} - Added {1}"
+msgstr "{0} - Lade till {1}"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:218
+msgid "{0} - {1} already exists. Will try to add format later."
+msgstr "{0} - {1} finns redan. Kommer att försöka lägga till format senare."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:219
+msgid "duplicate detected"
+msgstr "dubblett upptäcktes"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:233
+msgid "{0} - Successfully added EPUB format to existing {1}"
+msgstr "{0} - Lade till EPUB-format till befintliga {1}"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:236
+msgid ""
+"{0} - Error adding EPUB format to existing {1}. This really shouldn't happen."
+msgstr ""
+"{0} - Fel vid tillägg av EPUB-format till befintligt {1}. Det här borde inte "
+"hända."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:259
+msgid "{} - \"Insert formats\" canceled by user."
+msgstr "{} - \"Infoga format\" avbröts av användaren."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:291
+msgid ""
+"<p><b>{0}</b> EPUB{2} successfully added to library.<br /><br /><b>{1}</b> "
+msgstr "<p><b>{0}</b> EPUB{2} lades till bibliotek.<br /><br /><b>{1}</b> "
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:292
+msgid ""
+"not added because books with the same title/author were detected.<br /><br /"
+">Would you like to try and add the EPUB format{0}"
+msgstr ""
+"inte tillagd eftersom böcker med samma titel/författare upptäcktes.<br/><br /"
+">Vill du försöka lägga till EPUB-formatet{0}"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:293
+msgid ""
+" to those existing entries?<br /><br />NOTE: no pre-existing EPUBs will be "
+"overwritten."
+msgstr ""
+" till dessa befintliga poster?<br /><br />OBS: inga befintliga EPUB:er "
+"kommer att skrivas över."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:295
+msgid ""
+"{0} -- not added because of {1} in your library.\n"
+"\n"
+msgstr ""
+"{0} -- inte tillagd på grund av {1} i ditt bibliotek.\n"
+"\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:297
+msgid "<p><b>{0}</b> -- not added because of {1} in your library.<br /><br />"
+msgstr ""
+"<p><b>{0}</b> -- inte tillagd på grund av {1} i ditt bibliotek.<br /><br />"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:298
+msgid ""
+"Would you like to try and add the EPUB format to an available calibre "
+"duplicate?<br /><br />"
+msgstr ""
+"Vill du försöka lägga till EPUB-formatet till en tillgänglig calibre-"
+"dubblett?<br /><br />"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:299
+msgid "NOTE: no pre-existing EPUB will be overwritten."
+msgstr "OBS: ingen befintlig EPUB kommer att skrivas över."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:346
+msgid "Trying key: "
+msgstr "Prövar nyckel: "
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:378
+msgid "Decryption failed, trying next key."
+msgstr "Det gick inte att dekryptera, prövar nästa nyckel."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:382
+msgid "Unknown Error decrypting, trying next key.."
+msgstr "Okänt fel dekryptering, prövar nästa nyckel.."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:395
+msgid ""
+"<p>All selected Kobo books added as new calibre books or inserted into "
+"existing calibre ebooks.<br /><br />No issues."
+msgstr ""
+"<p>Alla valda Kobo-böcker läggs till som nya calibre-böcker eller infogas i "
+"befintliga calibre-e-böcker.<br /><br />Inga problem."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:399
+msgid "<p>{0} successfully added."
+msgstr "<p>{0} har lagts till."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:403
+msgid ""
+"<p>Not all selected Kobo books made it into calibre.<br /><br />View report "
+"for details."
+msgstr ""
+"<p>Inte alla valda Kobo-böcker lades till i calibre.<br /><br />Visa rapport "
+"för detaljer."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:404
+msgid "<p><b>Total attempted:</b> {}</p>\n"
+msgstr "<p><b>Försök totalt:</b> {}</p>\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:405
+msgid "<p><b>Decryption errors:</b> {}</p>\n"
+msgstr "<p><b>Dekrypteringsfel:</b> {}</p>\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:411
+msgid "<p><b>New Books created:</b> {}</p>\n"
+msgstr "<p><b>Nya böcker skapade:</b> {}</p>\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:418
+msgid "<p><b>Duplicates that weren't added:</b> {}</p>\n"
+msgstr "<p><b>Dubbletter som inte tillsattes:</b> {}</p>\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:426
+msgid "<p><b>Book imports cancelled by user:</b> {}</p>\n"
+msgstr "<p><b>Bokimport avbröts av användaren:</b> {}</p>\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:428
+msgid ""
+"<p><b>New EPUB formats inserted in existing calibre books:</b> {0}</p>\n"
+msgstr ""
+"<p><b>Nya EPUB-format infogade i befintliga calibre-böcker:</b> {0}</p>\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:434
+msgid ""
+"<p><b>EPUB formats NOT inserted into existing calibre books:</b> {}<br />\n"
+msgstr ""
+"<p><b>EPUB-format som INTE infogats i befintliga calibre-böcker:</b> {}<br /"
+">\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:435
+msgid ""
+"(Either because the user <i>chose</i> not to insert them, or because all "
+"duplicates already had an EPUB format)"
+msgstr ""
+"(Antingen för att användaren <i>valde</i> att inte infoga dem, eller för att "
+"alla dubbletter redan hade ett EPUB-format)"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:444
+msgid "<p><b>Format imports cancelled by user:</b> {}</p>\n"
+msgstr "<p><b>Format-import avbröts av användaren:</b> {}</p>\n"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:458
+msgid "Unknown Book Title"
+msgstr "Okänd boktitel"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:460
+msgid "it couldn't be decrypted."
+msgstr "den kunde inte dekrypteras."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:462
+msgid ""
+"user CHOSE not to insert the new EPUB format, or all existing calibre "
+"entries HAD an EPUB format already."
+msgstr ""
+"användaren VALDE att inte infoga det nya EPUB-formatet, eller alla "
+"befintliga calibre-poster hade redan ett EPUB-format."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:464
+msgid "of unknown reasons. Gosh I'm embarrassed!"
+msgstr "av okända skäl. Jag skäms!"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\action.py:465
+msgid "<p>{0} not added because {1}"
+msgstr "<p>{0} inte tillagd eftersom {1}"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\common_utils.py:226
+msgid "Help"
+msgstr "Hjälp"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\common_utils.py:235
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\utilities.py:214
+msgid "Restart required"
+msgstr "Omstart krävs"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\common_utils.py:236
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\utilities.py:215
+msgid ""
+"Title image not found - you must restart Calibre before using this plugin!"
+msgstr ""
+"Titelbild hittades inte - du måste starta calibre innan du använder denna "
+"insticksmodul!"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\common_utils.py:322
+msgid "Undefined"
+msgstr "Obestämd"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:30
+msgid "When should Obok try to insert EPUBs into existing calibre entries?"
+msgstr "När ska Obok försöka infoga EPUB:er i befintliga calibre-böcker?"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:33
+msgid ""
+"<p>Default behavior when duplicates are detected. None of the choices will "
+"cause calibre ebooks to be overwritten"
+msgstr ""
+"<p>Standardbeteende när dubbletter upptäcks. Inget av alternativen kommer "
+"att orsaka calibre-e-böcker att skrivas över"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:35
+msgid "Ask"
+msgstr "Fråga"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:35
+msgid "Always"
+msgstr "Alltid"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\config.py:35
+msgid "Never"
+msgstr "Aldrig"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:60
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\utilities.py:150
+msgid " v"
+msgstr " v"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:65
+msgid "Obok DeDRM"
+msgstr "Obok DeDRM"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:68
+msgid "<a href=\"http://www.foo.com/\">Help</a>"
+msgstr "<a href=\"http://www.foo.com/\">Hjälp</a>"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:89
+msgid "Select All"
+msgstr "Välj alla"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:90
+msgid "Select all books to add them to the calibre library."
+msgstr "Välj alla böcker för att lägga till dem i calibre-biblioteket."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:92
+msgid "All with DRM"
+msgstr "Alla med DRM"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:93
+msgid "Select all books with DRM."
+msgstr "Välj alla böcker med DRM."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:95
+msgid "All DRM free"
+msgstr "Alla DRM fria"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:96
+msgid "Select all books without DRM."
+msgstr "Välj alla böcker utan DRM."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:146
+msgid "Title"
+msgstr "Titel"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:146
+msgid "Author"
+msgstr "Författare"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:146
+msgid "Series"
+msgstr "Serier"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:369
+msgid "Copy to clipboard"
+msgstr "Kopiera till urklipp"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\dialogs.py:397
+msgid "View Report"
+msgstr "Visa rapport"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\__init__.py:21
+msgid "Removes DRM from Kobo kepubs and adds them to the library."
+msgstr "Tar bort DRM från Kobo-kepubs och lägger till dem i biblioteket."
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\obok\obok.py:162
+msgid "AES improper key used"
+msgstr "AES felaktig nyckel används"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\obok\obok.py:167
+msgid "Failed to initialize AES key"
+msgstr "Det gick inte att initiera AES-nyckel"
+
+#: I:\Herramientas\PoeditPortable\App\Poedit\bin\obok_plugin-3.1.0_trad\obok\obok.py:175
+msgid "AES decryption failed"
+msgstr "AES dekryptering misslyckades"
