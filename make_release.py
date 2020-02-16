@@ -13,15 +13,14 @@ import os
 import shutil
 
 
-DEDRM_SRC_DIR = 'dedrm_src'
-OBOK_SRC_DIR = 'obok_src'
-SHELLS_BASE = 'contrib'
+DEDRM_SRC_DIR = 'DeDRM_Plugin'
+DEDRM_README= 'DeDRM_Plugin_ReadMe.txt'
+OBOK_SRC_DIR = 'Obok_plugin'
+OBOK_README = 'Obok_plugin_ReadMe.txt'
+RELEASE_DIR = 'release'
 
 def make_calibre_plugin():
-    calibre_plugin_dir = os.path.join(SHELLS_BASE, 'DeDRM_calibre_plugin')
-    core_dir = os.path.join(calibre_plugin_dir, 'DeDRM_plugin')
 
-    shutil.copytree(DEDRM_SRC_DIR, core_dir)
     shutil.make_archive(core_dir, 'zip', core_dir)
     shutil.rmtree(core_dir)
 
@@ -31,49 +30,30 @@ def make_obok_plugin():
     core_dir = os.path.join(obok_plugin_dir, 'obok_plugin')
 
     shutil.copytree(OBOK_SRC_DIR, core_dir)
-    shutil.make_archive(core_dir, 'zip', core_dir)
+    shutil.make_archive(core_dir, 'zip')
     shutil.rmtree(core_dir)
 
-
-def make_windows_app():
-    windows_app_dir = os.path.join(SHELLS_BASE, 'DeDRM_Windows_Application')
-    core_dir = os.path.join(windows_app_dir, 'DeDRM_App', 'DeDRM_lib', 'lib')
-
-    # delete any existing core_dir
-    try:
-        shutil.rmtree(core_dir)
-    except OSError:
-        pass
-
-    shutil.copytree(DEDRM_SRC_DIR, core_dir)
-
-
-def make_macos_app():
-    macos_app_dir = os.path.join(SHELLS_BASE, 'DeDRM_Macintosh_Application')
-    core_dir = os.path.join(macos_app_dir, 'DeDRM.app', 'Contents', 'Resources')
-
-    # Resources already exists - copy contents to contents.
-    _, dirs, files = next(os.walk(DEDRM_SRC_DIR))
-    for name in dirs:
-        shutil.copyfile(
-            os.path.join(DEDRM_SRC_DIR, name),
-            os.path.join(core_dir, name)
-        )
-    for name in files:
-        shutil.copy2(
-            os.path.join(DEDRM_SRC_DIR, name),
-            os.path.join(core_dir, name)
-        )
-
-
 def make_release(version):
-    make_calibre_plugin()
-    make_windows_app()
-    make_macos_app()
-    make_obok_plugin()
+    try:
+        shutil.rmtree(RELEASE_DIR)
+    except:
+        pass
+    os.mkdir(RELEASE_DIR)
+    shutil.make_archive(DEDRM_SRC_DIR, 'zip', DEDRM_SRC_DIR)
+    shutil.make_archive(OBOK_SRC_DIR, 'zip', OBOK_SRC_DIR)
+    shutil.move(DEDRM_SRC_DIR+'.zip', RELEASE_DIR)
+    shutil.move(OBOK_SRC_DIR+'.zip', RELEASE_DIR)
+    shutil.copy(DEDRM_README, RELEASE_DIR)
+    shutil.copy(OBOK_README, RELEASE_DIR)
+    shutil.copy("ReadMe_Overview.txt", RELEASE_DIR)
 
     release_name = 'DeDRM_tools_{}'.format(version)
-    return shutil.make_archive(release_name, 'zip', SHELLS_BASE)
+    result = shutil.make_archive(release_name, 'zip', RELEASE_DIR)
+    try:
+        shutil.rmtree(RELEASE_DIR)
+    except:
+        pass
+    return result
 
 
 if __name__ == '__main__':

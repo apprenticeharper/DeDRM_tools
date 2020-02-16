@@ -20,9 +20,9 @@ Just download and use these tools, that's all! Uh, almost. There are a few, uh, 
 But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the ebook stores selling ebooks compatible with Adobe Digital Editions 2.0.1, you should be able to remove the DRM that's been applied to your ebooks.
 
 ### A Recent Change to Kindle for PC/Kindle for Mac
-Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source fro conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name. Note that with Kindle for PC/Mac 1.25 and later, there is no current solution even for FKX. You must use 1.24 or earlier.
+Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source for conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name (PC) or disabling a component of the application (Mac). Note that with Kindle for **PC** 1.25 and later, there is no current solution even for KFX. You must use 1.24 or earlier. With Kindle for **Mac** 1.25 and later, see instructions in [this post](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508). (Note: macOS Catalina can only run 64-bit apps, which means Kindle for Mac 1.25 and later. Earlier versions of Kindle for Mac are 32-bit and will not run on Catalina. If you are planning to upgrade to Catalina, [read this post](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508) carefully first.)
 
-Version 1.17 of Kindle is are no longer available directly from Amazon, so you will need to search for the proper file name and find it on a third party site. The name is `KindleForPC-installer-1.17.44170.exe` for PC and `KindleForMac-44182.dmg` for Mac.
+Version 1.17 of Kindle is no longer available directly from Amazon, so you will need to search for the proper file name and find it on a third party site. The name is `KindleForPC-installer-1.17.44170.exe` for PC and `KindleForMac-44182.dmg` for Mac.
 Verify the one of the following cryptographic hash values, using software of your choice, before installing the downloaded file in order to avoid viruses. If the hash does not match, delete the downloaded file and try again from another site.
 
 #### Kindle for PC `KindleForPC-installer-1.17.44170.exe`:
@@ -37,7 +37,7 @@ Verify the one of the following cryptographic hash values, using software of you
 
 You will need to go to the preferences and uncheck the auto update checkbox. Then download and install 1.17 over the top of the 1.19 installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
 
-A other possible solution is to use 1.19 or later, but disable KFX by renaming or disabling a necessary component of the application. This may or may not work on versions after 1.20. In a command window, enter the following commands when Kindle for PC/Mac is not running:
+Another possible solution is to use 1.19 or later, but disable KFX by renaming or disabling a necessary component of the application. This may or may not work on versions after 1.20. In a command window, enter the following commands when Kindle for PC/Mac is not running:
 
 #### Windows
 `ren %localappdata%\Amazon\Kindle\application\renderer-test.exe renderer-test.xxx`
@@ -52,7 +52,7 @@ Mac Note: If the chmod command fails with a permission error try again using `su
 After restarting the Kindle program any books previously downloaded in KFX format will no longer open. You will need to remove them from your device and re-download them. All future downloads will use the older Kindle formats instead of KFX although they will continue to be placed in one individual subdirectory per book.
 
 #### Decrypting KFX
-Thanks to work by several people, the tools can now decrypt KFX format ebooks from Kindle for PC. In addition to the DeDRM plugin, calibre users will also need to install jhowell's KFX Input plugin which is available through the standard plugin menu in calibre, or directly from [his plugin thread](https://www.mobileread.com/forums/showthread.php?t=291290) on Mobileread. Not that KFX decryption does not work for Kindle for Mac 1.25 and later.
+Thanks to work by several people, the tools can now decrypt KFX format ebooks from Kindle for PC. In addition to the DeDRM plugin, calibre users will also need to install jhowell's KFX Input plugin which is available through the standard plugin menu in calibre, or directly from [his plugin thread](https://www.mobileread.com/forums/showthread.php?t=291290) on Mobileread. Note that KFX decryption does not work for Kindle for PC/Mac 1.25 and later.
 
 #### Thanks
 Thanks to jhowell for his investigations into KFX format and the KFX Input plugin. Some of these instructions are from [his thread on the subject](https://www.mobileread.com/forums/showthread.php?t=283371) at MobileRead.
