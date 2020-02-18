@@ -14,13 +14,14 @@ Just download and use these tools, that's all! Uh, almost. There are a few, uh, 
 * The tools don't work on all ebooks. For example, they don't work on any ebooks from Apple's iBooks store.
 * You must own the ebook - the tools won't work on library ebooks or rented ebooks or books from a friend.
 * You must not use these tools to give your ebooks to a hundred of your closest friends. Or to a million strangers. Authors need to sell books to be able to write more books. Don't be mean to the authors.
-* Do NOT use Adobe Digital Editions 3.0 or later to download your ePubs. ADE 3.0 and later might use a new encryption scheme that the tools can't handle. While major ebook stores aren't using the new scheme yet, using ADE 2.0.1 will ensure that your ebooks are downloaded using the old scheme. Once a book has been downloaded with the new scheme, it's IMPOSSIBLE to re-download using the old scheme (without buying it again).
-* Do NOT use Kindle for PC/Mac version 1.25 or later. The tools don't current work with those versions.
+* Do NOT use Adobe Digital Editions 3.0 or later to download your ePubs (unless you are using macOS Catalina, in which case you have no choice but to use ADE 4.x). ADE 3.0 and later might use a new encryption scheme that the tools can't handle. While major ebook stores aren't using the new scheme yet, using ADE 2.0.1 will ensure that your ebooks are downloaded using the old scheme. Once a book has been downloaded with the new scheme, it's IMPOSSIBLE to re-download using the old scheme (without buying it again).
+* Do NOT use Kindle for PC version 1.25 or later. The tools don't currently work with those versions.
+* Avoid Kindle for Mac version 1.25 or later whenever possible. These versions are problematic. If you must use 1.25 or later (e.g., you are on macOS Catalina), see [this post](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508).
 
 But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the ebook stores selling ebooks compatible with Adobe Digital Editions 2.0.1, you should be able to remove the DRM that's been applied to your ebooks.
 
 ### A Recent Change to Kindle for PC/Kindle for Mac
-Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source for conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name (PC) or disabling a component of the application (Mac). Note that with Kindle for **PC** 1.25 and later, there is no current solution even for KFX. You must use 1.24 or earlier. With Kindle for **Mac** 1.25 and later, see instructions in [this post](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508). (Note: macOS Catalina can only run 64-bit apps, which means Kindle for Mac 1.25 and later. Earlier versions of Kindle for Mac are 32-bit and will not run on Catalina. If you are planning to upgrade to Catalina, [read this post](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508) carefully first.)
+Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source for conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name (on PC) or disabling a component of the application (on Mac). Note that with Kindle for **PC** 1.25 and later, there is no current solution even for KFX. You must use 1.24 or earlier. With Kindle for **Mac** 1.25 and later, see instructions in [this post](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508). (Note: macOS Catalina can only run 64-bit apps, which means Kindle for Mac 1.25 and later. Earlier versions of Kindle for Mac are 32-bit and will not run on Catalina. If you are planning to upgrade to Catalina, [read this post](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508) carefully first.)
 
 Version 1.17 of Kindle is no longer available directly from Amazon, so you will need to search for the proper file name and find it on a third party site. The name is `KindleForPC-installer-1.17.44170.exe` for PC and `KindleForMac-44182.dmg` for Mac.
 Verify the one of the following cryptographic hash values, using software of your choice, before installing the downloaded file in order to avoid viruses. If the hash does not match, delete the downloaded file and try again from another site.
@@ -152,7 +153,9 @@ If this book is from an eInk Kindle (e.g. Paperwhite), you must enter the serial
 
 If this book is from Kindle for Mac or Kindle for PC, you must have the Kindle Software installed on the same computer and user account as your copy of calibre.
 
-If this book is from Kindle for Mac you must be using version 1.24 or below, even if you have the Input plugin installed.
+If this book is from Kindle for PC you must be using version 1.24 or below, even if you have the KFX Input plugin installed.
+
+If this book is from Kindle for Mac, you must be using version 1.23.1 or below, even if you have the KFX Input plugin installed — or [see this post for a workaround for 1.25 and later](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508).
 
 If the book is from Kindle for PC or Kindle for Mac and you think you are doing everything right, and you are getting this message, it is possible that the files containing the encryption key aren’t quite in the format the tools expect. To try to fix this:
 
