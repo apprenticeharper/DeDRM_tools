@@ -96,6 +96,10 @@ from calibre.constants import iswindows, isosx
 from calibre.gui2 import is_ok_to_use_qt
 from calibre.utils.config import config_dir
 
+import erdr2pml
+import ineptpdf
+import k4mobidedrm
+import zipfix
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get safely
