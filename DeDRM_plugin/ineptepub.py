@@ -63,6 +63,7 @@ import zipfile
 from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
 from contextlib import closing
 import xml.etree.ElementTree as etree
+import base64
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -421,9 +422,11 @@ def decryptBook(userkey, inpath, outpath):
             if len(bookkey) != 172:
                 print(u"{0:s} is not a secure Adobe Adept ePub.".format(os.path.basename(inpath)))
                 return 1
-            bookkey = rsa.decrypt(bookkey.decode('base64'))
+            bookkey = bookkey.encode('ascii')
+            bookkey = base64.b64decode(bookkey)
+            bookkey = rsa.decrypt(bookkey)
             # Padded as per RSAES-PKCS1-v1_5
-            if bookkey[-17] != '\x00':
+            if bookkey[-17] != '\x00' and bookkey[-17] != 0:
                 print(u"Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
                 return 2
             encryption = inf.read('META-INF/encryption.xml')
