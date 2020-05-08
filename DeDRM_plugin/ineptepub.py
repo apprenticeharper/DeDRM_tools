@@ -210,7 +210,7 @@ def _load_crypto_libcrypto():
 
         def decrypt(self, data):
             out = create_string_buffer(len(data))
-            iv = ("\x00" * self._blocksize)
+            iv = (b"\x00" * self._blocksize)
             rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
             if rv == 0:
                 raise ADEPTError('AES decryption failed')
@@ -371,7 +371,7 @@ class Decryptor(object):
     def decompress(self, bytes):
         dc = zlib.decompressobj(-15)
         bytes = dc.decompress(bytes)
-        ex = dc.decompress('Z') + dc.flush()
+        ex = dc.decompress(b'Z') + dc.flush()
         if ex:
             bytes = bytes + ex
         return bytes
@@ -379,7 +379,11 @@ class Decryptor(object):
     def decrypt(self, path, data):
         if path.encode('utf-8') in self._encrypted:
             data = self._aes.decrypt(data)[16:]
-            data = data[:-ord(data[-1])]
+            if type(data[-1]) != int:
+                place = ord(data[-1])
+            else:
+                place = data[-1]
+            data = data[:-place]
             data = self.decompress(data)
         return data
 
