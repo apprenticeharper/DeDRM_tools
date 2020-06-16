@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Pascal implementation by lulzkabulz. Python translation by apprenticenaomi. DeDRM integration by anon.
+# Pascal implementation by lulzkabulz. Python translation by apprenticenaomi. DeDRM integration by anon. VoucherEnvelope v2/v3 support by apprenticesakuya.
 # BinaryIon.pas + DrmIon.pas + IonSymbols.pas
 
 from __future__ import with_statement
@@ -719,7 +719,8 @@ SYM_NAMES = [ 'com.amazon.drm.Envelope@1.0',
               'com.amazon.drm.EnvelopeMetadata@2.0',
               'com.amazon.drm.EncryptedPage@2.0',
               'com.amazon.drm.PlainText@2.0', 'compression_algorithm',
-              'com.amazon.drm.Compressed@1.0', 'priority', 'refines']
+              'com.amazon.drm.Compressed@1.0', 'page_index_table',
+              'com.amazon.drm.VoucherEnvelope@2.0', 'com.amazon.drm.VoucherEnvelope@3.0' ]
 
 def addprottable(ion):
     ion.addtocatalog("ProtectedData", 1, SYM_NAMES)
@@ -741,8 +742,42 @@ def pkcs7unpad(msg, blocklen):
     return msg[:-paddinglen]
 
 
+# every VoucherEnvelope version has a corresponding "word" and magic number, used in obfuscating the shared secret
+VOUCHER_VERSION_INFOS = {
+    2: [b'Antidisestablishmentarianism', 5],
+    3: [b'Floccinaucinihilipilification', 8]
+}
+
+
+# obfuscate shared secret according to the VoucherEnvelope version
+def obfuscate(secret, version):
+    if version == 1:  # v1 does not use obfuscation
+        return secret
+
+    params = VOUCHER_VERSION_INFOS[version]
+    word = params[0]
+    magic = params[1]
+
+    # extend secret so that its length is divisible by the magic number
+    if len(secret) % magic != 0:
+        secret = secret + b'\x00' * (magic - len(secret) % magic)
+
+    secret = bytearray(secret)
+
+    obfuscated = bytearray(len(secret))
+    wordhash = bytearray(hashlib.sha256(word).digest())
+
+    # shuffle secret and xor it with the first half of the word hash
+    for i in range(0, len(secret)):
+        index = i // (len(secret) // magic) + magic * (i % (len(secret) // magic))
+        obfuscated[index] = secret[i] ^ wordhash[index % 16]
+
+    return obfuscated
+
+
 class DrmIonVoucher(object):
     envelope = None
+    version = None
     voucher = None
     drmkey = None
     license_type = "Unknown"
@@ -777,9 +812,9 @@ class DrmIonVoucher(object):
             else:
                 _assert(False, "Unknown lock parameter: %s" % param)
 
-        sharedsecret = shared.encode("UTF-8")
+        sharedsecret = obfuscate(shared.encode('ASCII'), self.version)
 
-        key = hmac.new(sharedsecret, sharedsecret[:5], digestmod=hashlib.sha256).digest()
+        key = hmac.new(sharedsecret, "PIDv3", digestmod=hashlib.sha256).digest()
         aes = AES.new(key[:32], AES.MODE_CBC, self.cipheriv[:16])
         b = aes.decrypt(self.ciphertext)
         b = pkcs7unpad(b, 16)
@@ -814,8 +849,9 @@ class DrmIonVoucher(object):
     def parse(self):
         self.envelope.reset()
         _assert(self.envelope.hasnext(), "Envelope is empty")
-        _assert(self.envelope.next() == TID_STRUCT and self.envelope.gettypename() == "com.amazon.drm.VoucherEnvelope@1.0",
+        _assert(self.envelope.next() == TID_STRUCT and str.startswith(self.envelope.gettypename(), "com.amazon.drm.VoucherEnvelope@"),
                 "Unknown type encountered in envelope, expected VoucherEnvelope")
+        self.version = int(self.envelope.gettypename().split('@')[1][:-2])
 
         self.envelope.stepin()
         while self.envelope.hasnext():
