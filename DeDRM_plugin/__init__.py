@@ -4,10 +4,10 @@
 from __future__ import with_statement
 
 # __init__.py for DeDRM_plugin
-# Copyright © 2008-2019 Apprentice Harper et al.
+# Copyright © 2008-2020 Apprentice Harper et al.
 
 __license__   = 'GPL v3'
-__version__ = '6.7.0'
+__version__ = '6.8.0'
 __docformat__ = 'restructuredtext en'
 
 
@@ -18,8 +18,8 @@ __docformat__ = 'restructuredtext en'
 # We had the much easier job of converting them to a calibre plugin.
 #
 # This plugin is meant to decrypt eReader PDBs, Adobe Adept ePubs, Barnes & Noble ePubs,
-# Adobe Adept PDFs, Amazon Kindle and Mobipocket files without having to
-# install any dependencies... other than having calibre installed, of course.
+# Adobe Adept PDFs, Amazon Kindle and Mobipocket files without having
+# to install any dependencies... other than having calibre installed, of course.
 #
 # Configuration:
 # Check out the plugin's configuration settings by clicking the "Customize plugin"
@@ -70,14 +70,14 @@ __docformat__ = 'restructuredtext en'
 #   6.6.2 - revamp of folders to get Mac OS X app working. Updated to 64-bit app. Various fixes.
 #   6.6.3 - More cleanup of kindle book names and start of support for .kinf2018
 #   6.7.0 - Handle new library in calibre.
-
+#   6.8.0 - Full support for .kinf2018 and new KFX encryption (Kindle for PC/Mac 2.5+)
 
 """
 Decrypt DRMed ebooks.
 """
 
 PLUGIN_NAME = u"DeDRM"
-PLUGIN_VERSION_TUPLE = (6, 7, 0)
+PLUGIN_VERSION_TUPLE = (6, 8, 0)
 PLUGIN_VERSION = u".".join([unicode(str(x)) for x in PLUGIN_VERSION_TUPLE])
 # Include an html helpfile in the plugin's zipfile with the following name.
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'

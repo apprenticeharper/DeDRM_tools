@@ -7,7 +7,7 @@ from __future__ import with_statement
 # Copyright © 2008-2020 Apprentice Harper et al.
 
 __license__ = 'GPL v3'
-__version__ = '2.6'
+__version__ = '2.7'
 
 # Revision history:
 #  1.0   - Kindle info file decryption, extracted from k4mobidedrm, etc.
@@ -29,7 +29,7 @@ __version__ = '2.6'
 #  2.4   - Fix for complex Mac disk setups, thanks to Tibs
 #  2.5   - Final Fix for Windows user names with non-ascii characters, thanks to oneofusoneofus
 #  2.6   - Start adding support for Kindle 1.25+ .kinf2018 file
-#  2.7   - Finish .kinf2018 support
+#  2.7   - Finish .kinf2018 support, PC & Mac
 
 
 """

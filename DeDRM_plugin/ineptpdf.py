@@ -3,24 +3,14 @@
 
 from __future__ import with_statement
 
-# ineptpdf.pyw, version 8.0.6
-# Copyright © 2009-2010 by i♥cabbages
+# ineptpdf.py
+# Copyright © 2009-2017 by Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
 # Modified 2010–2012 by some_updates, DiapDealer and Apprentice Alf
-# Modified 2015-2017 by Apprentice Harper
-
-# Windows users: Before running this program, you must first install Python 2.7
-#   from <http://www.python.org/download/> and PyCrypto from
-#   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
-#   install the version for Python 2.7).  Save this script file as
-#   ineptpdf.pyw and double-click on it to run it.
-#
-# Mac OS X users: Save this script file as ineptpdf.pyw.  You can run this
-#   program from the command line (pythonw ineptpdf.pyw) or by double-clicking
-#   it when it has been associated with PythonLauncher.
+# Modified 2015-2017 by Apprentice Harper et al.
 
 # Revision history:
 #   1 - Initial release

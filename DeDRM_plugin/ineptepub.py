@@ -6,23 +6,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 # ineptepub.pyw, version 6.6
-# Copyright © 2009-2010 by i♥cabbages
+# Copyright © 2009-2020 by Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
+# Original script by i♥cabbages
 # Modified 2010–2013 by some_updates, DiapDealer and Apprentice Alf
-# Modified 2015–2017 by Apprentice Harper
-
-# Windows users: Before running this program, you must first install Python 2.7
-#   from <http://www.python.org/download/> and PyCrypto from
-#   <http://www.voidspace.org.uk/python/modules.shtml#pycrypto> (make sure to
-#   install the version for Python 2.7).  Save this script file as
-#   ineptepub.pyw and double-click on it to run it.
-#
-# Mac OS X users: Save this script file as ineptepub.pyw.  You can run this
-#   program from the command line (pythonw ineptepub.pyw) or by double-clicking
-#   it when it has been associated with PythonLauncher.
+# Modified 2015–2020 by Apprentice Harper et al.
 
 # Revision history:
 #   1 - Initial release
@@ -45,13 +36,14 @@ from __future__ import print_function
 #   6.4 - Remove erroneous check on DER file sanity
 #   6.5 - Completely remove erroneous check on DER file sanity
 #   6.6 - Import tkFileDialog, don't assume something else will import it.
+#   6.7 - Add Python 3 compatibility while still working with Python 2.7
 
 """
 Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "6.6"
+__version__ = "6.7"
 
 import six
 from six.moves import range

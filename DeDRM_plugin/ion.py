@@ -1,9 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Pascal implementation by lulzkabulz. Python translation by apprenticenaomi. DeDRM integration by anon. VoucherEnvelope v2/v3 support by apprenticesakuya.
-# BinaryIon.pas + DrmIon.pas + IonSymbols.pas
 
 from __future__ import with_statement
+
+# ion.py
+# Copyright © 2013-2020 Apprentice Harper et al.
+
+__license__ = 'GPL v3'
+__version__ = '2.0'
+
+# Revision history:
+#  Pascal implementation by lulzkabulz.
+#  BinaryIon.pas + DrmIon.pas + IonSymbols.pas
+#  1.0   - Python translation by apprenticenaomi.
+#  1.1   - DeDRM integration by anon.
+#  1.2   - Added pylzma import fallback
+#  1.3   - Fixed lzma support for calibre 4.6+
+#  2.0   - VoucherEnvelope v2/v3 support by apprenticesakuya.
+
+
+"""
+Decrypt Kindle KFX files.
+"""
 
 import collections
 import hashlib
