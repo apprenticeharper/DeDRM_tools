@@ -15,12 +15,11 @@ Just download and use these tools, that's all! Uh, almost. There are a few, uh, 
 * You must own the ebook - the tools won't work on library ebooks or rented ebooks or books from a friend.
 * You must not use these tools to give your ebooks to a hundred of your closest friends. Or to a million strangers. Authors need to sell books to be able to write more books. Don't be mean to the authors.
 * Do NOT use Adobe Digital Editions 3.0 or later to download your ePubs. ADE 3.0 and later might use a new encryption scheme that the tools can't handle. While major ebook stores aren't using the new scheme yet, using ADE 2.0.1 will ensure that your ebooks are downloaded using the old scheme. Once a book has been downloaded with the new scheme, it's IMPOSSIBLE to re-download using the old scheme (without buying it again).
-* Do NOT use Kindle for PC/Mac version 1.25 or later. The tools don't current work with those versions.
 
 But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the ebook stores selling ebooks compatible with Adobe Digital Editions 2.0.1, you should be able to remove the DRM that's been applied to your ebooks.
 
 ### A Recent Change to Kindle for PC/Kindle for Mac
-Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source for conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name (PC) or disabling a component of the application (Mac). Note that with Kindle for **PC** 1.25 and later, there is no current solution even for KFX. You must use 1.24 or earlier. With Kindle for **Mac** 1.25 and later, see instructions in [this post](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508). (Note: macOS Catalina can only run 64-bit apps, which means Kindle for Mac 1.25 and later. Earlier versions of Kindle for Mac are 32-bit and will not run on Catalina. If you are planning to upgrade to Catalina, [read this post](https://www.mobileread.com/forums/showpost.php?p=3819708&postcount=508) carefully first.)
+Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source for conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name (PC) or disabling a component of the application (Mac). 
 
 Version 1.17 of Kindle is no longer available directly from Amazon, so you will need to search for the proper file name and find it on a third party site. The name is `KindleForPC-installer-1.17.44170.exe` for PC and `KindleForMac-44182.dmg` for Mac.
 Verify the one of the following cryptographic hash values, using software of your choice, before installing the downloaded file in order to avoid viruses. If the hash does not match, delete the downloaded file and try again from another site.
@@ -35,9 +34,9 @@ Verify the one of the following cryptographic hash values, using software of you
 * SHA-1: 7AB9A86B954CB23D622BD79E3257F8E2182D791C
 * SHA-256: 28DC21246A9C7CDEDD2D6F0F4082E6BF7EF9DB9CE9D485548E 8A9E1D19EAE2AC. 
 
-You will need to go to the preferences and uncheck the auto update checkbox. Then download and install 1.17 over the top of the 1.19 installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
+You will need to go to the preferences and uncheck the auto update checkbox. Then download and install 1.17 over the top of the newer installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
 
-Another possible solution is to use 1.19 or later, but disable KFX by renaming or disabling a necessary component of the application. This may or may not work on versions after 1.20. In a command window, enter the following commands when Kindle for PC/Mac is not running:
+Another possible solution is to use 1.19 or later, but disable KFX by renaming or disabling a necessary component of the application. This may or may not work on versions after 1.25. In a command window, enter the following commands when Kindle for PC/Mac is not running:
 
 #### Windows
 `ren %localappdata%\Amazon\Kindle\application\renderer-test.exe renderer-test.xxx`
@@ -49,10 +48,10 @@ PC Note: The renderer-test program may be in a different location in some Kindle
 
 Mac Note: If the chmod command fails with a permission error try again using `sudo` before `chmod` - `sudo chmod` [...]
 
-After restarting the Kindle program any books previously downloaded in KFX format will no longer open. You will need to remove them from your device and re-download them. All future downloads will use the older Kindle formats instead of KFX although they will continue to be placed in one individual subdirectory per book.
+After restarting the Kindle program any books previously downloaded in KFX format will no longer open. You will need to remove them from your device and re-download them. All future downloads will use the older Kindle formats instead of KFX although they will continue to be placed in one individual subdirectory per book. Note that books soudl be downoad by right-click and 'Download', not by just opening the book. Recent (1.25+) versions of Kindle for Mac/PC may convert KF8 files to a new format that is not supported by these tools when the book is opened for reading.
 
 #### Decrypting KFX
-Thanks to work by several people, the tools can now decrypt KFX format ebooks from Kindle for PC. In addition to the DeDRM plugin, calibre users will also need to install jhowell's KFX Input plugin which is available through the standard plugin menu in calibre, or directly from [his plugin thread](https://www.mobileread.com/forums/showthread.php?t=291290) on Mobileread. Note that KFX decryption does not work for Kindle for PC/Mac 1.25 and later.
+Thanks to work by several people, the tools can now decrypt KFX format ebooks from Kindle for Mac/PC. In addition to the DeDRM plugin, calibre users will also need to install jhowell's KFX Input plugin which is available through the standard plugin menu in calibre, or directly from [his plugin thread](https://www.mobileread.com/forums/showthread.php?t=291290) on Mobileread. 
 
 #### Thanks
 Thanks to jhowell for his investigations into KFX format and the KFX Input plugin. Some of these instructions are from [his thread on the subject](https://www.mobileread.com/forums/showthread.php?t=283371) at MobileRead.
@@ -61,10 +60,10 @@ Thanks to jhowell for his investigations into KFX format and the KFX Input plugi
 Right here at github. Just go to the [releases page](https://github.com/apprenticeharper/DeDRM_tools/releases) and download the latest zip archive of the tools, named `DeDRM\_tools\_X.X.X.zip`, where X.X.X is the version number. You do not need to download the source code archive.
 
 ## I've downloaded the tools archive. Now what?
-First, unzip the archive. You should now have a DeDRM folder containing several other folders and a `ReadMe_First.txt` file. Please read the `ReadMe_First.txt` file! That will explain what the folders are, and you'll be able to work out which of the tools you need.
+First, unzip the archive. You should now have a DeDRM folder containing several other folders and a `ReadMe_Overview.txt` file. Please read the `ReadMe_Overview.txt` file! That will explain what the folders are, and you'll be able to work out which of the tools you need.
 
 ## That's a big complicated ReadMe file! Isn't there a quick guide?
-Install calibre. Install the DeDRM\_plugin in calibre. Install the Obok\_plugin in calibre. Restart calibre. In the DeDRM_plugin customisation dialog add in any E-Ink Kindle serial numbers and your B&N account email address and password. Remember that the plugin only tries to remove DRM when ebooks are imported.
+Install calibre. Install the DeDRM\_plugin in calibre. Install the Obok\_plugin in calibre. Restart calibre. In the DeDRM_plugin customisation dialog add in any E-Ink Kindle serial numbers. Remember that the plugin only tries to remove DRM when ebooks are imported.
 
 # Installing the Tools
 ## The calibre plugin
@@ -78,52 +77,17 @@ You should select the zip file that is in the `DeDRM_calibre_plugin` folder, not
 
 We strongly recommend renaming the `DeDRM_tools_X.X.X.zip` archive (after extracting its contents) to `DeDRM_tools_X.X.X_archive.zip`. If you do that, you are less likely to navigate to the wrong location from inside calibre.)
 
-## The Windows Application
-### I've installed ActiveState Python and PyCrypto, but the Windows application won't run. What have I done wrong?
-Nothing. There's a bug in the some older ActiveState Python Windows installers that puts the Tcl code in the wrong place. See [this comment of mine at ActiveState community](https://community.activestate.com/node/19090). Just move the Tcl code to the correct place manually and the Windows app should run.
-
-## The Macintosh Application
-### I can't open the Macintosh Application. Some message about it not being signed or something.
-Try right-clicking and select open. That might give you the option to open it anyway. Otherwise you'll need to change your security settings to allow unsigned applications to run. You can probably change these back after running it for the first time.
-
-### I can't open the Macintosh Application at all. I get 'The aplication "DeDRM" can't be opened'
-Some unzip applications do not respect the execution bit setting. Try unzipping the main tools archive using the built-in Mac unzip utility.
-
-Alternatively, sometimes the execution bit isn't set correctly in the archive. If you put the extracted DeDRM application in your Applications folder, you can set the executable bit on the 'droplet' file from the terminal using the command `chmod +x /Applications/DeDRM.app/Contents/MacOS/droplet`
-
-### I can't open the Macintosh Application at all. I get 'spawn_via_launchd() failed, errno=111'
-There seems to be a bug in Apple's launch services. Try using the free [Maintenance utility](https://www.titanium-software.fr/en/maintenance.html) from Titanium Software to clear the launch cache and database.
-
-### The application opens, but always gives an error in the log 'ImportError: No module named Crypto.Cipher'
-Some version of MacOS don't include PyCrpto. You'll need to install it manually. In Terminal window:
-
-`sudo python -m pip install pycrypto`
-
-if error “No module named pip”, type:
-
-`sudo easy_install pip`
-
-try again: `sudo python -m pip install pycrypto`
-
-if installation fails because “C compiler cannot create executables” and pop-up window asks you to install Command Line Tools for XCode, agree by clicking “Continue”
-
-try again: `sudo python -m pip install pycrypto`
-
-If after installing pycrypto decryption still fails with something about pylzma in error log, try: 
-
-`sudo python -m pip install pylzma`
-
 # Using the Tools
 ## I can’t get the tools to work on my rented or library ebooks.
 The tools are not designed to remove DRM from rented or library ebooks.
 
 ## I've unzipped the tools, but what are all the different files, and how do I use them?
-Read the `ReadMe_First.txt` file and then the ReadMe files included in the tools folder(s) you're interested in. That's what they're for.
+Read the `ReadMe_Overview.txt` file and then the ReadMe files for the tools you're interested in. That's what they're for.
 
 ## I have installed the calibre plugin, but my books still have DRM. When I try to view or convert my books, calibre says they have DRM.
 DRM only gets removed when an ebook is imported into calibre. Also, if the book is already in calibre, by default calibre will discard the newly imported file. You can change this in calibre's Adding books preferences page (Automerge..../Overwrite....), so that newly imported files overwrite existing ebook formats. Then just re-import your books and the DRM-free versions will overwrite the DRMed versions while retaining your books' metadata.
 
-## I have installed the calibre plugin or I am trying to use one of the other tools, but I don’t know where my ebooks are stored.
+## I have installed the calibre plugin, but I don’t know where my ebooks are stored.
 Your ebooks are stored on your computer or on your ebook reader. You need to find them to be able to remove the DRM. If they are on your reader, you should be able to locate them easily. On your computer it’s not so obvious. Here are the default locations.
 
 ### Macintosh
@@ -152,8 +116,6 @@ If this book is from an eInk Kindle (e.g. Paperwhite), you must enter the serial
 
 If this book is from Kindle for Mac or Kindle for PC, you must have the Kindle Software installed on the same computer and user account as your copy of calibre.
 
-If this book is from Kindle for Mac you must be using version 1.24 or below, even if you have the Input plugin installed.
-
 If the book is from Kindle for PC or Kindle for Mac and you think you are doing everything right, and you are getting this message, it is possible that the files containing the encryption key aren’t quite in the format the tools expect. To try to fix this:
 
 1. Deregister Kindle for PC(Mac) from your Amazon account.
@@ -178,11 +140,8 @@ Most likely, this is a book downloaded from Amazon directly to an eInk Kindle (e
 ## My Kindle book has imported, but it's showing up as an AZW4 format. Conversions take a long time and/or are very poor.
 You have found a Print Replica Kindle ebook. This is a PDF in a Kindle wrapper. Now the DRM has been removed, you can extract the PDF from the wrapper using the KindleUnpack plugin. Conversion of PDFs rarely gives good results.
 
-## The tools can't see an ebook that was downloaded directly to my eInk kindle, although it's definitely there, and I can read it on the Kindle. I can't even try to import it.
-Mostly likely, this is a book downloaded from Amazon directly to one of the newer eInk Kindles (e.g. Paperwhite). Unfortunately, it is probably in a new multi-file KFX format that the tools don't understand. You must download the book manually from Amazon's web site "For transfer via USB" to your Kindle. When you download the ebook in this manner, Amazon will send a single KF8-format file that the tools will be able to import successfully.
-
 ## Do the tools work on books from Kobo?
-If you use the Kobo desktop application for Mac or PC, install the obok plugin. This will import and remove the DRM from your Kobo books, and is the easiest method for Kobo ebooks.
+If you use the Kobo desktop application for Mac or PC, install the Obok plugin. This will import and remove the DRM from your Kobo books, and is the easiest method for Kobo ebooks.
 
 ## I registered Adobe Digital Editions 3.0 or later with an Adobe ID before downloading, but my epub or PDF still has DRM.
 Adobe introduced a new DRM scheme with ADE 3.0 and later. Install ADE 2.0.1 and register with the same Adobe ID. If you can't open your book in ADE 2.01, then you have a book with the new DRM scheme. These tools can't help. You can avoid the new DRM scheme by always downloading your ebooks with ADE 2.0.1. Some retailers will require ADE 3.0 or later, in which case you won't be able to download with ADE 2.0.1.
@@ -193,12 +152,6 @@ You're trying to remove the DRM from an ebook that's only on loan to you. No hel
 ## I cannot solve my problem with the DeDRM plugin, and now I need to ‘post a log’. How do I do that?
 Remove the DRMed book from calibre. Click the Preferences drop-down menu and choose 'Restart in debug mode'. Once calibre has re-started, import the problem ebook. Now close calibre. A log will appear that you can copy and paste into a comment at Apprentice Alf's blog, or into a new issue at Apprentice Harper's github repository.
 
-## I cannot solve my problem with the Macintosh DeDRM application, and now I need to ‘post a log’. How do I do that?
-The Macintosh DeDRM application creates a log file on your desktop every time it is run. After unsuccessfully removing DRM from one ebook, copy the contents of the log file (it is a simple text file) and paste it into your comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
-
-## I cannot solve my problem with the Windows DeDRM application, and now I need to ‘post a log’. How do I do that?
-The Windows DeDRM application creates a log file in your home directory `C:\Users\[username]` every time it is run. After unsuccessfully removing DRM from one ebook, copy the contents of the log file (it is a simple text file) and paste it into your comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
-
 ## Is there a way to use the DeDRM plugin for Calibre from the command line?
 See the [Calibre command line interface (CLI) instructions](CALIBRE_CLI_INSTRUCTIONS.md).
 
@@ -207,7 +160,7 @@ See the [Calibre command line interface (CLI) instructions](CALIBRE_CLI_INSTRUCT
 ## Once the DRM has been removed, is there any trace of my personal identity left in the ebook?
 The tools only remove the DRM. No attempt is made to remove any personally identifying information.
 
-## What do some of my Kindle ebooks import as HTMLZ format in calibre?
+## Why do some of my Kindle ebooks import as HTMLZ format in calibre?
 Most Amazon Kindle ebooks are Mobipocket format ebooks, or the new KF8 format. However, some are in a format known as Topaz. The Topaz format is only used by Amazon. A Topaz ebook is a collections of glyphs and their positions on each page tagged with some additional information from that page including OCRed text (Optical Character Recognition generated Text) to allow searching, and some additional layout information. Each page of a Topaz ebook is effectively a description of an image of that page. To convert a Topaz ebook to another format is not easy as there is not a one-to-one mapping between glyphs and characters/fonts. To account for this, two different formats are generated by the DRM removal software. The first is an html description built from the OCRtext and images stored in the Topaz file (HTMLZ). This format is easily reflowed but may suffer from typical OCRtext errors including typos, garbled text, missing italics, missing bolds, etc. The second format uses the glyph and position information to create an accurate scalable vector graphics (SVG) image of each page of the book that can be viewed in web browsers that support svg images (Safari, Firefox 4 or later, etc). Additional conversion software can be used to convert these SVG images to an image only PDF file. The DeDRM calibre plugin only imports the HTMLZ versions of the Topaz ebook. The html version can be manually cleaned up and spell checked and then converted using Sigil/calibre to epubs, mobi ebooks, and etc.
 
 ## Are the tools open source? How can I be sure they are safe and not a trojan horse?
@@ -233,8 +186,8 @@ Amazon turned off backup for Kindle for Android, so the tools can no longer find
 Apple regularly change the details of their DRM and so the tools in the main tools archive will not work with these ebooks. Apple’s Fairplay DRM scheme can be removed using Requiem if the appropriate version of iTunes can still be installed and used. See the post Apple and ebooks: iBookstore DRM and how to remove it at Apprentice Alf's blog for more details.
 
 ## I’ve got the tools archive and I’ve read all the FAQs but I still can’t install the tools and/or the DRM removal doesn’t work
-* Read the `ReadMe_First.txt` file in the top level of the tools archive
-* Read the ReadMe file in the folder of the tools you want to use.
+* Read the `ReadMe_Overview.txt` file in the top level of the tools archive
+* Read the ReadMe file for the tool you want to use.
 * If you still can’t remove the DRM, ask in the comments section of Apprentice Alf's blog or create a new issue at Apprentice Harper's github repository, reporting the error as precisely as you can, what platform you use, what tool you have tried, what errors you get, and what versions you are using. If the problem happens when running one of the tools, post a log (see previous questions on how to do this).
 
 ## Who wrote these scripts?
@@ -245,9 +198,8 @@ The authors tend to identify themselves only by pseudonyms:
 * The Amazon K4 Mobi tool was created by by some_updates, mdlnx and others
 * The Amazon Topaz DRM removal script was created by CMBDTC
 * The Amazon Topaz format conversion was created by some_updates, clarknova, and Bart Simpson
-* The DeDRM all-in-one AppleScript application was created by Apprentice Alf
-* The DeDRM all-in-one Python application was created by some_updates
 * The DeDRM all-in-one calibre plugin was created by Apprentice Alf
+* The support for .kinf2018 key files  and KFX 2&3 was by Apprentice Sakuya
 * The Scuolabooks tool was created by Hex
 * The Microsoft code was created by drs
 * The Apple DRM removal tool was created by Brahms
