@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+from __future__ import absolute_import
+from __future__ import print_function
 
 # __init__.py for DeDRM_plugin
 # Copyright © 2008-2020 Apprentice Harper et al.
 
-from __future__ import absolute_import
-from __future__ import print_function
 import six
 __license__   = 'GPL v3'
 __version__ = '6.8.0'
@@ -270,7 +270,7 @@ class DeDRM(FileTypePlugin):
 
             newkeys = []
             for keyvalue in defaultkeys:
-                if keyvalue not in list(dedrmprefs['bandnkeys'].values()):
+                if keyvalue not in dedrmprefs['bandnkeys'].values():
                     newkeys.append(keyvalue)
 
             if len(newkeys) > 0:
@@ -369,7 +369,7 @@ class DeDRM(FileTypePlugin):
 
             newkeys = []
             for keyvalue in defaultkeys:
-                if keyvalue.encode('hex') not in list(dedrmprefs['adeptkeys'].values()):
+                if keyvalue.encode('hex') not in dedrmprefs['adeptkeys'].values():
                     newkeys.append(keyvalue)
 
             if len(newkeys) > 0:
@@ -472,7 +472,7 @@ class DeDRM(FileTypePlugin):
 
         newkeys = []
         for keyvalue in defaultkeys:
-            if keyvalue.encode('hex') not in list(dedrmprefs['adeptkeys'].values()):
+            if keyvalue.encode('hex') not in dedrmprefs['adeptkeys'].values():
                 newkeys.append(keyvalue)
 
         if len(newkeys) > 0:
@@ -562,7 +562,7 @@ class DeDRM(FileTypePlugin):
             newkeys = {}
             for i,keyvalue in enumerate(defaultkeys):
                 keyname = u"default_key_{0:d}".format(i+1)
-                if keyvalue not in list(dedrmprefs['kindlekeys'].values()):
+                if keyvalue not in dedrmprefs['kindlekeys'].values():
                     newkeys[keyname] = keyvalue
             if len(newkeys) > 0:
                 print(u"{0} v{1}: Found {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), u"key" if len(newkeys)==1 else u"keys"))
