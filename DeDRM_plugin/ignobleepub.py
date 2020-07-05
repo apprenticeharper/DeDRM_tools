@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
-import six
-from six.moves import range
+from __future__ import print_function
+from __future__ import absolute_import
 
 # ignobleepub.pyw, version 4.1
 # Copyright © 2009-2010 by i♥cabbages
@@ -43,9 +43,7 @@ from six.moves import range
 """
 Decrypt Barnes & Noble encrypted ePub books.
 """
-from __future__ import print_function
 
-from __future__ import absolute_import
 __license__ = 'GPL v3'
 __version__ = "4.1"
 
