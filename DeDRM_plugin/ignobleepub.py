@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+import six
+from six.moves import range
 
 # ignobleepub.pyw, version 4.1
 # Copyright © 2009-2010 by i♥cabbages
@@ -43,6 +45,7 @@ Decrypt Barnes & Noble encrypted ePub books.
 """
 from __future__ import print_function
 
+from __future__ import absolute_import
 __license__ = 'GPL v3'
 __version__ = "4.1"
 
@@ -65,7 +68,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,six.text_type):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -106,13 +109,13 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         return [u"ineptepub.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return [arg if (type(arg) == six.text_type) else six.text_type(arg,argvencoding) for arg in sys.argv]
 
 
 class IGNOBLEError(Exception):
@@ -338,79 +341,79 @@ def cli_main():
 
 def gui_main():
     try:
-        import Tkinter
-        import Tkconstants
-        import tkFileDialog
-        import tkMessageBox
+        import six.moves.tkinter
+        import six.moves.tkinter_constants
+        import six.moves.tkinter_filedialog
+        import six.moves.tkinter_messagebox
         import traceback
     except:
         return cli_main()
 
-    class DecryptionDialog(Tkinter.Frame):
+    class DecryptionDialog(six.moves.tkinter.Frame):
         def __init__(self, root):
-            Tkinter.Frame.__init__(self, root, border=5)
-            self.status = Tkinter.Label(self, text=u"Select files for decryption")
-            self.status.pack(fill=Tkconstants.X, expand=1)
-            body = Tkinter.Frame(self)
-            body.pack(fill=Tkconstants.X, expand=1)
-            sticky = Tkconstants.E + Tkconstants.W
+            six.moves.tkinter.Frame.__init__(self, root, border=5)
+            self.status = six.moves.tkinter.Label(self, text=u"Select files for decryption")
+            self.status.pack(fill=six.moves.tkinter_constants.X, expand=1)
+            body = six.moves.tkinter.Frame(self)
+            body.pack(fill=six.moves.tkinter_constants.X, expand=1)
+            sticky = six.moves.tkinter_constants.E + six.moves.tkinter_constants.W
             body.grid_columnconfigure(1, weight=2)
-            Tkinter.Label(body, text=u"Key file").grid(row=0)
-            self.keypath = Tkinter.Entry(body, width=30)
+            six.moves.tkinter.Label(body, text=u"Key file").grid(row=0)
+            self.keypath = six.moves.tkinter.Entry(body, width=30)
             self.keypath.grid(row=0, column=1, sticky=sticky)
             if os.path.exists(u"bnepubkey.b64"):
                 self.keypath.insert(0, u"bnepubkey.b64")
-            button = Tkinter.Button(body, text=u"...", command=self.get_keypath)
+            button = six.moves.tkinter.Button(body, text=u"...", command=self.get_keypath)
             button.grid(row=0, column=2)
-            Tkinter.Label(body, text=u"Input file").grid(row=1)
-            self.inpath = Tkinter.Entry(body, width=30)
+            six.moves.tkinter.Label(body, text=u"Input file").grid(row=1)
+            self.inpath = six.moves.tkinter.Entry(body, width=30)
             self.inpath.grid(row=1, column=1, sticky=sticky)
-            button = Tkinter.Button(body, text=u"...", command=self.get_inpath)
+            button = six.moves.tkinter.Button(body, text=u"...", command=self.get_inpath)
             button.grid(row=1, column=2)
-            Tkinter.Label(body, text=u"Output file").grid(row=2)
-            self.outpath = Tkinter.Entry(body, width=30)
+            six.moves.tkinter.Label(body, text=u"Output file").grid(row=2)
+            self.outpath = six.moves.tkinter.Entry(body, width=30)
             self.outpath.grid(row=2, column=1, sticky=sticky)
-            button = Tkinter.Button(body, text=u"...", command=self.get_outpath)
+            button = six.moves.tkinter.Button(body, text=u"...", command=self.get_outpath)
             button.grid(row=2, column=2)
-            buttons = Tkinter.Frame(self)
+            buttons = six.moves.tkinter.Frame(self)
             buttons.pack()
-            botton = Tkinter.Button(
+            botton = six.moves.tkinter.Button(
                 buttons, text=u"Decrypt", width=10, command=self.decrypt)
-            botton.pack(side=Tkconstants.LEFT)
-            Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
-            button = Tkinter.Button(
+            botton.pack(side=six.moves.tkinter_constants.LEFT)
+            six.moves.tkinter.Frame(buttons, width=10).pack(side=six.moves.tkinter_constants.LEFT)
+            button = six.moves.tkinter.Button(
                 buttons, text=u"Quit", width=10, command=self.quit)
-            button.pack(side=Tkconstants.RIGHT)
+            button.pack(side=six.moves.tkinter_constants.RIGHT)
 
         def get_keypath(self):
-            keypath = tkFileDialog.askopenfilename(
+            keypath = six.moves.tkinter_filedialog.askopenfilename(
                 parent=None, title=u"Select Barnes & Noble \'.b64\' key file",
                 defaultextension=u".b64",
                 filetypes=[('base64-encoded files', '.b64'),
                            ('All Files', '.*')])
             if keypath:
                 keypath = os.path.normpath(keypath)
-                self.keypath.delete(0, Tkconstants.END)
+                self.keypath.delete(0, six.moves.tkinter_constants.END)
                 self.keypath.insert(0, keypath)
             return
 
         def get_inpath(self):
-            inpath = tkFileDialog.askopenfilename(
+            inpath = six.moves.tkinter_filedialog.askopenfilename(
                 parent=None, title=u"Select B&N-encrypted ePub file to decrypt",
                 defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
             if inpath:
                 inpath = os.path.normpath(inpath)
-                self.inpath.delete(0, Tkconstants.END)
+                self.inpath.delete(0, six.moves.tkinter_constants.END)
                 self.inpath.insert(0, inpath)
             return
 
         def get_outpath(self):
-            outpath = tkFileDialog.asksaveasfilename(
+            outpath = six.moves.tkinter_filedialog.asksaveasfilename(
                 parent=None, title=u"Select unencrypted ePub file to produce",
                 defaultextension=u".epub", filetypes=[('ePub files', '.epub')])
             if outpath:
                 outpath = os.path.normpath(outpath)
-                self.outpath.delete(0, Tkconstants.END)
+                self.outpath.delete(0, six.moves.tkinter_constants.END)
                 self.outpath.insert(0, outpath)
             return
 
@@ -434,7 +437,7 @@ def gui_main():
             self.status['text'] = u"Decrypting..."
             try:
                 decrypt_status = decryptBook(userkey, inpath, outpath)
-            except Exception, e:
+            except Exception as e:
                 self.status['text'] = u"Error: {0}".format(e.args[0])
                 return
             if decrypt_status == 0:
@@ -442,11 +445,11 @@ def gui_main():
             else:
                 self.status['text'] = u"The was an error decrypting the file."
 
-    root = Tkinter.Tk()
+    root = six.moves.tkinter.Tk()
     root.title(u"Barnes & Noble ePub Decrypter v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(300, 0)
-    DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
+    DecryptionDialog(root).pack(fill=six.moves.tkinter_constants.X, expand=1)
     root.mainloop()
     return 0
 
