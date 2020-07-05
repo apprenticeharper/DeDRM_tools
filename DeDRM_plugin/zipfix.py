@@ -16,12 +16,13 @@ Re-write zip (or ePub) fixing problems with file names (and mimetype entry).
 """
 from __future__ import print_function
 
+from __future__ import absolute_import
 __license__ = 'GPL v3'
 __version__ = "1.1"
 
 import sys
 import zlib
-import zipfilerugged
+from . import zipfilerugged
 import os
 import os.path
 import getopt
@@ -49,7 +50,7 @@ class fixZip:
         self.inzip = zipfilerugged.ZipFile(zinput,'r')
         self.outzip = zipfilerugged.ZipFile(zoutput,'w')
         # open the input zip for reading only as a raw file
-        self.bzf = file(zinput,'rb')
+        self.bzf = open(zinput,'rb')
 
     def getlocalname(self, zi):
         local_header_offset = zi.header_offset
@@ -171,7 +172,7 @@ def repairBook(infile, outfile):
         fr = fixZip(infile, outfile)
         fr.fix()
         return 0
-    except Exception, e:
+    except Exception as e:
         print("Error Occurred ", e)
         return 2
 
