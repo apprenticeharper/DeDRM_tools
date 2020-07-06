@@ -20,13 +20,17 @@ from __future__ import absolute_import
 __license__ = 'GPL v3'
 __version__ = "1.1"
 
+import six
 import sys
 import zlib
-from . import zipfilerugged
 import os
 import os.path
 import getopt
 from struct import unpack
+if six.PY3:
+    import zipfile as zipfilerugged
+else:
+    from . import zipfilerugged
 
 
 _FILENAME_LEN_OFFSET = 26
