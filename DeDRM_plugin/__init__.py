@@ -90,6 +90,7 @@ import time
 import zipfile
 import traceback
 from zipfile import ZipFile
+import codecs
 
 class DeDRMError(Exception):
     pass
@@ -319,7 +320,7 @@ class DeDRM(FileTypePlugin):
 
             # Attempt to decrypt epub with each encryption key (generated or provided).
             for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
-                userkey = userkeyhex.decode('hex')
+                userkey = codecs.decode(userkeyhex, 'hex')
                 print(u"{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
                 of = self.temporary_file(u".epub")
 
@@ -369,7 +370,7 @@ class DeDRM(FileTypePlugin):
 
             newkeys = []
             for keyvalue in defaultkeys:
-                if keyvalue.encode('hex') not in dedrmprefs['adeptkeys'].values():
+                if codecs.encode(keyvalue, 'hex').decode('ascii') not in dedrmprefs['adeptkeys'].values():
                     newkeys.append(keyvalue)
 
             if len(newkeys) > 0:
@@ -393,7 +394,7 @@ class DeDRM(FileTypePlugin):
                             # Store the new successful key in the defaults
                             print(u"{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION))
                             try:
-                                dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key',keyvalue.encode('hex'))
+                                dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key',codecs.encode(keyvalue, 'hex').decode('ascii'))
                                 dedrmprefs.writeprefs()
                                 print(u"{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                             except:
