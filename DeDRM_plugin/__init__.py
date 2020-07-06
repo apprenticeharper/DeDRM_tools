@@ -113,8 +113,12 @@ class SafeUnbuffered:
         if isinstance(data,six.text_type):
             data = data.encode(self.encoding,"replace")
         try:
-            self.stream.write(data)
-            self.stream.flush()
+            if six.PY3:
+                self.stream.buffer.write(data)
+                self.stream.buffer.flush()
+            else:
+                self.stream.write(data)
+                self.stream.flush()
         except:
             # We can do nothing if a write fails
             pass
