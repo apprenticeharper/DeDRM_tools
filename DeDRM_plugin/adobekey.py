@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+from __future__ import absolute_import
 
 # adobekey.pyw, version 6.0
 # Copyright © 2009-2010 i♥cabbages
@@ -51,12 +53,12 @@
 """
 Retrieve Adobe ADEPT user key.
 """
-from __future__ import print_function
-
 __license__ = 'GPL v3'
 __version__ = '6.0'
 
 import sys, os, struct, getopt
+import six
+
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -68,7 +70,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,six.text_type):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -109,7 +111,7 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
         return [u"adobekey.py"]
@@ -117,7 +119,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return [arg if (type(arg) == six.text_type) else six.text_type(arg,argvencoding) for arg in sys.argv]
 
 class ADEPTError(Exception):
     pass
@@ -129,7 +131,7 @@ if iswindows:
         c_long, c_ulong
 
     from ctypes.wintypes import LPVOID, DWORD, BOOL
-    import _winreg as winreg
+    import six.moves.winreg as winreg
 
     def _load_crypto_libcrypto():
         from ctypes.util import find_library
@@ -382,7 +384,7 @@ if iswindows:
             plkroot = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_PATH)
         except WindowsError:
             raise ADEPTError("Could not locate ADE activation")
-        for i in xrange(0, 16):
+        for i in range(0, 16):
             try:
                 plkparent = winreg.OpenKey(plkroot, "%04d" % (i,))
             except WindowsError:
@@ -390,7 +392,7 @@ if iswindows:
             ktype = winreg.QueryValueEx(plkparent, None)[0]
             if ktype != 'credentials':
                 continue
-            for j in xrange(0, 16):
+            for j in range(0, 16):
                 try:
                     plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
                 except WindowsError:
@@ -430,7 +432,7 @@ elif isosx:
         reslst = out1.split('\n')
         cnt = len(reslst)
         ActDatPath = "activation.dat"
-        for j in xrange(cnt):
+        for j in range(cnt):
             resline = reslst[j]
             pp = resline.find('activation.dat')
             if pp >= 0:
@@ -463,7 +465,7 @@ def getkey(outpath):
     if len(keys) > 0:
         if not os.path.isdir(outpath):
             outfile = outpath
-            with file(outfile, 'wb') as keyfileout:
+            with open(outfile, 'wb') as keyfileout:
                 keyfileout.write(keys[0])
             print(u"Saved a key to {0}".format(outfile))
         else:
@@ -474,7 +476,7 @@ def getkey(outpath):
                     outfile = os.path.join(outpath,u"adobekey_{0:d}.der".format(keycount))
                     if not os.path.exists(outfile):
                         break
-                with file(outfile, 'wb') as keyfileout:
+                with open(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
                 print(u"Saved a key to {0}".format(outfile))
         return True
@@ -496,7 +498,7 @@ def cli_main():
 
     try:
         opts, args = getopt.getopt(argv[1:], "h")
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         print(u"Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
@@ -547,27 +549,27 @@ def cli_main():
 
 def gui_main():
     try:
-        import Tkinter
-        import Tkconstants
-        import tkMessageBox
+        import six.moves.tkinter
+        import six.moves.tkinter_constants
+        import six.moves.tkinter_messagebox
         import traceback
     except:
         return cli_main()
 
-    class ExceptionDialog(Tkinter.Frame):
+    class ExceptionDialog(six.moves.tkinter.Frame):
         def __init__(self, root, text):
-            Tkinter.Frame.__init__(self, root, border=5)
-            label = Tkinter.Label(self, text=u"Unexpected error:",
-                                  anchor=Tkconstants.W, justify=Tkconstants.LEFT)
-            label.pack(fill=Tkconstants.X, expand=0)
-            self.text = Tkinter.Text(self)
-            self.text.pack(fill=Tkconstants.BOTH, expand=1)
+            six.moves.tkinter.Frame.__init__(self, root, border=5)
+            label = six.moves.tkinter.Label(self, text=u"Unexpected error:",
+                                  anchor=six.moves.tkinter_constants.W, justify=six.moves.tkinter_constants.LEFT)
+            label.pack(fill=six.moves.tkinter_constants.X, expand=0)
+            self.text = six.moves.tkinter.Text(self)
+            self.text.pack(fill=six.moves.tkinter_constants.BOTH, expand=1)
 
-            self.text.insert(Tkconstants.END, text)
+            self.text.insert(six.moves.tkinter_constants.END, text)
 
 
     argv=unicode_argv()
-    root = Tkinter.Tk()
+    root = six.moves.tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
     success = False
@@ -581,17 +583,17 @@ def gui_main():
                 if not os.path.exists(outfile):
                     break
 
-            with file(outfile, 'wb') as keyfileout:
+            with open(outfile, 'wb') as keyfileout:
                 keyfileout.write(key)
             success = True
-            tkMessageBox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
-    except ADEPTError, e:
-        tkMessageBox.showerror(progname, u"Error: {0}".format(str(e)))
+            six.moves.tkinter_messagebox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
+    except ADEPTError as e:
+        six.moves.tkinter_messagebox.showerror(progname, u"Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
         root.title(progname)
         text = traceback.format_exc()
-        ExceptionDialog(root, text).pack(fill=Tkconstants.BOTH, expand=1)
+        ExceptionDialog(root, text).pack(fill=six.moves.tkinter_constants.BOTH, expand=1)
         root.mainloop()
     if not success:
         return 1
