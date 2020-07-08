@@ -1,7 +1,6 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
 
 # ignoblepdf.py
 # Copyright © 2009-2020 by Apprentice Harper et al.

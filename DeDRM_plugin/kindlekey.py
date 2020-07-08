@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
 
 # kindlekey.py
 # Copyright © 2008-2020 Apprentice Harper et al.

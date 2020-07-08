@@ -1,7 +1,6 @@
 #! /usr/bin/python
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
 
 # ineptpdf.py
 # Copyright © 2009-2017 by Apprentice Harper et al.

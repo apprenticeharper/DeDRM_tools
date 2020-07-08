@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
 
 # adobekey.pyw, version 6.0
 # Copyright © 2009-2010 i♥cabbages

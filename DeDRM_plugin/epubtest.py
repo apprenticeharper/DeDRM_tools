@@ -44,7 +44,6 @@
 # It's still polite to give attribution if you do reuse this code.
 #
 
-from __future__ import with_statement
 from __future__ import print_function
 
 __version__ = '1.01'

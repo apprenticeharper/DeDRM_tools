@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
 
 # androidkindlekey.py
 # Copyright © 2013-15 by Thom and Apprentice Harper

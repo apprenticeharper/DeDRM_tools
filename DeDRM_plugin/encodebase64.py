@@ -14,7 +14,6 @@
 Provide base64 encoding.
 """
 
-from __future__ import with_statement
 from __future__ import print_function
 
 __license__ = 'GPL v3'

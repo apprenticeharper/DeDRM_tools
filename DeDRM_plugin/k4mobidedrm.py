@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
 
 # k4mobidedrm.py
 # Copyright © 2008-2019 by Apprentice Harper et al.

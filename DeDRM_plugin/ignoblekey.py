@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
 
 # ignoblekey.py
 # Copyright © 2015 Apprentice Alf and Apprentice Harper
