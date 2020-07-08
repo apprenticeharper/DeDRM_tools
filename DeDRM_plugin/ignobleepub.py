@@ -113,7 +113,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == six.text_type) else six.text_type(arg,argvencoding) for arg in sys.argv]
+        return [arg if isinstance(arg, six.text_type) else six.text_type(arg,argvencoding) for arg in sys.argv]
 
 
 class IGNOBLEError(Exception):
