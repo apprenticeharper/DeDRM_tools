@@ -62,7 +62,7 @@ class DeDRM_Prefs():
 
     def addnamedvaluetoprefs(self, prefkind, keyname, keyvalue):
         try:
-            if keyvalue not in list(self.dedrmprefs[prefkind].values()):
+            if keyvalue not in self.dedrmprefs[prefkind].values():
                 # ensure that the keyname is unique
                 # by adding a number (starting with 2) to the name if it is not
                 namecount = 1
