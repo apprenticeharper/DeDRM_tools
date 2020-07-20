@@ -13,10 +13,10 @@ import os
 import shutil
 
 
-DEDRM_SRC_DIR = 'DeDRM_Plugin'
-DEDRM_README= 'DeDRM_Plugin_ReadMe.txt'
+DEDRM_SRC_DIR = 'DeDRM_plugin'
+DEDRM_README= 'DeDRM_plugin_ReadMe.txt'
 OBOK_SRC_DIR = 'Obok_plugin'
-OBOK_README = 'Obok_plugin_ReadMe.txt'
+OBOK_README = 'obok_plugin_ReadMe.txt'
 RELEASE_DIR = 'release'
 
 def make_calibre_plugin():
