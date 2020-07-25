@@ -58,6 +58,7 @@ __version__ = '6.0'
 
 import sys, os, struct, getopt
 import six
+from base64 import b64decode
 
 
 # Wrap a stream so that output gets flushed immediately
@@ -174,7 +175,7 @@ if iswindows:
                     raise ADEPTError('Failed to initialize AES key')
             def decrypt(self, data):
                 out = create_string_buffer(len(data))
-                iv = ("\x00" * self._blocksize)
+                iv = (b"\x00" * self._blocksize)
                 rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
                 if rv == 0:
                     raise ADEPTError('AES decryption failed')
@@ -185,7 +186,7 @@ if iswindows:
         from Crypto.Cipher import AES as _AES
         class AES(object):
             def __init__(self, key):
-                self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
+                self._aes = _AES.new(key, _AES.MODE_CBC, b'\x00'*16)
             def decrypt(self, data):
                 return self._aes.decrypt(data)
         return AES
@@ -293,44 +294,44 @@ if iswindows:
 
     if struct.calcsize("P") == 4:
         CPUID0_INSNS = (
-            "\x53"             # push   %ebx
-            "\x31\xc0"         # xor    %eax,%eax
-            "\x0f\xa2"         # cpuid
-            "\x8b\x44\x24\x08" # mov    0x8(%esp),%eax
-            "\x89\x18"         # mov    %ebx,0x0(%eax)
-            "\x89\x50\x04"     # mov    %edx,0x4(%eax)
-            "\x89\x48\x08"     # mov    %ecx,0x8(%eax)
-            "\x5b"             # pop    %ebx
-            "\xc3"             # ret
+            b"\x53"             # push   %ebx
+            b"\x31\xc0"         # xor    %eax,%eax
+            b"\x0f\xa2"         # cpuid
+            b"\x8b\x44\x24\x08" # mov    0x8(%esp),%eax
+            b"\x89\x18"         # mov    %ebx,0x0(%eax)
+            b"\x89\x50\x04"     # mov    %edx,0x4(%eax)
+            b"\x89\x48\x08"     # mov    %ecx,0x8(%eax)
+            b"\x5b"             # pop    %ebx
+            b"\xc3"             # ret
         )
         CPUID1_INSNS = (
-            "\x53"             # push   %ebx
-            "\x31\xc0"         # xor    %eax,%eax
-            "\x40"             # inc    %eax
-            "\x0f\xa2"         # cpuid
-            "\x5b"             # pop    %ebx
-            "\xc3"             # ret
+            b"\x53"             # push   %ebx
+            b"\x31\xc0"         # xor    %eax,%eax
+            b"\x40"             # inc    %eax
+            b"\x0f\xa2"         # cpuid
+            b"\x5b"             # pop    %ebx
+            b"\xc3"             # ret
         )
     else:
         CPUID0_INSNS = (
-            "\x49\x89\xd8"     # mov    %rbx,%r8
-            "\x49\x89\xc9"     # mov    %rcx,%r9
-            "\x48\x31\xc0"     # xor    %rax,%rax
-            "\x0f\xa2"         # cpuid
-            "\x4c\x89\xc8"     # mov    %r9,%rax
-            "\x89\x18"         # mov    %ebx,0x0(%rax)
-            "\x89\x50\x04"     # mov    %edx,0x4(%rax)
-            "\x89\x48\x08"     # mov    %ecx,0x8(%rax)
-            "\x4c\x89\xc3"     # mov    %r8,%rbx
-            "\xc3"             # retq
+            b"\x49\x89\xd8"     # mov    %rbx,%r8
+            b"\x49\x89\xc9"     # mov    %rcx,%r9
+            b"\x48\x31\xc0"     # xor    %rax,%rax
+            b"\x0f\xa2"         # cpuid
+            b"\x4c\x89\xc8"     # mov    %r9,%rax
+            b"\x89\x18"         # mov    %ebx,0x0(%rax)
+            b"\x89\x50\x04"     # mov    %edx,0x4(%rax)
+            b"\x89\x48\x08"     # mov    %ecx,0x8(%rax)
+            b"\x4c\x89\xc3"     # mov    %r8,%rbx
+            b"\xc3"             # retq
         )
         CPUID1_INSNS = (
-            "\x53"             # push   %rbx
-            "\x48\x31\xc0"     # xor    %rax,%rax
-            "\x48\xff\xc0"     # inc    %rax
-            "\x0f\xa2"         # cpuid
-            "\x5b"             # pop    %rbx
-            "\xc3"             # retq
+            b"\x53"             # push   %rbx
+            b"\x48\x31\xc0"     # xor    %rax,%rax
+            b"\x48\xff\xc0"     # inc    %rax
+            b"\x0f\xa2"         # cpuid
+            b"\x5b"             # pop    %rbx
+            b"\xc3"             # retq
         )
 
     def cpuid0():
@@ -406,10 +407,10 @@ if iswindows:
                 if ktype != 'privateLicenseKey':
                     continue
                 userkey = winreg.QueryValueEx(plkkey, 'value')[0]
-                userkey = userkey.decode('base64')
+                userkey = b64decode(userkey)
                 aes = AES(keykey)
                 userkey = aes.decrypt(userkey)
-                userkey = userkey[26:-ord(userkey[-1])]
+                userkey = userkey[26:-ord(userkey[-1:])]
                 #print "found key:",userkey.encode('hex')
                 keys.append(userkey)
         if len(keys) == 0:
@@ -455,7 +456,7 @@ elif isosx:
         adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
         expr = '//%s/%s' % (adept('credentials'), adept('privateLicenseKey'))
         userkey = tree.findtext(expr)
-        userkey = userkey.decode('base64')
+        userkey = b64decode(userkey)
         userkey = userkey[26:]
         return [userkey]
 
@@ -533,7 +534,7 @@ def cli_main():
     if len(keys) > 0:
         if not os.path.isdir(outpath):
             outfile = outpath
-            with file(outfile, 'wb') as keyfileout:
+            with open(outfile, 'wb') as keyfileout:
                 keyfileout.write(keys[0])
             print(u"Saved a key to {0}".format(outfile))
         else:
@@ -544,7 +545,7 @@ def cli_main():
                     outfile = os.path.join(outpath,u"adobekey_{0:d}.der".format(keycount))
                     if not os.path.exists(outfile):
                         break
-                with file(outfile, 'wb') as keyfileout:
+                with open(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
                 print(u"Saved a key to {0}".format(outfile))
     else:
