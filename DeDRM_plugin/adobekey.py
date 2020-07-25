@@ -72,8 +72,13 @@ class SafeUnbuffered:
     def write(self, data):
         if isinstance(data,six.text_type):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        if six.PY3:
+            self.stream.buffer.write(data)
+            self.stream.buffer.flush()
+        else:
+            self.stream.write(data)
+            self.stream.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
