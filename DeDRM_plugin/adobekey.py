@@ -551,27 +551,25 @@ def cli_main():
 
 def gui_main():
     try:
-        import six.moves.tkinter
-        import six.moves.tkinter_constants
         from six.moves import tkinter, tkinter_constants, tkinter_messagebox
         import traceback
     except:
         return cli_main()
 
-    class ExceptionDialog(six.moves.tkinter.Frame):
+    class ExceptionDialog(tkinter.Frame):
         def __init__(self, root, text):
-            six.moves.tkinter.Frame.__init__(self, root, border=5)
-            label = six.moves.tkinter.Label(self, text=u"Unexpected error:",
-                                  anchor=six.moves.tkinter_constants.W, justify=six.moves.tkinter_constants.LEFT)
-            label.pack(fill=six.moves.tkinter_constants.X, expand=0)
-            self.text = six.moves.tkinter.Text(self)
-            self.text.pack(fill=six.moves.tkinter_constants.BOTH, expand=1)
+            tkinter.Frame.__init__(self, root, border=5)
+            label = tkinter.Label(self, text=u"Unexpected error:",
+                                  anchor=tkinter_constants.W, justify=tkinter_constants.LEFT)
+            label.pack(fill=tkinter_constants.X, expand=0)
+            self.text = tkinter.Text(self)
+            self.text.pack(fill=tkinter_constants.BOTH, expand=1)
 
-            self.text.insert(six.moves.tkinter_constants.END, text)
+            self.text.insert(tkinter_constants.END, text)
 
 
     argv=unicode_argv()
-    root = six.moves.tkinter.Tk()
+    root = tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
     success = False
@@ -588,14 +586,14 @@ def gui_main():
             with open(outfile, 'wb') as keyfileout:
                 keyfileout.write(key)
             success = True
-            six.moves.tkinter_messagebox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
+            tkinter_messagebox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
     except ADEPTError as e:
-        six.moves.tkinter_messagebox.showerror(progname, u"Error: {0}".format(str(e)))
+        tkinter_messagebox.showerror(progname, u"Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
         root.title(progname)
         text = traceback.format_exc()
-        ExceptionDialog(root, text).pack(fill=six.moves.tkinter_constants.BOTH, expand=1)
+        ExceptionDialog(root, text).pack(fill=tkinter_constants.BOTH, expand=1)
         root.mainloop()
     if not success:
         return 1
