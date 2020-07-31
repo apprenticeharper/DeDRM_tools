@@ -122,7 +122,7 @@ def unicode_argv():
         # this should never happen
         return [u"adobekey.py"]
     else:
-        argvencoding = sys.stdin.encoding
+        argvencoding = sys.stdin.encoding or "utf-8"
         if argvencoding == None:
             argvencoding = "utf-8"
         return [arg if isinstance(arg, six.text_type) else six.text_type(arg, argvencoding) for arg in sys.argv]
