@@ -555,7 +555,7 @@ def gui_main():
     try:
         import six.moves.tkinter
         import six.moves.tkinter_constants
-        import six.moves.tkinter_messagebox
+        from six.moves import tkinter, tkinter_constants, tkinter_messagebox
         import traceback
     except:
         return cli_main()
