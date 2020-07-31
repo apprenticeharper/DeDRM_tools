@@ -51,6 +51,7 @@ import os
 import traceback
 import zlib
 import zipfile
+import six
 from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
 from contextlib import closing
 import xml.etree.ElementTree as etree
