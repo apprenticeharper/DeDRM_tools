@@ -127,6 +127,7 @@ class DeDRM(FileTypePlugin):
     minimum_calibre_version = (1, 0, 0)  # Compiled python libraries cannot be imported in earlier versions.
     file_types              = set(['epub','pdf','pdb','prc','mobi','pobi','azw','azw1','azw3','azw4','azw8','tpz','kfx','kfx-zip'])
     on_import               = True
+    on_preprocess           = True
     priority                = 600
 
 
