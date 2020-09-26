@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# zipfix.py, version 1.1
-# Copyright © 2010-2013 by some_updates, DiapDealer and Apprentice Alf
+# zipfix.py
+# Copyright © 2010-2020 by some_updates, DiapDealer and Apprentice Alf
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -10,6 +10,7 @@
 # Revision history:
 #   1.0 - Initial release
 #   1.1 - Updated to handle zip file metadata correctly
+#   2.0 - Added Python 3 compatibility for calibre 5.0
 
 """
 Re-write zip (or ePub) fixing problems with file names (and mimetype entry).
@@ -21,7 +22,7 @@ __version__ = "1.1"
 
 import sys
 import zlib
-import zipfilerugged
+import calibre_plugins.dedrm.zipfilerugged as zipfilerugged
 import os
 import os.path
 import getopt
@@ -49,7 +50,7 @@ class fixZip:
         self.inzip = zipfilerugged.ZipFile(zinput,'r')
         self.outzip = zipfilerugged.ZipFile(zoutput,'w')
         # open the input zip for reading only as a raw file
-        self.bzf = file(zinput,'rb')
+        self.bzf = open(zinput,'rb')
 
     def getlocalname(self, zi):
         local_header_offset = zi.header_offset
@@ -115,7 +116,7 @@ class fixZip:
         # if epub write mimetype file first, with no compression
         if self.ztype == 'epub':
             # first get a ZipInfo with current time and no compression
-            mimeinfo = ZipInfo('mimetype',compress_type=zipfilerugged.ZIP_STORED)
+            mimeinfo = ZipInfo(b'mimetype',compress_type=zipfilerugged.ZIP_STORED)
             mimeinfo.internal_attr = 1 # text file
             try:
                 # if the mimetype is present, get its info, including time-stamp
@@ -129,7 +130,7 @@ class fixZip:
                 mimeinfo.create_system = oldmimeinfo.create_system
             except:
                 pass
-            self.outzip.writestr(mimeinfo, _MIMETYPE)
+            self.outzip.writestr(mimeinfo, _MIMETYPE.encode('ascii'))
 
         # write the rest of the files
         for zinfo in self.inzip.infolist():
@@ -171,7 +172,7 @@ def repairBook(infile, outfile):
         fr = fixZip(infile, outfile)
         fr.fix()
         return 0
-    except Exception, e:
+    except Exception as e:
         print("Error Occurred ", e)
         return 2
 

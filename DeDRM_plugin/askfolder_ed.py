@@ -29,6 +29,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+# Adjusted for Python 3, September 2020
+
 """
 AskFolder(...) -- Ask the user to select a folder Windows specific
 """
@@ -164,15 +166,15 @@ def AskFolder(
     def BrowseCallback(hwnd, uMsg, lParam, lpData):
         if uMsg == BFFM_INITIALIZED:
             if actionButtonLabel:
-                label = unicode(actionButtonLabel, errors='replace')
+                label = actionButtonLabel.decode('utf-8', 'replace')
                 user32.SendMessageW(hwnd, BFFM_SETOKTEXT, 0, label)
             if cancelButtonLabel:
-                label = unicode(cancelButtonLabel, errors='replace')
+                label = cancelButtonLabel.decode('utf-8', 'replace')
                 cancelButton = user32.GetDlgItem(hwnd, IDCANCEL)
                 if cancelButton:
                     user32.SetWindowTextW(cancelButton, label)
             if windowTitle:
-                title = unicode(windowTitle, erros='replace')
+                title = windowTitle.decode('utf-8', 'replace')
                 user32.SetWindowTextW(hwnd, title)
             if defaultLocation:
                 user32.SendMessageW(hwnd, BFFM_SETSELECTIONW, 1, defaultLocation.replace('/', '\\'))

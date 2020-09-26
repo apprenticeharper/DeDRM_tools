@@ -6,6 +6,8 @@ from __future__ import print_function
 
 __license__ = 'GPL v3'
 
+# Added Python 3 compatibility, September 2020
+
 # Standard Python modules.
 import os, traceback, json
 
@@ -22,7 +24,7 @@ try:
     from PyQt5 import Qt as QtGui
 except ImportError:
     from PyQt4 import QtGui
-    
+
 from zipfile import ZipFile
 
 # calibre modules and constants.
@@ -123,7 +125,7 @@ class ConfigWidget(QWidget):
     def kindle_serials(self):
         d = ManageKeysDialog(self,u"EInk Kindle Serial Number",self.tempdedrmprefs['serials'], AddSerialDialog)
         d.exec_()
-        
+
     def kindle_android(self):
         d = ManageKeysDialog(self,u"Kindle for Android Key",self.tempdedrmprefs['androidkeys'], AddAndroidDialog, 'k4a')
         d.exec_()
@@ -289,7 +291,7 @@ class ManageKeysDialog(QDialog):
 
     def getwineprefix(self):
         if self.wineprefix is not None:
-            return unicode(self.wp_lineedit.text()).strip()
+            return self.wp_lineedit.text().strip()
         return u""
 
     def populate_list(self):
@@ -338,7 +340,7 @@ class ManageKeysDialog(QDialog):
         if d.result() != d.Accepted:
             # rename cancelled or moot.
             return
-        keyname = unicode(self.listy.currentItem().text())
+        keyname = self.listy.currentItem().text()
         if not question_dialog(self, "{0} {1}: Confirm Rename".format(PLUGIN_NAME, PLUGIN_VERSION), u"Do you really want to rename the {2} named <strong>{0}</strong> to <strong>{1}</strong>?".format(keyname,d.key_name,self.key_type_name), show_copy_button=False, default_yes=False):
             return
         self.plugin_keys[d.key_name] = self.plugin_keys[keyname]
@@ -350,7 +352,7 @@ class ManageKeysDialog(QDialog):
     def delete_key(self):
         if not self.listy.currentItem():
             return
-        keyname = unicode(self.listy.currentItem().text())
+        keyname = self.listy.currentItem().text()
         if not question_dialog(self, "{0} {1}: Confirm Delete".format(PLUGIN_NAME, PLUGIN_VERSION), u"Do you really want to delete the {1} <strong>{0}</strong>?".format(keyname, self.key_type_name), show_copy_button=False, default_yes=False):
             return
         if type(self.plugin_keys) == dict:
@@ -388,7 +390,7 @@ class ManageKeysDialog(QDialog):
                 with open(fpath,'rb') as keyfile:
                     new_key_value = keyfile.read()
                 if self.binary_file:
-                    new_key_value = new_key_value.encode('hex')
+                    new_key_value = new_key_value.hex()
                 elif self.json_file:
                     new_key_value = json.loads(new_key_value)
                 elif self.android_file:
@@ -412,7 +414,7 @@ class ManageKeysDialog(QDialog):
                     else:
                         counter += 1
                         self.plugin_keys[new_key_name] = new_key_value
-                            
+
             msg = u""
             if counter+skipped > 1:
                 if counter > 0:
@@ -434,7 +436,7 @@ class ManageKeysDialog(QDialog):
             r = error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
                                     _(errmsg), show=True, show_copy_button=False)
             return
-        keyname = unicode(self.listy.currentItem().text())
+        keyname = self.listy.currentItem().text()
         unique_dlg_name = PLUGIN_NAME + u"export {0} keys".format(self.key_type_name).replace(' ', '_') #takes care of automatically remembering last directory
         caption = u"Save {0} File as...".format(self.key_type_name)
         filters = [(u"{0} Files".format(self.key_type_name), [u"{0}".format(self.keyfile_ext)])]
@@ -485,7 +487,7 @@ class RenameKeyDialog(QDialog):
         self.resize(self.sizeHint())
 
     def accept(self):
-        if not unicode(self.key_ledit.text()) or unicode(self.key_ledit.text()).isspace():
+        if not self.key_ledit.text() or self.key_ledit.text().isspace():
             errmsg = u"Key name field cannot be empty!"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION),
                                     _(errmsg), show=True, show_copy_button=False)
@@ -506,7 +508,7 @@ class RenameKeyDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
 
 
@@ -589,19 +591,19 @@ class AddBandNKeyDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     @property
     def key_value(self):
-        return unicode(self.key_display.text()).strip()
+        return self.key_display.text().strip()
 
     @property
     def user_name(self):
-        return unicode(self.name_ledit.text()).strip().lower().replace(' ','')
+        return self.name_ledit.text().strip().lower().replace(' ','')
 
     @property
     def cc_number(self):
-        return unicode(self.cc_ledit.text()).strip()
+        return self.cc_ledit.text().strip()
 
     def retrieve_key(self):
         from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as fetch_bandn_key
@@ -675,7 +677,7 @@ class AddEReaderDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     @property
     def key_value(self):
@@ -684,11 +686,11 @@ class AddEReaderDialog(QDialog):
 
     @property
     def user_name(self):
-        return unicode(self.name_ledit.text()).strip().lower().replace(' ','')
+        return self.name_ledit.text().strip().lower().replace(' ','')
 
     @property
     def cc_number(self):
-        return unicode(self.cc_ledit.text()).strip().replace(' ', '').replace('-','')
+        return self.cc_ledit.text().strip().replace(' ', '').replace('-','')
 
 
     def accept(self):
@@ -758,7 +760,7 @@ class AddAdeptDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     @property
     def key_value(self):
@@ -819,7 +821,7 @@ class AddKindleDialog(QDialog):
             default_key_error = QLabel(u"The default encryption key for Kindle for Mac/PC could not be found.", self)
             default_key_error.setAlignment(Qt.AlignHCenter)
             layout.addWidget(default_key_error)
-            
+
             # if no default, both buttons do the same
             self.button_box.accepted.connect(self.reject)
 
@@ -830,7 +832,7 @@ class AddKindleDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     @property
     def key_value(self):
@@ -876,11 +878,11 @@ class AddSerialDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     @property
     def key_value(self):
-        return unicode(self.key_ledit.text()).replace(' ', '')
+        return self.key_ledit.text().replace(' ', '')
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():
@@ -916,7 +918,7 @@ class AddAndroidDialog(QDialog):
         self.selected_file_name = QLabel(u"",self)
         self.selected_file_name.setAlignment(Qt.AlignHCenter)
         file_group.addWidget(self.selected_file_name)
-        
+
         key_group = QHBoxLayout()
         data_group_box_layout.addLayout(key_group)
         key_group.addWidget(QLabel(u"Unique Key Name:", self))
@@ -926,7 +928,7 @@ class AddAndroidDialog(QDialog):
         #key_label = QLabel(_(''), self)
         #key_label.setAlignment(Qt.AlignHCenter)
         #data_group_box_layout.addWidget(key_label)
-        
+
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         layout.addWidget(self.button_box)
@@ -934,16 +936,16 @@ class AddAndroidDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     @property
     def file_name(self):
-        return unicode(self.selected_file_name.text()).strip()
+        return self.selected_file_name.text().strip()
 
     @property
     def key_value(self):
         return self.serials_from_file
-        
+
     def get_android_file(self):
         unique_dlg_name = PLUGIN_NAME + u"Import Kindle for Android backup file" #takes care of automatically remembering last directory
         caption = u"Select Kindle for Android backup file to add"
@@ -961,7 +963,7 @@ class AddAndroidDialog(QDialog):
                     file_name = os.path.basename(self.filename)
                     self.serials_from_file.extend(file_serials)
         self.selected_file_name.setText(file_name)
-    
+
 
     def accept(self):
         if len(self.file_name) == 0 or len(self.key_value) == 0:
@@ -1004,11 +1006,11 @@ class AddPIDDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     @property
     def key_value(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():

@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+from __future__ import print_function
 
-# ignoblekeygen.pyw, version 2.5
-# Copyright © 2009-2010 i♥cabbages
+# ignoblekeygen.pyw
+# Copyright © 2009-2020 i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
-
-# Modified 2010–2013 by some_updates, DiapDealer and Apprentice Alf
 
 # Windows users: Before running this program, you must first install Python.
 #   We recommend ActiveState Python 2.7.X for Windows (x86) from
@@ -34,14 +33,14 @@ from __future__ import with_statement
 #   2.6 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   2.7 - Work if TkInter is missing
 #   2.8 - Fix bug in stand-alone use (import tkFileDialog)
+#   3.0 - Added Python 3 compatibility for calibre 5.0
 
 """
 Generate Barnes & Noble EPUB user key from name and credit card number.
 """
-from __future__ import print_function
 
 __license__ = 'GPL v3'
-__version__ = "2.8"
+__version__ = "3.0"
 
 import sys
 import os
@@ -57,7 +56,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,bytes):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -98,7 +97,7 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
         return [u"ignoblekeygen.py"]
@@ -106,7 +105,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return argv
 
 
 class IGNOBLEError(Exception):
@@ -199,9 +198,9 @@ def normalize_name(name):
 
 def generate_key(name, ccn):
     # remove spaces and case from name and CC numbers.
-    if type(name)==unicode:
+    if type(name)==bytes:
         name = name.encode('utf-8')
-    if type(ccn)==unicode:
+    if type(ccn)==bytes:
         ccn = ccn.encode('utf-8')
 
     name = normalize_name(name) + '\x00'
@@ -306,7 +305,7 @@ def gui_main():
             self.status['text'] = u"Generating..."
             try:
                 userkey = generate_key(name, ccn)
-            except Exception, e:
+            except Exception as e:
                 self.status['text'] = u"Error: (0}".format(e.args[0])
                 return
             open(keypath,'wb').write(userkey)

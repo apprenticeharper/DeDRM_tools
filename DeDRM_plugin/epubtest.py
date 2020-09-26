@@ -10,6 +10,7 @@
 # Changelog epubtest
 #  1.00 - Cut to epubtest.py, testing ePub files only by Apprentice Alf
 #  1.01 - Added routine for use by Windows DeDRM
+#  2.00 - Added Python 3 compatibility, September 2020
 #
 # Written in 2011 by Paul Durrant
 # Released with unlicense. See http://unlicense.org/
@@ -47,7 +48,7 @@
 from __future__ import with_statement
 from __future__ import print_function
 
-__version__ = '1.01'
+__version__ = '2.0'
 
 import sys, struct, os, traceback
 import zlib
@@ -116,7 +117,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return arg
 
 _FILENAME_LEN_OFFSET = 26
 _EXTRA_LEN_OFFSET = 28

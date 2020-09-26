@@ -4,10 +4,10 @@
 from __future__ import with_statement
 
 # k4mobidedrm.py
-# Copyright © 2008-2019 by Apprentice Harper et al.
+# Copyright © 2008-2020 by Apprentice Harper et al.
 
 __license__ = 'GPL v3'
-__version__ = '5.7'
+__version__ = '6.0'
 
 # Engine to remove drm from Kindle and Mobipocket ebooks
 # for personal use for archiving and converting your ebooks
@@ -62,6 +62,8 @@ __version__ = '5.7'
 #  5.5 - Added GPL v3 licence explicitly.
 #  5.6 - Invoke KFXZipBook to handle zipped KFX files
 #  5.7 - Revamp cleanup_name
+#  6.0 - Added Python 3 compatibility for calibre 5.0
+
 
 import sys, os, re
 import csv
@@ -69,7 +71,7 @@ import getopt
 import re
 import traceback
 import time
-import htmlentitydefs
+import html.entities
 import json
 
 class DrmException(Exception):
@@ -103,7 +105,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,bytes):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -141,7 +143,7 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
         return [u"mobidedrm.py"]
@@ -149,7 +151,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return argv
 
 # cleanup unicode filenames
 # borrowed from calibre from calibre/src/calibre/__init__.py
@@ -161,7 +163,7 @@ def cleanup_name(name):
     # substitute filename unfriendly characters
     name = name.replace(u"<",u"[").replace(u">",u"]").replace(u" : ",u" – ").replace(u": ",u" – ").replace(u":",u"—").replace(u"/",u"_").replace(u"\\",u"_").replace(u"|",u"_").replace(u"\"",u"\'").replace(u"*",u"_").replace(u"?",u"")
     # white space to single space, delete leading and trailing while space
-    name = re.sub(ur"\s", u" ", name).strip()
+    name = re.sub(r"\s", u" ", name).strip()
     # delete control characters
     name = u"".join(char for char in name if ord(char)>=32)
     # delete non-ascii characters
@@ -184,19 +186,19 @@ def unescape(text):
             # character reference
             try:
                 if text[:3] == u"&#x":
-                    return unichr(int(text[3:-1], 16))
+                    return chr(int(text[3:-1], 16))
                 else:
-                    return unichr(int(text[2:-1]))
+                    return chr(int(text[2:-1]))
             except ValueError:
                 pass
         else:
             # named entity
             try:
-                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+                text = chr(htmlentitydefs.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
         return text # leave as is
-    return re.sub(u"&#?\w+;", fixup, text)
+    return re.sub(u"&#?\\w+;", fixup, text)
 
 def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime = time.time()):
     # handle the obvious cases at the beginning
@@ -220,7 +222,7 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
         mb = topazextract.TopazBook(infile)
 
     bookname = unescape(mb.getBookTitle())
-    print u"Decrypting {1} ebook: {0}".format(bookname, mb.getBookType())
+    print(u"Decrypting {1} ebook: {0}".format(bookname, mb.getBookType()))
 
     # copy list of pids
     totalpids = list(pids)
@@ -232,7 +234,7 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
     totalpids.extend(kgenpids.getPidList(md1, md2, serials, kDatabases))
     # remove any duplicates
     totalpids = list(set(totalpids))
-    print u"Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(totalpids))
+    print(u"Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(totalpids)))
     #print totalpids
 
     try:
@@ -241,7 +243,7 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
         mb.cleanup
         raise
 
-    print u"Decryption succeeded after {0:.1f} seconds".format(time.time()-starttime)
+    print(u"Decryption succeeded after {0:.1f} seconds".format(time.time()-starttime))
     return mb
 
 
@@ -255,16 +257,16 @@ def decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids):
             with open(dbfile, 'r') as keyfilein:
                 kindleDatabase = json.loads(keyfilein.read())
             kDatabases.append([dbfile,kindleDatabase])
-        except Exception, e:
-            print u"Error getting database from file {0:s}: {1:s}".format(dbfile,e)
+        except Exception as e:
+            print(u"Error getting database from file {0:s}: {1:s}".format(dbfile,e))
             traceback.print_exc()
 
 
 
     try:
         book = GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime)
-    except Exception, e:
-        print u"Error decrypting book after {1:.1f} seconds: {0}".format(e.args[0],time.time()-starttime)
+    except Exception as e:
+        print(u"Error decrypting book after {1:.1f} seconds: {0}".format(e.args[0],time.time()-starttime))
         traceback.print_exc()
         return 1
 
@@ -287,12 +289,12 @@ def decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids):
     outfile = os.path.join(outdir, outfilename + book.getBookExtension())
 
     book.getFile(outfile)
-    print u"Saved decrypted book {1:s} after {0:.1f} seconds".format(time.time()-starttime, outfilename)
+    print(u"Saved decrypted book {1:s} after {0:.1f} seconds".format(time.time()-starttime, outfilename))
 
     if book.getBookType()==u"Topaz":
         zipname = os.path.join(outdir, outfilename + u"_SVG.zip")
         book.getSVGZip(zipname)
-        print u"Saved SVG ZIP Archive for {1:s} after {0:.1f} seconds".format(time.time()-starttime, outfilename)
+        print(u"Saved SVG ZIP Archive for {1:s} after {0:.1f} seconds".format(time.time()-starttime, outfilename))
 
     # remove internal temporary directory of Topaz pieces
     book.cleanup()
@@ -300,9 +302,9 @@ def decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids):
 
 
 def usage(progname):
-    print u"Removes DRM protection from Mobipocket, Amazon KF8, Amazon Print Replica and Amazon Topaz ebooks"
-    print u"Usage:"
-    print u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] [ -a <AmazonSecureStorage.xml|backup.ab> ] <infile> <outdir>".format(progname)
+    print(u"Removes DRM protection from Mobipocket, Amazon KF8, Amazon Print Replica and Amazon Topaz ebooks")
+    print(u"Usage:")
+    print(u"    {0} [-k <kindle.k4i>] [-p <comma separated PIDs>] [-s <comma separated Kindle serial numbers>] [ -a <AmazonSecureStorage.xml|backup.ab> ] <infile> <outdir>".format(progname))
 
 #
 # Main
@@ -310,12 +312,12 @@ def usage(progname):
 def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"K4MobiDeDrm v{0}.\nCopyright © 2008-2017 Apprentice Harper et al.".format(__version__)
+    print(u"K4MobiDeDrm v{0}.\nCopyright © 2008-2017 Apprentice Harper et al.".format(__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "k:p:s:a:")
-    except getopt.GetoptError, err:
-        print u"Error in options or arguments: {0}".format(err.args[0])
+    except getopt.GetoptError as err:
+        print(u"Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
     if len(args)<2:

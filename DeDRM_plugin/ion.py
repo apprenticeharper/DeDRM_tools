@@ -7,7 +7,7 @@ from __future__ import with_statement
 # Copyright © 2013-2020 Apprentice Harper et al.
 
 __license__ = 'GPL v3'
-__version__ = '2.0'
+__version__ = '3.0'
 
 # Revision history:
 #  Pascal implementation by lulzkabulz.
@@ -17,7 +17,7 @@ __version__ = '2.0'
 #  1.2   - Added pylzma import fallback
 #  1.3   - Fixed lzma support for calibre 4.6+
 #  2.0   - VoucherEnvelope v2/v3 support by apprenticesakuya.
-
+#  3.0   - Added Python 3 compatibility for calibre 5.0
 
 """
 Decrypt Kindle KFX files.
@@ -33,7 +33,10 @@ import struct
 try:
     from cStringIO import StringIO
 except ImportError:
-    from StringIO import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 from Crypto.Cipher import AES
 from Crypto.Util.py3compat import bchr, bord

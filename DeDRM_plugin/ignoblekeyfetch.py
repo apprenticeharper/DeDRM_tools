@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+from __future__ import print_function
 
-# ignoblekeyfetch.pyw, version 1.1
-# Copyright © 2015 Apprentice Harper
+# ignoblekeyfetch.pyw, version 2.0
+# Copyright © 2015-2020 Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -24,11 +25,11 @@ from __future__ import with_statement
 # Revision history:
 #   1.0 - Initial  version
 #   1.1 - Try second URL if first one fails
+#   2.0 - Added Python 3 compatibility for calibre 5.0
 
 """
 Fetch Barnes & Noble EPUB user key from B&N servers using email and password
 """
-from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = "1.1"
@@ -46,7 +47,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,bytes):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -87,7 +88,7 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
         return [u"ignoblekeyfetch.py"]
@@ -95,7 +96,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return argv
 
 
 class IGNOBLEError(Exception):
@@ -103,9 +104,9 @@ class IGNOBLEError(Exception):
 
 def fetch_key(email, password):
     # change email and password to utf-8 if unicode
-    if type(email)==unicode:
+    if type(email)==bytes:
         email = email.encode('utf-8')
-    if type(password)==unicode:
+    if type(password)==bytes:
         password = password.encode('utf-8')
 
     import random
@@ -236,7 +237,7 @@ def gui_main():
             self.status['text'] = u"Fetching..."
             try:
                 userkey = fetch_key(email, password)
-            except Exception, e:
+            except Exception as e:
                 self.status['text'] = u"Error: {0}".format(e.args[0])
                 return
             if len(userkey) == 28:

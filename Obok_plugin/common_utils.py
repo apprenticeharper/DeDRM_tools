@@ -427,7 +427,7 @@ class KeyValueComboBox(QComboBox):
 
     def selected_key(self):
         for key, value in self.values.iteritems():
-            if value == unicode(self.currentText()).strip():
+            if value == self.currentText().strip():
                 return key
 
 
@@ -450,7 +450,7 @@ class KeyComboBox(QComboBox):
 
     def selected_key(self):
         for key, value in self.values.iteritems():
-            if key == unicode(self.currentText()).strip():
+            if key == self.currentText().strip():
                 return key
 
 

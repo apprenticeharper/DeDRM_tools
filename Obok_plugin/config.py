@@ -75,7 +75,7 @@ class ConfigWidget(QWidget):
 
 
     def save_settings(self):
-        plugin_prefs['finding_homes_for_formats'] = unicode(self.find_homes.currentText())
+        plugin_prefs['finding_homes_for_formats'] = self.find_homes.currentText()
         plugin_prefs['kobo_serials'] = self.tmpserials
         plugin_prefs['kobo_directory'] = self.kobodirectory
 
@@ -165,7 +165,7 @@ class ManageKeysDialog(QDialog):
     def delete_key(self):
         if not self.listy.currentItem():
             return
-        keyname = unicode(self.listy.currentItem().text())
+        keyname = self.listy.currentItem().text()
         if not question_dialog(self, "{0} {1}: Confirm Delete".format(PLUGIN_NAME, PLUGIN_VERSION), u"Do you really want to delete the {1} <strong>{0}</strong>?".format(keyname, self.key_type_name), show_copy_button=False, default_yes=False):
             return
         self.plugin_keys.remove(keyname)
@@ -202,11 +202,11 @@ class AddSerialDialog(QDialog):
 
     @property
     def key_name(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     @property
     def key_value(self):
-        return unicode(self.key_ledit.text()).strip()
+        return self.key_ledit.text().strip()
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():

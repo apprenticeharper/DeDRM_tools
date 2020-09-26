@@ -46,7 +46,7 @@ class SimplePrefs(object):
                     try :
                         data = file(filepath,'rb').read()
                         self.prefs[key] = data
-                    except Exception, e:
+                    except Exception as e:
                         pass
 
     def getPreferences(self):
@@ -71,7 +71,7 @@ class SimplePrefs(object):
                     else:
                         try:
                             file(filepath,'wb').write(data)
-                        except Exception, e:
+                        except Exception as e:
                             pass
         self.prefs = newprefs
         return

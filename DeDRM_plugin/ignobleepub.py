@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+from __future__ import print_function
 
 # ignobleepub.pyw, version 4.1
 # Copyright © 2009-2010 by i♥cabbages
@@ -37,14 +38,14 @@ from __future__ import with_statement
 #   3.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   4.0 - Work if TkInter is missing
 #   4.1 - Import tkFileDialog, don't assume something else will import it.
+#   5.0 - Added Python 3 compatibility for calibre 5.0
 
 """
 Decrypt Barnes & Noble encrypted ePub books.
 """
-from __future__ import print_function
 
 __license__ = 'GPL v3'
-__version__ = "4.1"
+__version__ = "5.0"
 
 import sys
 import os
@@ -65,7 +66,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,bytes):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -106,13 +107,13 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         return [u"ineptepub.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return argv
 
 
 class IGNOBLEError(Exception):
@@ -434,7 +435,7 @@ def gui_main():
             self.status['text'] = u"Decrypting..."
             try:
                 decrypt_status = decryptBook(userkey, inpath, outpath)
-            except Exception, e:
+            except Exception as e:
                 self.status['text'] = u"Error: {0}".format(e.args[0])
                 return
             if decrypt_status == 0:

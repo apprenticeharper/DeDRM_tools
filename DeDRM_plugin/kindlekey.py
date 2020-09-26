@@ -7,7 +7,7 @@ from __future__ import with_statement
 # Copyright © 2008-2020 Apprentice Harper et al.
 
 __license__ = 'GPL v3'
-__version__ = '2.7'
+__version__ = '3.0'
 
 # Revision history:
 #  1.0   - Kindle info file decryption, extracted from k4mobidedrm, etc.
@@ -30,6 +30,7 @@ __version__ = '2.7'
 #  2.5   - Final Fix for Windows user names with non-ascii characters, thanks to oneofusoneofus
 #  2.6   - Start adding support for Kindle 1.25+ .kinf2018 file
 #  2.7   - Finish .kinf2018 support, PC & Mac by Apprentice Sakuya
+#  3.0   - Added Python 3 compatibility for calibre 5.0
 
 
 """
@@ -37,7 +38,7 @@ Retrieve Kindle for PC/Mac user key.
 """
 
 import sys, os, re
-from struct import pack, unpack
+from struct import pack, unpack, unpack_from
 import json
 import getopt
 
@@ -108,7 +109,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return arg
 
 class DrmException(Exception):
     pass
@@ -299,7 +300,7 @@ if iswindows:
                 numBlocks, numExtraBytes = divmod(len(self.bytesToDecrypt), self.blockSize)
                 if more == None:  # no more calls to decrypt, should have all the data
                     if numExtraBytes  != 0:
-                        raise DecryptNotBlockAlignedError, 'Data not block aligned on decrypt'
+                        raise DecryptNotBlockAlignedError('Data not block aligned on decrypt')
 
                 # hold back some bytes in case last decrypt has zero len
                 if (more != None) and (numExtraBytes == 0) and (numBlocks >0) :
@@ -341,7 +342,7 @@ if iswindows:
             def removePad(self, paddedBinaryString, blockSize):
                 """ Remove padding from a binary string """
                 if not(0<len(paddedBinaryString)):
-                    raise DecryptNotBlockAlignedError, 'Expected More Data'
+                    raise DecryptNotBlockAlignedError('Expected More Data')
                 return paddedBinaryString[:-ord(paddedBinaryString[-1])]
 
         class noPadding(Pad):
@@ -649,7 +650,7 @@ if iswindows:
             def __init__(self, key = None, padding = padWithPadLen(), keySize=16):
                 """ Initialize AES, keySize is in bytes """
                 if  not (keySize == 16 or keySize == 24 or keySize == 32) :
-                    raise BadKeySizeError, 'Illegal AES key size, must be 16, 24, or 32 bytes'
+                    raise BadKeySizeError('Illegal AES key size, must be 16, 24, or 32 bytes')
 
                 Rijndael.__init__( self, key, padding=padding, keySize=keySize, blockSize=16 )
 
@@ -935,7 +936,6 @@ if iswindows:
     # Returns Environmental Variables that contain unicode
     def getEnvironmentVariable(name):
         import ctypes
-        name = unicode(name) # make sure string argument is unicode
         n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
         if n == 0:
             return None
@@ -1166,9 +1166,9 @@ if iswindows:
             # store values used in decryption
             DB['IDString'] = GetIDString()
             DB['UserName'] = GetUserName()
-            print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex'))
+            print(u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex')))
         else:
-            print u"Couldn't decrypt file."
+            print(u"Couldn't decrypt file.")
             DB = {}
         return DB
 elif isosx:
@@ -1649,11 +1649,11 @@ elif isosx:
                 pass
         if len(DB)>6:
             # store values used in decryption
-            print u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName())
+            print(u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName()))
             DB['IDString'] = IDString
             DB['UserName'] = GetUserName()
         else:
-            print u"Couldn't decrypt file."
+            print(u"Couldn't decrypt file.")
             DB = {}
         return DB
 else:
@@ -1683,7 +1683,7 @@ def getkey(outpath, files=[]):
             outfile = outpath
             with file(outfile, 'w') as keyfileout:
                 keyfileout.write(json.dumps(keys[0]))
-            print u"Saved a key to {0}".format(outfile)
+            print(u"Saved a key to {0}".format(outfile))
         else:
             keycount = 0
             for key in keys:
@@ -1694,16 +1694,16 @@ def getkey(outpath, files=[]):
                         break
                 with file(outfile, 'w') as keyfileout:
                     keyfileout.write(json.dumps(key))
-                print u"Saved a key to {0}".format(outfile)
+                print(u"Saved a key to {0}".format(outfile))
         return True
     return False
 
 def usage(progname):
-    print u"Finds, decrypts and saves the default Kindle For Mac/PC encryption keys."
-    print u"Keys are saved to the current directory, or a specified output directory."
-    print u"If a file name is passed instead of a directory, only the first key is saved, in that file."
-    print u"Usage:"
-    print u"    {0:s} [-h] [-k <kindle.info>] [<outpath>]".format(progname)
+    print(u"Finds, decrypts and saves the default Kindle For Mac/PC encryption keys.")
+    print(u"Keys are saved to the current directory, or a specified output directory.")
+    print(u"If a file name is passed instead of a directory, only the first key is saved, in that file.")
+    print(u"Usage:")
+    print(u"    {0:s} [-h] [-k <kindle.info>] [<outpath>]".format(progname))
 
 
 def cli_main():
@@ -1711,12 +1711,12 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print u"{0} v{1}\nCopyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__)
+    print(u"{0} v{1}\nCopyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "hk:")
-    except getopt.GetoptError, err:
-        print u"Error in options or arguments: {0}".format(err.args[0])
+    except getopt.GetoptError as err:
+        print(u"Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
 
@@ -1745,7 +1745,7 @@ def cli_main():
     outpath = os.path.realpath(os.path.normpath(outpath))
 
     if not getkey(outpath, files):
-        print u"Could not retrieve Kindle for Mac/PC key."
+        print(u"Could not retrieve Kindle for Mac/PC key.")
     return 0
 
 
@@ -1789,7 +1789,7 @@ def gui_main():
                 keyfileout.write(json.dumps(key))
             success = True
             tkMessageBox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
-    except DrmException, e:
+    except DrmException as e:
         tkMessageBox.showerror(progname, u"Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')

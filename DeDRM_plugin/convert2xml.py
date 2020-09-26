@@ -1,6 +1,7 @@
 #! /usr/bin/python
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 # For use with Topaz Scripts Version 2.6
+# Added Python 3 compatibility, September 2020
 
 from __future__ import print_function
 class Unbuffered:
@@ -107,7 +108,7 @@ def readString(file):
 def convert(i):
     result = ''
     val = encodeNumber(i)
-    for j in xrange(len(val)):
+    for j in range(len(val)):
         c = ord(val[j:j+1])
         result += '%02x' % c
     return result
@@ -121,10 +122,10 @@ class Dictionary(object):
     def __init__(self, dictFile):
         self.filename = dictFile
         self.size = 0
-        self.fo = file(dictFile,'rb')
+        self.fo = open(dictFile,'rb')
         self.stable = []
         self.size = readEncodedNumber(self.fo)
-        for i in xrange(self.size):
+        for i in range(self.size):
             self.stable.append(self.escapestr(readString(self.fo)))
         self.pos = 0
 
@@ -151,7 +152,7 @@ class Dictionary(object):
         return self.pos
 
     def dumpDict(self):
-        for i in xrange(self.size):
+        for i in range(self.size):
             print("%d %s %s" % (i, convert(i), self.stable[i]))
         return
 
@@ -161,7 +162,7 @@ class Dictionary(object):
 
 class PageParser(object):
     def __init__(self, filename, dict, debug, flat_xml):
-        self.fo = file(filename,'rb')
+        self.fo = open(filename,'rb')
         self.id = os.path.basename(filename).replace('.dat','')
         self.dict = dict
         self.debug = debug
@@ -392,7 +393,7 @@ class PageParser(object):
         'startID'      : (0, 'number', 1, 1),
         'startID.page' : (1, 'number', 0, 0),
         'startID.id'   : (1, 'number', 0, 0),
-    
+
         'median_d'          : (1, 'number', 0, 0),
         'median_h'          : (1, 'number', 0, 0),
         'median_firsty'     : (1, 'number', 0, 0),
@@ -420,7 +421,7 @@ class PageParser(object):
     def get_tagpath(self, i):
         cnt = len(self.tagpath)
         if i < cnt : result = self.tagpath[i]
-        for j in xrange(i+1, cnt) :
+        for j in range(i+1, cnt) :
             result += '.' + self.tagpath[j]
         return result
 
@@ -472,7 +473,7 @@ class PageParser(object):
 
         if self.debug : print('Processing: ', self.get_tagpath(0))
         cnt = self.tagpath_len()
-        for j in xrange(cnt):
+        for j in range(cnt):
             tkn = self.get_tagpath(j)
             if tkn in self.token_tags :
                 num_args = self.token_tags[tkn][0]
@@ -497,7 +498,7 @@ class PageParser(object):
             if (subtags == 1):
                 ntags = readEncodedNumber(self.fo)
                 if self.debug : print('subtags: ' + token + ' has ' + str(ntags))
-                for j in xrange(ntags):
+                for j in range(ntags):
                     val = readEncodedNumber(self.fo)
                     subtagres.append(self.procToken(self.dict.lookup(val)))
 
@@ -511,7 +512,7 @@ class PageParser(object):
                     argres = self.decodeCMD(arg,argtype)
                 else :
                     # num_arg scalar arguments
-                    for i in xrange(num_args):
+                    for i in range(num_args):
                         argres.append(self.formatArg(readEncodedNumber(self.fo), argtype))
 
             # build the return tag
@@ -546,7 +547,7 @@ class PageParser(object):
             result += 'of the document is indicated by snippet number sets at the\n'
             result += 'end of each snippet. \n'
             print(result)
-        for i in xrange(cnt):
+        for i in range(cnt):
             if self.debug: print('Snippet:',str(i))
             snippet = []
             snippet.append(i)
@@ -565,12 +566,12 @@ class PageParser(object):
             adj = readEncodedNumber(self.fo)
         mode = mode >> 1
         x = []
-        for i in xrange(cnt):
+        for i in range(cnt):
             x.append(readEncodedNumber(self.fo) - adj)
-        for i in xrange(mode):
-            for j in xrange(1, cnt):
+        for i in range(mode):
+            for j in range(1, cnt):
                 x[j] = x[j] + x[j - 1]
-        for i in xrange(cnt):
+        for i in range(cnt):
             result.append(self.formatArg(x[i],argtype))
         return result
 
@@ -844,7 +845,7 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv[1:], "hd", ["flat-xml"])
 
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
 
         # print help information and exit:
         print(str(err)) # will print something like "option -a not recognized"

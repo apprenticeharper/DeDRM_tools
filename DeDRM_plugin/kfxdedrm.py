@@ -6,6 +6,9 @@ from __future__ import print_function
 
 # Engine to remove drm from Kindle KFX ebooks
 
+#  2.0   - Added Python 3 compatibility for calibre 5.0
+
+
 import os
 import shutil
 import zipfile
@@ -13,7 +16,10 @@ import zipfile
 try:
     from cStringIO import StringIO
 except ImportError:
-    from StringIO import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 try:
     from calibre_plugins.dedrm import ion
@@ -22,7 +28,7 @@ except ImportError:
 
 
 __license__ = 'GPL v3'
-__version__ = '1.0'
+__version__ = '2.0'
 
 
 class KFXZipBook:

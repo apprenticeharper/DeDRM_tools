@@ -6,13 +6,14 @@ __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
 
 
+import codecs
 import os, traceback, zipfile
 
 try:
     from PyQt5.Qt import QToolButton, QUrl
 except ImportError:
     from PyQt4.Qt import QToolButton, QUrl
- 
+
 from calibre.gui2 import open_url, question_dialog
 from calibre.gui2.actions import InterfaceAction
 from calibre.utils.config import config_dir
@@ -24,7 +25,7 @@ from calibre.ebooks.metadata.meta import get_metadata
 from calibre_plugins.obok_dedrm.dialogs import (SelectionDialog, DecryptAddProgressDialog,
                                                 AddEpubFormatsProgressDialog, ResultsSummaryDialog)
 from calibre_plugins.obok_dedrm.config import plugin_prefs as cfg
-from calibre_plugins.obok_dedrm.__init__ import (PLUGIN_NAME, PLUGIN_SAFE_NAME, 
+from calibre_plugins.obok_dedrm.__init__ import (PLUGIN_NAME, PLUGIN_SAFE_NAME,
                                 PLUGIN_VERSION, PLUGIN_DESCRIPTION, HELPFILE_NAME)
 from calibre_plugins.obok_dedrm.utilities import (
                             get_icon, set_plugin_icon_resources, showErrorDlg, format_plural,
@@ -53,7 +54,7 @@ class InterfacePluginAction(InterfaceAction):
     def genesis(self):
         icon_resources = self.load_resources(PLUGIN_ICONS)
         set_plugin_icon_resources(PLUGIN_NAME, icon_resources)
-        
+
         self.qaction.setIcon(get_icon(PLUGIN_ICONS[0]))
         self.qaction.triggered.connect(self.launchObok)
         self.gui.keyboard.finalize()
@@ -106,10 +107,10 @@ class InterfacePluginAction(InterfaceAction):
         # Get a list of Kobo titles
         books = self.build_book_list()
         if len(books) < 1:
-            msg = _('<p>No books found in Kobo Library\nAre you sure it\'s installed\configured\synchronized?')
+            msg = _('<p>No books found in Kobo Library\nAre you sure it\'s installed/configured/synchronized?')
             showErrorDlg(msg, None)
             return
-        
+
         # Check to see if a key can be retrieved using the legacy obok method.
         legacy_key = legacy_obok().get_legacy_cookie_id
         if legacy_key is not None:
@@ -154,7 +155,7 @@ class InterfacePluginAction(InterfaceAction):
         # Close Kobo Library object
         self.library.close()
 
-        # If we have decrypted books to work with, feed the list of decrypted books details 
+        # If we have decrypted books to work with, feed the list of decrypted books details
         # and the callback function (self.add_new_books) to the ProgressDialog dispatcher.
         if len(self.books_to_add):
             d = DecryptAddProgressDialog(self.gui, self.books_to_add, self.add_new_books, self.db, 'calibre',
@@ -212,7 +213,7 @@ class InterfacePluginAction(InterfaceAction):
     def get_decrypted_kobo_books(self, book):
         '''
         This method is a call-back function used by DecryptAddProgressDialog in dialogs.py to decrypt Kobo books
-        
+
         :param book: A KoboBook object that is to be decrypted.
         '''
         print (_('{0} - Decrypting {1}').format(PLUGIN_NAME + ' v' + PLUGIN_VERSION, book.title))
@@ -233,7 +234,7 @@ class InterfacePluginAction(InterfaceAction):
         '''
         This method is a call-back function used by DecryptAddProgressDialog in dialogs.py to add books to calibre
         (It's set up to handle multiple books, but will only be fed books one at a time by DecryptAddProgressDialog)
-        
+
         :param books_to_add: List of calibre bookmaps (created in get_decrypted_kobo_books)
         '''
         added = self.db.add_books(books_to_add, add_duplicates=False, run_hooks=False)
@@ -253,7 +254,7 @@ class InterfacePluginAction(InterfaceAction):
     def add_epub_format(self, book_id, mi, path):
         '''
         This method is a call-back function used by AddEpubFormatsProgressDialog in dialogs.py
-        
+
         :param book_id: calibre ID of the book to add the encrypted epub to.
         :param mi: calibre metadata object
         :param path: path to the decrypted epub (temp file)
@@ -281,7 +282,7 @@ class InterfacePluginAction(InterfaceAction):
                 self.formats_to_add.append((home_id, mi, tmp_file))
             else:
                 self.no_home_for_book.append(mi)
-        # If we found homes for decrypted epubs in existing calibre entries, feed the list of decrypted book 
+        # If we found homes for decrypted epubs in existing calibre entries, feed the list of decrypted book
         # details and the callback function (self.add_epub_format) to the ProgressDialog dispatcher.
         if self.formats_to_add:
             d = AddEpubFormatsProgressDialog(self.gui, self.formats_to_add, self.add_epub_format)
@@ -306,10 +307,10 @@ class InterfacePluginAction(InterfaceAction):
         sd = ResultsSummaryDialog(self.gui, caption, msg, log)
         sd.exec_()
         return
-    
+
     def ask_about_inserting_epubs(self):
         '''
-        Build question dialog with details about kobo books 
+        Build question dialog with details about kobo books
         that couldn't be added to calibre as new books.
         '''
         ''' Terisa: Improve the message
@@ -327,13 +328,13 @@ class InterfacePluginAction(InterfaceAction):
             msg = _('<p><b>{0}</b> -- not added because of {1} in your library.<br /><br />').format(self.duplicate_book_list[0][0].title, self.duplicate_book_list[0][2])
             msg += _('Would you like to try and add the EPUB format to an available calibre duplicate?<br /><br />')
             msg += _('NOTE: no pre-existing EPUB will be overwritten.')
-            
+
         return question_dialog(self.gui, caption, msg, det_msg)
 
     def find_a_home(self, ids):
         '''
         Find the ID of the first EPUB-Free duplicate available
-        
+
         :param ids: List of calibre IDs that might serve as a home.
         '''
         for id in ids:
@@ -373,7 +374,7 @@ class InterfacePluginAction(InterfaceAction):
         zin = zipfile.ZipFile(book.filename, 'r')
         #print ('Kobo library filename: {0}'.format(book.filename))
         for userkey in self.userkeys:
-            print (_('Trying key: '), userkey.encode('hex_codec'))
+            print (_('Trying key: '), codecs.encode(userkey, 'hex'))
             check = True
             try:
                 fileout = PersistentTemporaryFile('.epub', dir=self.tdir)
@@ -455,7 +456,7 @@ class InterfacePluginAction(InterfaceAction):
                     if cancelled_count > 0:
                         log += _('<p><b>Book imports cancelled by user:</b> {}</p>\n').format(cancelled_count)
                     return (msg, log)
-                log += _('<p><b>New EPUB formats inserted in existing calibre books:</b> {0}</p>\n').format(len(self.successful_format_adds))        
+                log += _('<p><b>New EPUB formats inserted in existing calibre books:</b> {0}</p>\n').format(len(self.successful_format_adds))
                 if self.successful_format_adds:
                     log += '<ul>\n'
                     for id, mi in self.successful_format_adds:
@@ -474,7 +475,7 @@ class InterfacePluginAction(InterfaceAction):
                         log += _('<p><b>Format imports cancelled by user:</b> {}</p>\n').format(cancelled_count)
                 return (msg, log)
             else:
-                
+
                 # Single book ... don't get fancy.
                 if self.ids_of_new_books:
                     title = self.ids_of_new_books[0][1].title
@@ -494,4 +495,4 @@ class InterfacePluginAction(InterfaceAction):
                     reason = _('of unknown reasons. Gosh I\'m embarrassed!')
                 msg = _('<p>{0} not added because {1}').format(title, reason)
                 return (msg, log)
- 
+

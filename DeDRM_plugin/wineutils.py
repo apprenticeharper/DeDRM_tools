@@ -40,7 +40,7 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=sys.stdout, stderr=STDOUT, close_fds=False)
         result = p2.wait("wait")
-    except Exception, e:
+    except Exception as e:
         print(u"{0} v{1}: Wine subprocess call error: {2}".format(PLUGIN_NAME, PLUGIN_VERSION, e.args[0]))
         if wineprefix != "" and os.path.exists(wineprefix):
             cmdline = u"WINEPREFIX=\"{2}\" wine C:\\Python27\\python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath,wineprefix)
@@ -52,7 +52,7 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
            cmdline = cmdline.encode(sys.getfilesystemencoding())
            p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=sys.stdout, stderr=STDOUT, close_fds=False)
            result = p2.wait("wait")
-        except Exception, e:
+        except Exception as e:
            print(u"{0} v{1}: Wine subprocess call error: {2}".format(PLUGIN_NAME, PLUGIN_VERSION, e.args[0]))
 
     # try finding winekeys anyway, even if above code errored

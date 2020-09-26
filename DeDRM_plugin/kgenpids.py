@@ -5,15 +5,17 @@ from __future__ import with_statement
 from __future__ import print_function
 
 # kgenpids.py
-# Copyright © 2008-2017 Apprentice Harper et al.
+# Copyright © 2008-2020 Apprentice Harper et al.
 
 __license__ = 'GPL v3'
-__version__ = '2.1'
+__version__ = '3.0'
 
 # Revision history:
 #  2.0   - Fix for non-ascii Windows user names
 #  2.1   - Actual fix for non-ascii WIndows user names.
-#  x.x   - Return information needed for KFX decryption
+#  2.2   - Return information needed for KFX decryption
+#  3.0   - Added Python 3 compatibility for calibre 5.0
+
 
 import sys
 import os, csv
@@ -31,9 +33,9 @@ global charMap3
 global charMap4
 
 
-charMap1 = 'n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M'
-charMap3 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-charMap4 = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
+charMap1 = b'n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M'
+charMap3 = b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+charMap4 = b'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
 
 # crypto digestroutines
 import hashlib
@@ -84,7 +86,7 @@ def decode(data,map):
 def getTwoBitsFromBitField(bitField,offset):
     byteNumber = offset // 4
     bitPosition = 6 - 2*(offset % 4)
-    return ord(bitField[byteNumber]) >> bitPosition & 3
+    return bitField[byteNumber] >> bitPosition & 3
 
 # Returns the six bits at offset from a bit field
 def getSixBitsFromBitField(bitField,offset):
@@ -95,9 +97,9 @@ def getSixBitsFromBitField(bitField,offset):
 # 8 bits to six bits encoding from hash to generate PID string
 def encodePID(hash):
     global charMap3
-    PID = ''
+    PID = b''
     for position in range (0,8):
-        PID += charMap3[getSixBitsFromBitField(hash,position)]
+        PID += bytes([charMap3[getSixBitsFromBitField(hash,position)]])
     return PID
 
 # Encryption table used to generate the device PID
@@ -126,7 +128,7 @@ def generatePidSeed(table,dsn) :
 def generateDevicePID(table,dsn,nbRoll):
     global charMap4
     seed = generatePidSeed(table,dsn)
-    pidAscii = ''
+    pidAscii = b''
     pid = [(seed >>24) &0xFF,(seed >> 16) &0xff,(seed >> 8) &0xFF,(seed) & 0xFF,(seed>>24) & 0xFF,(seed >> 16) &0xff,(seed >> 8) &0xFF,(seed) & 0xFF]
     index = 0
     for counter in range (0,nbRoll):
@@ -134,7 +136,7 @@ def generateDevicePID(table,dsn,nbRoll):
         index = (index+1) %8
     for counter in range (0,8):
         index = ((((pid[counter] >>5) & 3) ^ pid[counter]) & 0x1f) + (pid[counter] >> 7)
-        pidAscii += charMap4[index]
+        pidAscii += bytes([charMap4[index]])
     return pidAscii
 
 def crc32(s):
@@ -150,7 +152,7 @@ def checksumPid(s):
     for i in (0,1):
         b = crc & 0xff
         pos = (b // l) ^ (b % l)
-        res += charMap4[pos%l]
+        res += bytes([charMap4[pos%l]])
         crc >>= 8
     return res
 
@@ -160,15 +162,15 @@ def pidFromSerial(s, l):
     global charMap4
     crc = crc32(s)
     arr1 = [0]*l
-    for i in xrange(len(s)):
-        arr1[i%l] ^= ord(s[i])
+    for i in range(len(s)):
+        arr1[i%l] ^= s[i]
     crc_bytes = [crc >> 24 & 0xff, crc >> 16 & 0xff, crc >> 8 & 0xff, crc & 0xff]
-    for i in xrange(l):
+    for i in range(l):
         arr1[i] ^= crc_bytes[i&3]
-    pid = ""
-    for i in xrange(l):
+    pid = b""
+    for i in range(l):
         b = arr1[i] & 0xff
-        pid+=charMap4[(b >> 7) + ((b >> 5 & 3) ^ (b & 0x1f))]
+        pid += bytes([charMap4[(b >> 7) + ((b >> 5 & 3) ^ (b & 0x1f))]])
     return pid
 
 
@@ -179,7 +181,7 @@ def getKindlePids(rec209, token, serialnum):
 
     pids=[]
 
-    if isinstance(serialnum,unicode):
+    if isinstance(serialnum,str):
         serialnum = serialnum.encode('utf-8')
 
     # Compute book PID
@@ -189,7 +191,7 @@ def getKindlePids(rec209, token, serialnum):
     pids.append(bookPID)
 
     # compute fixed pid for old pre 2.5 firmware update pid as well
-    kindlePID = pidFromSerial(serialnum, 7) + "*"
+    kindlePID = pidFromSerial(serialnum, 7) + b"*"
     kindlePID = checksumPid(kindlePID)
     pids.append(kindlePID)
 
@@ -206,7 +208,7 @@ def getK4Pids(rec209, token, kindleDatabase):
 
     try:
         # Get the kindle account token, if present
-        kindleAccountToken = (kindleDatabase[1])['kindle.account.tokens'].decode('hex')
+        kindleAccountToken = bytearray.fromhex((kindleDatabase[1])['kindle.account.tokens']).decode()
 
     except KeyError:
         kindleAccountToken=""
@@ -214,30 +216,30 @@ def getK4Pids(rec209, token, kindleDatabase):
 
     try:
         # Get the DSN token, if present
-        DSN = (kindleDatabase[1])['DSN'].decode('hex')
+        DSN = bytearray.fromhex((kindleDatabase[1])['DSN']).decode()
         print(u"Got DSN key from database {0}".format(kindleDatabase[0]))
     except KeyError:
         # See if we have the info to generate the DSN
         try:
             # Get the Mazama Random number
-            MazamaRandomNumber = (kindleDatabase[1])['MazamaRandomNumber'].decode('hex')
+            MazamaRandomNumber = bytearray.fromhex((kindleDatabase[1])['MazamaRandomNumber']).decode()
             #print u"Got MazamaRandomNumber from database {0}".format(kindleDatabase[0])
 
             try:
                 # Get the SerialNumber token, if present
-                IDString = (kindleDatabase[1])['SerialNumber'].decode('hex')
+                IDString = bytearray.fromhex((kindleDatabase[1])['SerialNumber']).decode()
                 print(u"Got SerialNumber from database {0}".format(kindleDatabase[0]))
             except KeyError:
                  # Get the IDString we added
-                IDString = (kindleDatabase[1])['IDString'].decode('hex')
+                IDString = bytearray.fromhex((kindleDatabase[1])['IDString']).decode()
 
             try:
                 # Get the UsernameHash token, if present
-                encodedUsername = (kindleDatabase[1])['UsernameHash'].decode('hex')
+                encodedUsername = bytearray.fromhex((kindleDatabase[1])['UsernameHash']).decode()
                 print(u"Got UsernameHash from database {0}".format(kindleDatabase[0]))
             except KeyError:
                 # Get the UserName we added
-                UserName = (kindleDatabase[1])['UserName'].decode('hex')
+                UserName = bytearray.fromhex((kindleDatabase[1])['UserName']).decode()
                 # encode it
                 encodedUsername = encodeHash(UserName,charMap1)
                 #print u"encodedUsername",encodedUsername.encode('hex')
@@ -267,19 +269,19 @@ def getK4Pids(rec209, token, kindleDatabase):
     # Compute book PIDs
 
     # book pid
-    pidHash = SHA1(DSN+kindleAccountToken+rec209+token)
+    pidHash = SHA1(DSN.encode()+kindleAccountToken.encode()+rec209+token)
     bookPID = encodePID(pidHash)
     bookPID = checksumPid(bookPID)
     pids.append(bookPID)
 
     # variant 1
-    pidHash = SHA1(kindleAccountToken+rec209+token)
+    pidHash = SHA1(kindleAccountToken.encode()+rec209+token)
     bookPID = encodePID(pidHash)
     bookPID = checksumPid(bookPID)
     pids.append(bookPID)
 
     # variant 2
-    pidHash = SHA1(DSN+rec209+token)
+    pidHash = SHA1(DSN.encode()+rec209+token)
     bookPID = encodePID(pidHash)
     bookPID = checksumPid(bookPID)
     pids.append(bookPID)
@@ -297,14 +299,14 @@ def getPidList(md1, md2, serials=[], kDatabases=[]):
     for kDatabase in kDatabases:
         try:
             pidlst.extend(getK4Pids(md1, md2, kDatabase))
-        except Exception, e:
+        except Exception as e:
             print(u"Error getting PIDs from database {0}: {1}".format(kDatabase[0],e.args[0]))
             traceback.print_exc()
 
     for serialnum in serials:
         try:
             pidlst.extend(getKindlePids(md1, md2, serialnum))
-        except Exception, e:
+        except Exception as e:
             print(u"Error getting PIDs from serial number {0}: {1}".format(serialnum ,e.args[0]))
             traceback.print_exc()
 

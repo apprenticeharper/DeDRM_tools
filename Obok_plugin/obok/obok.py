@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# Version 4.0.0 September 2020
+# Python 3.0
+#
 # Version 3.2.5 December 2016
 # Improve detection of good text decryption.
 #
@@ -152,8 +155,8 @@
 """Manage all Kobo books, either encrypted or DRM-free."""
 from __future__ import print_function
 
-__version__ = '3.2.4'
-__about__ =  u"Obok v{0}\nCopyright © 2012-2016 Physisticated et al.".format(__version__)
+__version__ = '4.0.0'
+__about__ =  u"Obok v{0}\nCopyright © 2012-2020 Physisticated et al.".format(__version__)
 
 import sys
 import os
@@ -231,7 +234,7 @@ def _load_crypto_libcrypto():
                 raise ENCRYPTIONError(_('Failed to initialize AES key'))
 
         def decrypt(self, data):
-            clear = ''
+            clear = b''
             for i in range(0, len(data), 16):
                 out = create_string_buffer(16)
                 rv = AES_ecb_encrypt(data[i:i+16], out, self._key, 0)
@@ -276,7 +279,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,bytes):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -381,7 +384,7 @@ class KoboLibrary(object):
             print(self.newdb.name)
             olddb = open(kobodb, 'rb')
             self.newdb.write(olddb.read(18))
-            self.newdb.write('\x01\x01')
+            self.newdb.write(b'\x01\x01')
             olddb.read(2)
             self.newdb.write(olddb.read())
             olddb.close()
@@ -488,14 +491,14 @@ class KoboLibrary(object):
                 pass
             row = cursor.fetchone()
         return userids
-               
+
     def __getuserkeys (self, macaddr):
         userids = self.__getuserids()
         userkeys = []
         for hash in KOBO_HASH_KEYS:
-            deviceid = hashlib.sha256(hash + macaddr).hexdigest()
+            deviceid = hashlib.sha256((hash + macaddr).encode('ascii')).hexdigest()
             for userid in userids:
-                userkey = hashlib.sha256(deviceid + userid).hexdigest()
+                userkey = hashlib.sha256((deviceid + userid).encode('ascii')).hexdigest()
                 userkeys.append(binascii.a2b_hex(userkey[32:]))
         return userkeys
 
@@ -556,7 +559,7 @@ class KoboBook(object):
             # Convert relative URIs
             href = item.attrib['href']
             if not c.match(href):
-                href = string.join((basedir, href), '')
+                href = ''.join((basedir, href))
 
             # Update books we've found from the DB.
             if href in self._encryptedfiles:
@@ -606,57 +609,57 @@ class KoboFile(object):
             stride = 1
             print(u"Checking text:{0}:".format(contents[:10]))
             # check for byte order mark
-            if contents[:3]=="\xef\xbb\xbf":
+            if contents[:3]==b"\xef\xbb\xbf":
                 # seems to be utf-8 with BOM
                 print(u"Could be utf-8 with BOM")
                 textoffset = 3
-            elif contents[:2]=="\xfe\xff":
+            elif contents[:2]==b"\xfe\xff":
                 # seems to be utf-16BE
                 print(u"Could be  utf-16BE")
                 textoffset = 3
                 stride = 2
-            elif contents[:2]=="\xff\xfe":
+            elif contents[:2]==b"\xff\xfe":
                 # seems to be utf-16LE
                 print(u"Could be  utf-16LE")
                 textoffset = 2
                 stride = 2
             else:
                 print(u"Perhaps utf-8 without BOM")
-                
+
             # now check that the first few characters are in the ASCII range
-            for i in xrange(textoffset,textoffset+5*stride,stride):
-                if ord(contents[i])<32 or ord(contents[i])>127:
+            for i in range(textoffset,textoffset+5*stride,stride):
+                if contents[i]<32 or contents[i]>127:
                     # Non-ascii, so decryption probably failed
-                    print(u"Bad character at {0}, value {1}".format(i,ord(contents[i])))
+                    print(u"Bad character at {0}, value {1}".format(i,contents[i]))
                     raise ValueError
             print(u"Seems to be good text")
             return True
-            if contents[:5]=="<?xml" or contents[:8]=="\xef\xbb\xbf<?xml":
+            if contents[:5]==b"<?xml" or contents[:8]==b"\xef\xbb\xbf<?xml":
                 # utf-8
                 return True
-            elif contents[:14]=="\xfe\xff\x00<\x00?\x00x\x00m\x00l":
+            elif contents[:14]==b"\xfe\xff\x00<\x00?\x00x\x00m\x00l":
                 # utf-16BE
                 return True
-            elif contents[:14]=="\xff\xfe<\x00?\x00x\x00m\x00l\x00":
+            elif contents[:14]==b"\xff\xfe<\x00?\x00x\x00m\x00l\x00":
                 # utf-16LE
                 return True
-            elif contents[:9]=="<!DOCTYPE" or contents[:12]=="\xef\xbb\xbf<!DOCTYPE":
+            elif contents[:9]==b"<!DOCTYPE" or contents[:12]==b"\xef\xbb\xbf<!DOCTYPE":
                 # utf-8 of weird <!DOCTYPE start
                 return True
-            elif contents[:22]=="\xfe\xff\x00<\x00!\x00D\x00O\x00C\x00T\x00Y\x00P\x00E":
+            elif contents[:22]==b"\xfe\xff\x00<\x00!\x00D\x00O\x00C\x00T\x00Y\x00P\x00E":
                 # utf-16BE of weird <!DOCTYPE start
                 return True
-            elif contents[:22]=="\xff\xfe<\x00!\x00D\x00O\x00C\x00T\x00Y\x00P\x00E\x00":
+            elif contents[:22]==b"\xff\xfe<\x00!\x00D\x00O\x00C\x00T\x00Y\x00P\x00E\x00":
                 # utf-16LE of weird <!DOCTYPE start
                 return True
             else:
                 print(u"Bad XML: {0}".format(contents[:8]))
                 raise ValueError
         elif self.mimetype == 'image/jpeg':
-            if contents[:3] == '\xff\xd8\xff':
+            if contents[:3] == b'\xff\xd8\xff':
                 return True
             else:
-                print(u"Bad JPEG: {0}".format(contents[:3].encode('hex')))
+                print(u"Bad JPEG: {0}".format(contents[:3].hex()))
                 raise ValueError()
         return False
 
@@ -690,7 +693,7 @@ def decrypt_book(book, lib):
         return 0
     result = 1
     for userkey in lib.userkeys:
-        print(u"Trying key: {0}".format(userkey.encode('hex_codec')))
+        print(u"Trying key: {0}".format(userkey.hex()))
         try:
             zout = zipfile.ZipFile(outname, "w", zipfile.ZIP_DEFLATED)
             for filename in zin.namelist():
@@ -735,7 +738,7 @@ def cli_main():
             print(u"{0}: {1}".format(i + 1, book.title))
         print(u"Or 'all'")
 
-        choice = raw_input(u"Convert book number... ")
+        choice = input(u"Convert book number... ")
         if choice == u'all':
             books = list(lib.books)
         else:

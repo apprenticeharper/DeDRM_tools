@@ -4,13 +4,11 @@
 from __future__ import with_statement
 
 # ineptpdf.py
-# Copyright © 2009-2017 by Apprentice Harper et al.
+# Copyright © 2009-2020 by i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
 
-# Modified 2010–2012 by some_updates, DiapDealer and Apprentice Alf
-# Modified 2015-2017 by Apprentice Harper et al.
 
 # Revision history:
 #   1 - Initial release
@@ -49,14 +47,14 @@ from __future__ import with_statement
 #   8.0.4 - Completely remove erroneous check on DER file sanity
 #   8.0.5 - Do not process DRM-free documents
 #   8.0.6 - Replace use of float by Decimal for greater precision, and import tkFileDialog
-
+#   9.0.0 - Add Python 3 compatibility for calibre 5
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "8.0.6"
+__version__ = "9.0.0"
 
 import sys
 import os
@@ -64,8 +62,8 @@ import re
 import zlib
 import struct
 import hashlib
-from decimal import *
-from itertools import chain, islice
+from decimal import Decimal
+import itertools
 import xml.etree.ElementTree as etree
 
 # Wrap a stream so that output gets flushed immediately
@@ -75,10 +73,10 @@ class SafeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
         self.encoding = stream.encoding
-        if self.encoding == None:
+        if self.encoding is None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,bytes):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -116,13 +114,13 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         return [u"ineptpdf.py"]
     else:
         argvencoding = sys.stdin.encoding
-        if argvencoding == None:
+        if argvencoding is None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return sys.argv
 
 
 class ADEPTError(Exception):
@@ -378,12 +376,12 @@ def _load_crypto_pycrypto():
     class RSA(object):
         def __init__(self, der):
             key = ASN1Parser([ord(x) for x in der])
-            key = [key.getChild(x).value for x in xrange(1, 4)]
+            key = [key.getChild(x).value for x in range(1, 4)]
             key = [self.bytesToNumber(v) for v in key]
             self._rsa = _RSA.construct(key)
 
         def bytesToNumber(self, bytes):
-            total = 0L
+            total = 0
             for byte in bytes:
                 total = (total << 8) + byte
             return total
@@ -411,7 +409,10 @@ ARC4, RSA, AES = _load_crypto()
 try:
     from cStringIO import StringIO
 except ImportError:
-    from StringIO import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 
 # Do we generate cross reference streams on output?
@@ -444,11 +445,11 @@ def nunpack(s, default=0):
     if not l:
         return default
     elif l == 1:
-        return ord(s)
+        return s
     elif l == 2:
         return struct.unpack('>H', s)[0]
     elif l == 3:
-        return struct.unpack('>L', '\x00'+s)[0]
+        return struct.unpack('>L', b'\x00'+s)[0]
     elif l == 4:
         return struct.unpack('>L', s)[0]
     else:
@@ -487,9 +488,9 @@ class PSLiteral(PSObject):
         name = []
         for char in self.name:
             if not char.isalnum():
-                char = '#%02x' % ord(char)
+                char = b'#%02x' % char
             name.append(char)
-        return '/%s' % ''.join(name)
+        return b'/%s' % ''.join(name)
 
 # PSKeyword
 class PSKeyword(PSObject):
@@ -716,7 +717,7 @@ class PSBaseParser(object):
         except ValueError:
             pass
         return (self.parse_main, j)
-        
+
     def parse_decimal(self, s, i):
         m = END_NUMBER.search(s, i)
         if not m:
@@ -949,7 +950,7 @@ class PSStackParser(PSBaseParser):
                 try:
                     (pos, objs) = self.end_type('d')
                     if len(objs) % 2 != 0:
-                        print "Incomplete dictionary construct"
+                        print("Incomplete dictionary construct")
                         objs.append("") # this isn't necessary.
                         # temporary fix. is this due to rental books?
                         # raise PSSyntaxError(
@@ -1106,18 +1107,18 @@ def stream_value(x):
 # ascii85decode(data)
 def ascii85decode(data):
     n = b = 0
-    out = ''
+    out = b''
     for c in data:
-        if '!' <= c and c <= 'u':
+        if b'!' <= c and c <= b'u':
             n += 1
-            b = b*85+(ord(c)-33)
+            b = b*85+(c-33)
             if n == 5:
                 out += struct.pack('>L',b)
                 n = b = 0
-        elif c == 'z':
+        elif c == b'z':
             assert n == 0
-            out += '\0\0\0\0'
-        elif c == '~':
+            out += b'\0\0\0\0'
+        elif c == b'~':
             if n:
                 for _ in range(5-n):
                     b = b*85+84
@@ -1138,7 +1139,7 @@ class PDFStream(PDFObject):
                 cutdiv = len(rawdata) // 16
                 rawdata = rawdata[:16*cutdiv]
         else:
-            if eol in ('\r', '\n', '\r\n'):
+            if eol in (b'\r', b'\n', b'\r\n'):
                 rawdata = rawdata[:length]
 
         self.dic = dic
@@ -1206,14 +1207,14 @@ class PDFStream(PDFObject):
                         raise PDFValueError(
                             'Columns undefined for predictor=12')
                     columns = int_value(params['Columns'])
-                    buf = ''
-                    ent0 = '\x00' * columns
-                    for i in xrange(0, len(data), columns+1):
+                    buf = b''
+                    ent0 = b'\x00' * columns
+                    for i in range(0, len(data), columns+1):
                         pred = data[i]
                         ent1 = data[i+1:i+1+columns]
-                        if pred == '\x02':
-                            ent1 = ''.join(chr((ord(a)+ord(b)) & 255) \
-                                               for (a,b) in zip(ent0,ent1))
+                        if pred == b'\x02':
+                            ent1 = ''.join(bytes([(a+b) & 255]) \
+                                           for (a,b) in zip(ent0,ent1))
                         buf += ent1
                         ent0 = ent1
                     data = buf
@@ -1290,7 +1291,7 @@ class PDFXRef(object):
                 (start, nobjs) = map(int, f)
             except ValueError:
                 raise PDFNoValidXRef('Invalid line: %r: line=%r' % (parser, line))
-            for objid in xrange(start, start+nobjs):
+            for objid in range(start, start+nobjs):
                 try:
                     (_, line) = parser.nextline()
                 except PSEOF:
@@ -1342,7 +1343,7 @@ class PDFXRefStream(object):
 
     def objids(self):
         for first, size in self.index:
-            for objid in xrange(first, first + size):
+            for objid in range(first, first + size):
                 yield objid
 
     def load(self, parser, debug=0):
@@ -1355,8 +1356,8 @@ class PDFXRefStream(object):
             raise PDFNoValidXRef('Invalid PDF stream spec.')
         size = stream.dic['Size']
         index = stream.dic.get('Index', (0,size))
-        self.index = zip(islice(index, 0, None, 2),
-                         islice(index, 1, None, 2))
+        self.index = zip(itertools.islice(index, 0, None, 2),
+                         itertools.islice(index, 1, None, 2))
         (self.fl1, self.fl2, self.fl3) = stream.dic['W']
         self.data = stream.get_data()
         self.entlen = self.fl1+self.fl2+self.fl3
@@ -1506,10 +1507,10 @@ class PDFDocument(object):
         if plaintext[-16:] != 16 * chr(16):
             raise ADEPTError('Offlinekey cannot be decrypted, aborting ...')
         pdrlpol = AES.new(plaintext[16:32],AES.MODE_CBC,edclist[2].decode('base64')).decrypt(pdrlpol)
-        if ord(pdrlpol[-1]) < 1 or ord(pdrlpol[-1]) > 16:
+        if pdrlpol[-1] < 1 or pdrlpol[-1] > 16:
             raise ADEPTError('Could not decrypt PDRLPol, aborting ...')
         else:
-            cutter = -1 * ord(pdrlpol[-1])
+            cutter = -1 * pdrlpol[-1]
             pdrlpol = pdrlpol[:cutter]
         return plaintext[:16]
 
@@ -1551,7 +1552,7 @@ class PDFDocument(object):
             hash.update('ffffffff'.decode('hex'))
         if 5 <= R:
             # 8
-            for _ in xrange(50):
+            for _ in range(50):
                 hash = hashlib.md5(hash.digest()[:length/8])
         key = hash.digest()[:length/8]
         if R == 2:
@@ -1562,8 +1563,8 @@ class PDFDocument(object):
             hash = hashlib.md5(self.PASSWORD_PADDING) # 2
             hash.update(docid[0]) # 3
             x = ARC4.new(key).decrypt(hash.digest()[:16]) # 4
-            for i in xrange(1,19+1):
-                k = ''.join( chr(ord(c) ^ i) for c in key )
+            for i in range(1,19+1):
+                k = ''.join(bytes([c ^ i]) for c in key )
                 x = ARC4.new(k).decrypt(x)
             u1 = x+x # 32bytes total
         if R == 2:
@@ -1585,9 +1586,9 @@ class PDFDocument(object):
         if V != 4:
             self.decipher = self.decipher_rc4  # XXX may be AES
         # aes
-        elif V == 4 and Length == 128:
-            elf.decipher = self.decipher_aes
-        elif V == 4 and Length == 256:
+        elif V == 4 and length == 128:
+            self.decipher = self.decipher_aes
+        elif V == 4 and length == 256:
             raise PDFNotImplementedError('AES256 encryption is currently unsupported')
         self.ready = True
         return
@@ -1616,18 +1617,18 @@ class PDFDocument(object):
                 else:
                     V = 2
             elif len(bookkey) == length + 1:
-                V = ord(bookkey[0])
+                V = bookkey[0]
                 bookkey = bookkey[1:]
             else:
-                print "ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type)
-                print "length is %d and len(bookkey) is %d" % (length, len(bookkey))
-                print "bookkey[0] is %d" % ord(bookkey[0])
+                print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
+                print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
+                print("bookkey[0] is %d" % bookkey[0])
                 raise ADEPTError('error decrypting book session key - mismatched length')
         else:
             # proper length unknown try with whatever you have
-            print "ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type)
-            print "length is %d and len(bookkey) is %d" % (length, len(bookkey))
-            print "bookkey[0] is %d" % ord(bookkey[0])
+            print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
+            print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
+            print("bookkey[0] is %d" % bookkey[0])
             if ebx_V == 3:
                 V = 3
             else:
@@ -1671,7 +1672,7 @@ class PDFDocument(object):
         data = data[16:]
         plaintext = AES.new(key,AES.MODE_CBC,ivector).decrypt(data)
         # remove pkcs#5 aes padding
-        cutter = -1 * ord(plaintext[-1])
+        cutter = -1 * plaintext[-1]
         #print cutter
         plaintext = plaintext[:cutter]
         return plaintext
@@ -1682,7 +1683,7 @@ class PDFDocument(object):
         data = data[16:]
         plaintext = AES.new(key,AES.MODE_CBC,ivector).decrypt(data)
         # remove pkcs#5 aes padding
-        cutter = -1 * ord(plaintext[-1])
+        cutter = -1 * plaintext[-1]
         #print cutter
         plaintext = plaintext[:cutter]
         return plaintext
@@ -2026,7 +2027,7 @@ class PDFSerializer(object):
         if not gen_xref_stm:
             self.write('xref\n')
             self.write('0 %d\n' % (maxobj + 1,))
-            for objid in xrange(0, maxobj + 1):
+            for objid in range(0, maxobj + 1):
                 if objid in xrefs:
                     # force the genno to be 0
                     self.write("%010d 00000 n \n" % xrefs[objid][0])
@@ -2135,7 +2136,7 @@ class PDFSerializer(object):
             if self.last.isalnum():
                 self.write(' ')
             self.write(str(obj).lower())
-        elif isinstance(obj, (int, long)):
+        elif isinstance(obj, int):
             if self.last.isalnum():
                 self.write(' ')
             self.write(str(obj))
@@ -2189,8 +2190,8 @@ def decryptBook(userkey, inpath, outpath):
             # help construct to make sure the method runs to the end
             try:
                 serializer.dump(outf)
-            except Exception, e:
-                print u"error writing pdf: {0}".format(e.args[0])
+            except Exception as e:
+                print(u"error writing pdf: {0}".format(e.args[0]))
                 return 2
     return 0
 
@@ -2201,13 +2202,13 @@ def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
-        print u"usage: {0} <keyfile.der> <inbook.pdf> <outbook.pdf>".format(progname)
+        print(u"usage: {0} <keyfile.der> <inbook.pdf> <outbook.pdf>".format(progname))
         return 1
     keypath, inpath, outpath = argv[1:]
     userkey = open(keypath,'rb').read()
     result = decryptBook(userkey, inpath, outpath)
     if result == 0:
-        print u"Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath))
+        print(u"Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath)))
     return result
 
 
@@ -2309,7 +2310,7 @@ def gui_main():
             self.status['text'] = u"Decrypting..."
             try:
                 decrypt_status = decryptBook(userkey, inpath, outpath)
-            except Exception, e:
+            except Exception as e:
                 self.status['text'] = u"Error; {0}".format(e.args[0])
                 return
             if decrypt_status == 0:

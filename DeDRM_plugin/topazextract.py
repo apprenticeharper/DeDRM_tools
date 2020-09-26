@@ -7,9 +7,10 @@
 # Changelog
 #  4.9  - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  5.0  - Fixed potential unicode problem with command line interface
+#  6.0  - Added Python 3 compatibility for calibre 5.0
 
 from __future__ import print_function
-__version__ = '5.0'
+__version__ = '6.0'
 
 import sys
 import os, csv, getopt
@@ -17,7 +18,7 @@ import zlib, zipfile, tempfile, shutil
 import traceback
 from struct import pack
 from struct import unpack
-from alfcrypto import Topaz_Cipher
+from calibre_plugins.dedrm.alfcrypto import Topaz_Cipher
 
 class SafeUnbuffered:
     def __init__(self, stream):
@@ -26,7 +27,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,bytes):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -64,7 +65,7 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
         return [u"mobidedrm.py"]
@@ -72,7 +73,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = 'utf-8'
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return argv
 
 #global switch
 debug = False
@@ -196,7 +197,7 @@ def decryptDkeyRecords(data,PID):
 
 class TopazBook:
     def __init__(self, filename):
-        self.fo = file(filename, 'rb')
+        self.fo = open(filename, 'rb')
         self.outdir = tempfile.mkdtemp()
         # self.outdir = 'rawdat'
         self.bookPayloadOffset = 0
@@ -319,7 +320,7 @@ class TopazBook:
         fixedimage=True
         try:
             keydata = self.getBookPayloadRecord('dkey', 0)
-        except DrmException, e:
+        except DrmException as e:
             print(u"no dkey record found, book may not be encrypted")
             print(u"attempting to extrct files without a book key")
             self.createBookDirectory()
@@ -345,7 +346,7 @@ class TopazBook:
             data = keydata
             try:
                 bookKeys+=decryptDkeyRecords(data,pid)
-            except DrmException, e:
+            except DrmException as e:
                 pass
             else:
                 bookKey = bookKeys[0]
@@ -357,7 +358,7 @@ class TopazBook:
 
         self.setBookKey(bookKey)
         self.createBookDirectory()
-        self.extractFiles() 
+        self.extractFiles()
         print(u"Successfully Extracted Topaz contents")
         if inCalibre:
             from calibre_plugins.dedrm import genbook
@@ -411,7 +412,7 @@ class TopazBook:
                     print(u".", end=' ')
                     record = self.getBookPayloadRecord(name,index)
                     if record != '':
-                        file(outputFile, 'wb').write(record)
+                        open(outputFile, 'wb').write(record)
                 print(u" ")
 
     def getFile(self, zipname):
@@ -454,7 +455,7 @@ def cli_main():
 
     try:
         opts, args = getopt.getopt(argv[1:], "k:p:s:x")
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         print(u"Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         return 1
@@ -513,7 +514,7 @@ def cli_main():
         # removing internal temporary directory of pieces
         tb.cleanup()
 
-    except DrmException, e:
+    except DrmException as e:
         print(u"Decryption failed\n{0}".format(traceback.format_exc()))
 
         try:
@@ -522,8 +523,8 @@ def cli_main():
             pass
         return 1
 
-    except Exception, e:
-        print(u"Decryption failed\m{0}".format(traceback.format_exc()))
+    except Exception as e:
+        print(u"Decryption failed\n{0}".format(traceback.format_exc()))
         try:
             tb.cleanup()
         except:

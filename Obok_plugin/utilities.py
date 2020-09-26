@@ -7,21 +7,24 @@ __docformat__ = 'restructuredtext en'
 
 
 import os, struct, time
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 from traceback import print_exc
 
 try:
     from PyQt5.Qt import (Qt, QDialog, QPixmap, QIcon, QLabel, QHBoxLayout, QFont, QTableWidgetItem)
 except ImportError:
     from PyQt4.Qt import (Qt, QDialog, QPixmap, QIcon, QLabel, QHBoxLayout, QFont, QTableWidgetItem)
-    
+
 from calibre.utils.config import config_dir
 from calibre.constants import iswindows, DEBUG
 from calibre import prints
 from calibre.gui2 import (error_dialog, gprefs)
 from calibre.gui2.actions import menu_action_unique_name
 
-from calibre_plugins.obok_dedrm.__init__ import (PLUGIN_NAME,  
+from calibre_plugins.obok_dedrm.__init__ import (PLUGIN_NAME,
                     PLUGIN_SAFE_NAME, PLUGIN_VERSION, PLUGIN_DESCRIPTION)
 
 plugin_ID = None
@@ -39,7 +42,7 @@ else:
     def convert_qvariant(x):
         vt = x.type()
         if vt == x.String:
-            return unicode(x.toString())
+            return x.toString()
         if vt == x.List:
             return [convert_qvariant(i) for i in x.toList()]
         return x.toPyObject()
@@ -62,7 +65,7 @@ except NameError:
 def format_plural(number, possessive=False):
     '''
     Cosmetic ditty to provide the proper string formatting variable to handle singular/plural situations
-    
+
     :param: number: variable that represents the count/len of something
     '''
     if not possessive:
@@ -141,7 +144,7 @@ def showErrorDlg(errmsg, parent, trcbk=False):
     '''
     if trcbk:
         error= ''
-        f=StringIO()     
+        f=StringIO()
         print_exc(file=f)
         error_mess = f.getvalue().splitlines()
         for line in error_mess:

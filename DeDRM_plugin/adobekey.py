@@ -48,14 +48,16 @@ from __future__ import with_statement
 #   5.8 - Added getkey interface for Windows DeDRM application
 #   5.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   6.0 - Work if TkInter is missing
+#   7.0 - Python 3 compatible for calibre 5
+
+from __future__ import print_function
 
 """
 Retrieve Adobe ADEPT user key.
 """
-from __future__ import print_function
 
 __license__ = 'GPL v3'
-__version__ = '6.0'
+__version__ = '7.0'
 
 import sys, os, struct, getopt
 
@@ -118,7 +120,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return arg
 
 class ADEPTError(Exception):
     pass
@@ -497,7 +499,7 @@ def cli_main():
 
     try:
         opts, args = getopt.getopt(argv[1:], "h")
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         print(u"Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
@@ -586,7 +588,7 @@ def gui_main():
                 keyfileout.write(key)
             success = True
             tkMessageBox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
-    except ADEPTError, e:
+    except ADEPTError as e:
         tkMessageBox.showerror(progname, u"Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')

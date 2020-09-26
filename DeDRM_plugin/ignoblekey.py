@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
+from __future__ import print_function
 
 # ignoblekey.py
-# Copyright © 2015 Apprentice Alf and Apprentice Harper
+# Copyright © 2015-2020 Apprentice Alf, Apprentice Harper et al.
 
 # Based on kindlekey.py, Copyright © 2010-2013 by some_updates and Apprentice Alf
 
@@ -14,11 +15,11 @@ from __future__ import with_statement
 # Revision history:
 #   1.0 - Initial release
 #   1.1 - remove duplicates and return last key as single key
+#   2.0 - Added Python 3 compatibility for calibre 5.0
 
 """
 Get Barnes & Noble EPUB user key from nook Studio log file
 """
-from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = "1.1"
@@ -39,7 +40,7 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,bytes):
             data = data.encode(self.encoding,"replace")
         self.stream.write(data)
         self.stream.flush()
@@ -80,7 +81,7 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
         return [u"ignoblekey.py"]
@@ -88,7 +89,7 @@ def unicode_argv():
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
             argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        return argv
 
 class DrmException(Exception):
     pass
@@ -210,7 +211,7 @@ def getkey(outpath, files=[]):
     if len(keys) > 0:
         if not os.path.isdir(outpath):
             outfile = outpath
-            with file(outfile, 'w') as keyfileout:
+            with open(outfile, 'w') as keyfileout:
                 keyfileout.write(keys[-1])
             print(u"Saved a key to {0}".format(outfile))
         else:
@@ -221,7 +222,7 @@ def getkey(outpath, files=[]):
                     outfile = os.path.join(outpath,u"nookkey{0:d}.b64".format(keycount))
                     if not os.path.exists(outfile):
                         break
-                with file(outfile, 'w') as keyfileout:
+                with open(outfile, 'w') as keyfileout:
                     keyfileout.write(key)
                 print(u"Saved a key to {0}".format(outfile))
         return True
@@ -244,7 +245,7 @@ def cli_main():
 
     try:
         opts, args = getopt.getopt(argv[1:], "hk:")
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         print(u"Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
@@ -315,11 +316,11 @@ def gui_main():
                 if not os.path.exists(outfile):
                     break
 
-            with file(outfile, 'w') as keyfileout:
+            with open(outfile, 'w') as keyfileout:
                 keyfileout.write(key)
             success = True
             tkMessageBox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
-    except DrmException, e:
+    except DrmException as e:
         tkMessageBox.showerror(progname, u"Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
