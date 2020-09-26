@@ -114,7 +114,7 @@ def unicode_argv():
                     range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"adobekey.py"]
+        return ["adobekey.py"]
     else:
         argvencoding = sys.stdin.encoding or "utf-8"
         return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
@@ -407,7 +407,7 @@ if iswindows:
                 keys.append(userkey)
         if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')
-        print(u"Found {0:d} keys".format(len(keys)))
+        print("Found {0:d} keys".format(len(keys)))
         return keys
 
 
@@ -465,39 +465,39 @@ def getkey(outpath):
             outfile = outpath
             with open(outfile, 'wb') as keyfileout:
                 keyfileout.write(keys[0])
-            print(u"Saved a key to {0}".format(outfile))
+            print("Saved a key to {0}".format(outfile))
         else:
             keycount = 0
             for key in keys:
                 while True:
                     keycount += 1
-                    outfile = os.path.join(outpath,u"adobekey_{0:d}.der".format(keycount))
+                    outfile = os.path.join(outpath,"adobekey_{0:d}.der".format(keycount))
                     if not os.path.exists(outfile):
                         break
                 with open(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
-                print(u"Saved a key to {0}".format(outfile))
+                print("Saved a key to {0}".format(outfile))
         return True
     return False
 
 def usage(progname):
-    print(u"Finds, decrypts and saves the default Adobe Adept encryption key(s).")
-    print(u"Keys are saved to the current directory, or a specified output directory.")
-    print(u"If a file name is passed instead of a directory, only the first key is saved, in that file.")
-    print(u"Usage:")
-    print(u"    {0:s} [-h] [<outpath>]".format(progname))
+    print("Finds, decrypts and saves the default Adobe Adept encryption key(s).")
+    print("Keys are saved to the current directory, or a specified output directory.")
+    print("If a file name is passed instead of a directory, only the first key is saved, in that file.")
+    print("Usage:")
+    print("    {0:s} [-h] [<outpath>]".format(progname))
 
 def cli_main():
     sys.stdout=SafeUnbuffered(sys.stdout)
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print(u"{0} v{1}\nCopyright © 2009-2013 i♥cabbages and Apprentice Alf".format(progname,__version__))
+    print("{0} v{1}\nCopyright © 2009-2013 i♥cabbages and Apprentice Alf".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "h")
     except getopt.GetoptError as err:
-        print(u"Error in options or arguments: {0}".format(err.args[0]))
+        print("Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
 
@@ -526,20 +526,20 @@ def cli_main():
             outfile = outpath
             with open(outfile, 'wb') as keyfileout:
                 keyfileout.write(keys[0])
-            print(u"Saved a key to {0}".format(outfile))
+            print("Saved a key to {0}".format(outfile))
         else:
             keycount = 0
             for key in keys:
                 while True:
                     keycount += 1
-                    outfile = os.path.join(outpath,u"adobekey_{0:d}.der".format(keycount))
+                    outfile = os.path.join(outpath,"adobekey_{0:d}.der".format(keycount))
                     if not os.path.exists(outfile):
                         break
                 with open(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
-                print(u"Saved a key to {0}".format(outfile))
+                print("Saved a key to {0}".format(outfile))
     else:
-        print(u"Could not retrieve Adobe Adept key.")
+        print("Could not retrieve Adobe Adept key.")
     return 0
 
 
@@ -555,7 +555,7 @@ def gui_main():
     class ExceptionDialog(tkinter.Frame):
         def __init__(self, root, text):
             tkinter.Frame.__init__(self, root, border=5)
-            label = tkinter.Label(self, text=u"Unexpected error:",
+            label = tkinter.Label(self, text="Unexpected error:",
                                   anchor=tkinter.constants.W, justify=tkinter.constants.LEFT)
             label.pack(fill=tkinter.constants.X, expand=0)
             self.text = tkinter.Text(self)
@@ -575,16 +575,16 @@ def gui_main():
         for key in keys:
             while True:
                 keycount += 1
-                outfile = os.path.join(progpath,u"adobekey_{0:d}.der".format(keycount))
+                outfile = os.path.join(progpath,"adobekey_{0:d}.der".format(keycount))
                 if not os.path.exists(outfile):
                     break
 
             with open(outfile, 'wb') as keyfileout:
                 keyfileout.write(key)
             success = True
-            tkinter.messagebox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
+            tkinter.messagebox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
     except ADEPTError as e:
-        tkinter.messagebox.showerror(progname, u"Error: {0}".format(str(e)))
+        tkinter.messagebox.showerror(progname, "Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
         root.title(progname)
