@@ -2018,7 +2018,7 @@ def decryptBook(userkey, inpath, outpath):
             # help construct to make sure the method runs to the end
             try:
                 serializer.dump(outf)
-            except Exception, e:
+            except Exception as e:
                 print("error writing pdf: {0}".format(e.args[0]))
                 return 2
     return 0
@@ -2138,7 +2138,7 @@ def gui_main():
             self.status['text'] = "Decrypting..."
             try:
                 decrypt_status = decryptBook(userkey, inpath, outpath)
-            except Exception, e:
+            except Exception as e:
                 self.status['text'] = "Error; {0}".format(e.args[0])
                 return
             if decrypt_status == 0:
