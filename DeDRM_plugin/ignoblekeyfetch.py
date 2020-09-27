@@ -1,10 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
-from __future__ import print_function
-
-# ignoblekeyfetch.pyw, version 2.0
+# ignoblekeyfetch.py
 # Copyright © 2015-2020 Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
@@ -25,14 +22,14 @@ from __future__ import print_function
 # Revision history:
 #   1.0 - Initial  version
 #   1.1 - Try second URL if first one fails
-#   2.0 - Added Python 3 compatibility for calibre 5.0
+#   2.0 - Python 3 for calibre 5.0
 
 """
 Fetch Barnes & Noble EPUB user key from B&N servers using email and password
 """
 
 __license__ = 'GPL v3'
-__version__ = "1.1"
+__version__ = "2.0"
 
 import sys
 import os
@@ -91,7 +88,7 @@ def unicode_argv():
                     range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"ignoblekeyfetch.py"]
+        return ["ignoblekeyfetch.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
@@ -157,14 +154,14 @@ def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
-        print(u"usage: {0} <email> <password> <keyfileout.b64>".format(progname))
+        print("usage: {0} <email> <password> <keyfileout.b64>".format(progname))
         return 1
     email, password, keypath = argv[1:]
     userkey = fetch_key(email, password)
     if len(userkey) == 28:
         open(keypath,'wb').write(userkey)
         return 0
-    print(u"Failed to fetch key.")
+    print("Failed to fetch key.")
     return 1
 
 
@@ -181,38 +178,38 @@ def gui_main():
     class DecryptionDialog(Tkinter.Frame):
         def __init__(self, root):
             Tkinter.Frame.__init__(self, root, border=5)
-            self.status = Tkinter.Label(self, text=u"Enter parameters")
+            self.status = Tkinter.Label(self, text="Enter parameters")
             self.status.pack(fill=Tkconstants.X, expand=1)
             body = Tkinter.Frame(self)
             body.pack(fill=Tkconstants.X, expand=1)
             sticky = Tkconstants.E + Tkconstants.W
             body.grid_columnconfigure(1, weight=2)
-            Tkinter.Label(body, text=u"Account email address").grid(row=0)
+            Tkinter.Label(body, text="Account email address").grid(row=0)
             self.name = Tkinter.Entry(body, width=40)
             self.name.grid(row=0, column=1, sticky=sticky)
-            Tkinter.Label(body, text=u"Account password").grid(row=1)
+            Tkinter.Label(body, text="Account password").grid(row=1)
             self.ccn = Tkinter.Entry(body, width=40)
             self.ccn.grid(row=1, column=1, sticky=sticky)
-            Tkinter.Label(body, text=u"Output file").grid(row=2)
+            Tkinter.Label(body, text="Output file").grid(row=2)
             self.keypath = Tkinter.Entry(body, width=40)
             self.keypath.grid(row=2, column=1, sticky=sticky)
-            self.keypath.insert(2, u"bnepubkey.b64")
-            button = Tkinter.Button(body, text=u"...", command=self.get_keypath)
+            self.keypath.insert(2, "bnepubkey.b64")
+            button = Tkinter.Button(body, text="...", command=self.get_keypath)
             button.grid(row=2, column=2)
             buttons = Tkinter.Frame(self)
             buttons.pack()
             botton = Tkinter.Button(
-                buttons, text=u"Fetch", width=10, command=self.generate)
+                buttons, text="Fetch", width=10, command=self.generate)
             botton.pack(side=Tkconstants.LEFT)
             Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
             button = Tkinter.Button(
-                buttons, text=u"Quit", width=10, command=self.quit)
+                buttons, text="Quit", width=10, command=self.quit)
             button.pack(side=Tkconstants.RIGHT)
 
         def get_keypath(self):
             keypath = tkFileDialog.asksaveasfilename(
-                parent=None, title=u"Select B&N ePub key file to produce",
-                defaultextension=u".b64",
+                parent=None, title="Select B&N ePub key file to produce",
+                defaultextension=".b64",
                 filetypes=[('base64-encoded files', '.b64'),
                            ('All Files', '.*')])
             if keypath:
@@ -226,28 +223,28 @@ def gui_main():
             password = self.ccn.get()
             keypath = self.keypath.get()
             if not email:
-                self.status['text'] = u"Email address not given"
+                self.status['text'] = "Email address not given"
                 return
             if not password:
-                self.status['text'] = u"Account password not given"
+                self.status['text'] = "Account password not given"
                 return
             if not keypath:
-                self.status['text'] = u"Output keyfile path not set"
+                self.status['text'] = "Output keyfile path not set"
                 return
-            self.status['text'] = u"Fetching..."
+            self.status['text'] = "Fetching..."
             try:
                 userkey = fetch_key(email, password)
             except Exception as e:
-                self.status['text'] = u"Error: {0}".format(e.args[0])
+                self.status['text'] = "Error: {0}".format(e.args[0])
                 return
             if len(userkey) == 28:
                 open(keypath,'wb').write(userkey)
-                self.status['text'] = u"Keyfile fetched successfully"
+                self.status['text'] = "Keyfile fetched successfully"
             else:
-                self.status['text'] = u"Keyfile fetch failed."
+                self.status['text'] = "Keyfile fetch failed."
 
     root = Tkinter.Tk()
-    root.title(u"Barnes & Noble ePub Keyfile Fetch v.{0}".format(__version__))
+    root.title("Barnes & Noble ePub Keyfile Fetch v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(300, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)

@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# code: utf-8
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 '''
 A wrapper script to generate zip files for GitHub releases.

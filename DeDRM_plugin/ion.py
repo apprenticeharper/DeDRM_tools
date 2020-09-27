@@ -1,7 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import with_statement
 
 # ion.py
 # Copyright © 2013-2020 Apprentice Harper et al.

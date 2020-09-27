@@ -1,4 +1,5 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 """
     Routines for doing AES CBC in one file
@@ -14,7 +15,7 @@
     See the wonderful pure python package cryptopy-1.2.5
     and read its LICENSE.txt for complete license details.
 
-    Adjusted for Python 3 compatibility, September 2020
+    Adjusted for Python 3, September 2020
 """
 
 class CryptoError(Exception):

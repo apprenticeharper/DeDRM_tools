@@ -1,29 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # adobekey.pyw, version 6.0
-# Copyright © 2009-2010 i♥cabbages
+# Copyright © 2009-2020 i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
-
-# Modified 2010–2016 by several people
-
-# Windows users: Before running this program, you must first install Python.
-#   We recommend ActiveState Python 2.7.X for Windows (x86) from
-#   http://www.activestate.com/activepython/downloads.
-#   You must also install PyCrypto from
-#   http://www.voidspace.org.uk/python/modules.shtml#pycrypto
-#   (make certain to install the version for Python 2.7).
-#   Then save this script file as adobekey.pyw and double-click on it to run it.
-#   It will create a file named adobekey_1.der in in the same directory as the script.
-#   This is your Adobe Digital Editions user key.
-#
-# Mac OS X users: Save this script file as adobekey.pyw.  You can run this
-#   program from the command line (python adobekey.pyw) or by double-clicking
-#   it when it has been associated with PythonLauncher.  It will create a file
-#   named adobekey_1.der in the same directory as the script.
-#   This is your Adobe Digital Editions user key.
 
 # Revision history:
 #   1 - Initial release, for Adobe Digital Editions 1.7
@@ -46,7 +28,7 @@
 #   5.8 - Added getkey interface for Windows DeDRM application
 #   5.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   6.0 - Work if TkInter is missing
-#   7.0 - Python 3 compatible for calibre 5
+#   7.0 - Python 3 for calibre 5
 
 """
 Retrieve Adobe ADEPT user key.

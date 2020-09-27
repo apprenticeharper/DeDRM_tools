@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 """
 Read and write ZIP files.
 """
@@ -824,8 +827,8 @@ class ZipFile:
 
     def open(self, name, mode="r", pwd=None):
         """Return file-like object for 'name'."""
-        if mode not in ("r", "U", "rU"):
-            raise RuntimeError('open() requires mode "r", "U", or "rU"')
+        if mode not in ("r", "", "rU"):
+            raise RuntimeError('open() requires mode "r", "", or "rU"')
         if not self.fp:
             raise RuntimeError(
                   "Attempt to read ZIP archive that was already closed")

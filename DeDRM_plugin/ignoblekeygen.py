@@ -1,10 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import with_statement
-from __future__ import print_function
-
-# ignoblekeygen.pyw
+# ignoblekeygen.py
 # Copyright © 2009-2020 i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
@@ -100,7 +97,7 @@ def unicode_argv():
                     range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"ignoblekeygen.py"]
+        return ["ignoblekeygen.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
@@ -228,7 +225,7 @@ def cli_main():
               (progname,))
         return 1
     if len(argv) != 4:
-        print(u"usage: {0} <Name> <CC#> <keyfileout.b64>".format(progname))
+        print("usage: {0} <Name> <CC#> <keyfileout.b64>".format(progname))
         return 1
     name, ccn, keypath = argv[1:]
     userkey = generate_key(name, ccn)
@@ -249,38 +246,38 @@ def gui_main():
     class DecryptionDialog(Tkinter.Frame):
         def __init__(self, root):
             Tkinter.Frame.__init__(self, root, border=5)
-            self.status = Tkinter.Label(self, text=u"Enter parameters")
+            self.status = Tkinter.Label(self, text="Enter parameters")
             self.status.pack(fill=Tkconstants.X, expand=1)
             body = Tkinter.Frame(self)
             body.pack(fill=Tkconstants.X, expand=1)
             sticky = Tkconstants.E + Tkconstants.W
             body.grid_columnconfigure(1, weight=2)
-            Tkinter.Label(body, text=u"Account Name").grid(row=0)
+            Tkinter.Label(body, text="Account Name").grid(row=0)
             self.name = Tkinter.Entry(body, width=40)
             self.name.grid(row=0, column=1, sticky=sticky)
-            Tkinter.Label(body, text=u"CC#").grid(row=1)
+            Tkinter.Label(body, text="CC#").grid(row=1)
             self.ccn = Tkinter.Entry(body, width=40)
             self.ccn.grid(row=1, column=1, sticky=sticky)
-            Tkinter.Label(body, text=u"Output file").grid(row=2)
+            Tkinter.Label(body, text="Output file").grid(row=2)
             self.keypath = Tkinter.Entry(body, width=40)
             self.keypath.grid(row=2, column=1, sticky=sticky)
-            self.keypath.insert(2, u"bnepubkey.b64")
-            button = Tkinter.Button(body, text=u"...", command=self.get_keypath)
+            self.keypath.insert(2, "bnepubkey.b64")
+            button = Tkinter.Button(body, text="...", command=self.get_keypath)
             button.grid(row=2, column=2)
             buttons = Tkinter.Frame(self)
             buttons.pack()
             botton = Tkinter.Button(
-                buttons, text=u"Generate", width=10, command=self.generate)
+                buttons, text="Generate", width=10, command=self.generate)
             botton.pack(side=Tkconstants.LEFT)
             Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
             button = Tkinter.Button(
-                buttons, text=u"Quit", width=10, command=self.quit)
+                buttons, text="Quit", width=10, command=self.quit)
             button.pack(side=Tkconstants.RIGHT)
 
         def get_keypath(self):
             keypath = tkFileDialog.asksaveasfilename(
-                parent=None, title=u"Select B&N ePub key file to produce",
-                defaultextension=u".b64",
+                parent=None, title="Select B&N ePub key file to produce",
+                defaultextension=".b64",
                 filetypes=[('base64-encoded files', '.b64'),
                            ('All Files', '.*')])
             if keypath:
@@ -294,22 +291,22 @@ def gui_main():
             ccn = self.ccn.get()
             keypath = self.keypath.get()
             if not name:
-                self.status['text'] = u"Name not specified"
+                self.status['text'] = "Name not specified"
                 return
             if not ccn:
-                self.status['text'] = u"Credit card number not specified"
+                self.status['text'] = "Credit card number not specified"
                 return
             if not keypath:
-                self.status['text'] = u"Output keyfile path not specified"
+                self.status['text'] = "Output keyfile path not specified"
                 return
-            self.status['text'] = u"Generating..."
+            self.status['text'] = "Generating..."
             try:
                 userkey = generate_key(name, ccn)
             except Exception as e:
-                self.status['text'] = u"Error: (0}".format(e.args[0])
+                self.status['text'] = "Error: (0}".format(e.args[0])
                 return
             open(keypath,'wb').write(userkey)
-            self.status['text'] = u"Keyfile successfully generated"
+            self.status['text'] = "Keyfile successfully generated"
 
     root = Tkinter.Tk()
     if AES is None:
@@ -319,7 +316,7 @@ def gui_main():
             "This script requires OpenSSL or PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
         return 1
-    root.title(u"Barnes & Noble ePub Keyfile Generator v.{0}".format(__version__))
+    root.title("Barnes & Noble ePub Keyfile Generator v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(300, 0)
     DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)

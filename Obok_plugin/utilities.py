@@ -1,6 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
-from __future__ import (unicode_literals, division, absolute_import,
-                        print_function)
 
 __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
@@ -13,10 +13,7 @@ except ImportError:
     from io import StringIO
 from traceback import print_exc
 
-try:
-    from PyQt5.Qt import (Qt, QDialog, QPixmap, QIcon, QLabel, QHBoxLayout, QFont, QTableWidgetItem)
-except ImportError:
-    from PyQt4.Qt import (Qt, QDialog, QPixmap, QIcon, QLabel, QHBoxLayout, QFont, QTableWidgetItem)
+from PyQt5.Qt import (Qt, QDialog, QPixmap, QIcon, QLabel, QHBoxLayout, QFont, QTableWidgetItem)
 
 from calibre.utils.config import config_dir
 from calibre.constants import iswindows, DEBUG

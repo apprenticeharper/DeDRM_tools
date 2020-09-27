@@ -1,15 +1,16 @@
-#! /usr/bin/python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# For use with Topaz Scripts Version 2.6
-# Added Python 3 compatibility, September 2020
 
-from __future__ import print_function
+# For use with Topaz Scripts Version 2.6
+# Python 3, September 2020
+
 class Unbuffered:
     def __init__(self, stream):
         self.stream = stream
     def write(self, data):
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 

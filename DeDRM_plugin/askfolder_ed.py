@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
@@ -202,7 +202,7 @@ def AskFolder(
     if not pidl:
         result = None
     else:
-        path = LPCWSTR(u" " * (MAX_PATH+1))
+        path = LPCWSTR(" " * (MAX_PATH+1))
         shell32.SHGetPathFromIDListW(pidl, path)
         ole32.CoTaskMemFree(pidl)
         result = path.value

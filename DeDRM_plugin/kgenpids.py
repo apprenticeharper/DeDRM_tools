@@ -1,8 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import with_statement
-from __future__ import print_function
 
 # kgenpids.py
 # Copyright © 2008-2020 Apprentice Harper et al.
@@ -14,7 +11,7 @@ __version__ = '3.0'
 #  2.0   - Fix for non-ascii Windows user names
 #  2.1   - Actual fix for non-ascii WIndows user names.
 #  2.2   - Return information needed for KFX decryption
-#  3.0   - Added Python 3 compatibility for calibre 5.0
+#  3.0   - Python 3 for calibre 5.0
 
 
 import sys
@@ -217,18 +214,18 @@ def getK4Pids(rec209, token, kindleDatabase):
     try:
         # Get the DSN token, if present
         DSN = bytearray.fromhex((kindleDatabase[1])['DSN']).decode()
-        print(u"Got DSN key from database {0}".format(kindleDatabase[0]))
+        print("Got DSN key from database {0}".format(kindleDatabase[0]))
     except KeyError:
         # See if we have the info to generate the DSN
         try:
             # Get the Mazama Random number
             MazamaRandomNumber = bytearray.fromhex((kindleDatabase[1])['MazamaRandomNumber']).decode()
-            #print u"Got MazamaRandomNumber from database {0}".format(kindleDatabase[0])
+            #print "Got MazamaRandomNumber from database {0}".format(kindleDatabase[0])
 
             try:
                 # Get the SerialNumber token, if present
                 IDString = bytearray.fromhex((kindleDatabase[1])['SerialNumber']).decode()
-                print(u"Got SerialNumber from database {0}".format(kindleDatabase[0]))
+                print("Got SerialNumber from database {0}".format(kindleDatabase[0]))
             except KeyError:
                  # Get the IDString we added
                 IDString = bytearray.fromhex((kindleDatabase[1])['IDString']).decode()
@@ -236,24 +233,24 @@ def getK4Pids(rec209, token, kindleDatabase):
             try:
                 # Get the UsernameHash token, if present
                 encodedUsername = bytearray.fromhex((kindleDatabase[1])['UsernameHash']).decode()
-                print(u"Got UsernameHash from database {0}".format(kindleDatabase[0]))
+                print("Got UsernameHash from database {0}".format(kindleDatabase[0]))
             except KeyError:
                 # Get the UserName we added
                 UserName = bytearray.fromhex((kindleDatabase[1])['UserName']).decode()
                 # encode it
                 encodedUsername = encodeHash(UserName,charMap1)
-                #print u"encodedUsername",encodedUsername.encode('hex')
+                #print "encodedUsername",encodedUsername.encode('hex')
         except KeyError:
-            print(u"Keys not found in the database {0}.".format(kindleDatabase[0]))
+            print("Keys not found in the database {0}.".format(kindleDatabase[0]))
             return pids
 
         # Get the ID string used
         encodedIDString = encodeHash(IDString,charMap1)
-        #print u"encodedIDString",encodedIDString.encode('hex')
+        #print "encodedIDString",encodedIDString.encode('hex')
 
         # concat, hash and encode to calculate the DSN
         DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
-        #print u"DSN",DSN.encode('hex')
+        #print "DSN",DSN.encode('hex')
         pass
 
     if rec209 is None:
@@ -300,14 +297,14 @@ def getPidList(md1, md2, serials=[], kDatabases=[]):
         try:
             pidlst.extend(getK4Pids(md1, md2, kDatabase))
         except Exception as e:
-            print(u"Error getting PIDs from database {0}: {1}".format(kDatabase[0],e.args[0]))
+            print("Error getting PIDs from database {0}: {1}".format(kDatabase[0],e.args[0]))
             traceback.print_exc()
 
     for serialnum in serials:
         try:
             pidlst.extend(getKindlePids(md1, md2, serialnum))
         except Exception as e:
-            print(u"Error getting PIDs from serial number {0}: {1}".format(serialnum ,e.args[0]))
+            print("Error getting PIDs from serial number {0}: {1}".format(serialnum ,e.args[0]))
             traceback.print_exc()
 
     return pidlst

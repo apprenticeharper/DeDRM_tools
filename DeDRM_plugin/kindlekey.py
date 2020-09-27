@@ -1,7 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import with_statement
 
 # kindlekey.py
 # Copyright © 2008-2020 Apprentice Harper et al.
@@ -30,7 +28,7 @@ __version__ = '3.0'
 #  2.5   - Final Fix for Windows user names with non-ascii characters, thanks to oneofusoneofus
 #  2.6   - Start adding support for Kindle 1.25+ .kinf2018 file
 #  2.7   - Finish .kinf2018 support, PC & Mac by Apprentice Sakuya
-#  3.0   - Added Python 3 compatibility for calibre 5.0
+#  3.0   - Python 3 for calibre 5.0
 
 
 """
@@ -104,7 +102,7 @@ def unicode_argv():
                     xrange(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"kindlekey.py"]
+        return ["kindlekey.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
@@ -905,11 +903,11 @@ if iswindows:
             
             # replace any non-ASCII values with 0xfffd
             for i in xrange(0,len(buffer)):
-                if buffer[i]>u"\u007f":
-                    #print u"swapping char "+str(i)+" ("+buffer[i]+")"
-                    buffer[i] = u"\ufffd"
+                if buffer[i]>"\u007f":
+                    #print "swapping char "+str(i)+" ("+buffer[i]+")"
+                    buffer[i] = "\ufffd"
             # return utf-8 encoding of modified username
-            #print u"modified username:"+buffer.value
+            #print "modified username:"+buffer.value
             return buffer.value.encode('utf-8')
         return GetUserName
     GetUserName = GetUserName()
@@ -939,7 +937,7 @@ if iswindows:
         n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
         if n == 0:
             return None
-        buf = ctypes.create_unicode_buffer(u'\0'*n)
+        buf = ctypes.create_unicode_buffer("\0"*n)
         ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
         return buf.value
 
@@ -951,7 +949,7 @@ if iswindows:
         path = ""
         if 'LOCALAPPDATA' in os.environ.keys():
             # Python 2.x does not return unicode env. Use Python 3.x
-            path = winreg.ExpandEnvironmentStrings(u"%LOCALAPPDATA%")
+            path = winreg.ExpandEnvironmentStrings("%LOCALAPPDATA%")
             # this is just another alternative.
             # path = getEnvironmentVariable('LOCALAPPDATA')
             if not os.path.isdir(path):
@@ -979,7 +977,7 @@ if iswindows:
             print ('Could not find the folder in which to look for kinfoFiles.')
         else:
             # Probably not the best. To Fix (shouldn't ignore in encoding) or use utf-8
-            print(u'searching for kinfoFiles in ' + path.encode('ascii', 'ignore'))
+            print("searching for kinfoFiles in " + path.encode('ascii', 'ignore'))
 
             # look for (K4PC 1.25.1 and later) .kinf2018 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2018'
@@ -1166,9 +1164,9 @@ if iswindows:
             # store values used in decryption
             DB['IDString'] = GetIDString()
             DB['UserName'] = GetUserName()
-            print(u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex')))
+            print("Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex')))
         else:
-            print(u"Couldn't decrypt file.")
+            print("Couldn't decrypt file.")
             DB = {}
         return DB
 elif isosx:
@@ -1183,7 +1181,7 @@ elif isosx:
 
         libcrypto = find_library('crypto')
         if libcrypto is None:
-            raise DrmException(u"libcrypto not found")
+            raise DrmException("libcrypto not found")
         libcrypto = CDLL(libcrypto)
 
         # From OpenSSL's crypto aes header
@@ -1241,14 +1239,14 @@ elif isosx:
             def set_decrypt_key(self, userkey, iv):
                 self._blocksize = len(userkey)
                 if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                    raise DrmException(u"AES improper key used")
+                    raise DrmException("AES improper key used")
                     return
                 keyctx = self._keyctx = AES_KEY()
                 self._iv = iv
                 self._userkey = userkey
                 rv = AES_set_decrypt_key(userkey, len(userkey) * 8, keyctx)
                 if rv < 0:
-                    raise DrmException(u"Failed to initialize AES key")
+                    raise DrmException("Failed to initialize AES key")
 
             def decrypt(self, data):
                 out = create_string_buffer(len(data))
@@ -1256,7 +1254,7 @@ elif isosx:
                 keyctx = self._keyctx
                 rv = AES_cbc_encrypt(data, out, len(data), keyctx, mutable_iv, 0)
                 if rv == 0:
-                    raise DrmException(u"AES decryption failed")
+                    raise DrmException("AES decryption failed")
                 return out.raw
 
             def keyivgen(self, passwd, salt, iter, keylen):
@@ -1649,16 +1647,16 @@ elif isosx:
                 pass
         if len(DB)>6:
             # store values used in decryption
-            print(u"Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName()))
+            print("Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName()))
             DB['IDString'] = IDString
             DB['UserName'] = GetUserName()
         else:
-            print(u"Couldn't decrypt file.")
+            print("Couldn't decrypt file.")
             DB = {}
         return DB
 else:
     def getDBfromFile(kInfoFile):
-        raise DrmException(u"This script only runs under Windows or Mac OS X.")
+        raise DrmException("This script only runs under Windows or Mac OS X.")
         return {}
 
 def kindlekeys(files = []):
@@ -1683,27 +1681,27 @@ def getkey(outpath, files=[]):
             outfile = outpath
             with file(outfile, 'w') as keyfileout:
                 keyfileout.write(json.dumps(keys[0]))
-            print(u"Saved a key to {0}".format(outfile))
+            print("Saved a key to {0}".format(outfile))
         else:
             keycount = 0
             for key in keys:
                 while True:
                     keycount += 1
-                    outfile = os.path.join(outpath,u"kindlekey{0:d}.k4i".format(keycount))
+                    outfile = os.path.join(outpath,"kindlekey{0:d}.k4i".format(keycount))
                     if not os.path.exists(outfile):
                         break
                 with file(outfile, 'w') as keyfileout:
                     keyfileout.write(json.dumps(key))
-                print(u"Saved a key to {0}".format(outfile))
+                print("Saved a key to {0}".format(outfile))
         return True
     return False
 
 def usage(progname):
-    print(u"Finds, decrypts and saves the default Kindle For Mac/PC encryption keys.")
-    print(u"Keys are saved to the current directory, or a specified output directory.")
-    print(u"If a file name is passed instead of a directory, only the first key is saved, in that file.")
-    print(u"Usage:")
-    print(u"    {0:s} [-h] [-k <kindle.info>] [<outpath>]".format(progname))
+    print("Finds, decrypts and saves the default Kindle For Mac/PC encryption keys.")
+    print("Keys are saved to the current directory, or a specified output directory.")
+    print("If a file name is passed instead of a directory, only the first key is saved, in that file.")
+    print("Usage:")
+    print("    {0:s} [-h] [-k <kindle.info>] [<outpath>]".format(progname))
 
 
 def cli_main():
@@ -1711,12 +1709,12 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print(u"{0} v{1}\nCopyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__))
+    print("{0} v{1}\nCopyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "hk:")
     except getopt.GetoptError as err:
-        print(u"Error in options or arguments: {0}".format(err.args[0]))
+        print("Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
 
@@ -1745,7 +1743,7 @@ def cli_main():
     outpath = os.path.realpath(os.path.normpath(outpath))
 
     if not getkey(outpath, files):
-        print(u"Could not retrieve Kindle for Mac/PC key.")
+        print("Could not retrieve Kindle for Mac/PC key.")
     return 0
 
 
@@ -1761,7 +1759,7 @@ def gui_main():
     class ExceptionDialog(Tkinter.Frame):
         def __init__(self, root, text):
             Tkinter.Frame.__init__(self, root, border=5)
-            label = Tkinter.Label(self, text=u"Unexpected error:",
+            label = Tkinter.Label(self, text="Unexpected error:",
                                   anchor=Tkconstants.W, justify=Tkconstants.LEFT)
             label.pack(fill=Tkconstants.X, expand=0)
             self.text = Tkinter.Text(self)
@@ -1781,16 +1779,16 @@ def gui_main():
         for key in keys:
             while True:
                 keycount += 1
-                outfile = os.path.join(progpath,u"kindlekey{0:d}.k4i".format(keycount))
+                outfile = os.path.join(progpath,"kindlekey{0:d}.k4i".format(keycount))
                 if not os.path.exists(outfile):
                     break
 
             with file(outfile, 'w') as keyfileout:
                 keyfileout.write(json.dumps(key))
             success = True
-            tkMessageBox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
+            tkMessageBox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
     except DrmException as e:
-        tkMessageBox.showerror(progname, u"Error: {0}".format(str(e)))
+        tkMessageBox.showerror(progname, "Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
         root.title(progname)

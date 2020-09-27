@@ -1,8 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import with_statement
-from __future__ import print_function
 
 # ignoblekey.py
 # Copyright © 2015-2020 Apprentice Alf, Apprentice Harper et al.
@@ -15,7 +12,7 @@ from __future__ import print_function
 # Revision history:
 #   1.0 - Initial release
 #   1.1 - remove duplicates and return last key as single key
-#   2.0 - Added Python 3 compatibility for calibre 5.0
+#   2.0 - Python 3 for calibre 5.0
 
 """
 Get Barnes & Noble EPUB user key from nook Studio log file
@@ -40,10 +37,10 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,bytes):
+        if isinstance(data,str):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -84,7 +81,7 @@ def unicode_argv():
                     range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"ignoblekey.py"]
+        return ["ignoblekey.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
@@ -106,15 +103,15 @@ def getNookLogFiles():
         paths = set()
         if 'LOCALAPPDATA' in os.environ.keys():
             # Python 2.x does not return unicode env. Use Python 3.x
-            path = winreg.ExpandEnvironmentStrings(u"%LOCALAPPDATA%")
+            path = winreg.ExpandEnvironmentStrings("%LOCALAPPDATA%")
             if os.path.isdir(path):
                 paths.add(path)
         if 'USERPROFILE' in os.environ.keys():
             # Python 2.x does not return unicode env. Use Python 3.x
-            path = winreg.ExpandEnvironmentStrings(u"%USERPROFILE%")+u"\\AppData\\Local"
+            path = winreg.ExpandEnvironmentStrings("%USERPROFILE%")+"\\AppData\\Local"
             if os.path.isdir(path):
                 paths.add(path)
-            path = winreg.ExpandEnvironmentStrings(u"%USERPROFILE%")+u"\\AppData\\Roaming"
+            path = winreg.ExpandEnvironmentStrings("%USERPROFILE%")+"\\AppData\\Roaming"
             if os.path.isdir(path):
                 paths.add(path)
         # User Shell Folders show take precedent over Shell Folders if present
@@ -200,7 +197,7 @@ def nookkeys(files = []):
     for file in files:
         fileKeys = getKeysFromLog(file)
         if fileKeys:
-            print(u"Found {0} keys in the Nook Study log files".format(len(fileKeys)))
+            print("Found {0} keys in the Nook Study log files".format(len(fileKeys)))
             keys.extend(fileKeys)
     return list(set(keys))
 
@@ -213,27 +210,27 @@ def getkey(outpath, files=[]):
             outfile = outpath
             with open(outfile, 'w') as keyfileout:
                 keyfileout.write(keys[-1])
-            print(u"Saved a key to {0}".format(outfile))
+            print("Saved a key to {0}".format(outfile))
         else:
             keycount = 0
             for key in keys:
                 while True:
                     keycount += 1
-                    outfile = os.path.join(outpath,u"nookkey{0:d}.b64".format(keycount))
+                    outfile = os.path.join(outpath,"nookkey{0:d}.b64".format(keycount))
                     if not os.path.exists(outfile):
                         break
                 with open(outfile, 'w') as keyfileout:
                     keyfileout.write(key)
-                print(u"Saved a key to {0}".format(outfile))
+                print("Saved a key to {0}".format(outfile))
         return True
     return False
 
 def usage(progname):
-    print(u"Finds the nook Study encryption keys.")
-    print(u"Keys are saved to the current directory, or a specified output directory.")
-    print(u"If a file name is passed instead of a directory, only the first key is saved, in that file.")
-    print(u"Usage:")
-    print(u"    {0:s} [-h] [-k <logFile>] [<outpath>]".format(progname))
+    print("Finds the nook Study encryption keys.")
+    print("Keys are saved to the current directory, or a specified output directory.")
+    print("If a file name is passed instead of a directory, only the first key is saved, in that file.")
+    print("Usage:")
+    print("    {0:s} [-h] [-k <logFile>] [<outpath>]".format(progname))
 
 
 def cli_main():
@@ -241,12 +238,12 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print(u"{0} v{1}\nCopyright © 2015 Apprentice Alf".format(progname,__version__))
+    print("{0} v{1}\nCopyright © 2015 Apprentice Alf".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "hk:")
     except getopt.GetoptError as err:
-        print(u"Error in options or arguments: {0}".format(err.args[0]))
+        print("Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
         sys.exit(2)
 
@@ -275,7 +272,7 @@ def cli_main():
     outpath = os.path.realpath(os.path.normpath(outpath))
 
     if not getkey(outpath, files):
-        print(u"Could not retrieve nook Study key.")
+        print("Could not retrieve nook Study key.")
     return 0
 
 
@@ -291,7 +288,7 @@ def gui_main():
     class ExceptionDialog(Tkinter.Frame):
         def __init__(self, root, text):
             Tkinter.Frame.__init__(self, root, border=5)
-            label = Tkinter.Label(self, text=u"Unexpected error:",
+            label = Tkinter.Label(self, text="Unexpected error:",
                                   anchor=Tkconstants.W, justify=Tkconstants.LEFT)
             label.pack(fill=Tkconstants.X, expand=0)
             self.text = Tkinter.Text(self)
@@ -312,16 +309,16 @@ def gui_main():
             print(key)
             while True:
                 keycount += 1
-                outfile = os.path.join(progpath,u"nookkey{0:d}.b64".format(keycount))
+                outfile = os.path.join(progpath,"nookkey{0:d}.b64".format(keycount))
                 if not os.path.exists(outfile):
                     break
 
             with open(outfile, 'w') as keyfileout:
                 keyfileout.write(key)
             success = True
-            tkMessageBox.showinfo(progname, u"Key successfully retrieved to {0}".format(outfile))
+            tkMessageBox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
     except DrmException as e:
-        tkMessageBox.showerror(progname, u"Error: {0}".format(str(e)))
+        tkMessageBox.showerror(progname, "Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
         root.title(progname)

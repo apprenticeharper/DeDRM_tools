@@ -1,16 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 # vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
-from __future__ import (unicode_literals, division, absolute_import,
-                        print_function)
 
-try:
-    from PyQt5.Qt import (Qt, QGroupBox, QListWidget, QLineEdit, QDialogButtonBox, QWidget, QLabel, QDialog, QVBoxLayout, QAbstractItemView, QIcon, QHBoxLayout, QComboBox, QListWidgetItem, QFileDialog)
-except ImportError:
-    from PyQt4.Qt import (Qt, QGroupBox, QListWidget, QLineEdit, QDialogButtonBox, QWidget, QLabel, QDialog, QVBoxLayout, QAbstractItemView, QIcon, QHBoxLayout, QComboBox, QListWidgetItem, QFileDialog)
-
-try:
-    from PyQt5 import Qt as QtGui
-except ImportError:
-    from PyQt4 import QtGui
+from PyQt5.Qt import (Qt, QGroupBox, QListWidget, QLineEdit, QDialogButtonBox, QWidget, QLabel, QDialog, QVBoxLayout, QAbstractItemView, QIcon, QHBoxLayout, QComboBox, QListWidgetItem, QFileDialog)
+from PyQt5 import Qt as QtGui
 
 from calibre.gui2 import (error_dialog, question_dialog, info_dialog, open_url)
 from calibre.utils.config import JSONConfig, config_dir
@@ -50,25 +44,25 @@ class ConfigWidget(QWidget):
         self.find_homes.setCurrentIndex(index)
 
         self.serials_button = QtGui.QPushButton(self)
-        self.serials_button.setToolTip(_(u"Click to manage Kobo serial numbers for Kobo ebooks"))
-        self.serials_button.setText(u"Kobo devices serials")
+        self.serials_button.setToolTip(_("Click to manage Kobo serial numbers for Kobo ebooks"))
+        self.serials_button.setText("Kobo devices serials")
         self.serials_button.clicked.connect(self.edit_serials)
         layout.addWidget(self.serials_button)
 
         self.kobo_directory_button = QtGui.QPushButton(self)
-        self.kobo_directory_button.setToolTip(_(u"Click to specify the Kobo directory"))
-        self.kobo_directory_button.setText(u"Kobo directory")
+        self.kobo_directory_button.setToolTip(_("Click to specify the Kobo directory"))
+        self.kobo_directory_button.setText("Kobo directory")
         self.kobo_directory_button.clicked.connect(self.edit_kobo_directory)
         layout.addWidget(self.kobo_directory_button)
 
 
     def edit_serials(self):
-        d = ManageKeysDialog(self,u"Kobo device serial number",self.tmpserials, AddSerialDialog)
+        d = ManageKeysDialog(self,"Kobo device serial number",self.tmpserials, AddSerialDialog)
         d.exec_()
 
 
     def edit_kobo_directory(self):
-        tmpkobodirectory = QFileDialog.getExistingDirectory(self, u"Select Kobo directory", self.kobodirectory or "/home", QFileDialog.ShowDirsOnly)
+        tmpkobodirectory = QFileDialog.getExistingDirectory(self, "Select Kobo directory", self.kobodirectory or "/home", QFileDialog.ShowDirsOnly)
 
         if tmpkobodirectory != u"" and tmpkobodirectory is not None:
             self.kobodirectory = tmpkobodirectory
@@ -91,7 +85,7 @@ class ManageKeysDialog(QDialog):
         self.plugin_keys = plugin_keys
         self.create_key = create_key
         self.keyfile_ext = keyfile_ext
-        self.json_file = (keyfile_ext == u"k4i")
+        self.json_file = (keyfile_ext == "k4i")
 
         self.setWindowTitle("{0} {1}: Manage {2}s".format(PLUGIN_NAME, PLUGIN_VERSION, self.key_type_name))
 
@@ -99,13 +93,13 @@ class ManageKeysDialog(QDialog):
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
-        keys_group_box = QGroupBox(_(u"{0}s".format(self.key_type_name)), self)
+        keys_group_box = QGroupBox(_("{0}s".format(self.key_type_name)), self)
         layout.addWidget(keys_group_box)
         keys_group_box_layout = QHBoxLayout()
         keys_group_box.setLayout(keys_group_box_layout)
 
         self.listy = QListWidget(self)
-        self.listy.setToolTip(u"{0}s that will be used to decrypt ebooks".format(self.key_type_name))
+        self.listy.setToolTip("{0}s that will be used to decrypt ebooks".format(self.key_type_name))
         self.listy.setSelectionMode(QAbstractItemView.SingleSelection)
         self.populate_list()
         keys_group_box_layout.addWidget(self.listy)
@@ -114,12 +108,12 @@ class ManageKeysDialog(QDialog):
         keys_group_box_layout.addLayout(button_layout)
         self._add_key_button = QtGui.QToolButton(self)
         self._add_key_button.setIcon(QIcon(I('plus.png')))
-        self._add_key_button.setToolTip(u"Create new {0}".format(self.key_type_name))
+        self._add_key_button.setToolTip("Create new {0}".format(self.key_type_name))
         self._add_key_button.clicked.connect(self.add_key)
         button_layout.addWidget(self._add_key_button)
 
         self._delete_key_button = QtGui.QToolButton(self)
-        self._delete_key_button.setToolTip(_(u"Delete highlighted key"))
+        self._delete_key_button.setToolTip(_("Delete highlighted key"))
         self._delete_key_button.setIcon(QIcon(I('list_remove.png')))
         self._delete_key_button.clicked.connect(self.delete_key)
         button_layout.addWidget(self._delete_key_button)
@@ -155,7 +149,7 @@ class ManageKeysDialog(QDialog):
         new_key_value = d.key_value
         if new_key_value in self.plugin_keys:
             info_dialog(None, "{0} {1}: Duplicate {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
-                        u"This {0} is already in the list of {0}s has not been added.".format(self.key_type_name), show=True)
+                        "This {0} is already in the list of {0}s has not been added.".format(self.key_type_name), show=True)
             return
 
         self.plugin_keys.append(d.key_value)
@@ -166,7 +160,7 @@ class ManageKeysDialog(QDialog):
         if not self.listy.currentItem():
             return
         keyname = self.listy.currentItem().text()
-        if not question_dialog(self, "{0} {1}: Confirm Delete".format(PLUGIN_NAME, PLUGIN_VERSION), u"Do you really want to delete the {1} <strong>{0}</strong>?".format(keyname, self.key_type_name), show_copy_button=False, default_yes=False):
+        if not question_dialog(self, "{0} {1}: Confirm Delete".format(PLUGIN_NAME, PLUGIN_VERSION), "Do you really want to delete the {1} <strong>{0}</strong>?".format(keyname, self.key_type_name), show_copy_button=False, default_yes=False):
             return
         self.plugin_keys.remove(keyname)
 
@@ -177,7 +171,7 @@ class AddSerialDialog(QDialog):
     def __init__(self, parent=None,):
         QDialog.__init__(self, parent)
         self.parent = parent
-        self.setWindowTitle(u"{0} {1}: Add New eInk Kobo Serial Number".format(PLUGIN_NAME, PLUGIN_VERSION))
+        self.setWindowTitle("{0} {1}: Add New eInk Kobo Serial Number".format(PLUGIN_NAME, PLUGIN_VERSION))
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
@@ -188,9 +182,9 @@ class AddSerialDialog(QDialog):
 
         key_group = QHBoxLayout()
         data_group_box_layout.addLayout(key_group)
-        key_group.addWidget(QLabel(u"EInk Kobo Serial Number:", self))
+        key_group.addWidget(QLabel("EInk Kobo Serial Number:", self))
         self.key_ledit = QLineEdit("", self)
-        self.key_ledit.setToolTip(u"Enter an eInk Kobo serial number. EInk Kobo serial numbers are 13 characters long and usually start with a 'N'. Kobo Serial Numbers are case-sensitive, so be sure to enter the upper and lower case letters unchanged.")
+        self.key_ledit.setToolTip("Enter an eInk Kobo serial number. EInk Kobo serial numbers are 13 characters long and usually start with a 'N'. Kobo Serial Numbers are case-sensitive, so be sure to enter the upper and lower case letters unchanged.")
         key_group.addWidget(self.key_ledit)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -210,9 +204,9 @@ class AddSerialDialog(QDialog):
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():
-            errmsg = u"Please enter an eInk Kindle Serial Number or click Cancel in the dialog."
+            errmsg = "Please enter an eInk Kindle Serial Number or click Cancel in the dialog."
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         if len(self.key_name) != 13:
-            errmsg = u"EInk Kobo Serial Numbers must be 13 characters long. This is {0:d} characters long.".format(len(self.key_name))
+            errmsg = "EInk Kobo Serial Numbers must be 13 characters long. This is {0:d} characters long.".format(len(self.key_name))
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         QDialog.accept(self)

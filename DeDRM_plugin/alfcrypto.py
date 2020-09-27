@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # crypto library mainly by some_updates
@@ -8,7 +8,6 @@
 # pbkdf2.py Copyright © 2009 Daniel Holth <dholth@fastmail.fm>
 # pbkdf2.py This code may be freely used and modified for any purpose.
 
-from __future__ import print_function
 import sys, os
 import hmac
 from struct import pack
@@ -159,7 +158,7 @@ def _load_libalfcrypto():
             topazCryptoDecrypt(ctx, data, out, len(data))
             return out.raw
 
-    print(u"Using Library AlfCrypto DLL/DYLIB/SO")
+    print("Using Library AlfCrypto DLL/DYLIB/SO")
     return (AES_CBC, Pukall_Cipher, Topaz_Cipher)
 
 
@@ -245,7 +244,7 @@ def _load_python_alfcrypto():
             cleartext = self.aes.decrypt(iv + data)
             return cleartext
 
-    print(u"Using Library AlfCrypto Python")
+    print("Using Library AlfCrypto Python")
     return (AES_CBC, Pukall_Cipher, Topaz_Cipher)
 
 

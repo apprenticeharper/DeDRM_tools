@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # mobidedrm.py
@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 __license__ = 'GPL v3'
-__version__ = u"1.00"
+__version__ = "1.00"
 
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
@@ -82,7 +82,7 @@ import binascii
 try:
     from alfcrypto import Pukall_Cipher
 except:
-    print(u"AlfCrypto not found. Using python PC1 implementation.")
+    print("AlfCrypto not found. Using python PC1 implementation.")
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -135,7 +135,7 @@ def unicode_argv():
                     range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"mobidedrm.py"]
+        return ["mobidedrm.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:
@@ -166,7 +166,7 @@ def PC1(key, src, decryption=True):
     sum2 = 0;
     keyXorVal = 0;
     if len(key)!=16:
-         DrmException (u"PC1: Bad key length")
+         DrmException ("PC1: Bad key length")
     wkey = []
     for i in range(8):
         wkey.append(key[i*2]<<8 | key[i*2+1])
@@ -246,19 +246,19 @@ class MobiBook:
         pass
 
     def __init__(self, infile):
-        print(u"MobiDeDrm v{0:s}.\nCopyright © 2008-2017 The Dark Reverser, Apprentice Harper et al.".format(__version__))
+        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2017 The Dark Reverser, Apprentice Harper et al.".format(__version__))
 
         try:
             from alfcrypto import Pukall_Cipher
         except:
-            print(u"AlfCrypto not found. Using python PC1 implementation.")
+            print("AlfCrypto not found. Using python PC1 implementation.")
 
         # initial sanity check on file
         self.data_file = open(infile, 'rb').read()
         self.mobi_data = ''
         self.header = self.data_file[0:78]
         if self.header[0x3C:0x3C+8] != b'BOOKMOBI' and self.header[0x3C:0x3C+8] != b'TEXtREAd':
-            raise DrmException(u"Invalid file format")
+            raise DrmException("Invalid file format")
         self.magic = self.header[0x3C:0x3C+8]
         self.crypto_type = -1
 
@@ -284,16 +284,16 @@ class MobiBook:
         self.mobi_version = -1
 
         if self.magic == 'TEXtREAd':
-            print(u"PalmDoc format book detected.")
+            print("PalmDoc format book detected.")
             return
 
         self.mobi_length, = struct.unpack('>L',self.sect[0x14:0x18])
         self.mobi_codepage, = struct.unpack('>L',self.sect[0x1c:0x20])
         self.mobi_version, = struct.unpack('>L',self.sect[0x68:0x6C])
-        #print u"MOBI header version {0:d}, header length {1:d}".format(self.mobi_version, self.mobi_length)
+        #print "MOBI header version {0:d}, header length {1:d}".format(self.mobi_version, self.mobi_length)
         if (self.mobi_length >= 0xE4) and (self.mobi_version >= 5):
             self.extra_data_flags, = struct.unpack('>H', self.sect[0xF2:0xF4])
-            #print u"Extra Data Flags: {0:d}".format(self.extra_data_flags)
+            #print "Extra Data Flags: {0:d}".format(self.extra_data_flags)
         if (self.compression != 17480):
             # multibyte utf8 data is included in the encryption for PalmDoc compression
             # so clear that byte so that we leave it to be decrypted.
@@ -322,7 +322,7 @@ class MobiBook:
                     # print type, size, content, content.encode('hex')
                     pos += size
         except Exception as e:
-            print(u"Cannot set meta_array: Error: {:s}".format(e.args[0]))
+            print("Cannot set meta_array: Error: {:s}".format(e.args[0]))
 
     def getBookTitle(self):
         codec_map = {
@@ -411,51 +411,51 @@ class MobiBook:
 
     def getBookType(self):
         if self.print_replica:
-            return u"Print Replica"
+            return "Print Replica"
         if self.mobi_version >= 8:
-            return u"Kindle Format 8"
+            return "Kindle Format 8"
         if self.mobi_version >= 0:
-            return u"Mobipocket {0:d}".format(self.mobi_version)
-        return u"PalmDoc"
+            return "Mobipocket {0:d}".format(self.mobi_version)
+        return "PalmDoc"
 
     def getBookExtension(self):
         if self.print_replica:
-            return u".azw4"
+            return ".azw4"
         if self.mobi_version >= 8:
-            return u".azw3"
-        return u".mobi"
+            return ".azw3"
+        return ".mobi"
 
     def processBook(self, pidlist):
         crypto_type, = struct.unpack('>H', self.sect[0xC:0xC+2])
-        print(u"Crypto Type is: {0:d}".format(crypto_type))
+        print("Crypto Type is: {0:d}".format(crypto_type))
         self.crypto_type = crypto_type
         if crypto_type == 0:
-            print(u"This book is not encrypted.")
+            print("This book is not encrypted.")
             # we must still check for Print Replica
             self.print_replica = (self.loadSection(1)[0:4] == '%MOP')
             self.mobi_data = self.data_file
             return
         if crypto_type != 2 and crypto_type != 1:
-            raise DrmException(u"Cannot decode unknown Mobipocket encryption type {0:d}".format(crypto_type))
+            raise DrmException("Cannot decode unknown Mobipocket encryption type {0:d}".format(crypto_type))
         if 406 in self.meta_array:
             data406 = self.meta_array[406]
             val406, = struct.unpack('>Q',data406)
             if val406 != 0:
-                raise DrmException(u"Cannot decode library or rented ebooks.")
+                raise DrmException("Cannot decode library or rented ebooks.")
 
         goodpids = []
         # print("DEBUG ==== pidlist = ", pidlist)
         for pid in pidlist:
             if len(pid)==10:
                 if checksumPid(pid[0:-2]) != pid:
-                    print(u"Warning: PID {0} has incorrect checksum, should have been {1}".format(pid,checksumPid(pid[0:-2])))
+                    print("Warning: PID {0} has incorrect checksum, should have been {1}".format(pid,checksumPid(pid[0:-2])))
                 goodpids.append(pid[0:-2])
             elif len(pid)==8:
                 goodpids.append(pid)
             else:
-                print(u"Warning: PID {0} has wrong number of digits".format(pid))
+                print("Warning: PID {0} has wrong number of digits".format(pid))
 
-        # print(u"======= DEBUG good pids = ", goodpids)
+        # print("======= DEBUG good pids = ", goodpids)
 
         if self.crypto_type == 1:
             t1_keyvec = 'QDCVEPMU675RUBSZ'
@@ -471,32 +471,32 @@ class MobiBook:
             # calculate the keys
             drm_ptr, drm_count, drm_size, drm_flags = struct.unpack('>LLLL', self.sect[0xA8:0xA8+16])
             if drm_count == 0:
-                raise DrmException(u"Encryption not initialised. Must be opened with Mobipocket Reader first.")
+                raise DrmException("Encryption not initialised. Must be opened with Mobipocket Reader first.")
             found_key, pid = self.parseDRM(self.sect[drm_ptr:drm_ptr+drm_size], drm_count, goodpids)
             if not found_key:
-                raise DrmException(u"No key found in {0:d} keys tried.".format(len(goodpids)))
+                raise DrmException("No key found in {0:d} keys tried.".format(len(goodpids)))
             # kill the drm keys
             self.patchSection(0, b'\0' * drm_size, drm_ptr)
             # kill the drm pointers
             self.patchSection(0, b'\xff' * 4 + b'\0' * 12, 0xA8)
 
         if pid=='00000000':
-            print(u"File has default encryption, no specific key needed.")
+            print("File has default encryption, no specific key needed.")
         else:
-            print(u"File is encoded with PID {0}.".format(checksumPid(pid)))
+            print("File is encoded with PID {0}.".format(checksumPid(pid)))
 
         # clear the crypto type
         self.patchSection(0, b'\0' * 2, 0xC)
 
         # decrypt sections
-        print(u"Decrypting. Please wait . . .", end=' ')
+        print("Decrypting. Please wait . . .", end=' ')
         mobidataList = []
         mobidataList.append(self.data_file[:self.sections[1][0]])
         for i in range(1, self.records+1):
             data = self.loadSection(i)
             extra_size = getSizeOfTrailingDataEntries(data, len(data), self.extra_data_flags)
             if i%100 == 0:
-                print(u".", end=' ')
+                print(".", end=' ')
             # print "record %d, extra_size %d" %(i,extra_size)
             decoded_data = PC1(found_key, data[0:len(data) - extra_size])
             if i==1:
@@ -507,12 +507,12 @@ class MobiBook:
         if self.num_sections > self.records+1:
             mobidataList.append(self.data_file[self.sections[self.records+1][0]:])
         self.mobi_data = b''.join(mobidataList)
-        print(u"done")
+        print("done")
         return
 
 def getUnencryptedBook(infile,pidlist):
     if not os.path.isfile(infile):
-        raise DrmException(u"Input File Not Found.")
+        raise DrmException("Input File Not Found.")
     book = MobiBook(infile)
     book.processBook(pidlist)
     return book.mobi_data
@@ -522,10 +522,10 @@ def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv)<3 or len(argv)>4:
-        print(u"MobiDeDrm v{0:s}.\nCopyright © 2008-2017 The Dark Reverser, Apprentice Harper et al.".format(__version__))
-        print(u"Removes protection from Kindle/Mobipocket, Kindle/KF8 and Kindle/Print Replica ebooks")
-        print(u"Usage:")
-        print(u"    {0} <infile> <outfile> [<Comma separated list of PIDs to try>]".format(progname))
+        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2017 The Dark Reverser, Apprentice Harper et al.".format(__version__))
+        print("Removes protection from Kindle/Mobipocket, Kindle/KF8 and Kindle/Print Replica ebooks")
+        print("Usage:")
+        print("    {0} <infile> <outfile> [<Comma separated list of PIDs to try>]".format(progname))
         return 1
     else:
         infile = argv[1]
@@ -538,7 +538,7 @@ def cli_main():
             stripped_file = getUnencryptedBook(infile, pidlist)
             open(outfile, 'wb').write(stripped_file)
         except DrmException as e:
-            print(u"MobiDeDRM v{0} Error: {1:s}".format(__version__,e.args[0]))
+            print("MobiDeDRM v{0} Error: {1:s}".format(__version__,e.args[0]))
             return 1
     return 0
 

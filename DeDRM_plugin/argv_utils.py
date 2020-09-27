@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys, os
@@ -37,7 +37,7 @@ def unicode_argv():
                     xrange(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"DeDRM.py"]
+        return ["DeDRM.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:

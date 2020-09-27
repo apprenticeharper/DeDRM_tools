@@ -1,4 +1,5 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
@@ -10,7 +11,7 @@
 # Changelog epubtest
 #  1.00 - Cut to epubtest.py, testing ePub files only by Apprentice Alf
 #  1.01 - Added routine for use by Windows DeDRM
-#  2.00 - Added Python 3 compatibility, September 2020
+#  2.00 - Python 3, September 2020
 #
 # Written in 2011 by Paul Durrant
 # Released with unlicense. See http://unlicense.org/
@@ -44,9 +45,6 @@
 #
 # It's still polite to give attribution if you do reuse this code.
 #
-
-from __future__ import with_statement
-from __future__ import print_function
 
 __version__ = '2.0'
 
@@ -112,7 +110,7 @@ def unicode_argv():
                     xrange(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
-        return [u"epubtest.py"]
+        return ["epubtest.py"]
     else:
         argvencoding = sys.stdin.encoding
         if argvencoding == None:

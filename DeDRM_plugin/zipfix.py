@@ -1,8 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # zipfix.py
-# Copyright © 2010-2020 by some_updates, DiapDealer and Apprentice Alf
+# Copyright © 2010-2020 by Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -10,7 +10,7 @@
 # Revision history:
 #   1.0 - Initial release
 #   1.1 - Updated to handle zip file metadata correctly
-#   2.0 - Added Python 3 compatibility for calibre 5.0
+#   2.0 - Python 3 for calibre 5.0
 
 """
 Re-write zip (or ePub) fixing problems with file names (and mimetype entry).

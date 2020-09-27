@@ -1,16 +1,14 @@
-#! /usr/bin/python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
-# Added Python 3 compatibility for calibre 5.0
-
-from __future__ import print_function
-from .convert2xml import encodeNumber
+# Python 3 for calibre 5.0
 
 class Unbuffered:
     def __init__(self, stream):
         self.stream = stream
     def write(self, data):
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 

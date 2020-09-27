@@ -1,12 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-from __future__ import with_statement
-from __future__ import print_function
 
 # Engine to remove drm from Kindle KFX ebooks
 
-#  2.0   - Added Python 3 compatibility for calibre 5.0
+#  2.0   - Python 3 for calibre 5.0
 
 
 import os
@@ -50,13 +47,13 @@ class KFXZipBook:
                     data += fh.read()
                     if self.voucher is None:
                         self.decrypt_voucher(totalpids)
-                    print(u'Decrypting KFX DRMION: {0}'.format(filename))
+                    print("Decrypting KFX DRMION: {0}".format(filename))
                     outfile = StringIO()
                     ion.DrmIon(StringIO(data[8:-8]), lambda name: self.voucher).parse(outfile)
                     self.decrypted[filename] = outfile.getvalue()
 
         if not self.decrypted:
-            print(u'The .kfx-zip archive does not contain an encrypted DRMION file')
+            print("The .kfx-zip archive does not contain an encrypted DRMION file")
 
     def decrypt_voucher(self, totalpids):
         with zipfile.ZipFile(self.infile, 'r') as zf:
@@ -70,9 +67,9 @@ class KFXZipBook:
                     if 'ProtectedData' in data:
                         break   # found DRM voucher
             else:
-                raise Exception(u'The .kfx-zip archive contains an encrypted DRMION file without a DRM voucher')
+                raise Exception("The .kfx-zip archive contains an encrypted DRMION file without a DRM voucher")
 
-        print(u'Decrypting KFX DRM voucher: {0}'.format(info.filename))
+        print("Decrypting KFX DRM voucher: {0}".format(info.filename))
 
         for pid in [''] + totalpids:
             for dsn_len,secret_len in [(0,0), (16,0), (16,40), (32,40), (40,0), (40,40)]:
@@ -89,13 +86,13 @@ class KFXZipBook:
             except:
                 pass
         else:
-            raise Exception(u'Failed to decrypt KFX DRM voucher with any key')
+            raise Exception("Failed to decrypt KFX DRM voucher with any key")
 
-        print(u'KFX DRM voucher successfully decrypted')
+        print("KFX DRM voucher successfully decrypted")
 
         license_type = voucher.getlicensetype()
         if license_type != "Purchase":
-            raise Exception((u'This book is licensed as {0}. '
+            raise Exception(("This book is licensed as {0}. "
                     'These tools are intended for use on purchased books.').format(license_type))
 
         self.voucher = voucher
