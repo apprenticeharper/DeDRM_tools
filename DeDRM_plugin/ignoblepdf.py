@@ -19,6 +19,7 @@
 """
 Decrypts Barnes & Noble encrypted PDF files.
 """
+from __future__ import print_function
 
 __license__ = 'GPL v3'
 __version__ = "0.1"
@@ -428,7 +429,7 @@ class PSBaseParser(object):
         if not pos:
             pos = self.bufpos+self.charpos
         self.fp.seek(pos)
-        ##print >>sys.stderr, 'poll(%d): %r' % (pos, self.fp.read(n))
+        # print('poll(%d): %r' % (pos, self.fp.read(n)), file=sys.stderr)
         self.fp.seek(pos0)
         return
 
@@ -753,7 +754,7 @@ class PSStackParser(PSBaseParser):
         '''
         while not self.results:
             (pos, token) = self.nexttoken()
-            ##print (pos,token), (self.curtype, self.curstack)
+            # print((pos, token), (self.curtype, self.curstack))
             if (isinstance(token, int) or
                     isinstance(token, Decimal) or
                     isinstance(token, bool) or
@@ -778,7 +779,7 @@ class PSStackParser(PSBaseParser):
                 try:
                     (pos, objs) = self.end_type('d')
                     if len(objs) % 2 != 0:
-                        print "Incomplete dictionary construct"
+                        print("Incomplete dictionary construct")
                         objs.append("") # this isn't necessary.
                         # temporary fix. is this due to rental books?
                         # raise PSSyntaxError(
@@ -1003,7 +1004,7 @@ class PDFStream(PDFObject):
         if 'Filter' not in self.dic:
             self.data = data
             self.rawdata = None
-            ##print self.dict
+            ##print(self.dict)
             return
         filters = self.dic['Filter']
         if not isinstance(filters, list):
@@ -1447,15 +1448,15 @@ class PDFDocument(object):
                 V = ord(bookkey[0])
                 bookkey = bookkey[1:]
             else:
-                print "ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type)
-                print "length is %d and len(bookkey) is %d" % (length, len(bookkey))
-                print "bookkey[0] is %d" % ord(bookkey[0])
+                print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
+                print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
+                print("bookkey[0] is %d" % ord(bookkey[0]))
                 raise IGNOBLEError('error decrypting book session key - mismatched length')
         else:
             # proper length unknown try with whatever you have
-            print "ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type)
-            print "length is %d and len(bookkey) is %d" % (length, len(bookkey))
-            print "bookkey[0] is %d" % ord(bookkey[0])
+            print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
+            print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
+            print("bookkey[0] is %d" % ord(bookkey[0]))
             if ebx_V == 3:
                 V = 3
             else:
@@ -1500,7 +1501,7 @@ class PDFDocument(object):
         plaintext = AES.new(key,AES.MODE_CBC,ivector).decrypt(data)
         # remove pkcs#5 aes padding
         cutter = -1 * ord(plaintext[-1])
-        #print cutter
+        #print(cutter)
         plaintext = plaintext[:cutter]
         return plaintext
 
@@ -1511,7 +1512,7 @@ class PDFDocument(object):
         plaintext = AES.new(key,AES.MODE_CBC,ivector).decrypt(data)
         # remove pkcs#5 aes padding
         cutter = -1 * ord(plaintext[-1])
-        #print cutter
+        #print(cutter)
         plaintext = plaintext[:cutter]
         return plaintext
 
@@ -2010,7 +2011,7 @@ def decryptBook(userkey, inpath, outpath):
         #try:
         serializer = PDFSerializer(inf, userkey)
         #except:
-        #    print "Error serializing pdf {0}. Probably wrong key.".format(os.path.basename(inpath))
+        #    print("Error serializing pdf {0}. Probably wrong key.".format(os.path.basename(inpath)))
         #    return 2
         # hope this will fix the 'bad file descriptor' problem
         with open(outpath, 'wb') as outf:
@@ -2018,7 +2019,7 @@ def decryptBook(userkey, inpath, outpath):
             try:
                 serializer.dump(outf)
             except Exception, e:
-                print "error writing pdf: {0}".format(e.args[0])
+                print("error writing pdf: {0}".format(e.args[0]))
                 return 2
     return 0
 
@@ -2029,13 +2030,13 @@ def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
-        print "usage: {0} <keyfile.b64> <inbook.pdf> <outbook.pdf>".format(progname)
+        print("usage: {0} <keyfile.b64> <inbook.pdf> <outbook.pdf>".format(progname))
         return 1
     keypath, inpath, outpath = argv[1:]
     userkey = open(keypath,'rb').read()
     result = decryptBook(userkey, inpath, outpath)
     if result == 0:
-        print "Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath))
+        print("Successfully decrypted {0:s} as {1:s}".format(os.path.basename(inpath),os.path.basename(outpath)))
     return result
 
 
