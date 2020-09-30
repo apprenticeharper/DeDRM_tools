@@ -409,12 +409,12 @@ elif isosx:
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p2 = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p2.communicate()
-        reslst = out1.split('\n')
+        reslst = out1.split(b'\n')
         cnt = len(reslst)
-        ActDatPath = "activation.dat"
+        ActDatPath = b"activation.dat"
         for j in range(cnt):
             resline = reslst[j]
-            pp = resline.find('activation.dat')
+            pp = resline.find(b'activation.dat')
             if pp >= 0:
                 ActDatPath = resline
                 break
@@ -474,7 +474,7 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print("{0} v{1}\nCopyright © 2009-2013 i♥cabbages and Apprentice Alf".format(progname,__version__))
+    print("{0} v{1}\nCopyright © 2009-2020 i♥cabbages, Apprentice Harper et al.".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "h")
@@ -494,7 +494,9 @@ def cli_main():
 
     if len(args) == 1:
         # save to the specified file or directory
-        outpath = os.path.abspath(args[0])
+        outpath = args[0]
+        if not os.path.isabs(outpath):
+            outpath = os.path.abspath(outpath)
     else:
         # save to the same directory as the script
         outpath = os.path.dirname(argv[0])
