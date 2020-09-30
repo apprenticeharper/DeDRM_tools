@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 # Python 3 for calibre 5.0
+from __future__ import print_function
 
 class Unbuffered:
     def __init__(self, stream):
@@ -92,7 +93,7 @@ def getMetaArray(metaFile):
         tag = readString(fo)
         value = readString(fo)
         result[tag] = value
-        # print tag, value
+        # print(tag, value)
     fo.close()
     return result
 

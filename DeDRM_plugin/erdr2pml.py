@@ -516,7 +516,7 @@ def decryptBook(infile, outpath, make_pmlz, user_key):
             # remove temporary directory
             shutil.rmtree(outdir, True)
             print("Output is {0}".format(pmlzname))
-        else 
+        else: 
             print("Output is in {0}".format(outdir))
         print("done")
     except ValueError as e:
