@@ -353,7 +353,7 @@ class KoboLibrary(object):
 
             if (self.kobodir == u""):
                 if sys.platform.startswith('win'):
-                    import _winreg as winreg
+                    import winreg
                     if sys.getwindowsversion().major > 5:
                         if 'LOCALAPPDATA' in os.environ.keys():
                             # Python 2.x does not return unicode env. Use Python 3.x
@@ -444,8 +444,8 @@ class KoboLibrary(object):
         macaddrs = []
         if sys.platform.startswith('win'):
             c = re.compile('\s(' + '[0-9a-f]{2}-' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
-            (p_in, p_out, p_err) = os.popen3('ipconfig /all')
-            for line in p_out:
+            output = subprocess.Popen('ipconfig /all', shell=True, stdout=subprocess.PIPE, text=True).stdout
+            for line in output:
                 m = c.search(line)
                 if m:
                     macaddrs.append(re.sub("-", ":", m.group(1)).upper())
