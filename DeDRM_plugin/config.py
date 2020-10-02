@@ -431,16 +431,19 @@ class ManageKeysDialog(QDialog):
         defaultname = "{0}.{1}".format(keyname, self.keyfile_ext)
         filename = choose_save_file(self, unique_dlg_name,  caption, filters, all_files=False, initial_filename=defaultname)
         if filename:
-            with file(filename, 'wb') as fname:
-                if self.binary_file:
+            if self.binary_file:
+                with open(filename, 'wb') as fname:
                     fname.write(self.plugin_keys[keyname].decode('hex'))
-                elif self.json_file:
+            elif self.json_file:
+                with open(filename, 'wt') as fname:
                     fname.write(json.dumps(self.plugin_keys[keyname]))
-                elif self.android_file:
+            elif self.android_file:
+                with open(filename, 'wt') as fname:
                     for key in self.plugin_keys[keyname]:
                         fname.write(key)
                         fname.write("\n")
-                else:
+            else:
+                with open(filename, 'wb') as fname:
                     fname.write(self.plugin_keys[keyname])
 
 
