@@ -153,7 +153,7 @@ class ConfigWidget(QWidget):
             # Copy the HTML helpfile to the plugin directory each time the
             # link is clicked in case the helpfile is updated in newer plugins.
             file_path = os.path.join(config_dir, "plugins", "DeDRM", "help", help_file_name)
-            with open(file_path,'w') as f:
+            with open(file_path,'wb') as f:
                 f.write(self.load_resource(help_file_name))
             return file_path
         url = 'file:///' + get_help_file_resource()
@@ -357,7 +357,7 @@ class ManageKeysDialog(QDialog):
             # link is clicked in case the helpfile is updated in newer plugins.
             help_file_name = "{0}_{1}_Help.htm".format(PLUGIN_NAME, self.key_type_name)
             file_path = os.path.join(config_dir, "plugins", "DeDRM", "help", help_file_name)
-            with open(file_path,'w') as f:
+            with open(file_path,'wb') as f:
                 f.write(self.parent.load_resource(help_file_name))
             return file_path
         url = 'file:///' + get_help_file_resource()
