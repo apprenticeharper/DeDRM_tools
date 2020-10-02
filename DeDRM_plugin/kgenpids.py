@@ -52,11 +52,11 @@ def SHA1(message):
 def encode(data, map):
     result = ''
     for char in data:
-        value = ord(char)
+        value = char
         Q = (value ^ 0x80) // len(map)
         R = value % len(map)
-        result += map[Q]
-        result += map[R]
+        result += chr(map[Q])
+        result += chr(map[R])
     return result
 
 # Hash the bytes in data and then encode the digest with the characters in map
@@ -238,18 +238,18 @@ def getK4Pids(rec209, token, kindleDatabase):
                 # Get the UserName we added
                 UserName = bytearray.fromhex((kindleDatabase[1])['UserName']).decode()
                 # encode it
-                encodedUsername = encodeHash(UserName,charMap1)
+                encodedUsername = encodeHash(UserName.encode(),charMap1)
                 #print "encodedUsername",encodedUsername.encode('hex')
         except KeyError:
             print("Keys not found in the database {0}.".format(kindleDatabase[0]))
             return pids
 
         # Get the ID string used
-        encodedIDString = encodeHash(IDString,charMap1)
+        encodedIDString = encodeHash(IDString.encode(),charMap1)
         #print "encodedIDString",encodedIDString.encode('hex')
 
         # concat, hash and encode to calculate the DSN
-        DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
+        DSN = encode(SHA1((MazamaRandomNumber+encodedIDString+encodedUsername).encode()),charMap1)
         #print "DSN",DSN.encode('hex')
         pass
 
