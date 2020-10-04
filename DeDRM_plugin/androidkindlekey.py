@@ -95,10 +95,8 @@ def unicode_argv():
         # this should never happen
         return ["kindlekey.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 class DrmException(Exception):
     pass
@@ -336,7 +334,7 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print("{0} v{1}\nCopyright © 2010-2015 Thom, some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__))
+    print("{0} v{1}\nCopyright © 2010-2020 Thom, Apprentice Harper et al.".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "hb:")
@@ -386,48 +384,48 @@ def cli_main():
 
 def gui_main():
     try:
-        import Tkinter
-        import Tkconstants
-        import tkMessageBox
-        import tkFileDialog
+        import tkinter
+        import tkinter.constants
+        import tkinter.messagebox
+        import tkinter.filedialog
     except:
-        print("Tkinter not installed")
+        print("tkinter not installed")
         return cli_main()
 
-    class DecryptionDialog(Tkinter.Frame):
+    class DecryptionDialog(tkinter.Frame):
         def __init__(self, root):
-            Tkinter.Frame.__init__(self, root, border=5)
-            self.status = Tkinter.Label(self, text="Select backup.ab file")
-            self.status.pack(fill=Tkconstants.X, expand=1)
-            body = Tkinter.Frame(self)
-            body.pack(fill=Tkconstants.X, expand=1)
-            sticky = Tkconstants.E + Tkconstants.W
+            tkinter.Frame.__init__(self, root, border=5)
+            self.status = tkinter.Label(self, text="Select backup.ab file")
+            self.status.pack(fill=tkinter.constants.X, expand=1)
+            body = tkinter.Frame(self)
+            body.pack(fill=tkinter.constants.X, expand=1)
+            sticky = tkinter.constants.E + tkinter.constants.W
             body.grid_columnconfigure(1, weight=2)
-            Tkinter.Label(body, text="Backup file").grid(row=0, column=0)
-            self.keypath = Tkinter.Entry(body, width=40)
+            tkinter.Label(body, text="Backup file").grid(row=0, column=0)
+            self.keypath = tkinter.Entry(body, width=40)
             self.keypath.grid(row=0, column=1, sticky=sticky)
             self.keypath.insert(2, "backup.ab")
-            button = Tkinter.Button(body, text="...", command=self.get_keypath)
+            button = tkinter.Button(body, text="...", command=self.get_keypath)
             button.grid(row=0, column=2)
-            buttons = Tkinter.Frame(self)
+            buttons = tkinter.Frame(self)
             buttons.pack()
-            button2 = Tkinter.Button(
+            button2 = tkinter.Button(
                 buttons, text="Extract", width=10, command=self.generate)
-            button2.pack(side=Tkconstants.LEFT)
-            Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
-            button3 = Tkinter.Button(
+            button2.pack(side=tkinter.constants.LEFT)
+            tkinter.Frame(buttons, width=10).pack(side=tkinter.constants.LEFT)
+            button3 = tkinter.Button(
                 buttons, text="Quit", width=10, command=self.quit)
-            button3.pack(side=Tkconstants.RIGHT)
+            button3.pack(side=tkinter.constants.RIGHT)
 
         def get_keypath(self):
-            keypath = tkFileDialog.askopenfilename(
+            keypath = tkinter.filedialog.askopenfilename(
                 parent=None, title="Select backup.ab file",
                 defaultextension=".ab",
                 filetypes=[('adb backup com.amazon.kindle', '.ab'),
                            ('All Files', '.*')])
             if keypath:
                 keypath = os.path.normpath(keypath)
-                self.keypath.delete(0, Tkconstants.END)
+                self.keypath.delete(0, tkinter.constants.END)
                 self.keypath.insert(0, keypath)
             return
 
@@ -447,7 +445,7 @@ def gui_main():
                     with open(outfile, 'w') as keyfileout:
                         keyfileout.write(key)
                     success = True
-                    tkMessageBox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
+                    tkinter.messagebox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
             except Exception as e:
                 self.status['text'] = "Error: {0}".format(e.args[0])
                 return
@@ -455,11 +453,11 @@ def gui_main():
 
     argv=unicode_argv()
     progpath, progname = os.path.split(argv[0])
-    root = Tkinter.Tk()
+    root = tkinter.Tk()
     root.title("Kindle for Android Key Extraction v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(300, 0)
-    DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
+    DecryptionDialog(root).pack(fill=tkinter.constants.X, expand=1)
     root.mainloop()
     return 0
 

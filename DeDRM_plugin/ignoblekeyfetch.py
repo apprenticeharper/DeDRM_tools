@@ -90,10 +90,8 @@ def unicode_argv():
         # this should never happen
         return ["ignoblekeyfetch.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 
 class IGNOBLEError(Exception):
@@ -109,18 +107,17 @@ def fetch_key(email, password):
     import random
     random = "%030x" % random.randrange(16**30)
 
-    import urllib, urllib2, re
+    import urllib.parse, urllib.request, re
 
     # try the URL from nook for PC
     fetch_url = "https://cart4.barnesandnoble.com/services/service.aspx?Version=2&acctPassword="
-    fetch_url += urllib.quote(password,'')+"&devID=PC_BN_2.5.6.9575_"+random+"&emailAddress="
-    fetch_url += urllib.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
+    fetch_url += urllib.parse.quote(password,'')+"&devID=PC_BN_2.5.6.9575_"+random+"&emailAddress="
+    fetch_url += urllib.parse.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
     #print fetch_url
 
     found = ''
     try:
-        req = urllib2.Request(fetch_url)
-        response = urllib2.urlopen(req)
+        response = urllib.request.urlopen(fetch_url)
         the_page = response.read()
         #print the_page
         found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)
@@ -129,14 +126,13 @@ def fetch_key(email, password):
     if len(found)!=28:
         # try the URL from android devices
         fetch_url = "https://cart4.barnesandnoble.com/services/service.aspx?Version=2&acctPassword="
-        fetch_url += urllib.quote(password,'')+"&devID=hobbes_9.3.50818_"+random+"&emailAddress="
-        fetch_url += urllib.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
+        fetch_url += urllib.parse.quote(password,'')+"&devID=hobbes_9.3.50818_"+random+"&emailAddress="
+        fetch_url += urllib.parse.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
         #print fetch_url
 
         found = ''
         try:
-            req = urllib2.Request(fetch_url)
-            response = urllib2.urlopen(req)
+            response = urllib.request.urlopen(fetch_url)
             the_page = response.read()
             #print the_page
             found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)

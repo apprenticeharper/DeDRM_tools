@@ -42,6 +42,7 @@ __version__ = "3.0"
 import sys
 import os
 import hashlib
+import base64
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -99,10 +100,8 @@ def unicode_argv():
         # this should never happen
         return ["ignoblekeygen.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 
 class IGNOBLEError(Exception):
@@ -195,23 +194,24 @@ def normalize_name(name):
 
 def generate_key(name, ccn):
     # remove spaces and case from name and CC numbers.
-    if type(name)==bytes:
+    name = normalize_name(name)
+    ccn = normalize_name(ccn)
+
+    if type(name)==str:
         name = name.encode('utf-8')
-    if type(ccn)==bytes:
+    if type(ccn)==str:
         ccn = ccn.encode('utf-8')
 
-    name = normalize_name(name) + '\x00'
-    ccn = normalize_name(ccn) + '\x00'
+    name = name + b'\x00'
+    ccn = ccn + b'\x00'
 
     name_sha = hashlib.sha1(name).digest()[:16]
     ccn_sha = hashlib.sha1(ccn).digest()[:16]
     both_sha = hashlib.sha1(name + ccn).digest()
     aes = AES(ccn_sha, name_sha)
-    crypt = aes.encrypt(both_sha + ('\x0c' * 0x0c))
+    crypt = aes.encrypt(both_sha + (b'\x0c' * 0x0c))
     userkey = hashlib.sha1(crypt).digest()
-    return userkey.encode('base64')
-
-
+    return base64.b64encode(userkey)
 
 
 def cli_main():

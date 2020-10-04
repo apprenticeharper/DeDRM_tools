@@ -5,18 +5,25 @@
 # For use with Topaz Scripts Version 2.6
 # Python 3, September 2020
 
-class Unbuffered:
+# Wrap a stream so that output gets flushed immediately
+# and also make sure that any unicode strings get
+# encoded using "replace" before writing them.
+class SafeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
+        self.encoding = stream.encoding
+        if self.encoding == None:
+            self.encoding = "utf-8"
     def write(self, data):
+        if isinstance(data, str):
+            data = data.encode(self.encoding,"replace")
         self.stream.buffer.write(data)
         self.stream.buffer.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
 import sys
-sys.stdout=Unbuffered(sys.stdout)
-
 import csv
 import os
 import getopt
@@ -834,6 +841,8 @@ def usage():
 #
 
 def main(argv):
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
     dictFile = ""
     pageFile = ""
     debug = False

@@ -95,10 +95,8 @@ def unicode_argv():
                     range(start, argc.value)]
         return ["ineptepub.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 
 class IGNOBLEError(Exception):

@@ -205,7 +205,7 @@ def getK4Pids(rec209, token, kindleDatabase):
 
     try:
         # Get the kindle account token, if present
-        kindleAccountToken = bytearray.fromhex((kindleDatabase[1])['kindle.account.tokens']).decode()
+        kindleAccountToken = bytearray.fromhex((kindleDatabase[1])[b'kindle.account.tokens']).decode()
 
     except KeyError:
         kindleAccountToken=""
@@ -219,37 +219,37 @@ def getK4Pids(rec209, token, kindleDatabase):
         # See if we have the info to generate the DSN
         try:
             # Get the Mazama Random number
-            MazamaRandomNumber = bytearray.fromhex((kindleDatabase[1])['MazamaRandomNumber']).decode()
+            MazamaRandomNumber = bytearray.fromhex((kindleDatabase[1])[b'MazamaRandomNumber']).decode()
             #print "Got MazamaRandomNumber from database {0}".format(kindleDatabase[0])
 
             try:
                 # Get the SerialNumber token, if present
-                IDString = bytearray.fromhex((kindleDatabase[1])['SerialNumber']).decode()
+                IDString = bytearray.fromhex((kindleDatabase[1])[b'SerialNumber']).decode()
                 print("Got SerialNumber from database {0}".format(kindleDatabase[0]))
             except KeyError:
                  # Get the IDString we added
-                IDString = bytearray.fromhex((kindleDatabase[1])['IDString']).decode()
+                IDString = bytearray.fromhex((kindleDatabase[1])[b'IDString']).decode()
 
             try:
                 # Get the UsernameHash token, if present
-                encodedUsername = bytearray.fromhex((kindleDatabase[1])['UsernameHash']).decode()
+                encodedUsername = bytearray.fromhex((kindleDatabase[1])[b'UsernameHash']).decode()
                 print("Got UsernameHash from database {0}".format(kindleDatabase[0]))
             except KeyError:
                 # Get the UserName we added
-                UserName = bytearray.fromhex((kindleDatabase[1])['UserName']).decode()
+                UserName = bytearray.fromhex((kindleDatabase[1])[b'UserName']).decode()
                 # encode it
-                encodedUsername = encodeHash(UserName.encode(),charMap1)
+                encodedUsername = encodeHash(UserName,charMap1)
                 #print "encodedUsername",encodedUsername.encode('hex')
         except KeyError:
             print("Keys not found in the database {0}.".format(kindleDatabase[0]))
             return pids
 
         # Get the ID string used
-        encodedIDString = encodeHash(IDString.encode(),charMap1)
+        encodedIDString = encodeHash(IDString,charMap1)
         #print "encodedIDString",encodedIDString.encode('hex')
 
         # concat, hash and encode to calculate the DSN
-        DSN = encode(SHA1((MazamaRandomNumber+encodedIDString+encodedUsername).encode()),charMap1)
+        DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
         #print "DSN",DSN.encode('hex')
         pass
 

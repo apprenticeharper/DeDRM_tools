@@ -83,10 +83,8 @@ def unicode_argv():
         # this should never happen
         return ["ignoblekey.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 class DrmException(Exception):
     pass

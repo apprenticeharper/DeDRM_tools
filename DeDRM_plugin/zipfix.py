@@ -22,7 +22,10 @@ __version__ = "1.1"
 
 import sys
 import zlib
-import calibre_plugins.dedrm.zipfilerugged as zipfilerugged
+try:
+    import zipfilerugged
+except:
+    import calibre_plugins.dedrm.zipfilerugged as zipfilerugged
 import os
 import os.path
 import getopt

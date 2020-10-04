@@ -137,10 +137,8 @@ def unicode_argv():
         # this should never happen
         return ["mobidedrm.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = 'utf-8'
-        return sys.argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 
 class DrmException(Exception):
@@ -246,7 +244,7 @@ class MobiBook:
         pass
 
     def __init__(self, infile):
-        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2017 The Dark Reverser, Apprentice Harper et al.".format(__version__))
+        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2020 The Dark Reverser, Apprentice Harper et al.".format(__version__))
 
         try:
             from alfcrypto import Pukall_Cipher
@@ -522,7 +520,7 @@ def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
     if len(argv)<3 or len(argv)>4:
-        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2017 The Dark Reverser, Apprentice Harper et al.".format(__version__))
+        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2020 The Dark Reverser, Apprentice Harper et al.".format(__version__))
         print("Removes protection from Kindle/Mobipocket, Kindle/KF8 and Kindle/Print Replica ebooks")
         print("Usage:")
         print("    {0} <infile> <outfile> [<Comma separated list of PIDs to try>]".format(progname))
@@ -531,7 +529,8 @@ def cli_main():
         infile = argv[1]
         outfile = argv[2]
         if len(argv) == 4:
-            pidlist = argv[3].split(',')
+            # convert from unicode to bytearray before splitting.
+            pidlist = argv[3].encode('utf-8').split(b',')
         else:
             pidlist = []
         try:

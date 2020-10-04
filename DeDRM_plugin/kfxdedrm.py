@@ -18,11 +18,6 @@ except ImportError:
     except ImportError:
         from io import StringIO
 
-try:
-    from calibre_plugins.dedrm import ion
-except ImportError:
-    import ion
-
 
 __license__ = 'GPL v3'
 __version__ = '2.0'
@@ -38,6 +33,10 @@ class KFXZipBook:
         return (None, None)
 
     def processBook(self, totalpids):
+        try:
+            import ion
+        except:
+            from calibre_plugins.dedrm import ion
         with zipfile.ZipFile(self.infile, 'r') as zf:
             for filename in zf.namelist():
                 with zf.open(filename) as fh:

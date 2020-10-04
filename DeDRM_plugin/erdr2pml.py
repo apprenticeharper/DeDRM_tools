@@ -128,10 +128,8 @@ def unicode_argv():
         # this should never happen
         return ["mobidedrm.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 Des = None
 if iswindows:
@@ -516,7 +514,7 @@ def decryptBook(infile, outpath, make_pmlz, user_key):
             # remove temporary directory
             shutil.rmtree(outdir, True)
             print("Output is {0}".format(pmlzname))
-        else: 
+        else:
             print("Output is in {0}".format(outdir))
         print("done")
     except ValueError as e:

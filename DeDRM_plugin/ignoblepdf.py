@@ -85,10 +85,8 @@ def unicode_argv():
                     xrange(start, argc.value)]
         return ["ignoblepdf.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return [arg if (type(arg) == unicode) else unicode(arg,argvencoding) for arg in sys.argv]
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 
 class IGNOBLEError(Exception):
@@ -241,7 +239,10 @@ ARC4, AES = _load_crypto()
 try:
     from cStringIO import StringIO
 except ImportError:
-    from StringIO import StringIO
+    try:
+        from StringIO import StringIO
+    except ImportError:
+        from io import StringIO
 
 
 # Do we generate cross reference streams on output?
@@ -546,7 +547,7 @@ class PSBaseParser(object):
         except ValueError:
             pass
         return (self.parse_main, j)
-        
+
     def parse_decimal(self, s, i):
         m = END_NUMBER.search(s, i)
         if not m:

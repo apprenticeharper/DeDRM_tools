@@ -146,10 +146,8 @@ def unicode_argv():
         # this should never happen
         return ["mobidedrm.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 # cleanup unicode filenames
 # borrowed from calibre from calibre/src/calibre/__init__.py
@@ -337,7 +335,7 @@ def cli_main():
         if o == "-p":
             if a == None :
                 raise DrmException("Invalid parameter for -p")
-            pids = a.split(',')
+            pids = a.encode('utf-8').split(b',')
         if o == "-s":
             if a == None :
                 raise DrmException("Invalid parameter for -s")

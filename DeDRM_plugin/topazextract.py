@@ -18,7 +18,10 @@ import zlib, zipfile, tempfile, shutil
 import traceback
 from struct import pack
 from struct import unpack
-from calibre_plugins.dedrm.alfcrypto import Topaz_Cipher
+try:
+    from calibre_plugins.dedrm.alfcrypto import Topaz_Cipher
+except:
+    from alfcrypto import Topaz_Cipher
 
 class SafeUnbuffered:
     def __init__(self, stream):
@@ -70,10 +73,8 @@ def unicode_argv():
         # this should never happen
         return ["mobidedrm.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = 'utf-8'
-        return argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 #global switch
 debug = False

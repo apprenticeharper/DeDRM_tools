@@ -39,6 +39,7 @@ import sys, os, re
 from struct import pack, unpack, unpack_from
 import json
 import getopt
+import traceback
 
 try:
     RegError
@@ -58,10 +59,11 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data, str):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -99,15 +101,13 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
         return ["kindlekey.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return arg
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 class DrmException(Exception):
     pass
@@ -155,13 +155,13 @@ def primes(n):
 
 # Encode the bytes in data with the characters in map
 def encode(data, map):
-    result = ''
+    result = b''
     for char in data:
-        value = ord(char)
+        value = char
         Q = (value ^ 0x80) // len(map)
         R = value % len(map)
-        result += map[Q]
-        result += map[R]
+        result += bytes(map[Q])
+        result += bytes(map[R])
     return result
 
 # Hash the bytes in data and then encode the digest with the characters in map
@@ -170,7 +170,7 @@ def encodeHash(data,map):
 
 # Decode the string in data with the characters in map. Returns the decoded bytes
 def decode(data,map):
-    result = ''
+    result = b''
     for i in range (0,len(data)-1,2):
         high = map.find(data[i])
         low = map.find(data[i+1])
@@ -833,12 +833,12 @@ if iswindows:
 
     # Various character maps used to decrypt kindle info values.
     # Probably supposed to act as obfuscation
-    charMap2 = "AaZzB0bYyCc1XxDdW2wEeVv3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_"
-    charMap5 = "AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
+    charMap2 = b"AaZzB0bYyCc1XxDdW2wEeVv3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_"
+    charMap5 = b"AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
     # New maps in K4PC 1.9.0
-    testMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
-    testMap6 = "9YzAb0Cd1Ef2n5Pr6St7Uvh3Jk4M8WxG"
-    testMap8 = "YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD"
+    testMap1 = b"n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
+    testMap6 = b"9YzAb0Cd1Ef2n5Pr6St7Uvh3Jk4M8WxG"
+    testMap8 = b"YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD"
 
     # interface with Windows OS Routines
     class DataBlob(Structure):
@@ -900,9 +900,9 @@ if iswindows:
                 # double the buffer size
                 buffer = create_unicode_buffer(len(buffer) * 2)
                 size.value = len(buffer)
-            
+
             # replace any non-ASCII values with 0xfffd
-            for i in xrange(0,len(buffer)):
+            for i in range(0,len(buffer)):
                 if buffer[i]>"\u007f":
                     #print "swapping char "+str(i)+" ("+buffer[i]+")"
                     buffer[i] = "\ufffd"
@@ -985,7 +985,7 @@ if iswindows:
                 found = True
                 print('Found K4PC 1.25+ kinf2018 file: ' + kinfopath.encode('ascii','ignore'))
                 kInfoFiles.append(kinfopath)
-                
+
             # look for (K4PC 1.9.0 and later) .kinf2011 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
             if os.path.isfile(kinfopath):
@@ -1023,28 +1023,28 @@ if iswindows:
     # database of keynames and values
     def getDBfromFile(kInfoFile):
         names = [\
-            'kindle.account.tokens',\
-            'kindle.cookie.item',\
-            'eulaVersionAccepted',\
-            'login_date',\
-            'kindle.token.item',\
-            'login',\
-            'kindle.key.item',\
-            'kindle.name.info',\
-            'kindle.device.info',\
-            'MazamaRandomNumber',\
-            'max_date',\
-            'SIGVERIF',\
-            'build_version',\
-            'SerialNumber',\
-            'UsernameHash',\
-            'kindle.directedid.info',\
-            'DSN',\
-            'kindle.accounttype.info',\
-            'krx.flashcardsplugin.data.encryption_key',\
-            'krx.notebookexportplugin.data.encryption_key',\
-            'proxy.http.password',\
-            'proxy.http.username'
+            b'kindle.account.tokens',\
+            b'kindle.cookie.item',\
+            b'eulaVersionAccepted',\
+            b'login_date',\
+            b'kindle.token.item',\
+            b'login',\
+            b'kindle.key.item',\
+            b'kindle.name.info',\
+            b'kindle.device.info',\
+            b'MazamaRandomNumber',\
+            b'max_date',\
+            b'SIGVERIF',\
+            b'build_version',\
+            b'SerialNumber',\
+            b'UsernameHash',\
+            b'kindle.directedid.info',\
+            b'DSN',\
+            b'kindle.accounttype.info',\
+            b'krx.flashcardsplugin.data.encryption_key',\
+            b'krx.notebookexportplugin.data.encryption_key',\
+            b'proxy.http.password',\
+            b'proxy.http.username'
             ]
         DB = {}
         with open(kInfoFile, 'rb') as infoReader:
@@ -1053,7 +1053,7 @@ if iswindows:
         # the .kinf file uses "/" to separate it into records
         # so remove the trailing "/" to make it easy to use split
         data = data[:-1]
-        items = data.split('/')
+        items = data.split(b'/')
 
         # starts with an encoded and encrypted header blob
         headerblob = items.pop(0)
@@ -1095,7 +1095,7 @@ if iswindows:
             # read and store in rcnt records of data
             # that make up the contents value
             edlst = []
-            for i in xrange(rcnt):
+            for i in range(rcnt):
                 item = items.pop(0)
                 edlst.append(item)
 
@@ -1276,8 +1276,8 @@ elif isosx:
     LibCrypto = _load_crypto()
 
     # Various character maps used to decrypt books. Probably supposed to act as obfuscation
-    charMap1 = 'n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M'
-    charMap2 = 'ZB0bYyc1xDdW2wEV3Ff7KkPpL8UuGA4gz-Tme9Nn_tHh5SvXCsIiR6rJjQaqlOoM'
+    charMap1 = b'n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M'
+    charMap2 = b'ZB0bYyc1xDdW2wEV3Ff7KkPpL8UuGA4gz-Tme9Nn_tHh5SvXCsIiR6rJjQaqlOoM'
 
     # For kinf approach of K4Mac 1.6.X or later
     # On K4PC charMap5 = 'AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE'
@@ -1285,7 +1285,7 @@ elif isosx:
     charMap5 = charMap2
 
     # new in K4M 1.9.X
-    testMap8 = 'YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD'
+    testMap8 = b'YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD'
 
     # uses a sub process to get the Hard Drive Serial Number using ioreg
     # returns serial numbers of all internal hard drive drives
@@ -1299,11 +1299,11 @@ elif isosx:
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
         #print out1
-        reslst = out1.split('\n')
+        reslst = out1.split(b'\n')
         cnt = len(reslst)
-        for j in xrange(cnt):
+        for j in range(cnt):
             resline = reslst[j]
-            pp = resline.find('\"Serial Number\" = \"')
+            pp = resline.find(b'\"Serial Number\" = \"')
             if pp >= 0:
                 sernum = resline[pp+19:-1]
                 sernums.append(sernum.strip())
@@ -1315,12 +1315,12 @@ elif isosx:
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
-        reslst = out1.split('\n')
+        reslst = out1.split(b'\n')
         cnt = len(reslst)
-        for j in xrange(cnt):
+        for j in range(cnt):
             resline = reslst[j]
-            if resline.startswith('/dev'):
-                (devpart, mpath) = resline.split(' on ')[:2]
+            if resline.startswith(b'/dev'):
+                (devpart, mpath) = resline.split(b' on ')[:2]
                 dpart = devpart[5:]
                 names.append(dpart)
         return names
@@ -1336,11 +1336,11 @@ elif isosx:
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
         #print out1
-        reslst = out1.split('\n')
+        reslst = out1.split(b'\n')
         cnt = len(reslst)
-        for j in xrange(cnt):
+        for j in range(cnt):
             resline = reslst[j]
-            pp = resline.find('\"UUID\" = \"')
+            pp = resline.find(b'\"UUID\" = \"')
             if pp >= 0:
                 uuidnum = resline[pp+10:-1]
                 uuidnum = uuidnum.strip()
@@ -1356,16 +1356,16 @@ elif isosx:
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
-        reslst = out1.split('\n')
+        reslst = out1.split(b'\n')
         cnt = len(reslst)
-        for j in xrange(cnt):
+        for j in range(cnt):
             resline = reslst[j]
-            pp = resline.find('Ethernet Address: ')
+            pp = resline.find(b'Ethernet Address: ')
             if pp >= 0:
                 #print resline
                 macnum = resline[pp+18:]
                 macnum = macnum.strip()
-                maclst = macnum.split(':')
+                maclst = macnum.split(b':')
                 n = len(maclst)
                 if n != 6:
                     continue
@@ -1373,7 +1373,7 @@ elif isosx:
                 # now munge it up the way Kindle app does
                 # by xoring it with 0xa5 and swapping elements 3 and 4
                 for i in range(6):
-                    maclst[i] = int('0x' + maclst[i], 0)
+                    maclst[i] = int(b'0x' + maclst[i], 0)
                 mlst = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
                 mlst[5] = maclst[5] ^ 0xa5
                 mlst[4] = maclst[3] ^ 0xa5
@@ -1381,7 +1381,7 @@ elif isosx:
                 mlst[2] = maclst[2] ^ 0xa5
                 mlst[1] = maclst[1] ^ 0xa5
                 mlst[0] = maclst[0] ^ 0xa5
-                macnum = '%0.2x%0.2x%0.2x%0.2x%0.2x%0.2x' % (mlst[0], mlst[1], mlst[2], mlst[3], mlst[4], mlst[5])
+                macnum = b'%0.2x%0.2x%0.2x%0.2x%0.2x%0.2x' % (mlst[0], mlst[1], mlst[2], mlst[3], mlst[4], mlst[5])
                 #print 'munged mac', macnum
                 macnums.append(macnum)
         return macnums
@@ -1391,7 +1391,7 @@ elif isosx:
     def GetUserName():
         username = os.getenv('USER')
         #print "Username:",username
-        return username
+        return username.encode('utf-8')
 
     def GetIDStrings():
         # Return all possible ID Strings
@@ -1400,7 +1400,7 @@ elif isosx:
         strings.extend(GetVolumesSerialNumbers())
         strings.extend(GetDiskPartitionNames())
         strings.extend(GetDiskPartitionUUIDs())
-        strings.append('9999999999')
+        strings.append(b'9999999999')
         #print "ID Strings:\n",strings
         return strings
 
@@ -1408,8 +1408,8 @@ elif isosx:
     # unprotect the new header blob in .kinf2011
     # used in Kindle for Mac Version >= 1.9.0
     def UnprotectHeaderData(encryptedData):
-        passwdData = 'header_key_data'
-        salt = 'HEADER.2011'
+        passwdData = b'header_key_data'
+        salt = b'HEADER.2011'
         iter = 0x80
         keylen = 0x100
         crp = LibCrypto()
@@ -1424,7 +1424,7 @@ elif isosx:
     # implements an Pseudo Mac Version of Windows built-in Crypto routine
     class CryptUnprotectData(object):
         def __init__(self, entropy, IDString):
-            sp = GetUserName() + '+@#$%+' + IDString
+            sp = GetUserName() + b'+@#$%+' + IDString
             passwdData = encode(SHA256(sp),charMap2)
             salt = entropy
             self.crp = LibCrypto()
@@ -1503,59 +1503,79 @@ elif isosx:
     # database of keynames and values
     def getDBfromFile(kInfoFile):
         names = [\
-            'kindle.account.tokens',\
-            'kindle.cookie.item',\
-            'eulaVersionAccepted',\
-            'login_date',\
-            'kindle.token.item',\
-            'login',\
-            'kindle.key.item',\
-            'kindle.name.info',\
-            'kindle.device.info',\
-            'MazamaRandomNumber',\
-            'max_date',\
-            'SIGVERIF',\
-            'build_version',\
-            'SerialNumber',\
-            'UsernameHash',\
-            'kindle.directedid.info',\
-            'DSN'
-            ]
+            b'kindle.account.tokens',\
+            b'kindle.cookie.item',\
+            b'eulaVersionAccepted',\
+            b'login_date',\
+            b'kindle.token.item',\
+            b'login',\
+            b'kindle.key.item',\
+            b'kindle.name.info',\
+            b'kindle.device.info',\
+            b'MazamaRandomNumber',\
+            b'max_date',\
+            b'SIGVERIF',\
+            b'build_version',\
+            b'SerialNumber',\
+            b'UsernameHash',\
+            b'kindle.directedid.info',\
+            b'DSN'
+            b'kindle.accounttype.info',\
+            b'krx.flashcardsplugin.data.encryption_key',\
+            b'krx.notebookexportplugin.data.encryption_key',\
+            b'proxy.http.password',\
+            b'proxy.http.username'
+           ]
         with open(kInfoFile, 'rb') as infoReader:
             filedata = infoReader.read()
 
         data = filedata[:-1]
-        items = data.split('/')
+        items = data.split(b'/')
         IDStrings = GetIDStrings()
+        print ("trying username ", GetUserName())
         for IDString in IDStrings:
-            #print "trying IDString:",IDString
+            print ("trying IDString:",IDString)
             try:
                 DB = {}
-                items = data.split('/')
-               
+                items = data.split(b'/')
+
                 # the headerblob is the encrypted information needed to build the entropy string
                 headerblob = items.pop(0)
+                #print ("headerblob: ",headerblob)
                 encryptedValue = decode(headerblob, charMap1)
+                #print ("encryptedvalue: ",encryptedValue)
                 cleartext = UnprotectHeaderData(encryptedValue)
+                print ("cleartext: ",cleartext)
 
                 # now extract the pieces in the same way
-                pattern = re.compile(r'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
+                pattern = re.compile(rb'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
                 for m in re.finditer(pattern, cleartext):
                     version = int(m.group(1))
                     build = m.group(2)
                     guid = m.group(4)
 
+                print ("version",version)
+                print ("build",build)
+                print ("guid",guid,"\n")
+
                 if version == 5:  # .kinf2011: identical to K4PC, except the build number gets multiplied
-                    entropy = str(0x2df * int(build)) + guid
+                    entropy = bytes(0x2df * int(build)) + guid
                     cud = CryptUnprotectData(entropy,IDString)
+                    print ("entropy",entropy)
+                    print ("cud",cud)
 
                 elif version == 6:  # .kinf2018: identical to K4PC
-                    salt = str(0x6d8 * int(build)) + guid
-                    sp = GetUserName() + '+@#$%+' + IDString
+                    salt = bytes(0x6d8 * int(build)) + guid
+                    sp = GetUserName() + b'+@#$%+' + IDString
                     passwd = encode(SHA256(sp), charMap5)
                     key = LibCrypto().keyivgen(passwd, salt, 10000, 0x400)[:32]
 
-                # loop through the item records until all are processed
+                    print ("salt",salt)
+                    print ("sp",sp)
+                    print ("passwd",passwd)
+                    print ("key",key)
+
+               # loop through the item records until all are processed
                 while len(items) > 0:
 
                     # get the first item record
@@ -1564,7 +1584,7 @@ elif isosx:
                     # the first 32 chars of the first record of a group
                     # is the MD5 hash of the key name encoded by charMap5
                     keyhash = item[0:32]
-                    keyname = 'unknown'
+                    keyname = b'unknown'
 
                     # unlike K4PC the keyhash is not used in generating entropy
                     # entropy = SHA1(keyhash) + added_entropy
@@ -1580,16 +1600,16 @@ elif isosx:
                     # read and store in rcnt records of data
                     # that make up the contents value
                     edlst = []
-                    for i in xrange(rcnt):
+                    for i in range(rcnt):
                         item = items.pop(0)
                         edlst.append(item)
 
-                    keyname = 'unknown'
+                    keyname = b'unknown'
                     for name in names:
                         if encodeHash(name,testMap8) == keyhash:
                             keyname = name
                             break
-                    if keyname == 'unknown':
+                    if keyname == b'unknown':
                         keyname = keyhash
 
                     # the testMap8 encoded contents data has had a length
@@ -1603,7 +1623,7 @@ elif isosx:
                     # (in other words split 'about' 2/3rds of the way through)
 
                     # move first offsets chars to end to align for decode by testMap8
-                    encdata = ''.join(edlst)
+                    encdata = b''.join(edlst)
                     contlen = len(encdata)
 
                     # now properly split and recombine
@@ -1643,7 +1663,9 @@ elif isosx:
 
                 if len(DB)>6:
                     break
-            except:
+
+            except Exception:
+                print (traceback.format_exc())
                 pass
         if len(DB)>6:
             # store values used in decryption
@@ -1709,7 +1731,7 @@ def cli_main():
     sys.stderr=SafeUnbuffered(sys.stderr)
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print("{0} v{1}\nCopyright © 2010-2016 by some_updates, Apprentice Alf and Apprentice Harper".format(progname,__version__))
+    print("{0} v{1}\nCopyright © 2010-2020 by some_updates, Apprentice Harper et al.".format(progname,__version__))
 
     try:
         opts, args = getopt.getopt(argv[1:], "hk:")
@@ -1800,6 +1822,7 @@ def gui_main():
     return 0
 
 if __name__ == '__main__':
+    print ("here")
     if len(sys.argv) > 1:
         sys.exit(cli_main())
     sys.exit(gui_main())
