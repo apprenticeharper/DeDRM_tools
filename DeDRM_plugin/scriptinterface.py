@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
-from __future__ import print_function
+
 import sys
 import os
 import re
@@ -36,7 +36,7 @@ def decryptepub(infile, outdir, rscpath):
         # try with any keyfiles (*.der) in the rscpath
         files = os.listdir(rscpath)
         filefilter = re.compile("\.der$", re.IGNORECASE)
-        files = filter(filefilter.search, files)
+        files = list(filter(filefilter.search, files))
         if files:
             for filename in files:
                 keypath = os.path.join(rscpath, filename)
@@ -55,7 +55,7 @@ def decryptepub(infile, outdir, rscpath):
         # try with any keyfiles (*.b64) in the rscpath
         files = os.listdir(rscpath)
         filefilter = re.compile("\.b64$", re.IGNORECASE)
-        files = filter(filefilter.search, files)
+        files = list(filter(filefilter.search, files))
         if files:
             for filename in files:
                 keypath = os.path.join(rscpath, filename)
@@ -95,7 +95,7 @@ def decryptpdf(infile, outdir, rscpath):
     # try with any keyfiles (*.der) in the rscpath
     files = os.listdir(rscpath)
     filefilter = re.compile("\.der$", re.IGNORECASE)
-    files = filter(filefilter.search, files)
+    files = list(filter(filefilter.search, files))
     if files:
         for filename in files:
             keypath = os.path.join(rscpath, filename)
@@ -164,7 +164,7 @@ def decryptk4mobi(infile, outdir, rscpath):
     kDatabaseFiles = []
     files = os.listdir(rscpath)
     filefilter = re.compile("\.k4i$", re.IGNORECASE)
-    files = filter(filefilter.search, files)
+    files = list(filter(filefilter.search, files))
     if files:
         for filename in files:
             dpath = os.path.join(rscpath,filename)
@@ -172,21 +172,21 @@ def decryptk4mobi(infile, outdir, rscpath):
     androidFiles = []
     files = os.listdir(rscpath)
     filefilter = re.compile("\.ab$", re.IGNORECASE)
-    files = filter(filefilter.search, files)
+    files = list(filter(filefilter.search, files))
     if files:
         for filename in files:
             dpath = os.path.join(rscpath,filename)
             androidFiles.append(dpath)
     files = os.listdir(rscpath)
     filefilter = re.compile("\.db$", re.IGNORECASE)
-    files = filter(filefilter.search, files)
+    files = list(filter(filefilter.search, files))
     if files:
         for filename in files:
             dpath = os.path.join(rscpath,filename)
             androidFiles.append(dpath)
     files = os.listdir(rscpath)
     filefilter = re.compile("\.xml$", re.IGNORECASE)
-    files = filter(filefilter.search, files)
+    files = list(filter(filefilter.search, files))
     if files:
         for filename in files:
             dpath = os.path.join(rscpath,filename)

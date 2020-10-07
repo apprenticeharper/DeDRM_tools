@@ -168,7 +168,7 @@ class DeDRM(FileTypePlugin):
                 lib_dict = self.load_resources(names)
                 print("{0} v{1}: Copying needed library files from plugin's zip".format(PLUGIN_NAME, PLUGIN_VERSION))
 
-                for entry, data in lib_dict.items():
+                for entry, data in list(lib_dict.items()):
                     file_path = os.path.join(self.alfdir, entry)
                     try:
                         os.remove(file_path)
@@ -219,8 +219,8 @@ class DeDRM(FileTypePlugin):
             print("{0} v{1}: “{2}” is a secure Barnes & Noble ePub".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
 
             # Attempt to decrypt epub with each encryption key (generated or provided).
-            for keyname, userkey in dedrmprefs['bandnkeys'].items():
-                keyname_masked = u"".join(("X" if (x.isdigit()) else x) for x in keyname)
+            for keyname, userkey in list(dedrmprefs['bandnkeys'].items()):
+                keyname_masked = "".join(("X" if (x.isdigit()) else x) for x in keyname)
                 print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname_masked))
                 of = self.temporary_file(".epub")
 
@@ -264,7 +264,7 @@ class DeDRM(FileTypePlugin):
 
             newkeys = []
             for keyvalue in defaultkeys:
-                if keyvalue not in dedrmprefs['bandnkeys'].values():
+                if keyvalue not in list(dedrmprefs['bandnkeys'].values()):
                     newkeys.append(keyvalue)
 
             if len(newkeys) > 0:
@@ -312,7 +312,7 @@ class DeDRM(FileTypePlugin):
             print("{0} v{1}: {2} is a secure Adobe Adept ePub".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
 
             # Attempt to decrypt epub with each encryption key (generated or provided).
-            for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
+            for keyname, userkeyhex in list(dedrmprefs['adeptkeys'].items()):
                 userkey = codecs.decode(userkeyhex, 'hex')
                 print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
                 of = self.temporary_file(".epub")
@@ -359,11 +359,11 @@ class DeDRM(FileTypePlugin):
             except:
                 print("{0} v{1}: Exception when getting default Adobe Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                 traceback.print_exc()
-                self.default_key = u""
+                self.default_key = ""
 
             newkeys = []
             for keyvalue in defaultkeys:
-                if codecs.encode(keyvalue, 'hex').decode('ascii') not in dedrmprefs['adeptkeys'].values():
+                if codecs.encode(keyvalue, 'hex').decode('ascii') not in list(dedrmprefs['adeptkeys'].values()):
                     newkeys.append(keyvalue)
 
             if len(newkeys) > 0:
@@ -419,7 +419,7 @@ class DeDRM(FileTypePlugin):
         dedrmprefs = prefs.DeDRM_Prefs()
         # Attempt to decrypt epub with each encryption key (generated or provided).
         print("{0} v{1}: {2} is a PDF ebook".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
-        for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
+        for keyname, userkeyhex in list(dedrmprefs['adeptkeys'].items()):
             userkey = userkeyhex.decode('hex')
             print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
             of = self.temporary_file(".pdf")
@@ -462,11 +462,11 @@ class DeDRM(FileTypePlugin):
         except:
             print("{0} v{1}: Exception when getting default Adobe Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
             traceback.print_exc()
-            self.default_key = u""
+            self.default_key = ""
 
         newkeys = []
         for keyvalue in defaultkeys:
-            if keyvalue.encode('hex') not in dedrmprefs['adeptkeys'].values():
+            if keyvalue.encode('hex') not in list(dedrmprefs['adeptkeys'].values()):
                 newkeys.append(keyvalue)
 
         if len(newkeys) > 0:
@@ -522,7 +522,7 @@ class DeDRM(FileTypePlugin):
         dedrmprefs = prefs.DeDRM_Prefs()
         pids = dedrmprefs['pids']
         serials = dedrmprefs['serials']
-        for android_serials_list in dedrmprefs['androidkeys'].values():
+        for android_serials_list in list(dedrmprefs['androidkeys'].values()):
             #print android_serials_list
             serials.extend(android_serials_list)
         #print serials
@@ -556,7 +556,7 @@ class DeDRM(FileTypePlugin):
             newkeys = {}
             for i,keyvalue in enumerate(defaultkeys):
                 keyname = "default_key_{0:d}".format(i+1)
-                if keyvalue not in dedrmprefs['kindlekeys'].values():
+                if keyvalue not in list(dedrmprefs['kindlekeys'].values()):
                     newkeys[keyname] = keyvalue
             if len(newkeys) > 0:
                 print("{0} v{1}: Found {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), "key" if len(newkeys)==1 else "keys"))
@@ -565,7 +565,7 @@ class DeDRM(FileTypePlugin):
                     decoded = True
                     # store the new successful keys in the defaults
                     print("{0} v{1}: Saving {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), "key" if len(newkeys)==1 else "keys"))
-                    for keyvalue in newkeys.values():
+                    for keyvalue in list(newkeys.values()):
                         dedrmprefs.addnamedvaluetoprefs('kindlekeys','default_key',keyvalue)
                     dedrmprefs.writeprefs()
                 except Exception as e:
@@ -589,8 +589,8 @@ class DeDRM(FileTypePlugin):
 
         dedrmprefs = prefs.DeDRM_Prefs()
         # Attempt to decrypt epub with each encryption key (generated or provided).
-        for keyname, userkey in dedrmprefs['ereaderkeys'].items():
-            keyname_masked = u"".join(("X" if (x.isdigit()) else x) for x in keyname)
+        for keyname, userkey in list(dedrmprefs['ereaderkeys'].items()):
+            keyname_masked = "".join(("X" if (x.isdigit()) else x) for x in keyname)
             print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname_masked))
             of = self.temporary_file(".pmlz")
 

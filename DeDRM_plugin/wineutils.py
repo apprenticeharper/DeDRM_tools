@@ -11,8 +11,8 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
     import subprocess
     from subprocess import Popen, PIPE, STDOUT
 
-    import subasyncio
-    from subasyncio import Process
+    from . import subasyncio
+    from .subasyncio import Process
 
     if extension == ".k4i":
         import json

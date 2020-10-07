@@ -11,10 +11,10 @@ import shutil
 import zipfile
 
 try:
-    from cStringIO import StringIO
+    from io import StringIO
 except ImportError:
     try:
-        from StringIO import StringIO
+        from io import StringIO
     except ImportError:
         from io import StringIO
 
@@ -34,7 +34,7 @@ class KFXZipBook:
 
     def processBook(self, totalpids):
         try:
-            import ion
+            from . import ion
         except:
             from calibre_plugins.dedrm import ion
         with zipfile.ZipFile(self.infile, 'r') as zf:

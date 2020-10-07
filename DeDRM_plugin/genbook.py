@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 # Python 3 for calibre 5.0
-from __future__ import print_function
+
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -44,10 +44,10 @@ if inCalibre :
     from calibre_plugins.dedrm import flatxml2svg
     from calibre_plugins.dedrm import stylexml2css
 else :
-    import convert2xml
-    import flatxml2html
-    import flatxml2svg
-    import stylexml2css
+    from . import convert2xml
+    from . import flatxml2html
+    from . import flatxml2svg
+    from . import stylexml2css
 
 # global switch
 buildXML = False
@@ -404,7 +404,7 @@ def generateBook(bookDir, raw, fixedimage):
     if (pw == '-1') or (pw == '0') : pw = '8500'
     meta_array['pageHeight'] = ph
     meta_array['pageWidth'] = pw
-    if 'fontSize' not in meta_array.keys():
+    if 'fontSize' not in list(meta_array.keys()):
         meta_array['fontSize'] = fontsize
 
     # process other.dat for css info and for map of page files to svg images
@@ -424,7 +424,7 @@ def generateBook(bookDir, raw, fixedimage):
     # create a map from page ids to list of page file nums to process for that page
     for i in range(len(pageidnums)):
         id = pageidnums[i]
-        if id in pageIDMap.keys():
+        if id in list(pageIDMap.keys()):
             pageIDMap[id].append(i)
         else:
             pageIDMap[id] = [i]

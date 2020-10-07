@@ -94,17 +94,17 @@ def getNookLogFiles():
     logFiles = []
     found = False
     if iswindows:
-        import _winreg as winreg
+        import winreg as winreg
 
         # some 64 bit machines do not have the proper registry key for some reason
         # or the python interface to the 32 vs 64 bit registry is broken
         paths = set()
-        if 'LOCALAPPDATA' in os.environ.keys():
+        if 'LOCALAPPDATA' in list(os.environ.keys()):
             # Python 2.x does not return unicode env. Use Python 3.x
             path = winreg.ExpandEnvironmentStrings("%LOCALAPPDATA%")
             if os.path.isdir(path):
                 paths.add(path)
-        if 'USERPROFILE' in os.environ.keys():
+        if 'USERPROFILE' in list(os.environ.keys()):
             # Python 2.x does not return unicode env. Use Python 3.x
             path = winreg.ExpandEnvironmentStrings("%USERPROFILE%")+"\\AppData\\Local"
             if os.path.isdir(path):
@@ -276,27 +276,27 @@ def cli_main():
 
 def gui_main():
     try:
-        import Tkinter
-        import Tkconstants
-        import tkMessageBox
+        import tkinter
+        import tkinter.constants
+        import tkinter.messagebox
         import traceback
     except:
         return cli_main()
 
-    class ExceptionDialog(Tkinter.Frame):
+    class ExceptionDialog(tkinter.Frame):
         def __init__(self, root, text):
-            Tkinter.Frame.__init__(self, root, border=5)
-            label = Tkinter.Label(self, text="Unexpected error:",
-                                  anchor=Tkconstants.W, justify=Tkconstants.LEFT)
-            label.pack(fill=Tkconstants.X, expand=0)
-            self.text = Tkinter.Text(self)
-            self.text.pack(fill=Tkconstants.BOTH, expand=1)
+            tkinter.Frame.__init__(self, root, border=5)
+            label = tkinter.Label(self, text="Unexpected error:",
+                                  anchor=tkinter.constants.W, justify=tkinter.constants.LEFT)
+            label.pack(fill=tkinter.constants.X, expand=0)
+            self.text = tkinter.Text(self)
+            self.text.pack(fill=tkinter.constants.BOTH, expand=1)
 
-            self.text.insert(Tkconstants.END, text)
+            self.text.insert(tkinter.constants.END, text)
 
 
     argv=unicode_argv()
-    root = Tkinter.Tk()
+    root = tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
     success = False
@@ -314,14 +314,14 @@ def gui_main():
             with open(outfile, 'w') as keyfileout:
                 keyfileout.write(key)
             success = True
-            tkMessageBox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
+            tkinter.messagebox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
     except DrmException as e:
-        tkMessageBox.showerror(progname, "Error: {0}".format(str(e)))
+        tkinter.messagebox.showerror(progname, "Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
         root.title(progname)
         text = traceback.format_exc()
-        ExceptionDialog(root, text).pack(fill=Tkconstants.BOTH, expand=1)
+        ExceptionDialog(root, text).pack(fill=tkinter.constants.BOTH, expand=1)
         root.mainloop()
     if not success:
         return 1

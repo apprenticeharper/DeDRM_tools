@@ -68,7 +68,7 @@
 __version__='1.00'
 
 import sys, re
-import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile, traceback
+import struct, binascii, getopt, zlib, os, os.path, urllib.request, urllib.parse, urllib.error, tempfile, traceback
 
 if 'calibre' in sys.modules:
     inCalibre = True
@@ -137,28 +137,28 @@ if iswindows:
     if inCalibre:
         from calibre_plugins.dedrm import pycrypto_des
     else:
-        import pycrypto_des
+        from . import pycrypto_des
     Des = pycrypto_des.load_pycrypto()
     if Des == None:
         # they try with openssl
         if inCalibre:
             from calibre_plugins.dedrm import openssl_des
         else:
-            import openssl_des
+            from . import openssl_des
         Des = openssl_des.load_libcrypto()
 else:
     # first try with openssl
     if inCalibre:
         from calibre_plugins.dedrm import openssl_des
     else:
-        import openssl_des
+        from . import openssl_des
     Des = openssl_des.load_libcrypto()
     if Des == None:
         # then try with pycrypto
         if inCalibre:
             from calibre_plugins.dedrm import pycrypto_des
         else:
-            import pycrypto_des
+            from . import pycrypto_des
         Des = pycrypto_des.load_pycrypto()
 
 # if that did not work then use pure python implementation
@@ -167,7 +167,7 @@ if Des == None:
     if inCalibre:
         from calibre_plugins.dedrm import python_des
     else:
-        import python_des
+        from . import python_des
     Des = python_des.Des
     # Import Psyco if available
     try:

@@ -31,7 +31,7 @@ import zlib
 import tarfile
 from hashlib import md5
 try:
-    from cStringIO import StringIO
+    from io import StringIO
 except ImportError:
     from io import BytesIO as StringIO
 from binascii import a2b_hex, b2a_hex
@@ -128,7 +128,7 @@ class AndroidObfuscation(object):
             from Crypto.Cipher import AES
             return AES.new(self.key)
         except ImportError:
-            from aescbc import AES, noPadding
+            from .aescbc import AES, noPadding
             return AES(self.key, padding=noPadding())
 
 class AndroidObfuscationV2(AndroidObfuscation):
@@ -150,7 +150,7 @@ class AndroidObfuscationV2(AndroidObfuscation):
             from Crypto.Cipher import DES
             return DES.new(self.key, DES.MODE_CBC, self.iv)
         except ImportError:
-            from python_des import Des, CBC
+            from .python_des import Des, CBC
             return Des(self.key, CBC, self.iv)
 
 def parse_preference(path):
@@ -324,7 +324,7 @@ def usage(progname):
     print("Get backup.ab file using adb backup com.amazon.kindle for Android 4.0+.")
     print("Otherwise extract AmazonSecureStorage.xml from /data/data/com.amazon.kindle/shared_prefs/AmazonSecureStorage.xml")
     print("Or map_data_storage.db from /data/data/com.amazon.kindle/databases/map_data_storage.db")
-    print(u"")
+    print("")
     print("Usage:")
     print("    {0:s} [-h] [-b <backup.ab>] [<outfile.k4a>]".format(progname))
 

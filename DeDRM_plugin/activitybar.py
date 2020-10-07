@@ -1,12 +1,12 @@
 import sys
-import Tkinter
-import Tkconstants
+import tkinter
+import tkinter.constants
 
-class ActivityBar(Tkinter.Frame):
+class ActivityBar(tkinter.Frame):
 
     def __init__(self, master, length=300, height=20, barwidth=15, interval=50, bg='white', fillcolor='orchid1',\
-                 bd=2, relief=Tkconstants.GROOVE, *args, **kw):
-        Tkinter.Frame.__init__(self, master, bg=bg, width=length, height=height, *args, **kw)
+                 bd=2, relief=tkinter.constants.GROOVE, *args, **kw):
+        tkinter.Frame.__init__(self, master, bg=bg, width=length, height=height, *args, **kw)
         self._master = master
         self._interval = interval
         self._maximum = length
@@ -20,7 +20,7 @@ class ActivityBar(Tkinter.Frame):
             stopx = self._maximum
         # self._canv = Tkinter.Canvas(self, bg=self['bg'], width=self['width'], height=self['height'],\
         #                             highlightthickness=0, relief='flat', bd=0)
-        self._canv = Tkinter.Canvas(self, bg=self['bg'], width=self['width'], height=self['height'],\
+        self._canv = tkinter.Canvas(self, bg=self['bg'], width=self['width'], height=self['height'],\
                                     highlightthickness=0, relief=relief, bd=bd)
         self._canv.pack(fill='both', expand=1)
         self._rect = self._canv.create_rectangle(0, 0, self._canv.winfo_reqwidth(), self._canv.winfo_reqheight(), fill=fillcolor, width=0)

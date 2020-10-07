@@ -9,7 +9,7 @@
 #  5.0  - Fixed potential unicode problem with command line interface
 #  6.0  - Added Python 3 compatibility for calibre 5.0
 
-from __future__ import print_function
+
 __version__ = '6.0'
 
 import sys
@@ -21,7 +21,7 @@ from struct import unpack
 try:
     from calibre_plugins.dedrm.alfcrypto import Topaz_Cipher
 except:
-    from alfcrypto import Topaz_Cipher
+    from .alfcrypto import Topaz_Cipher
 
 class SafeUnbuffered:
     def __init__(self, stream):
@@ -84,7 +84,7 @@ if 'calibre' in sys.modules:
     from calibre_plugins.dedrm import kgenpids
 else:
     inCalibre = False
-    import kgenpids
+    from . import kgenpids
 
 
 class DrmException(Exception):
@@ -94,7 +94,7 @@ class DrmException(Exception):
 # recursive zip creation support routine
 def zipUpDir(myzip, tdir, localname):
     currentdir = tdir
-    if localname != u"":
+    if localname != "":
         currentdir = os.path.join(currentdir,localname)
     list = os.listdir(currentdir)
     for file in list:
@@ -330,7 +330,7 @@ class TopazBook:
             if inCalibre:
                 from calibre_plugins.dedrm import genbook
             else:
-                import genbook
+                from . import genbook
 
             rv = genbook.generateBook(self.outdir, raw, fixedimage)
             if rv == 0:
@@ -364,7 +364,7 @@ class TopazBook:
         if inCalibre:
             from calibre_plugins.dedrm import genbook
         else:
-            import genbook
+            from . import genbook
 
         rv = genbook.generateBook(self.outdir, raw, fixedimage)
         if rv == 0:

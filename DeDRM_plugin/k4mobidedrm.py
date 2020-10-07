@@ -87,11 +87,11 @@ if inCalibre:
     from calibre_plugins.dedrm import androidkindlekey
     from calibre_plugins.dedrm import kfxdedrm
 else:
-    import mobidedrm
-    import topazextract
-    import kgenpids
-    import androidkindlekey
-    import kfxdedrm
+    from . import mobidedrm
+    from . import topazextract
+    from . import kgenpids
+    from . import androidkindlekey
+    from . import kfxdedrm
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -157,13 +157,13 @@ def unicode_argv():
 # and some improvements suggested by jhaisley
 def cleanup_name(name):
     # substitute filename unfriendly characters
-    name = name.replace("<","[").replace(">","]").replace(" : "," – ").replace(": "," – ").replace(":","—").replace("/","_").replace("\\","_").replace("|","_").replace("\"","\'").replace("*","_").replace("?",u"")
+    name = name.replace("<","[").replace(">","]").replace(" : "," – ").replace(": "," – ").replace(":","—").replace("/","_").replace("\\","_").replace("|","_").replace("\"","\'").replace("*","_").replace("?","")
     # white space to single space, delete leading and trailing while space
     name = re.sub(r"\s", " ", name).strip()
     # delete control characters
-    name = u"".join(char for char in name if ord(char)>=32)
+    name = "".join(char for char in name if ord(char)>=32)
     # delete non-ascii characters
-    name = u"".join(char for char in name if ord(char)<=126)
+    name = "".join(char for char in name if ord(char)<=126)
     # remove leading dots
     while len(name)>0 and name[0] == ".":
         name = name[1:]

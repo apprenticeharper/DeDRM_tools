@@ -12,7 +12,7 @@
 #  0.5 moved unicode_argv call inside main for Windows DeDRM compatibility
 #  1.0 Python 3 for calibre 5.0
 
-from __future__ import print_function
+
 import sys
 import binascii
 

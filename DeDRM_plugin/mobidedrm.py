@@ -5,7 +5,7 @@
 # Copyright © 2008 The Dark Reverser
 # Portions © 2008–2020 Apprentice Harper et al.
 
-from __future__ import print_function
+
 __license__ = 'GPL v3'
 __version__ = "1.00"
 
@@ -80,7 +80,7 @@ import os
 import struct
 import binascii
 try:
-    from alfcrypto import Pukall_Cipher
+    from .alfcrypto import Pukall_Cipher
 except:
     print("AlfCrypto not found. Using python PC1 implementation.")
 
@@ -247,7 +247,7 @@ class MobiBook:
         print("MobiDeDrm v{0:s}.\nCopyright © 2008-2020 The Dark Reverser, Apprentice Harper et al.".format(__version__))
 
         try:
-            from alfcrypto import Pukall_Cipher
+            from .alfcrypto import Pukall_Cipher
         except:
             print("AlfCrypto not found. Using python PC1 implementation.")
 
@@ -336,7 +336,7 @@ class MobiBook:
                 toff, tlen = struct.unpack('>II', self.sect[0x54:0x5c])
                 tend = toff + tlen
                 title = self.sect[toff:tend]
-            if self.mobi_codepage in codec_map.keys():
+            if self.mobi_codepage in list(codec_map.keys()):
                 codec = codec_map[self.mobi_codepage]
         if title == '':
             title = self.header[:32]

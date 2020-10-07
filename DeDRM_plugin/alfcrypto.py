@@ -164,7 +164,7 @@ def _load_libalfcrypto():
 
 def _load_python_alfcrypto():
 
-    import aescbc
+    from . import aescbc
 
     class Pukall_Cipher(object):
         def __init__(self):
