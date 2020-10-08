@@ -392,7 +392,7 @@ def generateBook(bookDir, raw, fixedimage):
         # metadata is wrong so just select a page near the front
         # 10% of the book to get a normal text page
         pnum = int(0.10 * numfiles)
-    # print "first normal text page is", spage
+    # print("first normal text page is", spage)
 
     # get page height and width from first text page for use in stylesheet scaling
     pname = 'page%04d.dat' % (pnum - 1)
@@ -449,7 +449,7 @@ def generateBook(bookDir, raw, fixedimage):
     glyfile.write('<defs>\n')
     counter = 0
     for filename in filenames:
-        # print '     ', filename
+        # print('     ', filename)
         print('.', end=' ')
         fname = os.path.join(glyphsDir,filename)
         flat_xml = convert2xml.fromData(dict, fname)
@@ -504,7 +504,7 @@ def generateBook(bookDir, raw, fixedimage):
     elst = []
 
     for filename in filenames:
-        # print '     ', filename
+        # print('     ', filename)
         print(".", end=' ')
         fname = os.path.join(pageDir,filename)
         flat_xml = convert2xml.fromData(dict, fname)

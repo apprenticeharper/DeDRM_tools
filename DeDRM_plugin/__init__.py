@@ -523,9 +523,9 @@ class DeDRM(FileTypePlugin):
         pids = dedrmprefs['pids']
         serials = dedrmprefs['serials']
         for android_serials_list in list(dedrmprefs['androidkeys'].values()):
-            #print android_serials_list
+            #print(android_serials_list)
             serials.extend(android_serials_list)
-        #print serials
+        #print(serials)
         androidFiles = []
         kindleDatabases = list(dedrmprefs['kindlekeys'].items())
 

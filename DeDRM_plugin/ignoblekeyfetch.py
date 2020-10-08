@@ -113,13 +113,13 @@ def fetch_key(email, password):
     fetch_url = "https://cart4.barnesandnoble.com/services/service.aspx?Version=2&acctPassword="
     fetch_url += urllib.parse.quote(password,'')+"&devID=PC_BN_2.5.6.9575_"+random+"&emailAddress="
     fetch_url += urllib.parse.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
-    #print fetch_url
+    #print(fetch_url)
 
     found = ''
     try:
         response = urllib.request.urlopen(fetch_url)
         the_page = response.read()
-        #print the_page
+        #print(the_page)
         found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)
     except:
         found = ''
@@ -128,13 +128,13 @@ def fetch_key(email, password):
         fetch_url = "https://cart4.barnesandnoble.com/services/service.aspx?Version=2&acctPassword="
         fetch_url += urllib.parse.quote(password,'')+"&devID=hobbes_9.3.50818_"+random+"&emailAddress="
         fetch_url += urllib.parse.quote(email,"")+"&outFormat=5&schema=1&service=1&stage=deviceHashB"
-        #print fetch_url
+        #print(fetch_url)
 
         found = ''
         try:
             response = urllib.request.urlopen(fetch_url)
             the_page = response.read()
-            #print the_page
+            #print(the_page)
             found = re.search('ccHash>(.+?)</ccHash', the_page).group(1)
         except:
             found = ''

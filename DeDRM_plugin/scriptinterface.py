@@ -60,7 +60,7 @@ def decryptepub(infile, outdir, rscpath):
             for filename in files:
                 keypath = os.path.join(rscpath, filename)
                 userkey = open(keypath,'r').read()
-                #print userkey
+                #print(userkey)
                 try:
                     rv = ignobleepub.decryptBook(userkey, zippath, outfile)
                     if rv == 0:

@@ -288,10 +288,10 @@ class MobiBook:
         self.mobi_length, = struct.unpack('>L',self.sect[0x14:0x18])
         self.mobi_codepage, = struct.unpack('>L',self.sect[0x1c:0x20])
         self.mobi_version, = struct.unpack('>L',self.sect[0x68:0x6C])
-        #print "MOBI header version {0:d}, header length {1:d}".format(self.mobi_version, self.mobi_length)
+        #print("MOBI header version {0:d}, header length {1:d}".format(self.mobi_version, self.mobi_length))
         if (self.mobi_length >= 0xE4) and (self.mobi_version >= 5):
             self.extra_data_flags, = struct.unpack('>H', self.sect[0xF2:0xF4])
-            #print "Extra Data Flags: {0:d}".format(self.extra_data_flags)
+            #print("Extra Data Flags: {0:d}".format(self.extra_data_flags))
         if (self.compression != 17480):
             # multibyte utf8 data is included in the encryption for PalmDoc compression
             # so clear that byte so that we leave it to be decrypted.
@@ -317,7 +317,7 @@ class MobiBook:
                     elif type == 404 and size == 9:
                         # make sure text to speech is enabled
                         self.patchSection(0, b'\0', 16 + self.mobi_length + pos + 8)
-                    # print type, size, content, content.encode('hex')
+                    # print(type, size, content, content.encode('hex'))
                     pos += size
         except Exception as e:
             print("Cannot set meta_array: Error: {:s}".format(e.args[0]))
@@ -495,7 +495,7 @@ class MobiBook:
             extra_size = getSizeOfTrailingDataEntries(data, len(data), self.extra_data_flags)
             if i%100 == 0:
                 print(".", end=' ')
-            # print "record %d, extra_size %d" %(i,extra_size)
+            # print("record %d, extra_size %d" %(i,extra_size))
             decoded_data = PC1(found_key, data[0:len(data) - extra_size])
             if i==1:
                 self.print_replica = (decoded_data[0:4] == '%MOP')

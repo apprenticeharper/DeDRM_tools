@@ -220,7 +220,7 @@ def getK4Pids(rec209, token, kindleDatabase):
         try:
             # Get the Mazama Random number
             MazamaRandomNumber = bytearray.fromhex((kindleDatabase[1])[b'MazamaRandomNumber']).decode()
-            #print "Got MazamaRandomNumber from database {0}".format(kindleDatabase[0])
+            #print("Got MazamaRandomNumber from database {0}".format(kindleDatabase[0]))
 
             try:
                 # Get the SerialNumber token, if present
@@ -239,18 +239,18 @@ def getK4Pids(rec209, token, kindleDatabase):
                 UserName = bytearray.fromhex((kindleDatabase[1])[b'UserName']).decode()
                 # encode it
                 encodedUsername = encodeHash(UserName,charMap1)
-                #print "encodedUsername",encodedUsername.encode('hex')
+                #print("encodedUsername",encodedUsername.encode('hex'))
         except KeyError:
             print("Keys not found in the database {0}.".format(kindleDatabase[0]))
             return pids
 
         # Get the ID string used
         encodedIDString = encodeHash(IDString,charMap1)
-        #print "encodedIDString",encodedIDString.encode('hex')
+        #print("encodedIDString",encodedIDString.encode('hex'))
 
         # concat, hash and encode to calculate the DSN
         DSN = encode(SHA1(MazamaRandomNumber+encodedIDString+encodedUsername),charMap1)
-        #print "DSN",DSN.encode('hex')
+        #print("DSN",DSN.encode('hex'))
         pass
 
     if rec209 is None:

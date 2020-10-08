@@ -598,7 +598,7 @@ class PSBaseParser(object):
         if not pos:
             pos = self.bufpos+self.charpos
         self.fp.seek(pos)
-        ##print >>sys.stderr, 'poll(%d): %r' % (pos, self.fp.read(n))
+        ##print('poll(%d): %r' % (pos, self.fp.read(n)), file=sys.stderr)
         self.fp.seek(pos0)
         return
 
@@ -923,7 +923,7 @@ class PSStackParser(PSBaseParser):
         '''
         while not self.results:
             (pos, token) = self.nexttoken()
-            ##print (pos,token), (self.curtype, self.curstack)
+            ##print((pos, token), (self.curtype, self.curstack))
             if (isinstance(token, int) or
                     isinstance(token, Decimal) or
                     isinstance(token, bool) or
@@ -1173,7 +1173,7 @@ class PDFStream(PDFObject):
         if 'Filter' not in self.dic:
             self.data = data
             self.rawdata = None
-            ##print self.dict
+            ##print(self.dict)
             return
         filters = self.dic['Filter']
         if not isinstance(filters, list):
@@ -1671,7 +1671,7 @@ class PDFDocument(object):
         plaintext = AES.new(key,AES.MODE_CBC,ivector).decrypt(data)
         # remove pkcs#5 aes padding
         cutter = -1 * plaintext[-1]
-        #print cutter
+        #print(cutter)
         plaintext = plaintext[:cutter]
         return plaintext
 
@@ -1682,7 +1682,7 @@ class PDFDocument(object):
         plaintext = AES.new(key,AES.MODE_CBC,ivector).decrypt(data)
         # remove pkcs#5 aes padding
         cutter = -1 * plaintext[-1]
-        #print cutter
+        #print(cutter)
         plaintext = plaintext[:cutter]
         return plaintext
 
@@ -2181,7 +2181,7 @@ def decryptBook(userkey, inpath, outpath):
         #try:
         serializer = PDFSerializer(inf, userkey)
         #except:
-        #    print "Error serializing pdf {0}. Probably wrong key.".format(os.path.basename(inpath))
+        #    print("Error serializing pdf {0}. Probably wrong key.".format(os.path.basename(inpath)))
         #    return 2
         # hope this will fix the 'bad file descriptor' problem
         with open(outpath, 'wb') as outf:

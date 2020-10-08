@@ -385,7 +385,7 @@ if iswindows:
                 aes = AES(keykey)
                 userkey = aes.decrypt(userkey)
                 userkey = userkey[26:-ord(userkey[-1:])]
-                #print "found key:",userkey.encode('hex')
+                #print("found key:",userkey.encode('hex'))
                 keys.append(userkey)
         if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')

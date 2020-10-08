@@ -904,10 +904,10 @@ if iswindows:
             # replace any non-ASCII values with 0xfffd
             for i in range(0,len(buffer)):
                 if buffer[i]>"\\u007f":
-                    #print "swapping char "+str(i)+" ("+buffer[i]+")"
+                    #print("swapping char "+str(i)+" ("+buffer[i]+")")
                     buffer[i] = "\\ufffd"
             # return utf-8 encoding of modified username
-            #print "modified username:"+buffer.value
+            #print("modified username:"+buffer.value)
             return buffer.value.encode('utf-8')
         return GetUserName
     GetUserName = GetUserName()
@@ -974,7 +974,7 @@ if iswindows:
 
         found = False
         if path == "":
-            print ('Could not find the folder in which to look for kinfoFiles.')
+            print('Could not find the folder in which to look for kinfoFiles.')
         else:
             # Probably not the best. To Fix (shouldn't ignore in encoding) or use utf-8
             print("searching for kinfoFiles in " + path.encode('ascii', 'ignore'))
@@ -1059,7 +1059,7 @@ if iswindows:
         headerblob = items.pop(0)
         encryptedValue = decode(headerblob, testMap1)
         cleartext = UnprotectHeaderData(encryptedValue)
-        #print "header  cleartext:",cleartext
+        #print("header  cleartext:",cleartext)
         # now extract the pieces that form the added entropy
         pattern = re.compile(r'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
         for m in re.finditer(pattern, cleartext):
@@ -1104,11 +1104,11 @@ if iswindows:
             for name in names:
                 if encodeHash(name,testMap8) == keyhash:
                     keyname = name
-                    #print "keyname found from hash:",keyname
+                    #print("keyname found from hash:",keyname)
                     break
             if keyname == "unknown":
                 keyname = keyhash
-                #print "keyname not found, hash is:",keyname
+                #print("keyname not found, hash is:", keyname)
 
             # the testMap8 encoded contents data has had a length
             # of chars (always odd) cut off of the front and moved
@@ -1124,18 +1124,18 @@ if iswindows:
             # by moving noffset chars from the start of the
             # string to the end of the string
             encdata = "".join(edlst)
-            #print "encrypted data:",encdata
+            #print("encrypted data:", encdata)
             contlen = len(encdata)
             noffset = contlen - primes(int(contlen/3))[-1]
             pfx = encdata[0:noffset]
             encdata = encdata[noffset:]
             encdata = encdata + pfx
-            #print "rearranged data:",encdata
+            #print("rearranged data:", encdata)
 
             if version == 5:
                 # decode using new testMap8 to get the original CryptProtect Data
                 encryptedValue = decode(encdata,testMap8)
-                #print "decoded data:",encryptedValue.encode('hex')
+                #print("decoded data:",encryptedValue.encode('hex'))
                 entropy = SHA1(keyhash) + added_entropy
                 cleartext = CryptUnprotectData(encryptedValue, entropy, 1)
             elif version == 6:
@@ -1156,9 +1156,9 @@ if iswindows:
                 cleartext = decode(cipher.decrypt(ciphertext), charMap5)
 
             if len(cleartext)>0:
-                #print "cleartext data:",cleartext,":end data"
+                #print("cleartext data:", cleartext, ":end data")
                 DB[keyname] = cleartext
-            #print keyname, cleartext
+            #print(keyname, cleartext)
 
         if len(DB)>6:
             # store values used in decryption
@@ -1298,7 +1298,7 @@ elif isosx:
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
-        #print out1
+        #print(out1)
         reslst = out1.split(b'\n')
         cnt = len(reslst)
         for j in range(cnt):
@@ -1335,7 +1335,7 @@ elif isosx:
         cmdline = cmdline.encode(sys.getfilesystemencoding())
         p = subprocess.Popen(cmdline, shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=False)
         out1, out2 = p.communicate()
-        #print out1
+        #print(out1)
         reslst = out1.split(b'\n')
         cnt = len(reslst)
         for j in range(cnt):
@@ -1362,14 +1362,14 @@ elif isosx:
             resline = reslst[j]
             pp = resline.find(b'Ethernet Address: ')
             if pp >= 0:
-                #print resline
+                #print(resline)
                 macnum = resline[pp+18:]
                 macnum = macnum.strip()
                 maclst = macnum.split(b':')
                 n = len(maclst)
                 if n != 6:
                     continue
-                #print 'original mac', macnum
+                #print('original mac', macnum)
                 # now munge it up the way Kindle app does
                 # by xoring it with 0xa5 and swapping elements 3 and 4
                 for i in range(6):
@@ -1382,7 +1382,7 @@ elif isosx:
                 mlst[1] = maclst[1] ^ 0xa5
                 mlst[0] = maclst[0] ^ 0xa5
                 macnum = b'%0.2x%0.2x%0.2x%0.2x%0.2x%0.2x' % (mlst[0], mlst[1], mlst[2], mlst[3], mlst[4], mlst[5])
-                #print 'munged mac', macnum
+                #print('munged mac', macnum)
                 macnums.append(macnum)
         return macnums
 
@@ -1390,7 +1390,7 @@ elif isosx:
     # uses unix env to get username instead of using sysctlbyname
     def GetUserName():
         username = os.getenv('USER')
-        #print "Username:",username
+        #print("Username:", username)
         return username.encode('utf-8')
 
     def GetIDStrings():
@@ -1401,7 +1401,7 @@ elif isosx:
         strings.extend(GetDiskPartitionNames())
         strings.extend(GetDiskPartitionUUIDs())
         strings.append(b'9999999999')
-        #print "ID Strings:\n",strings
+        #print("ID Strings:\n",strings)
         return strings
 
 
@@ -1532,20 +1532,20 @@ elif isosx:
         data = filedata[:-1]
         items = data.split(b'/')
         IDStrings = GetIDStrings()
-        print ("trying username ", GetUserName())
+        print("trying username ", GetUserName())
         for IDString in IDStrings:
-            print ("trying IDString:",IDString)
+            print("trying IDString:",IDString)
             try:
                 DB = {}
                 items = data.split(b'/')
 
                 # the headerblob is the encrypted information needed to build the entropy string
                 headerblob = items.pop(0)
-                #print ("headerblob: ",headerblob)
+                #print("headerblob: ",headerblob)
                 encryptedValue = decode(headerblob, charMap1)
-                #print ("encryptedvalue: ",encryptedValue)
+                #print("encryptedvalue: ",encryptedValue)
                 cleartext = UnprotectHeaderData(encryptedValue)
-                print ("cleartext: ",cleartext)
+                print("cleartext: ",cleartext)
 
                 # now extract the pieces in the same way
                 pattern = re.compile(rb'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
@@ -1554,15 +1554,15 @@ elif isosx:
                     build = m.group(2)
                     guid = m.group(4)
 
-                print ("version",version)
-                print ("build",build)
-                print ("guid",guid,"\n")
+                print("version",version)
+                print("build",build)
+                print("guid",guid,"\n")
 
                 if version == 5:  # .kinf2011: identical to K4PC, except the build number gets multiplied
                     entropy = bytes(0x2df * int(build)) + guid
                     cud = CryptUnprotectData(entropy,IDString)
-                    print ("entropy",entropy)
-                    print ("cud",cud)
+                    print("entropy",entropy)
+                    print("cud",cud)
 
                 elif version == 6:  # .kinf2018: identical to K4PC
                     salt = bytes(0x6d8 * int(build)) + guid
@@ -1570,10 +1570,10 @@ elif isosx:
                     passwd = encode(SHA256(sp), charMap5)
                     key = LibCrypto().keyivgen(passwd, salt, 10000, 0x400)[:32]
 
-                    print ("salt",salt)
-                    print ("sp",sp)
-                    print ("passwd",passwd)
-                    print ("key",key)
+                    print("salt",salt)
+                    print("sp",sp)
+                    print("passwd",passwd)
+                    print("key",key)
 
                # loop through the item records until all are processed
                 while len(items) > 0:
@@ -1656,8 +1656,8 @@ elif isosx:
                         # decrypt and decode
                         cleartext = decode(cipher.decrypt(ciphertext), charMap5)
 
-                    # print keyname
-                    # print cleartext
+                    # print(keyname)
+                    # print(cleartext)
                     if len(cleartext) > 0:
                         DB[keyname] = cleartext
 
@@ -1665,7 +1665,7 @@ elif isosx:
                     break
 
             except Exception:
-                print (traceback.format_exc())
+                print(traceback.format_exc())
                 pass
         if len(DB)>6:
             # store values used in decryption
@@ -1822,7 +1822,7 @@ def gui_main():
     return 0
 
 if __name__ == '__main__':
-    print ("here")
+    print("here kindlekey.py")
     if len(sys.argv) > 1:
         sys.exit(cli_main())
     sys.exit(gui_main())

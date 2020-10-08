@@ -231,7 +231,7 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
     # remove any duplicates
     totalpids = list(set(totalpids))
     print("Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(totalpids)))
-    #print totalpids
+    #print(totalpids)
 
     try:
         mb.processBook(totalpids)
