@@ -186,7 +186,7 @@ if iswindows:
         create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
         string_at, Structure, c_void_p, cast
 
-    import _winreg as winreg
+    import winreg as winreg
     MAX_PATH = 255
     kernel32 = windll.kernel32
     advapi32 = windll.advapi32
@@ -194,7 +194,7 @@ if iswindows:
 
     try:
         # try to get fast routines from alfcrypto
-        from alfcrypto import AES_CBC, KeyIVGen
+        from .alfcrypto import AES_CBC, KeyIVGen
     except:
         # alfcrypto not available, so use python implementations
         """
@@ -370,8 +370,8 @@ if iswindows:
                 self.blockSize  = blockSize  # blockSize is in bytes
                 self.padding    = padding    # change default to noPadding() to get normal ECB behavior
 
-                assert( keySize%4==0 and NrTable[4].has_key(keySize/4)),'key size must be 16,20,24,29 or 32 bytes'
-                assert( blockSize%4==0 and NrTable.has_key(blockSize/4)), 'block size must be 16,20,24,29 or 32 bytes'
+                assert( keySize%4==0 and keySize/4 in NrTable[4]),'key size must be 16,20,24,29 or 32 bytes'
+                assert( blockSize%4==0 and blockSize/4 in NrTable), 'block size must be 16,20,24,29 or 32 bytes'
 
                 self.Nb = self.blockSize/4          # Nb is number of columns of 32 bit words
                 self.Nk = keySize/4                 # Nk is the key length in 32-bit words
@@ -903,9 +903,9 @@ if iswindows:
 
             # replace any non-ASCII values with 0xfffd
             for i in range(0,len(buffer)):
-                if buffer[i]>"\u007f":
+                if buffer[i]>"\\u007f":
                     #print "swapping char "+str(i)+" ("+buffer[i]+")"
-                    buffer[i] = "\ufffd"
+                    buffer[i] = "\\ufffd"
             # return utf-8 encoding of modified username
             #print "modified username:"+buffer.value
             return buffer.value.encode('utf-8')
@@ -947,7 +947,7 @@ if iswindows:
         # some 64 bit machines do not have the proper registry key for some reason
         # or the python interface to the 32 vs 64 bit registry is broken
         path = ""
-        if 'LOCALAPPDATA' in os.environ.keys():
+        if 'LOCALAPPDATA' in list(os.environ.keys()):
             # Python 2.x does not return unicode env. Use Python 3.x
             path = winreg.ExpandEnvironmentStrings("%LOCALAPPDATA%")
             # this is just another alternative.
@@ -1771,27 +1771,27 @@ def cli_main():
 
 def gui_main():
     try:
-        import Tkinter
-        import Tkconstants
-        import tkMessageBox
+        import tkinter
+        import tkinter.constants
+        import tkinter.messagebox
         import traceback
     except:
         return cli_main()
 
-    class ExceptionDialog(Tkinter.Frame):
+    class ExceptionDialog(tkinter.Frame):
         def __init__(self, root, text):
-            Tkinter.Frame.__init__(self, root, border=5)
-            label = Tkinter.Label(self, text="Unexpected error:",
-                                  anchor=Tkconstants.W, justify=Tkconstants.LEFT)
-            label.pack(fill=Tkconstants.X, expand=0)
-            self.text = Tkinter.Text(self)
-            self.text.pack(fill=Tkconstants.BOTH, expand=1)
+            tkinter.Frame.__init__(self, root, border=5)
+            label = tkinter.Label(self, text="Unexpected error:",
+                                  anchor=tkinter.constants.W, justify=tkinter.constants.LEFT)
+            label.pack(fill=tkinter.constants.X, expand=0)
+            self.text = tkinter.Text(self)
+            self.text.pack(fill=tkinter.constants.BOTH, expand=1)
 
-            self.text.insert(Tkconstants.END, text)
+            self.text.insert(tkinter.constants.END, text)
 
 
     argv=unicode_argv()
-    root = Tkinter.Tk()
+    root = tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
     success = False
@@ -1808,14 +1808,14 @@ def gui_main():
             with file(outfile, 'w') as keyfileout:
                 keyfileout.write(json.dumps(key))
             success = True
-            tkMessageBox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
+            tkinter.messagebox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
     except DrmException as e:
-        tkMessageBox.showerror(progname, "Error: {0}".format(str(e)))
+        tkinter.messagebox.showerror(progname, "Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
         root.title(progname)
         text = traceback.format_exc()
-        ExceptionDialog(root, text).pack(fill=Tkconstants.BOTH, expand=1)
+        ExceptionDialog(root, text).pack(fill=tkinter.constants.BOTH, expand=1)
         root.mainloop()
     if not success:
         return 1
