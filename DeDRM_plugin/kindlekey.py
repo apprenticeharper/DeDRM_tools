@@ -976,21 +976,20 @@ if iswindows:
         if path == "":
             print('Could not find the folder in which to look for kinfoFiles.')
         else:
-            # Probably not the best. To Fix (shouldn't ignore in encoding) or use utf-8
-            print("searching for kinfoFiles in " + path.encode('ascii', 'ignore'))
+            print("searching for kinfoFiles in " + path)
 
             # look for (K4PC 1.25.1 and later) .kinf2018 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2018'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 1.25+ kinf2018 file: ' + kinfopath.encode('ascii','ignore'))
+                print('Found K4PC 1.25+ kinf2018 file: ' + kinfopath)
                 kInfoFiles.append(kinfopath)
 
             # look for (K4PC 1.9.0 and later) .kinf2011 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 1.9+ kinf2011 file: ' + kinfopath.encode('ascii','ignore'))
+                print('Found K4PC 1.9+ kinf2011 file: ' + kinfopath)
                 kInfoFiles.append(kinfopath)
 
             # look for (K4PC 1.6.0 and later) rainier.2.1.1.kinf file
