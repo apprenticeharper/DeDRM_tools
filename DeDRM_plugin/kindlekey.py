@@ -791,7 +791,7 @@ if iswindows:
                 def xorstr( a, b ):
                     if len(a) != len(b):
                         raise Exception("xorstr(): lengths differ")
-                    return ''.join((chr(ord(x)^ord(y)) for x, y in zip(a, b)))
+                    return b''.join(bytes([x ^ y]) for x, y in zip(a, b))
 
                 def prf( h, data ):
                     hm = h.copy()
@@ -813,7 +813,7 @@ if iswindows:
                 if keylen % digest_size != 0:
                     l += 1
                 h = hmac.new( passwd, None, sha )
-                T = ""
+                T = b""
                 for i in range(1, l+1):
                     T += pbkdf2_F( h, salt, iter, i )
                 return T[0: keylen]
