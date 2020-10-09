@@ -265,7 +265,7 @@ if iswindows:
                 self.bytesToEncrypt = ''
             def resetDecrypt(self):
                 self.decryptBlockCount = 0
-                self.bytesToDecrypt = ''
+                self.bytesToDecrypt = b''
 
             def encrypt(self, plainText, more = None):
                 """ Encrypt a string and return a binary string """
