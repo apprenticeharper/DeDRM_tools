@@ -819,7 +819,7 @@ if iswindows:
                 return T[0: keylen]
 
     def UnprotectHeaderData(encryptedData):
-        passwdData = 'header_key_data'
+        passwdData = b'header_key_data'
         salt = 'HEADER.2011'
         iter = 0x80
         keylen = 0x100
