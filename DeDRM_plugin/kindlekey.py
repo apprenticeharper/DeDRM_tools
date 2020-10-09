@@ -1820,7 +1820,7 @@ def gui_main():
     return 0
 
 if __name__ == '__main__':
-    print("here")
+    print("Running", __file__)
     if len(sys.argv) > 1:
         sys.exit(cli_main())
     sys.exit(gui_main())
