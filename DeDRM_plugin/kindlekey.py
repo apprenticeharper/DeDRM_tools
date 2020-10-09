@@ -1677,9 +1677,8 @@ elif isosx:
             DB = {}
         return DB
 else:
-    def getDBfromFile(kInfoFile):
+    def getKindleInfoFiles():
         raise DrmException("This script only runs under Windows or Mac OS X.")
-        return {}
 
 def kindlekeys(files = []):
     keys = []
