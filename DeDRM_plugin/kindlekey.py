@@ -820,7 +820,7 @@ if iswindows:
 
     def UnprotectHeaderData(encryptedData):
         passwdData = b'header_key_data'
-        salt = 'HEADER.2011'
+        salt = b'HEADER.2011'
         iter = 0x80
         keylen = 0x100
         key_iv = KeyIVGen().pbkdf2(passwdData, salt, iter, keylen)
@@ -1069,7 +1069,7 @@ if iswindows:
         if version == 5:  # .kinf2011
             added_entropy = build + guid
         elif version == 6:  # .kinf2018
-            salt = str(0x6d8 * int(build)) + guid
+            salt = (str(0x6d8 * int(build)) + guid).decode()
             sp = GetUserName() + '+@#$%+' + GetIDString()
             passwd = encode(SHA256(sp), charMap5)
             key = KeyIVGen().pbkdf2(passwd, salt, 10000, 0x400)[:32]  # this is very slow
