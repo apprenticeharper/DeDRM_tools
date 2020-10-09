@@ -370,11 +370,11 @@ if iswindows:
                 self.blockSize  = blockSize  # blockSize is in bytes
                 self.padding    = padding    # change default to noPadding() to get normal ECB behavior
 
-                assert( keySize%4==0 and keySize/4 in NrTable[4]),'key size must be 16,20,24,29 or 32 bytes'
-                assert( blockSize%4==0 and blockSize/4 in NrTable), 'block size must be 16,20,24,29 or 32 bytes'
+                assert( keySize%4==0 and keySize//4 in NrTable[4]),'key size must be 16,20,24,29 or 32 bytes'
+                assert( blockSize%4==0 and blockSize//4 in NrTable), 'block size must be 16,20,24,29 or 32 bytes'
 
-                self.Nb = self.blockSize/4          # Nb is number of columns of 32 bit words
-                self.Nk = keySize/4                 # Nk is the key length in 32-bit words
+                self.Nb = self.blockSize//4         # Nb is number of columns of 32 bit words
+                self.Nk = keySize//4                # Nk is the key length in 32-bit words
                 self.Nr = NrTable[self.Nb][self.Nk] # The number of rounds (Nr) is a function of
                                                     # the block (Nb) and key (Nk) sizes.
                 if key != None:
@@ -448,7 +448,7 @@ if iswindows:
                 if (i%Nk) == 0 :
                     temp     = temp[1:]+[temp[0]]  # RotWord(temp)
                     temp     = [ Sbox[byte] for byte in temp ]
-                    temp[0] ^= Rcon[i/Nk]
+                    temp[0] ^= Rcon[i//Nk]
                 elif Nk > 6 and  i%Nk == 4 :
                     temp     = [ Sbox[byte] for byte in temp ]  # SubWord(temp)
                 w.append( [ w[i-Nk][byte]^temp[byte] for byte in range(4) ] )
@@ -809,7 +809,7 @@ if iswindows:
                 sha = hashlib.sha1
                 digest_size = sha().digest_size
                 # l - number of output blocks to produce
-                l = keylen / digest_size
+                l = keylen // digest_size
                 if keylen % digest_size != 0:
                     l += 1
                 h = hmac.new( passwd, None, sha )
