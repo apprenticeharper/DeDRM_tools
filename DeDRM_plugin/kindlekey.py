@@ -262,7 +262,7 @@ if iswindows:
                 self.resetDecrypt()
             def resetEncrypt(self):
                 self.encryptBlockCount = 0
-                self.bytesToEncrypt = ''
+                self.bytesToEncrypt = b''
             def resetDecrypt(self):
                 self.decryptBlockCount = 0
                 self.bytesToDecrypt = b''
