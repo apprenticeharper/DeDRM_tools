@@ -416,9 +416,12 @@ if iswindows:
                 return self._toBString(self.state)
 
             def _toBlock(self, bs):
-                """ Convert binary string to array of bytes, state[col][row]"""
+                """Convert bytestring to list of list of byte-sized integers"""
                 assert ( len(bs) == 4*self.Nb ), 'Rijndarl blocks must be of size blockSize'
-                return [[ord(bs[4*i]),ord(bs[4*i+1]),ord(bs[4*i+2]),ord(bs[4*i+3])] for i in range(self.Nb)]
+                return [
+                    [bs[4*i], bs[4*i+1], bs[4*i+2], bs[4*i+3]]
+                    for i in range(self.Nb)
+                ]
 
             def _toBString(self, block):
                 """ Convert block (array of bytes) to binary string """
