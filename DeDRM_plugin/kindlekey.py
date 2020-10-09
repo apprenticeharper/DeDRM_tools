@@ -441,8 +441,9 @@ if iswindows:
         def keyExpansion(algInstance, keyString):
             """ Expand a string of size keySize into a larger array """
             Nk, Nb, Nr = algInstance.Nk, algInstance.Nb, algInstance.Nr # for readability
-            key = [ord(byte) for byte in keyString]  # convert string to list
+            key = [byte for byte in keyString]  # convert string to list
             w = [[key[4*i],key[4*i+1],key[4*i+2],key[4*i+3]] for i in range(Nk)]
+
             for i in range(Nk,Nb*(Nr+1)):
                 temp = w[i-1]        # a four byte column
                 if (i%Nk) == 0 :
