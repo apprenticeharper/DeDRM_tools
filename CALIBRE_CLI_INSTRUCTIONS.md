@@ -27,7 +27,7 @@ platforms.
 
 #### Enter your keys
   - Figure out what format DeDRM wants your key in by looking in
-     [the code that handles that](dedrm_src/prefs.py).
+     [the code that handles that](DeDRM_plugin/prefs.py).
      - For Kindle eInk devices, DeDRM expects you to put a list of serial
        numbers in the `serials` field: `"serials": ["012345689abcdef"]` or
        `"serials": ["1111111111111111", "2222222222222222"]`.
