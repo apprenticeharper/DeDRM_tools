@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
-from __future__ import print_function
+
 import sys
 import os
 import re
+import traceback
 import calibre_plugins.dedrm.ineptepub
 import calibre_plugins.dedrm.ignobleepub
 import calibre_plugins.dedrm.epubtest
@@ -13,7 +14,6 @@ import calibre_plugins.dedrm.zipfix
 import calibre_plugins.dedrm.ineptpdf
 import calibre_plugins.dedrm.erdr2pml
 import calibre_plugins.dedrm.k4mobidedrm
-import traceback
 
 def decryptepub(infile, outdir, rscpath):
     errlog = ''

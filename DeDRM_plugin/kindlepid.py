@@ -12,7 +12,7 @@
 #  0.5 moved unicode_argv call inside main for Windows DeDRM compatibility
 #  1.0 Python 3 for calibre 5.0
 
-from __future__ import print_function
+
 import sys
 import binascii
 
@@ -26,10 +26,11 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,bytes):
+        if isinstance(data, str):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -69,10 +70,8 @@ def unicode_argv():
         # this should never happen
         return ["kindlepid.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return sys.argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 letters = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
 
@@ -137,6 +136,6 @@ def cli_main():
 
 
 if __name__ == "__main__":
-    #sys.stdout=SafeUnbuffered(sys.stdout)
-    #sys.stderr=SafeUnbuffered(sys.stderr)
+    sys.stdout=SafeUnbuffered(sys.stdout)
+    sys.stderr=SafeUnbuffered(sys.stderr)
     sys.exit(cli_main())

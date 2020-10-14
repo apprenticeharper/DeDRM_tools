@@ -73,7 +73,7 @@ __version__ = "1.00"
 #  0.40 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  0.41 - Fixed potential unicode problem in command line calls
 #  0.42 - Added GPL v3 licence. updated/removed some print statements
-#  3.00 - Added Python 3 compatibility for calibre 5.0
+#  1.00 - Python 3 compatibility for calibre 5.0
 
 import sys
 import os
@@ -94,10 +94,11 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,bytes):
+        if isinstance(data, str):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -152,12 +153,12 @@ class DrmException(Exception):
 # Implementation of Pukall Cipher 1
 def PC1(key, src, decryption=True):
     # if we can get it from alfcrypto, use that
-    #try:
-    #    return Pukall_Cipher().PC1(key,src,decryption)
-    #except NameError:
-    #    pass
-    #except TypeError:
-    #    pass
+    try:
+        return Pukall_Cipher().PC1(key,src,decryption)
+    except NameError:
+        pass
+    except TypeError:
+        pass
 
     # use slow python version, since Pukall_Cipher didn't load
     sum1 = 0;

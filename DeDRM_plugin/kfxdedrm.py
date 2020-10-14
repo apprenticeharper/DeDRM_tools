@@ -10,13 +10,7 @@ import os
 import shutil
 import zipfile
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    try:
-        from StringIO import StringIO
-    except ImportError:
-        from io import StringIO
+from io import BytesIO
 
 
 __license__ = 'GPL v3'
@@ -47,8 +41,8 @@ class KFXZipBook:
                     if self.voucher is None:
                         self.decrypt_voucher(totalpids)
                     print("Decrypting KFX DRMION: {0}".format(filename))
-                    outfile = StringIO()
-                    ion.DrmIon(StringIO(data[8:-8]), lambda name: self.voucher).parse(outfile)
+                    outfile = BytesIO()
+                    ion.DrmIon(BytesIO(data[8:-8]), lambda name: self.voucher).parse(outfile)
                     self.decrypted[filename] = outfile.getvalue()
 
         if not self.decrypted:
@@ -78,7 +72,7 @@ class KFXZipBook:
                 continue
 
             try:
-                voucher = ion.DrmIonVoucher(StringIO(data), pid[:dsn_len], pid[dsn_len:])
+                voucher = ion.DrmIonVoucher(BytesIO(data), pid[:dsn_len], pid[dsn_len:])
                 voucher.parse()
                 voucher.decryptvoucher()
                 break

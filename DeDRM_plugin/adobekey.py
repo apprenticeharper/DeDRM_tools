@@ -496,7 +496,7 @@ def cli_main():
         # save to the specified file or directory
         outpath = args[0]
         if not os.path.isabs(outpath):
-            outpath = os.path.abspath(outpath)
+           outpath = os.path.abspath(outpath)
     else:
         # save to the same directory as the script
         outpath = os.path.dirname(argv[0])

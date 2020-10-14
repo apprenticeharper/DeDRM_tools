@@ -2,7 +2,6 @@
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 # For use with Topaz Scripts Version 2.6
 
-from __future__ import print_function
 import sys
 import csv
 import os
@@ -95,7 +94,7 @@ class DocParser(object):
         # change the origin to minx, miny and calc max height and width
         maxw = maxws[0] + xs[0] - minx
         maxh = maxhs[0] + ys[0] - miny
-        for j in xrange(0, len(xs)):
+        for j in range(0, len(xs)):
             xs[j] = xs[j] - minx
             ys[j] = ys[j] - miny
             maxw = max( maxw, (maxws[j] + xs[j]) )
@@ -107,10 +106,10 @@ class DocParser(object):
         ifile.write('<!DOCTYPE svg PUBLIC "-//W3C/DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n')
         ifile.write('<svg width="%dpx" height="%dpx" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">\n' % (math.floor(maxw/10), math.floor(maxh/10), maxw, maxh))
         ifile.write('<defs>\n')
-        for j in xrange(0,len(gdefs)):
+        for j in range(0,len(gdefs)):
             ifile.write(gdefs[j])
         ifile.write('</defs>\n')
-        for j in xrange(0,len(gids)):
+        for j in range(0,len(gids)):
             ifile.write('<use xlink:href="#gl%d" x="%d" y="%d" />\n' % (gids[j], xs[j], ys[j]))
         ifile.write('</svg>')
         ifile.close()
@@ -139,7 +138,7 @@ class DocParser(object):
         else:
             end = min(self.docSize, end)
         foundat = -1
-        for j in xrange(pos, end):
+        for j in range(pos, end):
             item = self.docList[j]
             if item.find('=') >= 0:
                 (name, argres) = item.split('=',1)
@@ -300,7 +299,7 @@ class DocParser(object):
 
             if not makeImage :
                 # standard all word paragraph
-                for wordnum in xrange(first, last):
+                for wordnum in range(first, last):
                     result.append(('ocr', wordnum))
                 return pclass, result
 
@@ -320,17 +319,17 @@ class DocParser(object):
             # by reverting to text based paragraph
             if firstGlyph >= lastGlyph:
                 # revert to standard text based paragraph
-                for wordnum in xrange(first, last):
+                for wordnum in range(first, last):
                     result.append(('ocr', wordnum))
                 return pclass, result
 
-            for glyphnum in xrange(firstGlyph, lastGlyph):
+            for glyphnum in range(firstGlyph, lastGlyph):
                 glyphList.append(glyphnum)
             # include any extratokens if they exist
             (pos, sfg) = self.findinDoc('extratokens.firstGlyph',start,end)
             (pos, slg) = self.findinDoc('extratokens.lastGlyph',start,end)
             if (sfg != None) and (slg != None):
-                for glyphnum in xrange(int(sfg), int(slg)):
+                for glyphnum in range(int(sfg), int(slg)):
                     glyphList.append(glyphnum)
             num = self.svgcount
             self.glyphs_to_image(glyphList)
@@ -405,14 +404,14 @@ class DocParser(object):
                 result.append(('img' + word_class, int(argres)))
 
             if (sp_first != -1) and (sp_last != -1):
-                for wordnum in xrange(sp_first, sp_last):
+                for wordnum in range(sp_first, sp_last):
                     result.append(('ocr', wordnum))
                 sp_first = -1
                 sp_last = -1
 
             if (gl_first != -1) and (gl_last != -1):
                 glyphList = []
-                for glyphnum in xrange(gl_first, gl_last):
+                for glyphnum in range(gl_first, gl_last):
                     glyphList.append(glyphnum)
                 num = self.svgcount
                 self.glyphs_to_image(glyphList)
@@ -422,7 +421,7 @@ class DocParser(object):
                 gl_last = -1
 
             if (ws_first != -1) and (ws_last != -1):
-                for wordnum in xrange(ws_first, ws_last):
+                for wordnum in range(ws_first, ws_last):
                     result.append(('ocr', wordnum))
                 ws_first = -1
                 ws_last = -1
@@ -454,7 +453,7 @@ class DocParser(object):
 
         cnt = len(pdesc)
 
-        for j in xrange( 0, cnt) :
+        for j in range( 0, cnt) :
 
             (wtype, num) = pdesc[j]
 
@@ -541,7 +540,7 @@ class DocParser(object):
         lstart = 0
 
         cnt = len(pdesc)
-        for j in xrange( 0, cnt) :
+        for j in range( 0, cnt) :
 
             (wtype, num) = pdesc[j]
 
@@ -654,7 +653,7 @@ class DocParser(object):
 
         # process each region on the page and convert what you can to html
 
-        for j in xrange(regcnt):
+        for j in range(regcnt):
 
             (etype, start) = pageDesc[j]
             (ntype, end) = pageDesc[j+1]

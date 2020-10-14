@@ -154,14 +154,15 @@ def primes(n):
     return primeList
 
 # Encode the bytes in data with the characters in map
+# data and map should be byte arrays
 def encode(data, map):
     result = b''
     for char in data:
         value = char
         Q = (value ^ 0x80) // len(map)
         R = value % len(map)
-        result += bytes(map[Q])
-        result += bytes(map[R])
+        result += bytes([map[Q]])
+        result += bytes([map[R]])
     return result
 
 # Hash the bytes in data and then encode the digest with the characters in map
@@ -932,6 +933,7 @@ if iswindows:
     CryptUnprotectData = CryptUnprotectData()
 
     # Returns Environmental Variables that contain unicode
+    # name must be unicode string, not byte string.
     def getEnvironmentVariable(name):
         import ctypes
         n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
@@ -1070,7 +1072,7 @@ if iswindows:
         if version == 5:  # .kinf2011
             added_entropy = build + guid
         elif version == 6:  # .kinf2018
-            salt = str(0x6d8 * int(build)) + guid
+            salt = str(0x6d8 * int(build)).encode('utf-8') + guid
             sp = GetUserName() + '+@#$%+' + GetIDString()
             passwd = encode(SHA256(sp), charMap5)
             key = KeyIVGen().pbkdf2(passwd, salt, 10000, 0x400)[:32]  # this is very slow
@@ -1162,8 +1164,8 @@ if iswindows:
 
         if len(DB)>6:
             # store values used in decryption
-            DB['IDString'] = GetIDString()
-            DB['UserName'] = GetUserName()
+            DB[b'IDString'] = GetIDString()
+            DB[b'UserName'] = GetUserName()
             print("Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex')))
         else:
             print("Couldn't decrypt file.")
@@ -1525,14 +1527,14 @@ elif isosx:
             b'krx.notebookexportplugin.data.encryption_key',\
             b'proxy.http.password',\
             b'proxy.http.username'
-           ]
+            ]
         with open(kInfoFile, 'rb') as infoReader:
             filedata = infoReader.read()
 
         data = filedata[:-1]
         items = data.split(b'/')
         IDStrings = GetIDStrings()
-        print ("trying username ", GetUserName())
+        print ("trying username ", GetUserName(), " on file ", kInfoFile)
         for IDString in IDStrings:
             print ("trying IDString:",IDString)
             try:
@@ -1545,7 +1547,7 @@ elif isosx:
                 encryptedValue = decode(headerblob, charMap1)
                 #print ("encryptedvalue: ",encryptedValue)
                 cleartext = UnprotectHeaderData(encryptedValue)
-                print ("cleartext: ",cleartext)
+                #print ("cleartext: ",cleartext)
 
                 # now extract the pieces in the same way
                 pattern = re.compile(rb'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
@@ -1554,26 +1556,26 @@ elif isosx:
                     build = m.group(2)
                     guid = m.group(4)
 
-                print ("version",version)
-                print ("build",build)
-                print ("guid",guid,"\n")
+                #print ("version",version)
+                #print ("build",build)
+                #print ("guid",guid,"\n")
 
                 if version == 5:  # .kinf2011: identical to K4PC, except the build number gets multiplied
-                    entropy = bytes(0x2df * int(build)) + guid
+                    entropy = str(0x2df * int(build)).encode('utf-8') + guid
                     cud = CryptUnprotectData(entropy,IDString)
-                    print ("entropy",entropy)
-                    print ("cud",cud)
+                    #print ("entropy",entropy)
+                    #print ("cud",cud)
 
                 elif version == 6:  # .kinf2018: identical to K4PC
-                    salt = bytes(0x6d8 * int(build)) + guid
+                    salt = str(0x6d8 * int(build)).encode('utf-8') + guid
                     sp = GetUserName() + b'+@#$%+' + IDString
                     passwd = encode(SHA256(sp), charMap5)
                     key = LibCrypto().keyivgen(passwd, salt, 10000, 0x400)[:32]
 
-                    print ("salt",salt)
-                    print ("sp",sp)
-                    print ("passwd",passwd)
-                    print ("key",key)
+                    #print ("salt",salt)
+                    #print ("sp",sp)
+                    #print ("passwd",passwd)
+                    #print ("key",key)
 
                # loop through the item records until all are processed
                 while len(items) > 0:
@@ -1669,9 +1671,9 @@ elif isosx:
                 pass
         if len(DB)>6:
             # store values used in decryption
-            print("Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString, GetUserName()))
-            DB['IDString'] = IDString
-            DB['UserName'] = GetUserName()
+            print("Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(IDString.decode('utf-8'), GetUserName().decode('utf-8')))
+            DB[b'IDString'] = IDString
+            DB[b'UserName'] = GetUserName()
         else:
             print("Couldn't decrypt file.")
             DB = {}
@@ -1690,7 +1692,7 @@ def kindlekeys(files = []):
         if key:
             # convert all values to hex, just in case.
             for keyname in key:
-                key[keyname]=key[keyname].encode('hex')
+                key[keyname]=key[keyname].hex().encode('utf-8')
             keys.append(key)
     return keys
 
@@ -1701,7 +1703,7 @@ def getkey(outpath, files=[]):
     if len(keys) > 0:
         if not os.path.isdir(outpath):
             outfile = outpath
-            with file(outfile, 'w') as keyfileout:
+            with open(outfile, 'w') as keyfileout:
                 keyfileout.write(json.dumps(keys[0]))
             print("Saved a key to {0}".format(outfile))
         else:
@@ -1712,8 +1714,9 @@ def getkey(outpath, files=[]):
                     outfile = os.path.join(outpath,"kindlekey{0:d}.k4i".format(keycount))
                     if not os.path.exists(outfile):
                         break
-                with file(outfile, 'w') as keyfileout:
-                    keyfileout.write(json.dumps(key))
+                unikey = {k.decode("utf-8"):v.decode("utf-8") for k,v in key.items()}
+                with open(outfile, 'w') as keyfileout:
+                    keyfileout.write(json.dumps(unikey))
                 print("Saved a key to {0}".format(outfile))
         return True
     return False
@@ -1771,27 +1774,27 @@ def cli_main():
 
 def gui_main():
     try:
-        import Tkinter
-        import Tkconstants
-        import tkMessageBox
+        import tkinter
+        import tkinter.constants
+        import tkinter.messagebox
         import traceback
     except:
         return cli_main()
 
-    class ExceptionDialog(Tkinter.Frame):
+    class ExceptionDialog(tkinter.Frame):
         def __init__(self, root, text):
-            Tkinter.Frame.__init__(self, root, border=5)
-            label = Tkinter.Label(self, text="Unexpected error:",
-                                  anchor=Tkconstants.W, justify=Tkconstants.LEFT)
-            label.pack(fill=Tkconstants.X, expand=0)
-            self.text = Tkinter.Text(self)
-            self.text.pack(fill=Tkconstants.BOTH, expand=1)
+            tkinter.Frame.__init__(self, root, border=5)
+            label = tkinter.Label(self, text="Unexpected error:",
+                                  anchor=tkinter.constants.W, justify=tkinter.constants.LEFT)
+            label.pack(fill=tkinter.constants.X, expand=0)
+            self.text = tkinter.Text(self)
+            self.text.pack(fill=tkinter.constants.BOTH, expand=1)
 
-            self.text.insert(Tkconstants.END, text)
+            self.text.insert(tkinter.constants.END, text)
 
 
     argv=unicode_argv()
-    root = Tkinter.Tk()
+    root = tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
     success = False
@@ -1805,24 +1808,23 @@ def gui_main():
                 if not os.path.exists(outfile):
                     break
 
-            with file(outfile, 'w') as keyfileout:
+            with open(outfile, 'w') as keyfileout:
                 keyfileout.write(json.dumps(key))
             success = True
-            tkMessageBox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
+            tkinter.messagebox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
     except DrmException as e:
-        tkMessageBox.showerror(progname, "Error: {0}".format(str(e)))
+        tkinter.messagebox.showerror(progname, "Error: {0}".format(str(e)))
     except Exception:
         root.wm_state('normal')
         root.title(progname)
         text = traceback.format_exc()
-        ExceptionDialog(root, text).pack(fill=Tkconstants.BOTH, expand=1)
+        ExceptionDialog(root, text).pack(fill=tkinter.constants.BOTH, expand=1)
         root.mainloop()
     if not success:
         return 1
     return 0
 
 if __name__ == '__main__':
-    print ("here")
     if len(sys.argv) > 1:
         sys.exit(cli_main())
     sys.exit(gui_main())

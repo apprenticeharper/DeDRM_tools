@@ -9,7 +9,6 @@
 #  5.0  - Fixed potential unicode problem with command line interface
 #  6.0  - Added Python 3 compatibility for calibre 5.0
 
-from __future__ import print_function
 __version__ = '6.0'
 
 import sys
@@ -23,6 +22,9 @@ try:
 except:
     from alfcrypto import Topaz_Cipher
 
+# Wrap a stream so that output gets flushed immediately
+# and also make sure that any unicode strings get
+# encoded using "replace" before writing them.
 class SafeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
@@ -30,10 +32,11 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,bytes):
+        if isinstance(data, str):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -94,7 +97,7 @@ class DrmException(Exception):
 # recursive zip creation support routine
 def zipUpDir(myzip, tdir, localname):
     currentdir = tdir
-    if localname != u"":
+    if localname != "":
         currentdir = os.path.join(currentdir,localname)
     list = os.listdir(currentdir)
     for file in list:

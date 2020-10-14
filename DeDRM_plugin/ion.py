@@ -28,13 +28,7 @@ import os
 import os.path
 import struct
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    try:
-        from StringIO import StringIO
-    except ImportError:
-        from io import StringIO
+from io import BytesIO
 
 from Crypto.Cipher import AES
 from Crypto.Util.py3compat import bchr, bord
@@ -838,7 +832,7 @@ class DrmIonVoucher(object):
         b = aes.decrypt(self.ciphertext)
         b = pkcs7unpad(b, 16)
 
-        self.drmkey = BinaryIonParser(StringIO(b))
+        self.drmkey = BinaryIonParser(BytesIO(b))
         addprottable(self.drmkey)
 
         _assert(self.drmkey.hasnext() and self.drmkey.next() == TID_LIST and self.drmkey.gettypename() == "com.amazon.drm.KeySet@1.0",
@@ -877,7 +871,7 @@ class DrmIonVoucher(object):
             self.envelope.next()
             field = self.envelope.getfieldname()
             if field == "voucher":
-                self.voucher = BinaryIonParser(StringIO(self.envelope.lobvalue()))
+                self.voucher = BinaryIonParser(BytesIO(self.envelope.lobvalue()))
                 addprottable(self.voucher)
                 continue
             elif field != "strategy":

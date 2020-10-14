@@ -324,7 +324,7 @@ def usage(progname):
     print("Get backup.ab file using adb backup com.amazon.kindle for Android 4.0+.")
     print("Otherwise extract AmazonSecureStorage.xml from /data/data/com.amazon.kindle/shared_prefs/AmazonSecureStorage.xml")
     print("Or map_data_storage.db from /data/data/com.amazon.kindle/databases/map_data_storage.db")
-    print(u"")
+    print("")
     print("Usage:")
     print("    {0:s} [-h] [-b <backup.ab>] [<outfile.k4a>]".format(progname))
 

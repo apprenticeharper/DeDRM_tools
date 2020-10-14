@@ -44,10 +44,10 @@ if inCalibre :
     from calibre_plugins.dedrm import flatxml2svg
     from calibre_plugins.dedrm import stylexml2css
 else :
-    import convert2xml
-    import flatxml2html
-    import flatxml2svg
-    import stylexml2css
+    from . import convert2xml
+    from . import flatxml2html
+    from . import flatxml2svg
+    from . import stylexml2css
 
 # global switch
 buildXML = False

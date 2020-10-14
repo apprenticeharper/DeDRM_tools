@@ -66,10 +66,11 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data, str):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -107,15 +108,13 @@ def unicode_argv():
             # Remove Python executable and commands if present
             start = argc.value - len(sys.argv)
             return [argv[i] for i in
-                    xrange(start, argc.value)]
+                    range(start, argc.value)]
         # if we don't have any arguments at all, just pass back script name
         # this should never happen
         return ["epubtest.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding == None:
-            argvencoding = "utf-8"
-        return arg
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 _FILENAME_LEN_OFFSET = 26
 _EXTRA_LEN_OFFSET = 28

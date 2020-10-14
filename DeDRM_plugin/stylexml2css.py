@@ -2,7 +2,7 @@
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 # For use with Topaz Scripts Version 2.6
 
-from __future__ import print_function
+
 import csv
 import sys
 import os
@@ -58,7 +58,7 @@ class DocParser(object):
         else:
             end = min(cnt,end)
         foundat = -1
-        for j in xrange(pos, end):
+        for j in range(pos, end):
             item = docList[j]
             if item.find('=') >= 0:
                 (name, argres) = item.split('=',1)
@@ -116,7 +116,7 @@ class DocParser(object):
         # process each style converting what you can
 
         if debug: print('          ', 'Processing styles.')
-        for j in xrange(stylecnt):
+        for j in range(stylecnt):
             if debug: print('          ', 'Processing style %d' %(j))
             start = styleList[j]
             end = styleList[j+1]

@@ -71,13 +71,14 @@ class SafeUnbuffered:
     def __init__(self, stream):
         self.stream = stream
         self.encoding = stream.encoding
-        if self.encoding is None:
+        if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,bytes):
+        if isinstance(data, str):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -115,10 +116,8 @@ def unicode_argv():
                     range(start, argc.value)]
         return ["ineptpdf.py"]
     else:
-        argvencoding = sys.stdin.encoding
-        if argvencoding is None:
-            argvencoding = "utf-8"
-        return sys.argv
+        argvencoding = sys.stdin.encoding or "utf-8"
+        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 
 class ADEPTError(Exception):
@@ -404,13 +403,7 @@ def _load_crypto():
 ARC4, RSA, AES = _load_crypto()
 
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    try:
-        from StringIO import StringIO
-    except ImportError:
-        from io import StringIO
+from io import BytesIO
 
 
 # Do we generate cross reference streams on output?
@@ -443,11 +436,11 @@ def nunpack(s, default=0):
     if not l:
         return default
     elif l == 1:
-        return s
+        return ord(s)
     elif l == 2:
         return struct.unpack('>H', s)[0]
     elif l == 3:
-        return struct.unpack('>L', b'\x00'+s)[0]
+        return struct.unpack('>L', '\x00'+s)[0]
     elif l == 4:
         return struct.unpack('>L', s)[0]
     else:
@@ -486,7 +479,7 @@ class PSLiteral(PSObject):
         name = []
         for char in self.name:
             if not char.isalnum():
-                char = b'#%02x' % char
+                char = b'#%02x' % ord(char)
             name.append(char)
         return b'/%s' % ''.join(name)
 
@@ -1183,7 +1176,7 @@ class PDFStream(PDFObject):
                 # will get errors if the document is encrypted.
                 data = zlib.decompress(data)
             elif f in LITERALS_LZW_DECODE:
-                data = ''.join(LZWDecoder(StringIO(data)).run())
+                data = ''.join(LZWDecoder(BytesIO(data)).run())
             elif f in LITERALS_ASCII85_DECODE:
                 data = ascii85decode(data)
             elif f == LITERAL_CRYPT:
@@ -1950,7 +1943,7 @@ class PDFParser(PSStackParser):
 class PDFObjStrmParser(PDFParser):
 
     def __init__(self, data, doc):
-        PSStackParser.__init__(self, StringIO(data))
+        PSStackParser.__init__(self, BytesIO(data))
         self.doc = doc
         return
 
@@ -2212,79 +2205,79 @@ def cli_main():
 
 def gui_main():
     try:
-        import Tkinter
-        import Tkconstants
-        import tkFileDialog
-        import tkMessageBox
+        import tkinter
+        import tkinter.constants
+        import tkinter.filedialog
+        import tkinter.messagebox
         import traceback
     except:
         return cli_main()
 
-    class DecryptionDialog(Tkinter.Frame):
+    class DecryptionDialog(tkinter.Frame):
         def __init__(self, root):
-            Tkinter.Frame.__init__(self, root, border=5)
-            self.status = Tkinter.Label(self, text="Select files for decryption")
-            self.status.pack(fill=Tkconstants.X, expand=1)
-            body = Tkinter.Frame(self)
-            body.pack(fill=Tkconstants.X, expand=1)
-            sticky = Tkconstants.E + Tkconstants.W
+            tkinter.Frame.__init__(self, root, border=5)
+            self.status = tkinter.Label(self, text="Select files for decryption")
+            self.status.pack(fill=tkinter.constants.X, expand=1)
+            body = tkinter.Frame(self)
+            body.pack(fill=tkinter.constants.X, expand=1)
+            sticky = tkinter.constants.E + tkinter.constants.W
             body.grid_columnconfigure(1, weight=2)
-            Tkinter.Label(body, text="Key file").grid(row=0)
-            self.keypath = Tkinter.Entry(body, width=30)
+            tkinter.Label(body, text="Key file").grid(row=0)
+            self.keypath = tkinter.Entry(body, width=30)
             self.keypath.grid(row=0, column=1, sticky=sticky)
             if os.path.exists("adeptkey.der"):
                 self.keypath.insert(0, "adeptkey.der")
-            button = Tkinter.Button(body, text="...", command=self.get_keypath)
+            button = tkinter.Button(body, text="...", command=self.get_keypath)
             button.grid(row=0, column=2)
-            Tkinter.Label(body, text="Input file").grid(row=1)
-            self.inpath = Tkinter.Entry(body, width=30)
+            tkinter.Label(body, text="Input file").grid(row=1)
+            self.inpath = tkinter.Entry(body, width=30)
             self.inpath.grid(row=1, column=1, sticky=sticky)
-            button = Tkinter.Button(body, text="...", command=self.get_inpath)
+            button = tkinter.Button(body, text="...", command=self.get_inpath)
             button.grid(row=1, column=2)
-            Tkinter.Label(body, text="Output file").grid(row=2)
-            self.outpath = Tkinter.Entry(body, width=30)
+            tkinter.Label(body, text="Output file").grid(row=2)
+            self.outpath = tkinter.Entry(body, width=30)
             self.outpath.grid(row=2, column=1, sticky=sticky)
-            button = Tkinter.Button(body, text="...", command=self.get_outpath)
+            button = tkinter.Button(body, text="...", command=self.get_outpath)
             button.grid(row=2, column=2)
-            buttons = Tkinter.Frame(self)
+            buttons = tkinter.Frame(self)
             buttons.pack()
-            botton = Tkinter.Button(
+            botton = tkinter.Button(
                 buttons, text="Decrypt", width=10, command=self.decrypt)
-            botton.pack(side=Tkconstants.LEFT)
-            Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
-            button = Tkinter.Button(
+            botton.pack(side=tkinter.constants.LEFT)
+            tkinter.Frame(buttons, width=10).pack(side=tkinter.constants.LEFT)
+            button = tkinter.Button(
                 buttons, text="Quit", width=10, command=self.quit)
-            button.pack(side=Tkconstants.RIGHT)
+            button.pack(side=tkinter.constants.RIGHT)
 
         def get_keypath(self):
-            keypath = tkFileDialog.askopenfilename(
+            keypath = tkinter.filedialog.askopenfilename(
                 parent=None, title="Select Adobe Adept \'.der\' key file",
                 defaultextension=".der",
                 filetypes=[('Adobe Adept DER-encoded files', '.der'),
                            ('All Files', '.*')])
             if keypath:
                 keypath = os.path.normpath(keypath)
-                self.keypath.delete(0, Tkconstants.END)
+                self.keypath.delete(0, tkinter.constants.END)
                 self.keypath.insert(0, keypath)
             return
 
         def get_inpath(self):
-            inpath = tkFileDialog.askopenfilename(
+            inpath = tkinter.filedialog.askopenfilename(
                 parent=None, title="Select ADEPT-encrypted PDF file to decrypt",
                 defaultextension=".pdf", filetypes=[('PDF files', '.pdf')])
             if inpath:
                 inpath = os.path.normpath(inpath)
-                self.inpath.delete(0, Tkconstants.END)
+                self.inpath.delete(0, tkinter.constants.END)
                 self.inpath.insert(0, inpath)
             return
 
         def get_outpath(self):
-            outpath = tkFileDialog.asksaveasfilename(
+            outpath = tkinter.filedialog.asksaveasfilename(
                 parent=None, title="Select unencrypted PDF file to produce",
                 defaultextension=".pdf", filetypes=[('PDF files', '.pdf')])
             if outpath:
                 outpath = os.path.normpath(outpath)
-                self.outpath.delete(0, Tkconstants.END)
+                self.outpath.delete(0, tkinter.constants.END)
                 self.outpath.insert(0, outpath)
             return
 
@@ -2317,10 +2310,10 @@ def gui_main():
                 self.status['text'] = "The was an error decrypting the file."
 
 
-    root = Tkinter.Tk()
+    root = tkinter.Tk()
     if RSA is None:
         root.withdraw()
-        tkMessageBox.showerror(
+        tkinter.messagebox.showerror(
             "INEPT PDF",
             "This script requires OpenSSL or PyCrypto, which must be installed "
             "separately.  Read the top-of-script comment for details.")
@@ -2328,7 +2321,7 @@ def gui_main():
     root.title("Adobe Adept PDF Decrypter v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(370, 0)
-    DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
+    DecryptionDialog(root).pack(fill=tkinter.constants.X, expand=1)
     root.mainloop()
     return 0
 

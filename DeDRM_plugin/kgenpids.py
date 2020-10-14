@@ -52,11 +52,11 @@ def SHA1(message):
 def encode(data, map):
     result = ''
     for char in data:
-        value = char
+        value = ord(char)
         Q = (value ^ 0x80) // len(map)
         R = value % len(map)
-        result += chr(map[Q])
-        result += chr(map[R])
+        result += map[Q]
+        result += map[R]
     return result
 
 # Hash the bytes in data and then encode the digest with the characters in map

@@ -44,10 +44,11 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,bytes):
+        if isinstance(data, str):
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        self.stream.buffer.write(data)
+        self.stream.buffer.flush()
+
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -99,9 +100,9 @@ class IGNOBLEError(Exception):
 
 def fetch_key(email, password):
     # change email and password to utf-8 if unicode
-    if type(email)==bytes:
+    if type(email)==str:
         email = email.encode('utf-8')
-    if type(password)==bytes:
+    if type(password)==str:
         password = password.encode('utf-8')
 
     import random
@@ -163,54 +164,54 @@ def cli_main():
 
 def gui_main():
     try:
-        import Tkinter
-        import tkFileDialog
-        import Tkconstants
-        import tkMessageBox
+        import tkinter
+        import tkinter.filedialog
+        import tkinter.constants
+        import tkinter.messagebox
         import traceback
     except:
         return cli_main()
 
-    class DecryptionDialog(Tkinter.Frame):
+    class DecryptionDialog(tkinter.Frame):
         def __init__(self, root):
-            Tkinter.Frame.__init__(self, root, border=5)
-            self.status = Tkinter.Label(self, text="Enter parameters")
-            self.status.pack(fill=Tkconstants.X, expand=1)
-            body = Tkinter.Frame(self)
-            body.pack(fill=Tkconstants.X, expand=1)
-            sticky = Tkconstants.E + Tkconstants.W
+            tkinter.Frame.__init__(self, root, border=5)
+            self.status = tkinter.Label(self, text="Enter parameters")
+            self.status.pack(fill=tkinter.constants.X, expand=1)
+            body = tkinter.Frame(self)
+            body.pack(fill=tkinter.constants.X, expand=1)
+            sticky = tkinter.constants.E + tkinter.constants.W
             body.grid_columnconfigure(1, weight=2)
-            Tkinter.Label(body, text="Account email address").grid(row=0)
-            self.name = Tkinter.Entry(body, width=40)
+            tkinter.Label(body, text="Account email address").grid(row=0)
+            self.name = tkinter.Entry(body, width=40)
             self.name.grid(row=0, column=1, sticky=sticky)
-            Tkinter.Label(body, text="Account password").grid(row=1)
-            self.ccn = Tkinter.Entry(body, width=40)
+            tkinter.Label(body, text="Account password").grid(row=1)
+            self.ccn = tkinter.Entry(body, width=40)
             self.ccn.grid(row=1, column=1, sticky=sticky)
-            Tkinter.Label(body, text="Output file").grid(row=2)
-            self.keypath = Tkinter.Entry(body, width=40)
+            tkinter.Label(body, text="Output file").grid(row=2)
+            self.keypath = tkinter.Entry(body, width=40)
             self.keypath.grid(row=2, column=1, sticky=sticky)
             self.keypath.insert(2, "bnepubkey.b64")
-            button = Tkinter.Button(body, text="...", command=self.get_keypath)
+            button = tkinter.Button(body, text="...", command=self.get_keypath)
             button.grid(row=2, column=2)
-            buttons = Tkinter.Frame(self)
+            buttons = tkinter.Frame(self)
             buttons.pack()
-            botton = Tkinter.Button(
+            botton = tkinter.Button(
                 buttons, text="Fetch", width=10, command=self.generate)
-            botton.pack(side=Tkconstants.LEFT)
-            Tkinter.Frame(buttons, width=10).pack(side=Tkconstants.LEFT)
-            button = Tkinter.Button(
+            botton.pack(side=tkinter.constants.LEFT)
+            tkinter.Frame(buttons, width=10).pack(side=tkinter.constants.LEFT)
+            button = tkinter.Button(
                 buttons, text="Quit", width=10, command=self.quit)
-            button.pack(side=Tkconstants.RIGHT)
+            button.pack(side=tkinter.constants.RIGHT)
 
         def get_keypath(self):
-            keypath = tkFileDialog.asksaveasfilename(
+            keypath = tkinter.filedialog.asksaveasfilename(
                 parent=None, title="Select B&N ePub key file to produce",
                 defaultextension=".b64",
                 filetypes=[('base64-encoded files', '.b64'),
                            ('All Files', '.*')])
             if keypath:
                 keypath = os.path.normpath(keypath)
-                self.keypath.delete(0, Tkconstants.END)
+                self.keypath.delete(0, tkinter.constants.END)
                 self.keypath.insert(0, keypath)
             return
 
@@ -239,11 +240,11 @@ def gui_main():
             else:
                 self.status['text'] = "Keyfile fetch failed."
 
-    root = Tkinter.Tk()
+    root = tkinter.Tk()
     root.title("Barnes & Noble ePub Keyfile Fetch v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(300, 0)
-    DecryptionDialog(root).pack(fill=Tkconstants.X, expand=1)
+    DecryptionDialog(root).pack(fill=tkinter.constants.X, expand=1)
     root.mainloop()
     return 0
 
