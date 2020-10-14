@@ -36,6 +36,7 @@ Retrieve Kindle for PC/Mac user key.
 """
 
 import sys, os, re
+import codecs
 from struct import pack, unpack, unpack_from
 import json
 import getopt
@@ -156,25 +157,27 @@ def primes(n):
 # Encode the bytes in data with the characters in map
 # data and map should be byte arrays
 def encode(data, map):
-    result = b''
+    result = ''
     for char in data:
         value = char
         Q = (value ^ 0x80) // len(map)
         R = value % len(map)
-        result += bytes([map[Q]])
-        result += bytes([map[R]])
-    return result
+        result += map[Q]
+        result += map[R]
+    return result.encode('utf-8')
 
 # Hash the bytes in data and then encode the digest with the characters in map
 def encodeHash(data,map):
-    return encode(MD5(data),map)
+    h = MD5(data)
+    return encode(h,map)
 
 # Decode the string in data with the characters in map. Returns the decoded bytes
 def decode(data,map):
+    str_data = data.decode()
     result = b''
-    for i in range (0,len(data)-1,2):
-        high = map.find(data[i])
-        low = map.find(data[i+1])
+    for i in range (0,len(str_data)-1,2):
+        high = map.find(str_data[i])
+        low = map.find(str_data[i+1])
         if (high == -1) or (low == -1) :
             break
         value = (((high * len(map)) ^ 0x80) & 0xFF) + low
@@ -187,7 +190,8 @@ if iswindows:
         create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
         string_at, Structure, c_void_p, cast
 
-    import _winreg as winreg
+    # import _winreg as winreg
+    import winreg
     MAX_PATH = 255
     kernel32 = windll.kernel32
     advapi32 = windll.advapi32
@@ -243,8 +247,8 @@ if iswindows:
             """ XOR two strings """
             x = []
             for i in range(min(len(a),len(b))):
-                x.append( chr(ord(a[i])^ord(b[i])))
-            return ''.join(x)
+                x.append( a[i] ^ b[i])
+            return bytes(x)
 
         """
             Base 'BlockCipher' and Pad classes for cipher instances.
@@ -263,10 +267,10 @@ if iswindows:
                 self.resetDecrypt()
             def resetEncrypt(self):
                 self.encryptBlockCount = 0
-                self.bytesToEncrypt = ''
+                self.bytesToEncrypt = b''
             def resetDecrypt(self):
                 self.decryptBlockCount = 0
-                self.bytesToDecrypt = ''
+                self.bytesToDecrypt = b''
 
             def encrypt(self, plainText, more = None):
                 """ Encrypt a string and return a binary string """
@@ -306,7 +310,7 @@ if iswindows:
                     numBlocks -= 1
                     numExtraBytes = self.blockSize
 
-                plainText = ''
+                plainText = b''
                 for i in range(numBlocks):
                     bStart = i*self.blockSize
                     ptBlock = self.decryptBlock(self.bytesToDecrypt[bStart : bStart+self.blockSize])
@@ -371,11 +375,11 @@ if iswindows:
                 self.blockSize  = blockSize  # blockSize is in bytes
                 self.padding    = padding    # change default to noPadding() to get normal ECB behavior
 
-                assert( keySize%4==0 and NrTable[4].has_key(keySize/4)),'key size must be 16,20,24,29 or 32 bytes'
-                assert( blockSize%4==0 and NrTable.has_key(blockSize/4)), 'block size must be 16,20,24,29 or 32 bytes'
+                assert( keySize%4==0 and (keySize//4) in NrTable[4]),'key size must be 16,20,24,29 or 32 bytes'
+                assert( blockSize%4==0 and (blockSize//4) in NrTable), 'block size must be 16,20,24,29 or 32 bytes'
 
-                self.Nb = self.blockSize/4          # Nb is number of columns of 32 bit words
-                self.Nk = keySize/4                 # Nk is the key length in 32-bit words
+                self.Nb = self.blockSize//4          # Nb is number of columns of 32 bit words
+                self.Nk = keySize//4                 # Nk is the key length in 32-bit words
                 self.Nr = NrTable[self.Nb][self.Nk] # The number of rounds (Nr) is a function of
                                                     # the block (Nb) and key (Nk) sizes.
                 if key != None:
@@ -419,15 +423,15 @@ if iswindows:
             def _toBlock(self, bs):
                 """ Convert binary string to array of bytes, state[col][row]"""
                 assert ( len(bs) == 4*self.Nb ), 'Rijndarl blocks must be of size blockSize'
-                return [[ord(bs[4*i]),ord(bs[4*i+1]),ord(bs[4*i+2]),ord(bs[4*i+3])] for i in range(self.Nb)]
+                return [[bs[4*i],bs[4*i+1],bs[4*i+2],bs[4*i+3]] for i in range(self.Nb)]
 
             def _toBString(self, block):
                 """ Convert block (array of bytes) to binary string """
                 l = []
                 for col in block:
                     for rowElement in col:
-                        l.append(chr(rowElement))
-                return ''.join(l)
+                        l.append(rowElement)
+                return bytes(l)
         #-------------------------------------
         """    Number of rounds Nr = NrTable[Nb][Nk]
 
@@ -442,14 +446,14 @@ if iswindows:
         def keyExpansion(algInstance, keyString):
             """ Expand a string of size keySize into a larger array """
             Nk, Nb, Nr = algInstance.Nk, algInstance.Nb, algInstance.Nr # for readability
-            key = [ord(byte) for byte in keyString]  # convert string to list
+            key = [byte for byte in keyString]  # convert string to list
             w = [[key[4*i],key[4*i+1],key[4*i+2],key[4*i+3]] for i in range(Nk)]
             for i in range(Nk,Nb*(Nr+1)):
                 temp = w[i-1]        # a four byte column
                 if (i%Nk) == 0 :
                     temp     = temp[1:]+[temp[0]]  # RotWord(temp)
                     temp     = [ Sbox[byte] for byte in temp ]
-                    temp[0] ^= Rcon[i/Nk]
+                    temp[0] ^= Rcon[i//Nk]
                 elif Nk > 6 and  i%Nk == 4 :
                     temp     = [ Sbox[byte] for byte in temp ]  # SubWord(temp)
                 w.append( [ w[i-Nk][byte]^temp[byte] for byte in range(4) ] )
@@ -741,7 +745,7 @@ if iswindows:
                 if self.decryptBlockCount == 0:   # first call, process IV
                     if self.iv == None:    # auto decrypt IV?
                         self.prior_CT_block = encryptedBlock
-                        return ''
+                        return b''
                     else:
                         assert(len(self.iv)==self.blockSize),"Bad IV size on CBC decryption"
                         self.prior_CT_block = self.iv
@@ -793,6 +797,11 @@ if iswindows:
                     if len(a) != len(b):
                         raise Exception("xorstr(): lengths differ")
                     return ''.join((chr(ord(x)^ord(y)) for x, y in zip(a, b)))
+                
+                def xorbytes( a, b ):
+                    if len(a) != len(b):
+                        raise Exception("xorstr(): lengths differ")
+                    return bytes([x ^ y for x, y in zip(a, b)])
 
                 def prf( h, data ):
                     hm = h.copy()
@@ -804,24 +813,24 @@ if iswindows:
                     T = U
                     for i in range(2, itercount+1):
                         U = prf( h, U )
-                        T = xorstr( T, U )
+                        T = xorbytes( T, U )
                     return T
 
                 sha = hashlib.sha1
                 digest_size = sha().digest_size
                 # l - number of output blocks to produce
-                l = keylen / digest_size
+                l = keylen // digest_size
                 if keylen % digest_size != 0:
                     l += 1
                 h = hmac.new( passwd, None, sha )
-                T = ""
+                T = b""
                 for i in range(1, l+1):
                     T += pbkdf2_F( h, salt, iter, i )
                 return T[0: keylen]
 
     def UnprotectHeaderData(encryptedData):
-        passwdData = 'header_key_data'
-        salt = 'HEADER.2011'
+        passwdData = b'header_key_data'
+        salt = b'HEADER.2011'
         iter = 0x80
         keylen = 0x100
         key_iv = KeyIVGen().pbkdf2(passwdData, salt, iter, keylen)
@@ -834,12 +843,12 @@ if iswindows:
 
     # Various character maps used to decrypt kindle info values.
     # Probably supposed to act as obfuscation
-    charMap2 = b"AaZzB0bYyCc1XxDdW2wEeVv3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_"
-    charMap5 = b"AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
+    charMap2 = "AaZzB0bYyCc1XxDdW2wEeVv3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_"
+    charMap5 = "AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
     # New maps in K4PC 1.9.0
-    testMap1 = b"n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
-    testMap6 = b"9YzAb0Cd1Ef2n5Pr6St7Uvh3Jk4M8WxG"
-    testMap8 = b"YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD"
+    testMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
+    testMap6 = "9YzAb0Cd1Ef2n5Pr6St7Uvh3Jk4M8WxG"
+    testMap8 = "YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD"
 
     # interface with Windows OS Routines
     class DataBlob(Structure):
@@ -927,7 +936,7 @@ if iswindows:
             if not _CryptUnprotectData(byref(indata), None, byref(entropy),
                                        None, None, flags, byref(outdata)):
                 # raise DrmException("Failed to Unprotect Data")
-                return 'failed'
+                return b'failed'
             return string_at(outdata.pbData, outdata.cbData)
         return CryptUnprotectData
     CryptUnprotectData = CryptUnprotectData()
@@ -979,20 +988,21 @@ if iswindows:
             print ('Could not find the folder in which to look for kinfoFiles.')
         else:
             # Probably not the best. To Fix (shouldn't ignore in encoding) or use utf-8
-            print("searching for kinfoFiles in " + path.encode('ascii', 'ignore'))
+            # print("searching for kinfoFiles in " + path.encode('ascii', 'ignore'))
+            print("searching for kinfoFiles in " + path)
 
             # look for (K4PC 1.25.1 and later) .kinf2018 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2018'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 1.25+ kinf2018 file: ' + kinfopath.encode('ascii','ignore'))
+                print('Found K4PC 1.25+ kinf2018 file: ' + kinfopath)
                 kInfoFiles.append(kinfopath)
 
             # look for (K4PC 1.9.0 and later) .kinf2011 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
             if os.path.isfile(kinfopath):
                 found = True
-                print('Found K4PC 1.9+ kinf2011 file: ' + kinfopath.encode('ascii','ignore'))
+                print('Found K4PC 1.9+ kinf2011 file: ' + kinfopath)
                 kInfoFiles.append(kinfopath)
 
             # look for (K4PC 1.6.0 and later) rainier.2.1.1.kinf file
@@ -1048,6 +1058,8 @@ if iswindows:
             b'proxy.http.password',\
             b'proxy.http.username'
             ]
+        namehashmap = {encodeHash(n,testMap8):n for n in names}
+        # print(namehashmap)
         DB = {}
         with open(kInfoFile, 'rb') as infoReader:
             data = infoReader.read()
@@ -1063,7 +1075,7 @@ if iswindows:
         cleartext = UnprotectHeaderData(encryptedValue)
         #print "header  cleartext:",cleartext
         # now extract the pieces that form the added entropy
-        pattern = re.compile(r'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
+        pattern = re.compile(br'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
         for m in re.finditer(pattern, cleartext):
             version = int(m.group(1))
             build = m.group(2)
@@ -1102,13 +1114,10 @@ if iswindows:
                 edlst.append(item)
 
             # key names now use the new testMap8 encoding
-            keyname = "unknown"
-            for name in names:
-                if encodeHash(name,testMap8) == keyhash:
-                    keyname = name
-                    #print "keyname found from hash:",keyname
-                    break
-            if keyname == "unknown":
+            if keyhash in namehashmap:
+                keyname=namehashmap[keyhash]
+                #print "keyname found from hash:",keyname
+            else:
                 keyname = keyhash
                 #print "keyname not found, hash is:",keyname
 
@@ -1125,7 +1134,7 @@ if iswindows:
             # move first offsets chars to end to align for decode by testMap8
             # by moving noffset chars from the start of the
             # string to the end of the string
-            encdata = "".join(edlst)
+            encdata = b"".join(edlst)
             #print "encrypted data:",encdata
             contlen = len(encdata)
             noffset = contlen - primes(int(contlen/3))[-1]
@@ -1164,9 +1173,9 @@ if iswindows:
 
         if len(DB)>6:
             # store values used in decryption
-            DB[b'IDString'] = GetIDString()
+            DB[b'IDString'] = GetIDString().encode('utf-8')
             DB[b'UserName'] = GetUserName()
-            print("Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().encode('hex')))
+            print("Decrypted key file using IDString '{0:s}' and UserName '{1:s}'".format(GetIDString(), GetUserName().decode('utf-8')))
         else:
             print("Couldn't decrypt file.")
             DB = {}
@@ -1550,7 +1559,7 @@ elif isosx:
                 #print ("cleartext: ",cleartext)
 
                 # now extract the pieces in the same way
-                pattern = re.compile(rb'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
+                pattern = re.compile(br'''\[Version:(\d+)\]\[Build:(\d+)\]\[Cksum:([^\]]+)\]\[Guid:([\{\}a-z0-9\-]+)\]''', re.IGNORECASE)
                 for m in re.finditer(pattern, cleartext):
                     version = int(m.group(1))
                     build = m.group(2)
@@ -1691,9 +1700,11 @@ def kindlekeys(files = []):
         key = getDBfromFile(file)
         if key:
             # convert all values to hex, just in case.
-            for keyname in key:
-                key[keyname]=key[keyname].hex().encode('utf-8')
-            keys.append(key)
+            n_key = {}
+            for k,v in key.items():
+                n_key[k.decode()]=codecs.encode(v, 'hex_codec').decode()
+            # key = {k.decode():v.decode() for k,v in key.items()}
+            keys.append(n_key)
     return keys
 
 # interface for Python DeDRM
@@ -1714,9 +1725,8 @@ def getkey(outpath, files=[]):
                     outfile = os.path.join(outpath,"kindlekey{0:d}.k4i".format(keycount))
                     if not os.path.exists(outfile):
                         break
-                unikey = {k.decode("utf-8"):v.decode("utf-8") for k,v in key.items()}
                 with open(outfile, 'w') as keyfileout:
-                    keyfileout.write(json.dumps(unikey))
+                    keyfileout.write(json.dumps(key))
                 print("Saved a key to {0}".format(outfile))
         return True
     return False
