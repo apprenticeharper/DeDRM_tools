@@ -1,6 +1,11 @@
 # DeDRM_tools
 DeDRM tools for ebooks
 
+# calibre 5.0
+
+Yes, we know that the plugin doesn't work with calibre 5.0. It will eventually, but there's a lot of code to be translated that does complicated stuff with bits and bytes that must be converted by hand. It'll take a while.
+
+
 This is a repository of all the scripts and other tools for removing DRM from ebooks that I could find, committed in date order as best as I could manage. (Except for the Requiem tools for Apple's iBooks, and Convert LIT for Microsoft's .lit ebooks.)
 
 Mostly it tracks the tools released by Apprentice Alf, athough it also includes the individual tools and their histories from before Alf had a blog.
