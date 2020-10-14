@@ -19,19 +19,6 @@ OBOK_SRC_DIR = 'Obok_plugin'
 OBOK_README = 'obok_plugin_ReadMe.txt'
 RELEASE_DIR = 'release'
 
-def make_calibre_plugin():
-
-    shutil.make_archive(core_dir, 'zip', core_dir)
-    shutil.rmtree(core_dir)
-
-
-def make_obok_plugin():
-    obok_plugin_dir = os.path.join(SHELLS_BASE, 'Obok_calibre_plugin')
-    core_dir = os.path.join(obok_plugin_dir, 'obok_plugin')
-
-    shutil.copytree(OBOK_SRC_DIR, core_dir)
-    shutil.make_archive(core_dir, 'zip')
-    shutil.rmtree(core_dir)
 
 def make_release(version):
     try:
