@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 __license__ = 'GPL v3'
-__version__ = "1.00"
+__version__ = "1.0"
 
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
@@ -73,7 +73,7 @@ __version__ = "1.00"
 #  0.40 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  0.41 - Fixed potential unicode problem in command line calls
 #  0.42 - Added GPL v3 licence. updated/removed some print statements
-#  1.00 - Python 3 compatibility for calibre 5.0
+#  1.0  - Python 3 compatibility for calibre 5.0
 
 import sys
 import os
@@ -330,7 +330,7 @@ class MobiBook:
         }
         title = ''
         codec = 'windows-1252'
-        if self.magic == 'BOOKMOBI':
+        if self.magic == b'BOOKMOBI':
             if 503 in self.meta_array:
                 title = self.meta_array[503]
             else:

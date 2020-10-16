@@ -173,7 +173,7 @@ def decryptRecord(data,PID):
 def decryptDkeyRecord(data,PID):
     record = decryptRecord(data,PID)
     fields = unpack('3sB8sB8s3s',record)
-    if fields[0] != 'PID' or fields[5] != 'pid' :
+    if fields[0] != b'PID' or fields[5] != b'pid' :
         raise DrmException("Didn't find PID magic numbers in record")
     elif fields[1] != 8 or fields[3] != 8 :
         raise DrmException("Record didn't contain correct length fields")
@@ -183,11 +183,11 @@ def decryptDkeyRecord(data,PID):
 
 # Decrypt all dkey records (contain the book PID)
 def decryptDkeyRecords(data,PID):
-    nbKeyRecords = ord(data[0])
+    nbKeyRecords = data[0]
     records = []
     data = data[1:]
     for i in range (0,nbKeyRecords):
-        length = ord(data[0])
+        length = data[0]
         try:
             key = decryptDkeyRecord(data[1:length+1],PID)
             records.append(key)
@@ -209,7 +209,7 @@ class TopazBook:
         self.bookMetadata = {}
         self.bookKey = None
         magic = unpack('4s',self.fo.read(4))[0]
-        if magic != 'TPZ0':
+        if magic != b'TPZ0':
             raise DrmException("Parse Error : Invalid Header, not a Topaz file")
         self.parseTopazHeaders()
         self.parseMetadata()
@@ -244,9 +244,9 @@ class TopazBook:
 
     def parseMetadata(self):
         # Parse the metadata record from the book payload and return a list of [key,values]
-        self.fo.seek(self.bookPayloadOffset + self.bookHeaderRecords['metadata'][0][0])
+        self.fo.seek(self.bookPayloadOffset + self.bookHeaderRecords[b'metadata'][0][0])
         tag = bookReadString(self.fo)
-        if tag != 'metadata' :
+        if tag != b'metadata' :
             raise DrmException("Parse Error : Record Names Don't Match")
         flags = ord(self.fo.read(1))
         nbRecords = ord(self.fo.read(1))
@@ -260,18 +260,18 @@ class TopazBook:
         return self.bookMetadata
 
     def getPIDMetaInfo(self):
-        keysRecord = self.bookMetadata.get('keys','')
-        keysRecordRecord = ''
-        if keysRecord != '':
-            keylst = keysRecord.split(',')
+        keysRecord = self.bookMetadata.get(b'keys',b'')
+        keysRecordRecord = b''
+        if keysRecord != b'':
+            keylst = keysRecord.split(b',')
             for keyval in keylst:
-                keysRecordRecord += self.bookMetadata.get(keyval,'')
+                keysRecordRecord += self.bookMetadata.get(keyval,b'')
         return keysRecord, keysRecordRecord
 
     def getBookTitle(self):
-        title = ''
-        if 'Title' in self.bookMetadata:
-            title = self.bookMetadata['Title']
+        title = b''
+        if b'Title' in self.bookMetadata:
+            title = self.bookMetadata[b'Title']
         return title.decode('utf-8')
 
     def setBookKey(self, key):
@@ -323,7 +323,7 @@ class TopazBook:
         raw = 0
         fixedimage=True
         try:
-            keydata = self.getBookPayloadRecord('dkey', 0)
+            keydata = self.getBookPayloadRecord(b'dkey', 0)
         except DrmException as e:
             print("no dkey record found, book may not be encrypted")
             print("attempting to extrct files without a book key")
@@ -354,7 +354,7 @@ class TopazBook:
                 pass
             else:
                 bookKey = bookKeys[0]
-                print("Book Key Found! ({0})".format(bookKey.encode('hex')))
+                print("Book Key Found! ({0})".format(bookKey.hex()))
                 break
 
         if not bookKey:
@@ -396,26 +396,26 @@ class TopazBook:
         outdir = self.outdir
         for headerRecord in self.bookHeaderRecords:
             name = headerRecord
-            if name != 'dkey':
+            if name != b'dkey':
                 ext = ".dat"
-                if name == 'img': ext = ".jpg"
-                if name == 'color' : ext = ".jpg"
-                print("Processing Section: {0}\n. . .".format(name), end=' ')
+                if name == b'img': ext = ".jpg"
+                if name == b'color' : ext = ".jpg"
+                print("Processing Section: {0}\n. . .".format(name.decode('utf-8')), end=' ')
                 for index in range (0,len(self.bookHeaderRecords[name])) :
-                    fname = "{0}{1:04d}{2}".format(name,index,ext)
+                    fname = "{0}{1:04d}{2}".format(name.decode('utf-8'),index,ext)
                     destdir = outdir
-                    if name == 'img':
+                    if name == b'img':
                         destdir =  os.path.join(outdir,"img")
-                    if name == 'color':
+                    if name == b'color':
                         destdir =  os.path.join(outdir,"color_img")
-                    if name == 'page':
+                    if name == b'page':
                         destdir =  os.path.join(outdir,"page")
-                    if name == 'glyphs':
+                    if name == b'glyphs':
                         destdir =  os.path.join(outdir,"glyphs")
                     outputFile = os.path.join(destdir,fname)
                     print(".", end=' ')
                     record = self.getBookPayloadRecord(name,index)
-                    if record != '':
+                    if record != b'':
                         open(outputFile, 'wb').write(record)
                 print(" ")
 

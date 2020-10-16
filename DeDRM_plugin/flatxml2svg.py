@@ -12,7 +12,7 @@ from struct import unpack
 class PParser(object):
     def __init__(self, gd, flatxml, meta_array):
         self.gd = gd
-        self.flatdoc = flatxml.split('\n')
+        self.flatdoc = flatxml.split(b'\n')
         self.docSize = len(self.flatdoc)
         self.temp = []
 
@@ -58,11 +58,11 @@ class PParser(object):
     def lineinDoc(self, pos) :
         if (pos >= 0) and (pos < self.docSize) :
             item = self.flatdoc[pos]
-            if item.find('=') >= 0:
-                (name, argres) = item.split('=',1)
+            if item.find(b'=') >= 0:
+                (name, argres) = item.split(b'=',1)
             else :
                 name = item
-                argres = ''
+                argres = b''
         return name, argres
 
     # find tag in doc if within pos to end inclusive
@@ -75,11 +75,13 @@ class PParser(object):
         foundat = -1
         for j in range(pos, end):
             item = self.flatdoc[j]
-            if item.find('=') >= 0:
-                (name, argres) = item.split('=',1)
+            if item.find(b'=') >= 0:
+                (name, argres) = item.split(b'=',1)
             else :
                 name = item
-                argres = ''
+                argres = b''
+            if (isinstance(tagpath,str)):
+                tagpath = tagpath.encode('utf-8')
             if name.endswith(tagpath) :
                 result = argres
                 foundat = j
@@ -103,9 +105,9 @@ class PParser(object):
         cnt = len(self.flatdoc)
         for j in range(cnt):
             item = self.flatdoc[j]
-            if item.find('=') >= 0:
-                (name, argt) = item.split('=')
-                argres = argt.split('|')
+            if item.find(b'=') >= 0:
+                (name, argt) = item.split(b'=')
+                argres = argt.split(b'|')
             else:
                 name = item
                 argres = []
@@ -120,15 +122,17 @@ class PParser(object):
     def getDataatPos(self, path, pos):
         result = None
         item = self.flatdoc[pos]
-        if item.find('=') >= 0:
-            (name, argt) = item.split('=')
-            argres = argt.split('|')
+        if item.find(b'=') >= 0:
+            (name, argt) = item.split(b'=')
+            argres = argt.split(b'|')
         else:
             name = item
             argres = []
         if (len(argres) > 0) :
             for j in range(0,len(argres)):
                 argres[j] = int(argres[j])
+        if (isinstance(path,str)):
+            path = path.encode('utf-8')
         if (name.endswith(path)):
             result = argres
         return result
@@ -138,12 +142,14 @@ class PParser(object):
         cnt = len(self.temp)
         for j in range(cnt):
             item = self.temp[j]
-            if item.find('=') >= 0:
-                (name, argt) = item.split('=')
-                argres = argt.split('|')
+            if item.find(b'=') >= 0:
+                (name, argt) = item.split(b'=')
+                argres = argt.split(b'|')
             else:
                 name = item
                 argres = []
+            if (isinstance(path,str)):
+                path = path.encode('utf-8')
             if (name.endswith(path)):
                 result = argres
                 self.temp.pop(j)

@@ -56,7 +56,7 @@ def readEncodedNumber(file):
             c = file.read(1)
             if (len(c) == 0):
                 return None
-            data = ord(c)
+            data = c[0]
             datax = (datax <<7) + (data & 0x7F)
         data = datax
 
@@ -188,232 +188,232 @@ class PageParser(object):
     # tag : (number of arguments, argument type, subtags present, special case of subtags presents when escaped)
 
     token_tags = {
-        'x'            : (1, 'scalar_number', 0, 0),
-        'y'            : (1, 'scalar_number', 0, 0),
-        'h'            : (1, 'scalar_number', 0, 0),
-        'w'            : (1, 'scalar_number', 0, 0),
-        'firstWord'    : (1, 'scalar_number', 0, 0),
-        'lastWord'     : (1, 'scalar_number', 0, 0),
-        'rootID'       : (1, 'scalar_number', 0, 0),
-        'stemID'       : (1, 'scalar_number', 0, 0),
-        'type'         : (1, 'scalar_text', 0, 0),
+        b'x'            : (1, 'scalar_number', 0, 0),
+        b'y'            : (1, 'scalar_number', 0, 0),
+        b'h'            : (1, 'scalar_number', 0, 0),
+        b'w'            : (1, 'scalar_number', 0, 0),
+        b'firstWord'    : (1, 'scalar_number', 0, 0),
+        b'lastWord'     : (1, 'scalar_number', 0, 0),
+        b'rootID'       : (1, 'scalar_number', 0, 0),
+        b'stemID'       : (1, 'scalar_number', 0, 0),
+        b'type'         : (1, 'scalar_text', 0, 0),
 
-        'info'            : (0, 'number', 1, 0),
+        b'info'            : (0, 'number', 1, 0),
 
-        'info.word'            : (0, 'number', 1, 1),
-        'info.word.ocrText'    : (1, 'text', 0, 0),
-        'info.word.firstGlyph' : (1, 'raw', 0, 0),
-        'info.word.lastGlyph'  : (1, 'raw', 0, 0),
-        'info.word.bl'         : (1, 'raw', 0, 0),
-        'info.word.link_id'    : (1, 'number', 0, 0),
+        b'info.word'            : (0, 'number', 1, 1),
+        b'info.word.ocrText'    : (1, 'text', 0, 0),
+        b'info.word.firstGlyph' : (1, 'raw', 0, 0),
+        b'info.word.lastGlyph'  : (1, 'raw', 0, 0),
+        b'info.word.bl'         : (1, 'raw', 0, 0),
+        b'info.word.link_id'    : (1, 'number', 0, 0),
 
-        'glyph'           : (0, 'number', 1, 1),
-        'glyph.x'         : (1, 'number', 0, 0),
-        'glyph.y'         : (1, 'number', 0, 0),
-        'glyph.glyphID'   : (1, 'number', 0, 0),
+        b'glyph'           : (0, 'number', 1, 1),
+        b'glyph.x'         : (1, 'number', 0, 0),
+        b'glyph.y'         : (1, 'number', 0, 0),
+        b'glyph.glyphID'   : (1, 'number', 0, 0),
 
-        'dehyphen'          : (0, 'number', 1, 1),
-        'dehyphen.rootID'   : (1, 'number', 0, 0),
-        'dehyphen.stemID'   : (1, 'number', 0, 0),
-        'dehyphen.stemPage' : (1, 'number', 0, 0),
-        'dehyphen.sh'       : (1, 'number', 0, 0),
+        b'dehyphen'          : (0, 'number', 1, 1),
+        b'dehyphen.rootID'   : (1, 'number', 0, 0),
+        b'dehyphen.stemID'   : (1, 'number', 0, 0),
+        b'dehyphen.stemPage' : (1, 'number', 0, 0),
+        b'dehyphen.sh'       : (1, 'number', 0, 0),
 
-        'links'        : (0, 'number', 1, 1),
-        'links.page'   : (1, 'number', 0, 0),
-        'links.rel'    : (1, 'number', 0, 0),
-        'links.row'    : (1, 'number', 0, 0),
-        'links.title'  : (1, 'text', 0, 0),
-        'links.href'   : (1, 'text', 0, 0),
-        'links.type'   : (1, 'text', 0, 0),
-        'links.id'     : (1, 'number', 0, 0),
+        b'links'        : (0, 'number', 1, 1),
+        b'links.page'   : (1, 'number', 0, 0),
+        b'links.rel'    : (1, 'number', 0, 0),
+        b'links.row'    : (1, 'number', 0, 0),
+        b'links.title'  : (1, 'text', 0, 0),
+        b'links.href'   : (1, 'text', 0, 0),
+        b'links.type'   : (1, 'text', 0, 0),
+        b'links.id'     : (1, 'number', 0, 0),
 
-        'paraCont'          : (0, 'number', 1, 1),
-        'paraCont.rootID'   : (1, 'number', 0, 0),
-        'paraCont.stemID'   : (1, 'number', 0, 0),
-        'paraCont.stemPage' : (1, 'number', 0, 0),
+        b'paraCont'          : (0, 'number', 1, 1),
+        b'paraCont.rootID'   : (1, 'number', 0, 0),
+        b'paraCont.stemID'   : (1, 'number', 0, 0),
+        b'paraCont.stemPage' : (1, 'number', 0, 0),
 
-        'paraStems'        : (0, 'number', 1, 1),
-        'paraStems.stemID' : (1, 'number', 0, 0),
+        b'paraStems'        : (0, 'number', 1, 1),
+        b'paraStems.stemID' : (1, 'number', 0, 0),
 
-        'wordStems'          : (0, 'number', 1, 1),
-        'wordStems.stemID'   : (1, 'number', 0, 0),
+        b'wordStems'          : (0, 'number', 1, 1),
+        b'wordStems.stemID'   : (1, 'number', 0, 0),
 
-        'empty'          : (1, 'snippets', 1, 0),
+        b'empty'          : (1, 'snippets', 1, 0),
 
-        'page'           : (1, 'snippets', 1, 0),
-        'page.class'     : (1, 'scalar_text', 0, 0),
-        'page.pageid'    : (1, 'scalar_text', 0, 0),
-        'page.pagelabel' : (1, 'scalar_text', 0, 0),
-        'page.type'      : (1, 'scalar_text', 0, 0),
-        'page.h'         : (1, 'scalar_number', 0, 0),
-        'page.w'         : (1, 'scalar_number', 0, 0),
-        'page.startID' : (1, 'scalar_number', 0, 0),
+        b'page'           : (1, 'snippets', 1, 0),
+        b'page.class'     : (1, 'scalar_text', 0, 0),
+        b'page.pageid'    : (1, 'scalar_text', 0, 0),
+        b'page.pagelabel' : (1, 'scalar_text', 0, 0),
+        b'page.type'      : (1, 'scalar_text', 0, 0),
+        b'page.h'         : (1, 'scalar_number', 0, 0),
+        b'page.w'         : (1, 'scalar_number', 0, 0),
+        b'page.startID' : (1, 'scalar_number', 0, 0),
 
-        'group'           : (1, 'snippets', 1, 0),
-        'group.class'     : (1, 'scalar_text', 0, 0),
-        'group.type'      : (1, 'scalar_text', 0, 0),
-        'group._tag'      : (1, 'scalar_text', 0, 0),
-        'group.orientation': (1, 'scalar_text', 0, 0),
+        b'group'           : (1, 'snippets', 1, 0),
+        b'group.class'     : (1, 'scalar_text', 0, 0),
+        b'group.type'      : (1, 'scalar_text', 0, 0),
+        b'group._tag'      : (1, 'scalar_text', 0, 0),
+        b'group.orientation': (1, 'scalar_text', 0, 0),
 
-        'region'           : (1, 'snippets', 1, 0),
-        'region.class'     : (1, 'scalar_text', 0, 0),
-        'region.type'      : (1, 'scalar_text', 0, 0),
-        'region.x'         : (1, 'scalar_number', 0, 0),
-        'region.y'         : (1, 'scalar_number', 0, 0),
-        'region.h'         : (1, 'scalar_number', 0, 0),
-        'region.w'         : (1, 'scalar_number', 0, 0),
-        'region.orientation' : (1, 'scalar_text', 0, 0),
+        b'region'           : (1, 'snippets', 1, 0),
+        b'region.class'     : (1, 'scalar_text', 0, 0),
+        b'region.type'      : (1, 'scalar_text', 0, 0),
+        b'region.x'         : (1, 'scalar_number', 0, 0),
+        b'region.y'         : (1, 'scalar_number', 0, 0),
+        b'region.h'         : (1, 'scalar_number', 0, 0),
+        b'region.w'         : (1, 'scalar_number', 0, 0),
+        b'region.orientation' : (1, 'scalar_text', 0, 0),
 
-        'empty_text_region' : (1, 'snippets', 1, 0),
+        b'empty_text_region' : (1, 'snippets', 1, 0),
 
-        'img'                   : (1, 'snippets', 1, 0),
-        'img.x'                 : (1, 'scalar_number', 0, 0),
-        'img.y'                 : (1, 'scalar_number', 0, 0),
-        'img.h'                 : (1, 'scalar_number', 0, 0),
-        'img.w'                 : (1, 'scalar_number', 0, 0),
-        'img.src'               : (1, 'scalar_number', 0, 0),
-        'img.color_src'         : (1, 'scalar_number', 0, 0),
-        'img.gridSize'          : (1, 'scalar_number', 0, 0),
-        'img.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
-        'img.gridTopCenter'     : (1, 'scalar_number', 0, 0),
-        'img.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
-        'img.gridEndCenter'     : (1, 'scalar_number', 0, 0),
-        'img.image_type'        : (1, 'scalar_number', 0, 0),
+        b'img'                   : (1, 'snippets', 1, 0),
+        b'img.x'                 : (1, 'scalar_number', 0, 0),
+        b'img.y'                 : (1, 'scalar_number', 0, 0),
+        b'img.h'                 : (1, 'scalar_number', 0, 0),
+        b'img.w'                 : (1, 'scalar_number', 0, 0),
+        b'img.src'               : (1, 'scalar_number', 0, 0),
+        b'img.color_src'         : (1, 'scalar_number', 0, 0),
+        b'img.gridSize'          : (1, 'scalar_number', 0, 0),
+        b'img.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        b'img.gridTopCenter'     : (1, 'scalar_number', 0, 0),
+        b'img.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
+        b'img.gridEndCenter'     : (1, 'scalar_number', 0, 0),
+        b'img.image_type'        : (1, 'scalar_number', 0, 0),
 
-        'paragraph'           : (1, 'snippets', 1, 0),
-        'paragraph.class'     : (1, 'scalar_text', 0, 0),
-        'paragraph.firstWord' : (1, 'scalar_number', 0, 0),
-        'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
-        'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
-        'paragraph.gridSize'  : (1, 'scalar_number', 0, 0),
-        'paragraph.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
-        'paragraph.gridTopCenter'     : (1, 'scalar_number', 0, 0),
-        'paragraph.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
-        'paragraph.gridEndCenter'     : (1, 'scalar_number', 0, 0),
+        b'paragraph'           : (1, 'snippets', 1, 0),
+        b'paragraph.class'     : (1, 'scalar_text', 0, 0),
+        b'paragraph.firstWord' : (1, 'scalar_number', 0, 0),
+        b'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
+        b'paragraph.lastWord'  : (1, 'scalar_number', 0, 0),
+        b'paragraph.gridSize'  : (1, 'scalar_number', 0, 0),
+        b'paragraph.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        b'paragraph.gridTopCenter'     : (1, 'scalar_number', 0, 0),
+        b'paragraph.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
+        b'paragraph.gridEndCenter'     : (1, 'scalar_number', 0, 0),
 
 
-        'word_semantic'           : (1, 'snippets', 1, 1),
-        'word_semantic.type'      : (1, 'scalar_text', 0, 0),
-        'word_semantic.class'     : (1, 'scalar_text', 0, 0),
-        'word_semantic.firstWord' : (1, 'scalar_number', 0, 0),
-        'word_semantic.lastWord'  : (1, 'scalar_number', 0, 0),
-        'word_semantic.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
-        'word_semantic.gridTopCenter'     : (1, 'scalar_number', 0, 0),
-        'word_semantic.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
-        'word_semantic.gridEndCenter'     : (1, 'scalar_number', 0, 0),
+        b'word_semantic'           : (1, 'snippets', 1, 1),
+        b'word_semantic.type'      : (1, 'scalar_text', 0, 0),
+        b'word_semantic.class'     : (1, 'scalar_text', 0, 0),
+        b'word_semantic.firstWord' : (1, 'scalar_number', 0, 0),
+        b'word_semantic.lastWord'  : (1, 'scalar_number', 0, 0),
+        b'word_semantic.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        b'word_semantic.gridTopCenter'     : (1, 'scalar_number', 0, 0),
+        b'word_semantic.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
+        b'word_semantic.gridEndCenter'     : (1, 'scalar_number', 0, 0),
 
-        'word'            : (1, 'snippets', 1, 0),
-        'word.type'       : (1, 'scalar_text', 0, 0),
-        'word.class'      : (1, 'scalar_text', 0, 0),
-        'word.firstGlyph' : (1, 'scalar_number', 0, 0),
-        'word.lastGlyph'  : (1, 'scalar_number', 0, 0),
+        b'word'            : (1, 'snippets', 1, 0),
+        b'word.type'       : (1, 'scalar_text', 0, 0),
+        b'word.class'      : (1, 'scalar_text', 0, 0),
+        b'word.firstGlyph' : (1, 'scalar_number', 0, 0),
+        b'word.lastGlyph'  : (1, 'scalar_number', 0, 0),
 
-        '_span'           : (1, 'snippets', 1, 0),
-        '_span.class'     : (1, 'scalar_text', 0, 0),
-        '_span.firstWord' : (1, 'scalar_number', 0, 0),
-        '_span.lastWord'  : (1, 'scalar_number', 0, 0),
-        '_span.gridSize'  : (1, 'scalar_number', 0, 0),
-        '_span.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
-        '_span.gridTopCenter' : (1, 'scalar_number', 0, 0),
-        '_span.gridBeginCenter' : (1, 'scalar_number', 0, 0),
-        '_span.gridEndCenter' : (1, 'scalar_number', 0, 0),
+        b'_span'           : (1, 'snippets', 1, 0),
+        b'_span.class'     : (1, 'scalar_text', 0, 0),
+        b'_span.firstWord' : (1, 'scalar_number', 0, 0),
+        b'_span.lastWord'  : (1, 'scalar_number', 0, 0),
+        b'_span.gridSize'  : (1, 'scalar_number', 0, 0),
+        b'_span.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        b'_span.gridTopCenter' : (1, 'scalar_number', 0, 0),
+        b'_span.gridBeginCenter' : (1, 'scalar_number', 0, 0),
+        b'_span.gridEndCenter' : (1, 'scalar_number', 0, 0),
 
-        'span'           : (1, 'snippets', 1, 0),
-        'span.firstWord' : (1, 'scalar_number', 0, 0),
-        'span.lastWord'  : (1, 'scalar_number', 0, 0),
-        'span.gridSize'  : (1, 'scalar_number', 0, 0),
-        'span.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
-        'span.gridTopCenter' : (1, 'scalar_number', 0, 0),
-        'span.gridBeginCenter' : (1, 'scalar_number', 0, 0),
-        'span.gridEndCenter' : (1, 'scalar_number', 0, 0),
+        b'span'           : (1, 'snippets', 1, 0),
+        b'span.firstWord' : (1, 'scalar_number', 0, 0),
+        b'span.lastWord'  : (1, 'scalar_number', 0, 0),
+        b'span.gridSize'  : (1, 'scalar_number', 0, 0),
+        b'span.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        b'span.gridTopCenter' : (1, 'scalar_number', 0, 0),
+        b'span.gridBeginCenter' : (1, 'scalar_number', 0, 0),
+        b'span.gridEndCenter' : (1, 'scalar_number', 0, 0),
 
-        'extratokens'                   : (1, 'snippets', 1, 0),
-        'extratokens.class'             : (1, 'scalar_text', 0, 0),
-        'extratokens.type'              : (1, 'scalar_text', 0, 0),
-        'extratokens.firstGlyph'        : (1, 'scalar_number', 0, 0),
-        'extratokens.lastGlyph'         : (1, 'scalar_number', 0, 0),
-        'extratokens.gridSize'          : (1, 'scalar_number', 0, 0),
-        'extratokens.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
-        'extratokens.gridTopCenter'     : (1, 'scalar_number', 0, 0),
-        'extratokens.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
-        'extratokens.gridEndCenter'     : (1, 'scalar_number', 0, 0),
+        b'extratokens'                   : (1, 'snippets', 1, 0),
+        b'extratokens.class'             : (1, 'scalar_text', 0, 0),
+        b'extratokens.type'              : (1, 'scalar_text', 0, 0),
+        b'extratokens.firstGlyph'        : (1, 'scalar_number', 0, 0),
+        b'extratokens.lastGlyph'         : (1, 'scalar_number', 0, 0),
+        b'extratokens.gridSize'          : (1, 'scalar_number', 0, 0),
+        b'extratokens.gridBottomCenter'  : (1, 'scalar_number', 0, 0),
+        b'extratokens.gridTopCenter'     : (1, 'scalar_number', 0, 0),
+        b'extratokens.gridBeginCenter'   : (1, 'scalar_number', 0, 0),
+        b'extratokens.gridEndCenter'     : (1, 'scalar_number', 0, 0),
 
-        'glyph.h'      : (1, 'number', 0, 0),
-        'glyph.w'      : (1, 'number', 0, 0),
-        'glyph.use'    : (1, 'number', 0, 0),
-        'glyph.vtx'    : (1, 'number', 0, 1),
-        'glyph.len'    : (1, 'number', 0, 1),
-        'glyph.dpi'    : (1, 'number', 0, 0),
-        'vtx'          : (0, 'number', 1, 1),
-        'vtx.x'        : (1, 'number', 0, 0),
-        'vtx.y'        : (1, 'number', 0, 0),
-        'len'          : (0, 'number', 1, 1),
-        'len.n'        : (1, 'number', 0, 0),
+        b'glyph.h'      : (1, 'number', 0, 0),
+        b'glyph.w'      : (1, 'number', 0, 0),
+        b'glyph.use'    : (1, 'number', 0, 0),
+        b'glyph.vtx'    : (1, 'number', 0, 1),
+        b'glyph.len'    : (1, 'number', 0, 1),
+        b'glyph.dpi'    : (1, 'number', 0, 0),
+        b'vtx'          : (0, 'number', 1, 1),
+        b'vtx.x'        : (1, 'number', 0, 0),
+        b'vtx.y'        : (1, 'number', 0, 0),
+        b'len'          : (0, 'number', 1, 1),
+        b'len.n'        : (1, 'number', 0, 0),
 
-        'book'         : (1, 'snippets', 1, 0),
-        'version'      : (1, 'snippets', 1, 0),
-        'version.FlowEdit_1_id'            : (1, 'scalar_text', 0, 0),
-        'version.FlowEdit_1_version'       : (1, 'scalar_text', 0, 0),
-        'version.Schema_id'                : (1, 'scalar_text', 0, 0),
-        'version.Schema_version'           : (1, 'scalar_text', 0, 0),
-        'version.Topaz_version'            : (1, 'scalar_text', 0, 0),
-        'version.WordDetailEdit_1_id'      : (1, 'scalar_text', 0, 0),
-        'version.WordDetailEdit_1_version' : (1, 'scalar_text', 0, 0),
-        'version.ZoneEdit_1_id'            : (1, 'scalar_text', 0, 0),
-        'version.ZoneEdit_1_version'       : (1, 'scalar_text', 0, 0),
-        'version.chapterheaders'           : (1, 'scalar_text', 0, 0),
-        'version.creation_date'            : (1, 'scalar_text', 0, 0),
-        'version.header_footer'            : (1, 'scalar_text', 0, 0),
-        'version.init_from_ocr'            : (1, 'scalar_text', 0, 0),
-        'version.letter_insertion'         : (1, 'scalar_text', 0, 0),
-        'version.xmlinj_convert'           : (1, 'scalar_text', 0, 0),
-        'version.xmlinj_reflow'            : (1, 'scalar_text', 0, 0),
-        'version.xmlinj_transform'         : (1, 'scalar_text', 0, 0),
-        'version.findlists'                : (1, 'scalar_text', 0, 0),
-        'version.page_num'                 : (1, 'scalar_text', 0, 0),
-        'version.page_type'                : (1, 'scalar_text', 0, 0),
-        'version.bad_text'                 : (1, 'scalar_text', 0, 0),
-        'version.glyph_mismatch'           : (1, 'scalar_text', 0, 0),
-        'version.margins'                  : (1, 'scalar_text', 0, 0),
-        'version.staggered_lines'          : (1, 'scalar_text', 0, 0),
-        'version.paragraph_continuation'   : (1, 'scalar_text', 0, 0),
-        'version.toc'                      : (1, 'scalar_text', 0, 0),
+        b'book'         : (1, 'snippets', 1, 0),
+        b'version'      : (1, 'snippets', 1, 0),
+        b'version.FlowEdit_1_id'            : (1, 'scalar_text', 0, 0),
+        b'version.FlowEdit_1_version'       : (1, 'scalar_text', 0, 0),
+        b'version.Schema_id'                : (1, 'scalar_text', 0, 0),
+        b'version.Schema_version'           : (1, 'scalar_text', 0, 0),
+        b'version.Topaz_version'            : (1, 'scalar_text', 0, 0),
+        b'version.WordDetailEdit_1_id'      : (1, 'scalar_text', 0, 0),
+        b'version.WordDetailEdit_1_version' : (1, 'scalar_text', 0, 0),
+        b'version.ZoneEdit_1_id'            : (1, 'scalar_text', 0, 0),
+        b'version.ZoneEdit_1_version'       : (1, 'scalar_text', 0, 0),
+        b'version.chapterheaders'           : (1, 'scalar_text', 0, 0),
+        b'version.creation_date'            : (1, 'scalar_text', 0, 0),
+        b'version.header_footer'            : (1, 'scalar_text', 0, 0),
+        b'version.init_from_ocr'            : (1, 'scalar_text', 0, 0),
+        b'version.letter_insertion'         : (1, 'scalar_text', 0, 0),
+        b'version.xmlinj_convert'           : (1, 'scalar_text', 0, 0),
+        b'version.xmlinj_reflow'            : (1, 'scalar_text', 0, 0),
+        b'version.xmlinj_transform'         : (1, 'scalar_text', 0, 0),
+        b'version.findlists'                : (1, 'scalar_text', 0, 0),
+        b'version.page_num'                 : (1, 'scalar_text', 0, 0),
+        b'version.page_type'                : (1, 'scalar_text', 0, 0),
+        b'version.bad_text'                 : (1, 'scalar_text', 0, 0),
+        b'version.glyph_mismatch'           : (1, 'scalar_text', 0, 0),
+        b'version.margins'                  : (1, 'scalar_text', 0, 0),
+        b'version.staggered_lines'          : (1, 'scalar_text', 0, 0),
+        b'version.paragraph_continuation'   : (1, 'scalar_text', 0, 0),
+        b'version.toc'                      : (1, 'scalar_text', 0, 0),
 
-        'stylesheet'                : (1, 'snippets', 1, 0),
-        'style'                     : (1, 'snippets', 1, 0),
-        'style._tag'                : (1, 'scalar_text', 0, 0),
-        'style.type'                : (1, 'scalar_text', 0, 0),
-        'style._after_type'         : (1, 'scalar_text', 0, 0),
-        'style._parent_type'        : (1, 'scalar_text', 0, 0),
-        'style._after_parent_type'  : (1, 'scalar_text', 0, 0),
-        'style.class'               : (1, 'scalar_text', 0, 0),
-        'style._after_class'        : (1, 'scalar_text', 0, 0),
-        'rule'                      : (1, 'snippets', 1, 0),
-        'rule.attr'                 : (1, 'scalar_text', 0, 0),
-        'rule.value'                : (1, 'scalar_text', 0, 0),
+        b'stylesheet'                : (1, 'snippets', 1, 0),
+        b'style'                     : (1, 'snippets', 1, 0),
+        b'style._tag'                : (1, 'scalar_text', 0, 0),
+        b'style.type'                : (1, 'scalar_text', 0, 0),
+        b'style._after_type'         : (1, 'scalar_text', 0, 0),
+        b'style._parent_type'        : (1, 'scalar_text', 0, 0),
+        b'style._after_parent_type'  : (1, 'scalar_text', 0, 0),
+        b'style.class'               : (1, 'scalar_text', 0, 0),
+        b'style._after_class'        : (1, 'scalar_text', 0, 0),
+        b'rule'                      : (1, 'snippets', 1, 0),
+        b'rule.attr'                 : (1, 'scalar_text', 0, 0),
+        b'rule.value'                : (1, 'scalar_text', 0, 0),
 
-        'original'      : (0, 'number', 1, 1),
-        'original.pnum' : (1, 'number', 0, 0),
-        'original.pid'  : (1, 'text', 0, 0),
-        'pages'        : (0, 'number', 1, 1),
-        'pages.ref'    : (1, 'number', 0, 0),
-        'pages.id'     : (1, 'number', 0, 0),
-        'startID'      : (0, 'number', 1, 1),
-        'startID.page' : (1, 'number', 0, 0),
-        'startID.id'   : (1, 'number', 0, 0),
+        b'original'      : (0, 'number', 1, 1),
+        b'original.pnum' : (1, 'number', 0, 0),
+        b'original.pid'  : (1, 'text', 0, 0),
+        b'pages'        : (0, 'number', 1, 1),
+        b'pages.ref'    : (1, 'number', 0, 0),
+        b'pages.id'     : (1, 'number', 0, 0),
+        b'startID'      : (0, 'number', 1, 1),
+        b'startID.page' : (1, 'number', 0, 0),
+        b'startID.id'   : (1, 'number', 0, 0),
 
-        'median_d'          : (1, 'number', 0, 0),
-        'median_h'          : (1, 'number', 0, 0),
-        'median_firsty'     : (1, 'number', 0, 0),
-        'median_lasty'      : (1, 'number', 0, 0),
+        b'median_d'          : (1, 'number', 0, 0),
+        b'median_h'          : (1, 'number', 0, 0),
+        b'median_firsty'     : (1, 'number', 0, 0),
+        b'median_lasty'      : (1, 'number', 0, 0),
 
-        'num_footers_maybe' : (1, 'number', 0, 0),
-        'num_footers_yes'   : (1, 'number', 0, 0),
-        'num_headers_maybe' : (1, 'number', 0, 0),
-        'num_headers_yes'   : (1, 'number', 0, 0),
+        b'num_footers_maybe' : (1, 'number', 0, 0),
+        b'num_footers_yes'   : (1, 'number', 0, 0),
+        b'num_headers_maybe' : (1, 'number', 0, 0),
+        b'num_headers_yes'   : (1, 'number', 0, 0),
 
-        'tracking'          : (1, 'number', 0, 0),
-        'src'               : (1, 'text', 0, 0),
+        b'tracking'          : (1, 'number', 0, 0),
+        b'src'               : (1, 'text', 0, 0),
 
      }
 
@@ -430,7 +430,7 @@ class PageParser(object):
         cnt = len(self.tagpath)
         if i < cnt : result = self.tagpath[i]
         for j in range(i+1, cnt) :
-            result += '.' + self.tagpath[j]
+            result += b'.' + self.tagpath[j]
         return result
 
 
@@ -505,7 +505,7 @@ class PageParser(object):
 
             if (subtags == 1):
                 ntags = readEncodedNumber(self.fo)
-                if self.debug : print('subtags: ' + token + ' has ' + str(ntags))
+                if self.debug : print('subtags: ', token , ' has ' , str(ntags))
                 for j in range(ntags):
                     val = readEncodedNumber(self.fo)
                     subtagres.append(self.procToken(self.dict.lookup(val)))
@@ -613,7 +613,7 @@ class PageParser(object):
         subtagList = tag[1]
         argtype = tag[2]
         argList = tag[3]
-        nname = prefix + '.' + name
+        nname = prefix + b'.' + name
         nsubtaglist = []
         for j in subtagList:
             nsubtaglist.append(self.updateName(j,prefix))
@@ -662,34 +662,34 @@ class PageParser(object):
         subtagList = node[1]
         argtype = node[2]
         argList = node[3]
-        fullpathname = name.split('.')
+        fullpathname = name.split(b'.')
         nodename = fullpathname.pop()
         ilvl = len(fullpathname)
-        indent = ' ' * (3 * ilvl)
+        indent = b' ' * (3 * ilvl)
         rlst = []
-        rlst.append(indent + '<' + nodename + '>')
+        rlst.append(indent + b'<' + nodename + b'>')
         if len(argList) > 0:
             alst = []
             for j in argList:
-                if (argtype == 'text') or (argtype == 'scalar_text') :
-                    alst.append(j + '|')
+                if (argtype == b'text') or (argtype == b'scalar_text') :
+                    alst.append(j + b'|')
                 else :
-                    alst.append(str(j) + ',')
-            argres = "".join(alst)
+                    alst.append(str(j).encode('utf-8') + b',')
+            argres = b"".join(alst)
             argres = argres[0:-1]
-            if argtype == 'snippets' :
-                rlst.append('snippets:' + argres)
+            if argtype == b'snippets' :
+                rlst.append(b'snippets:' + argres)
             else :
                 rlst.append(argres)
         if len(subtagList) > 0 :
-            rlst.append('\n')
+            rlst.append(b'\n')
             for j in subtagList:
                 if len(j) > 0 :
                     rlst.append(self.formatTag(j))
-            rlst.append(indent + '</' + nodename + '>\n')
+            rlst.append(indent + b'</' + nodename + b'>\n')
         else:
-            rlst.append('</' + nodename + '>\n')
-        return "".join(rlst)
+            rlst.append(b'</' + nodename + b'>\n')
+        return b"".join(rlst)
 
 
     # flatten tag
@@ -704,20 +704,20 @@ class PageParser(object):
             alst = []
             for j in argList:
                 if (argtype == 'text') or (argtype == 'scalar_text') :
-                    alst.append(j + '|')
+                     alst.append(j + b'|')
                 else :
-                    alst.append(str(j) + '|')
-            argres = "".join(alst)
+                    alst.append(str(j).encode('utf-8') + b'|')
+            argres = b"".join(alst)
             argres = argres[0:-1]
-            if argtype == 'snippets' :
-                rlst.append('.snippets=' + argres)
+            if argtype == b'snippets' :
+                rlst.append(b'.snippets=' + argres)
             else :
-                rlst.append('=' + argres)
-        rlst.append('\n')
+                rlst.append(b'=' + argres)
+        rlst.append(b'\n')
         for j in subtagList:
             if len(j) > 0 :
                 rlst.append(self.flattenTag(j))
-        return "".join(rlst)
+        return b"".join(rlst)
 
 
     # reduce create xml output
@@ -729,7 +729,7 @@ class PageParser(object):
                     rlst.append(self.flattenTag(j))
                 else:
                     rlst.append(self.formatTag(j))
-        result = "".join(rlst)
+        result = b"".join(rlst)
         if self.debug : print(result)
         return result
 
@@ -747,16 +747,16 @@ class PageParser(object):
 
         # peek at the first bytes to see what type of file it is
         magic = self.fo.read(9)
-        if (magic[0:1] == 'p') and (magic[2:9] == 'marker_'):
-            first_token = 'info'
-        elif (magic[0:1] == 'p') and (magic[2:9] == '__PAGE_'):
+        if (magic[0:1] == b'p') and (magic[2:9] == b'marker_'):
+            first_token = b'info'
+        elif (magic[0:1] == b'p') and (magic[2:9] == b'__PAGE_'):
             skip = self.fo.read(2)
-            first_token = 'info'
-        elif (magic[0:1] == 'p') and (magic[2:8] == '_PAGE_'):
-            first_token = 'info'
-        elif (magic[0:1] == 'g') and (magic[2:9] == '__GLYPH'):
+            first_token = b'info'
+        elif (magic[0:1] == b'p') and (magic[2:8] == b'_PAGE_'):
+            first_token = b'info'
+        elif (magic[0:1] == b'g') and (magic[2:9] == b'__GLYPH'):
             skip = self.fo.read(3)
-            first_token = 'info'
+            first_token = b'info'
         else :
             # other0.dat file
             first_token = None
@@ -778,7 +778,7 @@ class PageParser(object):
                 break
 
             if (v == 0x72):
-                self.doLoop72('number')
+                self.doLoop72(b'number')
             elif (v > 0) and (v < self.dict.getSize()) :
                 tag = self.procToken(self.dict.lookup(v))
                 if len(tag) > 0 :
@@ -789,7 +789,7 @@ class PageParser(object):
                 if (v == 0):
                     if (self.peek(1) == 0x5f):
                         skip = self.fo.read(1)
-                        first_token = 'info'
+                        first_token = b'info'
 
         # now do snippet injection
         if len(self.snippetList) > 0 :
@@ -809,14 +809,14 @@ class PageParser(object):
 
 def fromData(dict, fname):
     flat_xml = True
-    debug = False
+    debug = True
     pp = PageParser(fname, dict, debug, flat_xml)
     xmlpage = pp.process()
     return xmlpage
 
 def getXML(dict, fname):
     flat_xml = False
-    debug = False
+    debug = True
     pp = PageParser(fname, dict, debug, flat_xml)
     xmlpage = pp.process()
     return xmlpage
@@ -845,7 +845,7 @@ def main(argv):
     sys.stderr=SafeUnbuffered(sys.stderr)
     dictFile = ""
     pageFile = ""
-    debug = False
+    debug = True
     flat_xml = False
     printOutput = False
     if len(argv) == 0:

@@ -15,36 +15,36 @@ debug = False
 
 class DocParser(object):
     def __init__(self, flatxml, fontsize, ph, pw):
-        self.flatdoc = flatxml.split('\n')
+        self.flatdoc = flatxml.split(b'\n')
         self.fontsize = int(fontsize)
         self.ph = int(ph) * 1.0
         self.pw = int(pw) * 1.0
 
     stags = {
-        'paragraph' : 'p',
-        'graphic'   : '.graphic'
+        b'paragraph' : 'p',
+        b'graphic'   : '.graphic'
     }
 
     attr_val_map = {
-        'hang'            : 'text-indent: ',
-        'indent'          : 'text-indent: ',
-        'line-space'      : 'line-height: ',
-        'margin-bottom'   : 'margin-bottom: ',
-        'margin-left'     : 'margin-left: ',
-        'margin-right'    : 'margin-right: ',
-        'margin-top'      : 'margin-top: ',
-        'space-after'     : 'padding-bottom: ',
+        b'hang'            : 'text-indent: ',
+        b'indent'          : 'text-indent: ',
+        b'line-space'      : 'line-height: ',
+        b'margin-bottom'   : 'margin-bottom: ',
+        b'margin-left'     : 'margin-left: ',
+        b'margin-right'    : 'margin-right: ',
+        b'margin-top'      : 'margin-top: ',
+        b'space-after'     : 'padding-bottom: ',
     }
 
     attr_str_map = {
-        'align-center' : 'text-align: center; margin-left: auto; margin-right: auto;',
-        'align-left'   : 'text-align: left;',
-        'align-right'  : 'text-align: right;',
-        'align-justify' : 'text-align: justify;',
-        'display-inline' : 'display: inline;',
-        'pos-left' : 'text-align: left;',
-        'pos-right' : 'text-align: right;',
-        'pos-center' : 'text-align: center; margin-left: auto; margin-right: auto;',
+        b'align-center' : 'text-align: center; margin-left: auto; margin-right: auto;',
+        b'align-left'   : 'text-align: left;',
+        b'align-right'  : 'text-align: right;',
+        b'align-justify' : 'text-align: justify;',
+        b'display-inline' : 'display: inline;',
+        b'pos-left' : 'text-align: left;',
+        b'pos-right' : 'text-align: right;',
+        b'pos-center' : 'text-align: center; margin-left: auto; margin-right: auto;',
     }
 
 
@@ -60,11 +60,13 @@ class DocParser(object):
         foundat = -1
         for j in range(pos, end):
             item = docList[j]
-            if item.find('=') >= 0:
-                (name, argres) = item.split('=',1)
+            if item.find(b'=') >= 0:
+                (name, argres) = item.split(b'=',1)
             else :
                 name = item
-                argres = ''
+                argres = b''
+            if (isinstance(tagpath,str)):
+                tagpath = tagpath.encode('utf-8')
             if name.endswith(tagpath) :
                 result = argres
                 foundat = j
@@ -76,7 +78,7 @@ class DocParser(object):
     def posinDoc(self, tagpath):
         startpos = []
         pos = 0
-        res = ""
+        res = b""
         while res != None :
             (foundpos, res) = self.findinDoc(tagpath, pos, -1)
             if res != None :
@@ -87,11 +89,11 @@ class DocParser(object):
     # returns a vector of integers for the tagpath
     def getData(self, tagpath, pos, end, clean=False):
         if clean:
-            digits_only = re.compile(r'''([0-9]+)''')
+            digits_only = re.compile(rb'''([0-9]+)''')
         argres=[]
         (foundat, argt) = self.findinDoc(tagpath, pos, end)
         if (argt != None) and (len(argt) > 0) :
-            argList = argt.split('|')
+            argList = argt.split(b'|')
             for strval in argList:
                 if clean:
                     m = re.search(digits_only, strval)
@@ -109,7 +111,7 @@ class DocParser(object):
         csspage += '.cl-justify { text-align: justify; }\n'
 
         # generate a list of each <style> starting point in the stylesheet
-        styleList= self.posinDoc('book.stylesheet.style')
+        styleList= self.posinDoc(b'book.stylesheet.style')
         stylecnt = len(styleList)
         styleList.append(-1)
 
@@ -121,30 +123,30 @@ class DocParser(object):
             start = styleList[j]
             end = styleList[j+1]
 
-            (pos, tag) = self.findinDoc('style._tag',start,end)
+            (pos, tag) = self.findinDoc(b'style._tag',start,end)
             if tag == None :
-                (pos, tag) = self.findinDoc('style.type',start,end)
+                (pos, tag) = self.findinDoc(b'style.type',start,end)
 
             # Is this something we know how to convert to css
             if tag in self.stags :
 
                 # get the style class
-                (pos, sclass) = self.findinDoc('style.class',start,end)
+                (pos, sclass) = self.findinDoc(b'style.class',start,end)
                 if sclass != None:
-                    sclass = sclass.replace(' ','-')
-                    sclass = '.cl-' + sclass.lower()
+                    sclass = sclass.replace(b' ',b'-')
+                    sclass = b'.cl-' + sclass.lower()
                 else :
-                    sclass = ''
+                    sclass = b''
 
                 if debug: print('sclass', sclass)
 
                 # check for any "after class" specifiers
-                (pos, aftclass) = self.findinDoc('style._after_class',start,end)
+                (pos, aftclass) = self.findinDoc(b'style._after_class',start,end)
                 if aftclass != None:
-                    aftclass = aftclass.replace(' ','-')
-                    aftclass = '.cl-' + aftclass.lower()
+                    aftclass = aftclass.replace(b' ',b'-')
+                    aftclass = b'.cl-' + aftclass.lower()
                 else :
-                    aftclass = ''
+                    aftclass = b''
 
                 if debug: print('aftclass', aftclass)
 
@@ -152,34 +154,37 @@ class DocParser(object):
 
                 while True :
 
-                    (pos1, attr) = self.findinDoc('style.rule.attr', start, end)
-                    (pos2, val) = self.findinDoc('style.rule.value', start, end)
+                    (pos1, attr) = self.findinDoc(b'style.rule.attr', start, end)
+                    (pos2, val) = self.findinDoc(b'style.rule.value', start, end)
 
                     if debug: print('attr', attr)
                     if debug: print('val', val)
 
                     if attr == None : break
 
-                    if (attr == 'display') or (attr == 'pos') or (attr == 'align'):
+                    if (attr == b'display') or (attr == b'pos') or (attr == b'align'):
                         # handle text based attributess
-                        attr = attr + '-' + val
+                        attr = attr + b'-' + val
                         if attr in self.attr_str_map :
-                            cssargs[attr] = (self.attr_str_map[attr], '')
+                            cssargs[attr] = (self.attr_str_map[attr], b'')
                     else :
                         # handle value based attributes
                         if attr in self.attr_val_map :
                             name = self.attr_val_map[attr]
-                            if attr in ('margin-bottom', 'margin-top', 'space-after') :
+                            if attr in (b'margin-bottom', b'margin-top', b'space-after') :
                                 scale = self.ph
-                            elif attr in ('margin-right', 'indent', 'margin-left', 'hang') :
+                            elif attr in (b'margin-right', b'indent', b'margin-left', b'hang') :
                                 scale = self.pw
-                            elif attr == 'line-space':
+                            elif attr == b'line-space':
                                 scale = self.fontsize * 2.0
+                            else:
+                                print("Scale not defined!")
+                                scale = 1.0
 
                             if val == "":
                                 val = 0
 
-                            if not ((attr == 'hang') and (int(val) == 0)):
+                            if not ((attr == b'hang') and (int(val) == 0)):
                                 try:
                                     f = float(val)
                                 except:
@@ -198,32 +203,32 @@ class DocParser(object):
                     if debug: print('keeping style')
                     # make sure line-space does not go below 100% or above 300% since
                     # it can be wacky in some styles
-                    if 'line-space' in cssargs:
-                        seg = cssargs['line-space'][0]
-                        val = cssargs['line-space'][1]
+                    if b'line-space' in cssargs:
+                        seg = cssargs[b'line-space'][0]
+                        val = cssargs[b'line-space'][1]
                         if val < 1.0: val = 1.0
                         if val > 3.0: val = 3.0
-                        del cssargs['line-space']
-                        cssargs['line-space'] = (self.attr_val_map['line-space'], val)
+                        del cssargs[b'line-space']
+                        cssargs[b'line-space'] = (self.attr_val_map[b'line-space'], val)
 
 
                     # handle modifications for css style hanging indents
-                    if 'hang' in cssargs:
-                        hseg = cssargs['hang'][0]
-                        hval = cssargs['hang'][1]
-                        del cssargs['hang']
-                        cssargs['hang'] = (self.attr_val_map['hang'], -hval)
+                    if b'hang' in cssargs:
+                        hseg = cssargs[b'hang'][0]
+                        hval = cssargs[b'hang'][1]
+                        del cssargs[b'hang']
+                        cssargs[b'hang'] = (self.attr_val_map[b'hang'], -hval)
                         mval = 0
                         mseg = 'margin-left: '
                         mval = hval
-                        if 'margin-left' in cssargs:
-                            mseg = cssargs['margin-left'][0]
-                            mval = cssargs['margin-left'][1]
+                        if b'margin-left' in cssargs:
+                            mseg = cssargs[b'margin-left'][0]
+                            mval = cssargs[b'margin-left'][1]
                             if mval < 0: mval = 0
                             mval = hval + mval
-                        cssargs['margin-left'] = (mseg, mval)
-                        if 'indent' in cssargs:
-                            del cssargs['indent']
+                        cssargs[b'margin-left'] = (mseg, mval)
+                        if b'indent' in cssargs:
+                            del cssargs[b'indent']
 
                     cssline = sclass + ' { '
                     for key in iter(cssargs):

@@ -7,6 +7,7 @@ import csv
 import os
 import math
 import getopt
+import functools
 from struct import pack
 from struct import unpack
 
@@ -15,14 +16,14 @@ class DocParser(object):
     def __init__(self, flatxml, classlst, fileid, bookDir, gdict, fixedimage):
         self.id = os.path.basename(fileid).replace('.dat','')
         self.svgcount = 0
-        self.docList = flatxml.split('\n')
+        self.docList = flatxml.split(b'\n')
         self.docSize = len(self.docList)
         self.classList = {}
         self.bookDir = bookDir
         self.gdict = gdict
         tmpList = classlst.split('\n')
         for pclass in tmpList:
-            if pclass != '':
+            if pclass != b'':
                 # remove the leading period from the css name
                 cname = pclass[1:]
             self.classList[cname] = True
@@ -57,9 +58,9 @@ class DocParser(object):
         imgfile = os.path.join(imgDir,imgname)
 
         # get glyph information
-        gxList = self.getData('info.glyph.x',0,-1)
-        gyList = self.getData('info.glyph.y',0,-1)
-        gidList = self.getData('info.glyph.glyphID',0,-1)
+        gxList = self.getData(b'info.glyph.x',0,-1)
+        gyList = self.getData(b'info.glyph.y',0,-1)
+        gidList = self.getData(b'info.glyph.glyphID',0,-1)
 
         gids = []
         maxws = []
@@ -122,11 +123,11 @@ class DocParser(object):
     def lineinDoc(self, pos) :
         if (pos >= 0) and (pos < self.docSize) :
             item = self.docList[pos]
-            if item.find('=') >= 0:
-                (name, argres) = item.split('=',1)
+            if item.find(b'=') >= 0:
+                (name, argres) = item.split(b'=',1)
             else :
                 name = item
-                argres = ''
+                argres = b''
         return name, argres
 
 
@@ -140,11 +141,13 @@ class DocParser(object):
         foundat = -1
         for j in range(pos, end):
             item = self.docList[j]
-            if item.find('=') >= 0:
-                (name, argres) = item.split('=',1)
+            if item.find(b'=') >= 0:
+                (name, argres) = item.split(b'=',1)
             else :
                 name = item
                 argres = ''
+            if (isinstance(tagpath,str)):
+                tagpath = tagpath.encode('utf-8')
             if name.endswith(tagpath) :
                 result = argres
                 foundat = j
@@ -170,7 +173,7 @@ class DocParser(object):
         argres=[]
         (foundat, argt) = self.findinDoc(tagpath, pos, end)
         if (argt != None) and (len(argt) > 0) :
-            argList = argt.split('|')
+            argList = argt.split(b'|')
             argres = [ int(strval) for strval in argList]
         return argres
 
@@ -191,21 +194,21 @@ class DocParser(object):
 
         # also some class names have spaces in them so need to convert to dashes
         if nclass != None :
-            nclass = nclass.replace(' ','-')
-            classres = ''
+            nclass = nclass.replace(b' ',b'-')
+            classres = b''
             nclass = nclass.lower()
-            nclass = 'cl-' + nclass
-            baseclass = ''
+            nclass = b'cl-' + nclass
+            baseclass = b''
             # graphic is the base class for captions
-            if nclass.find('cl-cap-') >=0 :
-                classres = 'graphic' + ' '
+            if nclass.find(b'cl-cap-') >=0 :
+                classres = b'graphic' + b' '
             else :
                 # strip to find baseclass
-                p = nclass.find('_')
+                p = nclass.find(b'_')
                 if p > 0 :
                     baseclass = nclass[0:p]
                     if baseclass in self.classList:
-                        classres += baseclass + ' '
+                        classres += baseclass + b' '
             classres += nclass
             nclass = classres
         return nclass
@@ -225,11 +228,11 @@ class DocParser(object):
             return -1
 
         result = []
-        (pos, pagetype) = self.findinDoc('page.type',0,-1)
+        (pos, pagetype) = self.findinDoc(b'page.type',0,-1)
 
-        groupList = self.posinDoc('page.group')
-        groupregionList = self.posinDoc('page.group.region')
-        pageregionList = self.posinDoc('page.region')
+        groupList = self.posinDoc(b'page.group')
+        groupregionList = self.posinDoc(b'page.group.region')
+        pageregionList = self.posinDoc(b'page.region')
         # integrate into one list
         for j in groupList:
             result.append(('grpbeg',j))
@@ -237,7 +240,7 @@ class DocParser(object):
             result.append(('gregion',j))
         for j in pageregionList:
             result.append(('pregion',j))
-        result.sort(compare)
+        result.sort(key=functools.cmp_to_key(compare))
 
         # insert group end and page end indicators
         inGroup = False
@@ -267,33 +270,33 @@ class DocParser(object):
         result = []
 
         # paragraph
-        (pos, pclass) = self.findinDoc('paragraph.class',start,end)
+        (pos, pclass) = self.findinDoc(b'paragraph.class',start,end)
 
         pclass = self.getClass(pclass)
 
         # if paragraph uses extratokens (extra glyphs) then make it fixed
-        (pos, extraglyphs) = self.findinDoc('paragraph.extratokens',start,end)
+        (pos, extraglyphs) = self.findinDoc(b'paragraph.extratokens',start,end)
 
         # build up a description of the paragraph in result and return it
         # first check for the  basic - all words paragraph
-        (pos, sfirst) = self.findinDoc('paragraph.firstWord',start,end)
-        (pos, slast) = self.findinDoc('paragraph.lastWord',start,end)
+        (pos, sfirst) = self.findinDoc(b'paragraph.firstWord',start,end)
+        (pos, slast) = self.findinDoc(b'paragraph.lastWord',start,end)
         if (sfirst != None) and (slast != None) :
             first = int(sfirst)
             last = int(slast)
 
-            makeImage = (regtype == 'vertical') or (regtype == 'table')
+            makeImage = (regtype == b'vertical') or (regtype == b'table')
             makeImage = makeImage or (extraglyphs != None)
             if self.fixedimage:
-                makeImage = makeImage or (regtype == 'fixed')
+                makeImage = makeImage or (regtype == b'fixed')
 
             if (pclass != None):
-                makeImage = makeImage or (pclass.find('.inverted') >= 0)
+                makeImage = makeImage or (pclass.find(b'.inverted') >= 0)
                 if self.fixedimage :
-                    makeImage = makeImage or (pclass.find('cl-f-') >= 0)
+                    makeImage = makeImage or (pclass.find(b'cl-f-') >= 0)
 
             # before creating an image make sure glyph info exists
-            gidList = self.getData('info.glyph.glyphID',0,-1)
+            gidList = self.getData(b'info.glyph.glyphID',0,-1)
 
             makeImage = makeImage & (len(gidList) > 0)
 
@@ -307,8 +310,8 @@ class DocParser(object):
             # translate first and last word into first and last glyphs
             # and generate inline image and include it
             glyphList = []
-            firstglyphList = self.getData('word.firstGlyph',0,-1)
-            gidList = self.getData('info.glyph.glyphID',0,-1)
+            firstglyphList = self.getData(b'word.firstGlyph',0,-1)
+            gidList = self.getData(b'info.glyph.glyphID',0,-1)
             firstGlyph = firstglyphList[first]
             if last < len(firstglyphList):
                 lastGlyph = firstglyphList[last]
@@ -326,8 +329,8 @@ class DocParser(object):
             for glyphnum in range(firstGlyph, lastGlyph):
                 glyphList.append(glyphnum)
             # include any extratokens if they exist
-            (pos, sfg) = self.findinDoc('extratokens.firstGlyph',start,end)
-            (pos, slg) = self.findinDoc('extratokens.lastGlyph',start,end)
+            (pos, sfg) = self.findinDoc(b'extratokens.firstGlyph',start,end)
+            (pos, slg) = self.findinDoc(b'extratokens.lastGlyph',start,end)
             if (sfg != None) and (slg != None):
                 for glyphnum in range(int(sfg), int(slg)):
                     glyphList.append(glyphnum)
@@ -368,39 +371,39 @@ class DocParser(object):
 
             (name, argres) = self.lineinDoc(line)
 
-            if name.endswith('span.firstWord') :
+            if name.endswith(b'span.firstWord') :
                 sp_first = int(argres)
 
-            elif name.endswith('span.lastWord') :
+            elif name.endswith(b'span.lastWord') :
                 sp_last = int(argres)
 
-            elif name.endswith('word.firstGlyph') :
+            elif name.endswith(b'word.firstGlyph') :
                 gl_first = int(argres)
 
-            elif name.endswith('word.lastGlyph') :
+            elif name.endswith(b'word.lastGlyph') :
                 gl_last = int(argres)
 
-            elif name.endswith('word_semantic.firstWord'):
+            elif name.endswith(b'word_semantic.firstWord'):
                 ws_first = int(argres)
 
-            elif name.endswith('word_semantic.lastWord'):
+            elif name.endswith(b'word_semantic.lastWord'):
                 ws_last = int(argres)
 
-            elif name.endswith('word.class'):
+            elif name.endswith(b'word.class'):
                 # we only handle spaceafter word class
                 try:
-                    (cname, space) = argres.split('-',1)
-                    if space == '' : space = '0'
-                    if (cname == 'spaceafter') and (int(space) > 0) :
+                    (cname, space) = argres.split(b'-',1)
+                    if space == b'' : space = b'0'
+                    if (cname == b'spaceafter') and (int(space) > 0) :
                         word_class = 'sa'
                 except:
                     pass
 
-            elif name.endswith('word.img.src'):
+            elif name.endswith(b'word.img.src'):
                 result.append(('img' + word_class, int(argres)))
                 word_class = ''
 
-            elif name.endswith('region.img.src'):
+            elif name.endswith(b'region.img.src'):
                 result.append(('img' + word_class, int(argres)))
 
             if (sp_first != -1) and (sp_last != -1):
@@ -437,7 +440,7 @@ class DocParser(object):
 
         classres = ''
         if pclass :
-            classres = ' class="' + pclass + '"'
+            classres = ' class="' + pclass.decode('utf-8') + '"'
 
         br_lb = (regtype == 'fixed') or (regtype == 'chapterheading') or (regtype == 'vertical')
 
@@ -470,8 +473,8 @@ class DocParser(object):
                     if (link > 0):
                         linktype = self.link_type[link-1]
                         title = self.link_title[link-1]
-                        if (title == "") or (parares.rfind(title) < 0):
-                            title=parares[lstart:]
+                        if (title == b"") or (parares.rfind(title.decode('utf-8')) < 0):
+                            title=parares[lstart:].encode('utf-8')
                         if linktype == 'external' :
                             linkhref = self.link_href[link-1]
                             linkhtml = '<a href="%s">' % linkhref
@@ -482,33 +485,34 @@ class DocParser(object):
                             else :
                                 # just link to the current page
                                 linkhtml = '<a href="#' + self.id + '">'
-                        linkhtml += title + '</a>'
-                        pos = parares.rfind(title)
+                        linkhtml += title.decode('utf-8')
+                        linkhtml += '</a>'
+                        pos = parares.rfind(title.decode('utf-8'))
                         if pos >= 0:
                             parares = parares[0:pos] + linkhtml + parares[pos+len(title):]
                         else :
                             parares += linkhtml
                         lstart = len(parares)
-                        if word == '_link_' : word = ''
+                        if word == b'_link_' : word = b''
                     elif (link < 0) :
-                        if word == '_link_' : word = ''
+                        if word == b'_link_' : word = b''
 
-                if word == '_lb_':
+                if word == b'_lb_':
                     if ((num-1) in self.dehyphen_rootid ) or handle_links:
-                        word = ''
+                        word = b''
                         sep = ''
                     elif br_lb :
-                        word = '<br />\n'
+                        word = b'<br />\n'
                         sep = ''
                     else :
-                        word = '\n'
+                        word = b'\n'
                         sep = ''
 
                 if num in self.dehyphen_rootid :
                     word = word[0:-1]
                     sep = ''
 
-                parares += word + sep
+                parares += word.decode('utf-8') + sep
 
             elif wtype == 'img' :
                 sep = ''
@@ -522,7 +526,9 @@ class DocParser(object):
 
             elif wtype == 'svg' :
                 sep = ''
-                parares += '<img src="img/' + self.id + '_%04d.svg" alt="" />' % num
+                parares += '<img src="img/'
+                parares += self.id
+                parares += '_%04d.svg" alt="" />' % num
                 parares += sep
 
         if len(sep) > 0 : parares = parares[0:-1]
@@ -545,7 +551,7 @@ class DocParser(object):
             (wtype, num) = pdesc[j]
 
             if wtype == 'ocr' :
-                word = self.ocrtext[num]
+                word = self.ocrtext[num].decode('utf-8')
                 sep = ' '
 
                 if handle_links:
@@ -553,7 +559,7 @@ class DocParser(object):
                     if (link > 0):
                         linktype = self.link_type[link-1]
                         title = self.link_title[link-1]
-                        title = title.rstrip('. ')
+                        title = title.rstrip(b'. ')
                         alt_title = parares[lstart:]
                         alt_title = alt_title.strip()
                         # now strip off the actual printed page number
@@ -607,38 +613,38 @@ class DocParser(object):
         hlst = []
 
         # get the ocr text
-        (pos, argres) = self.findinDoc('info.word.ocrText',0,-1)
-        if argres :  self.ocrtext = argres.split('|')
+        (pos, argres) = self.findinDoc(b'info.word.ocrText',0,-1)
+        if argres :  self.ocrtext = argres.split(b'|')
 
         # get information to dehyphenate the text
-        self.dehyphen_rootid = self.getData('info.dehyphen.rootID',0,-1)
+        self.dehyphen_rootid = self.getData(b'info.dehyphen.rootID',0,-1)
 
         # determine if first paragraph is continued from previous page
-        (pos, self.parastems_stemid) = self.findinDoc('info.paraStems.stemID',0,-1)
+        (pos, self.parastems_stemid) = self.findinDoc(b'info.paraStems.stemID',0,-1)
         first_para_continued = (self.parastems_stemid  != None)
 
         # determine if last paragraph is continued onto the next page
-        (pos, self.paracont_stemid) = self.findinDoc('info.paraCont.stemID',0,-1)
+        (pos, self.paracont_stemid) = self.findinDoc(b'info.paraCont.stemID',0,-1)
         last_para_continued = (self.paracont_stemid != None)
 
         # collect link ids
-        self.link_id = self.getData('info.word.link_id',0,-1)
+        self.link_id = self.getData(b'info.word.link_id',0,-1)
 
         # collect link destination page numbers
-        self.link_page = self.getData('info.links.page',0,-1)
+        self.link_page = self.getData(b'info.links.page',0,-1)
 
         # collect link types (container versus external)
-        (pos, argres) = self.findinDoc('info.links.type',0,-1)
-        if argres :  self.link_type = argres.split('|')
+        (pos, argres) = self.findinDoc(b'info.links.type',0,-1)
+        if argres :  self.link_type = argres.split(b'|')
 
         # collect link destinations
-        (pos, argres) = self.findinDoc('info.links.href',0,-1)
-        if argres :  self.link_href = argres.split('|')
+        (pos, argres) = self.findinDoc(b'info.links.href',0,-1)
+        if argres :  self.link_href = argres.split(b'|')
 
         # collect link titles
-        (pos, argres) = self.findinDoc('info.links.title',0,-1)
+        (pos, argres) = self.findinDoc(b'info.links.title',0,-1)
         if argres :
-            self.link_title = argres.split('|')
+            self.link_title = argres.split(b'|')
         else:
             self.link_title.append('')
 
@@ -662,51 +668,51 @@ class DocParser(object):
             # set anchor for link target on this page
             if not anchorSet and not first_para_continued:
                 hlst.append('<div style="visibility: hidden; height: 0; width: 0;" id="')
-                hlst.append(self.id + '" title="pagetype_' + pagetype + '"></div>\n')
+                hlst.append(self.id + '" title="pagetype_' + pagetype.decode('utf-8') + '"></div>\n')
                 anchorSet = True
 
             # handle groups of graphics with text captions
-            if (etype == 'grpbeg'):
-                (pos, grptype) = self.findinDoc('group.type', start, end)
+            if (etype == b'grpbeg'):
+                (pos, grptype) = self.findinDoc(b'group.type', start, end)
                 if grptype != None:
-                    if grptype == 'graphic':
-                        gcstr = ' class="' + grptype + '"'
+                    if grptype == b'graphic':
+                        gcstr = ' class="' + grptype.decode('utf-8') + '"'
                         hlst.append('<div' + gcstr + '>')
                         inGroup = True
 
-            elif (etype == 'grpend'):
+            elif (etype == b'grpend'):
                 if inGroup:
                     hlst.append('</div>\n')
                     inGroup = False
 
             else:
-                (pos, regtype) = self.findinDoc('region.type',start,end)
+                (pos, regtype) = self.findinDoc(b'region.type',start,end)
 
-                if regtype == 'graphic' :
-                    (pos, simgsrc) = self.findinDoc('img.src',start,end)
+                if regtype == b'graphic' :
+                    (pos, simgsrc) = self.findinDoc(b'img.src',start,end)
                     if simgsrc:
                         if inGroup:
                             hlst.append('<img src="img/img%04d.jpg" alt="" />' % int(simgsrc))
                         else:
                             hlst.append('<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc))
 
-                elif regtype == 'chapterheading' :
+                elif regtype == b'chapterheading' :
                     (pclass, pdesc) = self.getParaDescription(start,end, regtype)
                     if not breakSet:
                         hlst.append('<div style="page-break-after: always;">&nbsp;</div>\n')
                         breakSet = True
                     tag = 'h1'
                     if pclass and (len(pclass) >= 7):
-                        if pclass[3:7] == 'ch1-' : tag = 'h1'
-                        if pclass[3:7] == 'ch2-' : tag = 'h2'
-                        if pclass[3:7] == 'ch3-' : tag = 'h3'
-                        hlst.append('<' + tag + ' class="' + pclass + '">')
+                        if pclass[3:7] == b'ch1-' : tag = 'h1'
+                        if pclass[3:7] == b'ch2-' : tag = 'h2'
+                        if pclass[3:7] == b'ch3-' : tag = 'h3'
+                        hlst.append('<' + tag + ' class="' + pclass.decode('utf-8') + '">')
                     else:
                         hlst.append('<' + tag + '>')
                     hlst.append(self.buildParagraph(pclass, pdesc, 'middle', regtype))
                     hlst.append('</' + tag + '>')
 
-                elif (regtype == 'text') or (regtype == 'fixed') or (regtype == 'insert') or (regtype == 'listitem'):
+                elif (regtype == b'text') or (regtype == b'fixed') or (regtype == b'insert') or (regtype == b'listitem'):
                     ptype = 'full'
                     # check to see if this is a continution from the previous page
                     if first_para_continued :
@@ -715,16 +721,16 @@ class DocParser(object):
                     (pclass, pdesc) = self.getParaDescription(start,end, regtype)
                     if pclass and (len(pclass) >= 6) and (ptype == 'full'):
                         tag = 'p'
-                        if pclass[3:6] == 'h1-' : tag = 'h4'
-                        if pclass[3:6] == 'h2-' : tag = 'h5'
-                        if pclass[3:6] == 'h3-' : tag = 'h6'
-                        hlst.append('<' + tag + ' class="' + pclass + '">')
+                        if pclass[3:6] == b'h1-' : tag = 'h4'
+                        if pclass[3:6] == b'h2-' : tag = 'h5'
+                        if pclass[3:6] == b'h3-' : tag = 'h6'
+                        hlst.append('<' + tag + ' class="' + pclass.decode('utf-8') + '">')
                         hlst.append(self.buildParagraph(pclass, pdesc, 'middle', regtype))
                         hlst.append('</' + tag + '>')
                     else :
                         hlst.append(self.buildParagraph(pclass, pdesc, ptype, regtype))
 
-                elif (regtype == 'tocentry') :
+                elif (regtype == b'tocentry') :
                     ptype = 'full'
                     if first_para_continued :
                         ptype = 'end'
@@ -733,7 +739,7 @@ class DocParser(object):
                     tocinfo += self.buildTOCEntry(pdesc)
                     hlst.append(self.buildParagraph(pclass, pdesc, ptype, regtype))
 
-                elif (regtype == 'vertical') or (regtype == 'table') :
+                elif (regtype == b'vertical') or (regtype == b'table') :
                     ptype = 'full'
                     if inGroup:
                         ptype = 'middle'
@@ -744,19 +750,19 @@ class DocParser(object):
                     hlst.append(self.buildParagraph(pclass, pdesc, ptype, regtype))
 
 
-                elif (regtype == 'synth_fcvr.center'):
-                    (pos, simgsrc) = self.findinDoc('img.src',start,end)
+                elif (regtype == b'synth_fcvr.center'):
+                    (pos, simgsrc) = self.findinDoc(b'img.src',start,end)
                     if simgsrc:
                         hlst.append('<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc))
 
                 else :
                     print('          Making region type', regtype, end=' ')
-                    (pos, temp) = self.findinDoc('paragraph',start,end)
-                    (pos2, temp) = self.findinDoc('span',start,end)
+                    (pos, temp) = self.findinDoc(b'paragraph',start,end)
+                    (pos2, temp) = self.findinDoc(b'span',start,end)
                     if pos != -1 or pos2 != -1:
                         print(' a "text" region')
                         orig_regtype = regtype
-                        regtype = 'fixed'
+                        regtype = b'fixed'
                         ptype = 'full'
                         # check to see if this is a continution from the previous page
                         if first_para_continued :
@@ -764,23 +770,23 @@ class DocParser(object):
                             first_para_continued = False
                         (pclass, pdesc) = self.getParaDescription(start,end, regtype)
                         if not pclass:
-                            if orig_regtype.endswith('.right')     : pclass = 'cl-right'
-                            elif orig_regtype.endswith('.center')  : pclass = 'cl-center'
-                            elif orig_regtype.endswith('.left')    : pclass = 'cl-left'
-                            elif orig_regtype.endswith('.justify') : pclass = 'cl-justify'
+                            if orig_regtype.endswith(b'.right')     : pclass = 'cl-right'
+                            elif orig_regtype.endswith(b'.center')  : pclass = 'cl-center'
+                            elif orig_regtype.endswith(b'.left')    : pclass = 'cl-left'
+                            elif orig_regtype.endswith(b'.justify') : pclass = 'cl-justify'
                         if pclass and (ptype == 'full') and (len(pclass) >= 6):
                             tag = 'p'
-                            if pclass[3:6] == 'h1-' : tag = 'h4'
-                            if pclass[3:6] == 'h2-' : tag = 'h5'
-                            if pclass[3:6] == 'h3-' : tag = 'h6'
-                            hlst.append('<' + tag + ' class="' + pclass + '">')
+                            if pclass[3:6] == b'h1-' : tag = 'h4'
+                            if pclass[3:6] == b'h2-' : tag = 'h5'
+                            if pclass[3:6] == b'h3-' : tag = 'h6'
+                            hlst.append('<' + tag + ' class="' + pclass.decode('utf-8') + '">')
                             hlst.append(self.buildParagraph(pclass, pdesc, 'middle', regtype))
                             hlst.append('</' + tag + '>')
                         else :
                             hlst.append(self.buildParagraph(pclass, pdesc, ptype, regtype))
                     else :
                         print(' a "graphic" region')
-                        (pos, simgsrc) = self.findinDoc('img.src',start,end)
+                        (pos, simgsrc) = self.findinDoc(b'img.src',start,end)
                         if simgsrc:
                             hlst.append('<div class="graphic"><img src="img/img%04d.jpg" alt="" /></div>' % int(simgsrc))
 
