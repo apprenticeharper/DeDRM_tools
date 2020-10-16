@@ -87,11 +87,11 @@ if inCalibre:
     from calibre_plugins.dedrm import androidkindlekey
     from calibre_plugins.dedrm import kfxdedrm
 else:
-    from . import mobidedrm
-    from . import topazextract
-    from . import kgenpids
-    from . import androidkindlekey
-    from . import kfxdedrm
+    import mobidedrm
+    import topazextract
+    import kgenpids
+    import androidkindlekey
+    import kfxdedrm
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -204,14 +204,14 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
 
     mobi = True
     magic8 = open(infile,'rb').read(8)
-    if magic8 == '\xeaDRMION\xee':
+    if magic8 == b'\xeaDRMION\xee':
         raise DrmException("The .kfx DRMION file cannot be decrypted by itself. A .kfx-zip archive containing a DRM voucher is required.")
 
     magic3 = magic8[:3]
-    if magic3 == 'TPZ':
+    if magic3 == b'TPZ':
         mobi = False
 
-    if magic8[:4] == 'PK\x03\x04':
+    if magic8[:4] == b'PK\x03\x04':
         mb = kfxdedrm.KFXZipBook(infile)
     elif mobi:
         mb = mobidedrm.MobiBook(infile)
@@ -309,10 +309,10 @@ def usage(progname):
 def cli_main():
     argv=unicode_argv()
     progname = os.path.basename(argv[0])
-    print("K4MobiDeDrm v{0}.\nCopyright © 2008-2017 Apprentice Harper et al.".format(__version__))
+    print("K4MobiDeDrm v{0}.\nCopyright © 2008-2020 Apprentice Harper et al.".format(__version__))
 
     try:
-        opts, args = getopt.getopt(argv[1:], "k:p:s:a:")
+        opts, args = getopt.getopt(argv[1:], "k:p:s:a:h")
     except getopt.GetoptError as err:
         print("Error in options or arguments: {0}".format(err.args[0]))
         usage(progname)
@@ -329,6 +329,9 @@ def cli_main():
     pids = []
 
     for o, a in opts:
+        if o == "-h":
+            usage(progname)
+            sys.exit(0)
         if o == "-k":
             if a == None :
                 raise DrmException("Invalid parameter for -k")
@@ -345,9 +348,6 @@ def cli_main():
             if a == None:
                 raise DrmException("Invalid parameter for -a")
             androidFiles.append(a)
-
-    # try with built in Kindle Info files if not on Linux
-    k4 = not sys.platform.startswith('linux')
 
     return decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids)
 
