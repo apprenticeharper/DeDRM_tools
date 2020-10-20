@@ -1,6 +1,7 @@
 # DeDRM_tools
 DeDRM tools for ebooks
-
+# [Guide] How to remove DRM
+Refer to [Wiki Page](https://github.com/apprenticeharper/DeDRM_tools/wiki/How-to-exact-remove-DRM)
 # calibre 5.0
 
 Yes, we know that the plugin doesn't work with calibre 5.0. It will eventually, but there's a lot of code to be translated that does complicated stuff with bits and bytes that must be converted by hand. It'll take a while.
