@@ -37,14 +37,14 @@ class legacy_obok(object):
     
     def __oldcookiedeviceid(self):
         '''Optionally attempt to get a device id using the old cookie method.
-        Must have _winreg installed on Windows machines for successful key retrieval.'''
+        Must have winreg installed on Windows machines for successful key retrieval.'''
         wsuid = ''
         pwsdid = ''
         try:
             if sys.platform.startswith('win'):
-                import _winreg
-                regkey_browser = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, 'Software\\Kobo\\Kobo Desktop Edition\\Browser')
-                cookies = _winreg.QueryValueEx(regkey_browser, 'cookies')
+                import winreg
+                regkey_browser = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\\Kobo\\Kobo Desktop Edition\\Browser')
+                cookies = winreg.QueryValueEx(regkey_browser, 'cookies')
                 bytearrays = cookies[0]
             elif sys.platform.startswith('darwin'):
                 prefs = os.path.join(os.environ['HOME'], 'Library/Preferences/com.kobo.Kobo Desktop Edition.plist')

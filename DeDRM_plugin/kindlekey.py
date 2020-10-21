@@ -190,7 +190,6 @@ if iswindows:
         create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
         string_at, Structure, c_void_p, cast
 
-    # import _winreg as winreg
     import winreg
     MAX_PATH = 255
     kernel32 = windll.kernel32
