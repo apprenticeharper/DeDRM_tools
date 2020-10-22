@@ -289,7 +289,7 @@ class KeyIVGen(object):
         sha = hashlib.sha1
         digest_size = sha().digest_size
         # l - number of output blocks to produce
-        l = keylen / digest_size
+        l = int(keylen / digest_size)
         if keylen % digest_size != 0:
             l += 1
         h = hmac.new( passwd, None, sha )

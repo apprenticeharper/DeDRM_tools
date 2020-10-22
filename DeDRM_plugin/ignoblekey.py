@@ -95,7 +95,7 @@ def getNookLogFiles():
     logFiles = []
     found = False
     if iswindows:
-        import _winreg as winreg
+        import winreg
 
         # some 64 bit machines do not have the proper registry key for some reason
         # or the python interface to the 32 vs 64 bit registry is broken
