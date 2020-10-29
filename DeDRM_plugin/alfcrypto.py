@@ -268,10 +268,10 @@ class KeyIVGen(object):
     #                             [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
     def pbkdf2(self, passwd, salt, iter, keylen):
 
-        def xorstr( a, b ):
+        def xorbytes( a, b ):
             if len(a) != len(b):
-                raise Exception("xorstr(): lengths differ")
-            return ''.join((chr(ord(x)^ord(y)) for x, y in zip(a, b)))
+                raise Exception("xorbytes(): lengths differ")
+            return bytes([x ^ y for x, y in zip(a, b)])
 
         def prf( h, data ):
             hm = h.copy()
@@ -283,17 +283,17 @@ class KeyIVGen(object):
             T = U
             for i in range(2, itercount+1):
                 U = prf( h, U )
-                T = xorstr( T, U )
+                T = xorbytes( T, U )
             return T
 
         sha = hashlib.sha1
         digest_size = sha().digest_size
         # l - number of output blocks to produce
-        l = int(keylen / digest_size)
+        l = keylen // digest_size
         if keylen % digest_size != 0:
             l += 1
         h = hmac.new( passwd, None, sha )
-        T = ""
+        T = b""
         for i in range(1, l+1):
             T += pbkdf2_F( h, salt, iter, i )
         return T[0: keylen]

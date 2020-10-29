@@ -431,7 +431,7 @@ class ManageKeysDialog(QDialog):
         defaultname = "{0}.{1}".format(keyname, self.keyfile_ext)
         filename = choose_save_file(self, unique_dlg_name,  caption, filters, all_files=False, initial_filename=defaultname)
         if filename:
-            with file(filename, 'wb') as fname:
+            with open(filename, 'w') as fname:
                 if self.binary_file:
                     fname.write(self.plugin_keys[keyname].decode('hex'))
                 elif self.json_file:
