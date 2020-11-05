@@ -1084,7 +1084,7 @@ if iswindows:
             added_entropy = build + guid
         elif version == 6:  # .kinf2018
             salt = str(0x6d8 * int(build)).encode('utf-8') + guid
-            sp = GetUserName() + '+@#$%+' + GetIDString()
+            sp = GetUserName() + b'+@#$%+' + GetIDString().encode('utf-8')
             passwd = encode(SHA256(sp), charMap5)
             key = KeyIVGen().pbkdf2(passwd, salt, 10000, 0x400)[:32]  # this is very slow
 
