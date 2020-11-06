@@ -28,9 +28,9 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
         wineprefix = os.path.abspath(os.path.expanduser(os.path.expandvars(wineprefix)))
 
     if wineprefix != "" and os.path.exists(wineprefix):
-         cmdline = "WINEPREFIX=\"{2}\" wine python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath,wineprefix)
+         cmdline = "PYTHONPATH=\"\" WINEPREFIX=\"{2}\" wine python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath,wineprefix)
     else:
-        cmdline = "wine python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath)
+        cmdline = "PYTHONPATH=\"\" wine python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath)
     print("{0} v{1}: Command line: '{2}'".format(PLUGIN_NAME, PLUGIN_VERSION, cmdline))
 
     try:
@@ -40,9 +40,9 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
     except Exception as e:
         print("{0} v{1}: Wine subprocess call error: {2}".format(PLUGIN_NAME, PLUGIN_VERSION, e.args[0]))
         if wineprefix != "" and os.path.exists(wineprefix):
-            cmdline = "WINEPREFIX=\"{2}\" wine C:\\Python27\\python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath,wineprefix)
+            cmdline = "PYTHONPATH=\"\" WINEPREFIX=\"{2}\" wine C:\\Python27\\python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath,wineprefix)
         else:
-           cmdline = "wine C:\\Python27\\python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath)
+           cmdline = "PYTHONPATH=\"\" wine C:\\Python27\\python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath)
         print("{0} v{1}: Command line: “{2}”".format(PLUGIN_NAME, PLUGIN_VERSION, cmdline))
 
         try:
