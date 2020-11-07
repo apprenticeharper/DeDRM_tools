@@ -580,9 +580,9 @@ def cli_main():
     elif len(args)==4:
         infile, outpath, name, cc = args
 
-    print(bin2ascii.b2a_hex(getuser_key(name, cc)))
+    print(binascii.b2a_hex(getuser_key(name, cc)))
 
-    return decryptBook(infile, outpath, make_pmlz, bin2ascii.b2a_hex(getuser_key(name, cc)))
+    return decryptBook(infile, outpath, make_pmlz, getuser_key(name, cc))
 
 
 if __name__ == "__main__":
