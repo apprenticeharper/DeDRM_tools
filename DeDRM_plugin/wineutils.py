@@ -7,15 +7,74 @@ __license__ = 'GPL v3'
 import os, sys, re, hashlib, traceback
 from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
 
-def WineGetKeys(scriptpath, extension, wineprefix=""):
-    import subprocess
-    from subprocess import Popen, PIPE, STDOUT
 
-    import subasyncio
-    from subasyncio import Process
+class NoWinePython3Exception(Exception):
+    pass
+
+
+class WinePythonCLI:
+    py3_test = "import sys; sys.exit(0 if (sys.version_info.major==3) else 1)"
+    def __init__(self, wineprefix=""):
+        import subprocess
+
+        if wineprefix != "":
+            wineprefix = os.path.abspath(os.path.expanduser(os.path.expandvars(wineprefix)))
+
+        if wineprefix != "" and os.path.exists(wineprefix):
+            self.wineprefix = wineprefix
+        else:
+            self.wineprefix = None
+
+        candidate_execs = [
+            ["wine", "py.exe", "-3"],
+            ["wine", "python3.exe"],
+            ["wine", "python.exe"],
+            ["wine", "C:\\Python27\\python.exe"], # Should likely be removed
+        ]
+        for e in candidate_execs:
+            self.python_exec = e
+            try:
+                self.check_call(["-c", self.py3_test])
+                print("{0} v{1}: Python3 exec found as {2}".format(
+                    PLUGIN_NAME, PLUGIN_VERSION, " ".join(self.python_exec)
+                ))
+                return None
+            except subprocess.CalledProcessError as e:
+                if e.returncode == 1:
+                    print("{0} v{1}: {2} is not python3".format(
+                        PLUGIN_NAME, PLUGIN_VERSION, " ".join(self.python_exec)
+                    ))
+                elif e.returncode == 53:
+                    print("{0} v{1}: {2} does not exist".format(
+                        PLUGIN_NAME, PLUGIN_VERSION, " ".join(self.python_exec)
+                    ))
+        raise NoWinePython3Exception("Could not find python3 executable on specified wine prefix")
+
+
+    def check_call(self, cli_args):
+        import subprocess
+
+        env_dict = os.environ
+        env_dict["PYTHONPATH"] = ""
+        if self.wineprefix is not None:
+            env_dict["WINEPREFIX"] = self.wineprefix
+
+        subprocess.check_call(self.python_exec + cli_args, env=env_dict,
+                              stdin=None, stdout=sys.stdout,
+                              stderr=subprocess.STDOUT, close_fds=False,
+                              bufsize=1)
+
+
+def WineGetKeys(scriptpath, extension, wineprefix=""):
 
     if extension == ".k4i":
         import json
+
+    try:
+        pyexec = WinePythonCLI(wineprefix)
+    except NoWinePython3Exception:
+        print('{0} v{1}: Unable to find python3 executable in WINEPREFIX="{2}"'.format(PLUGIN_NAME, PLUGIN_VERSION, wineprefix))
+        return []
 
     basepath, script = os.path.split(scriptpath)
     print("{0} v{1}: Running {2} under Wine".format(PLUGIN_NAME, PLUGIN_VERSION, script))
@@ -27,30 +86,10 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
     if wineprefix != "":
         wineprefix = os.path.abspath(os.path.expanduser(os.path.expandvars(wineprefix)))
 
-    if wineprefix != "" and os.path.exists(wineprefix):
-         cmdline = "PYTHONPATH=\"\" WINEPREFIX=\"{2}\" wine python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath,wineprefix)
-    else:
-        cmdline = "PYTHONPATH=\"\" wine python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath)
-    print("{0} v{1}: Command line: '{2}'".format(PLUGIN_NAME, PLUGIN_VERSION, cmdline))
-
     try:
-        cmdline = cmdline.encode(sys.getfilesystemencoding())
-        p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=sys.stdout, stderr=STDOUT, close_fds=False)
-        result = p2.wait("wait")
+        result = pyexec.check_call([scriptpath, outdirpath])
     except Exception as e:
         print("{0} v{1}: Wine subprocess call error: {2}".format(PLUGIN_NAME, PLUGIN_VERSION, e.args[0]))
-        if wineprefix != "" and os.path.exists(wineprefix):
-            cmdline = "PYTHONPATH=\"\" WINEPREFIX=\"{2}\" wine C:\\Python27\\python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath,wineprefix)
-        else:
-           cmdline = "PYTHONPATH=\"\" wine C:\\Python27\\python.exe \"{0}\" \"{1}\"".format(scriptpath,outdirpath)
-        print("{0} v{1}: Command line: “{2}”".format(PLUGIN_NAME, PLUGIN_VERSION, cmdline))
-
-        try:
-           cmdline = cmdline.encode(sys.getfilesystemencoding())
-           p2 = Process(cmdline, shell=True, bufsize=1, stdin=None, stdout=sys.stdout, stderr=STDOUT, close_fds=False)
-           result = p2.wait("wait")
-        except Exception as e:
-           print("{0} v{1}: Wine subprocess call error: {2}".format(PLUGIN_NAME, PLUGIN_VERSION, e.args[0]))
 
     # try finding winekeys anyway, even if above code errored
     winekeys = []
