@@ -310,7 +310,7 @@ def _load_crypto_pycrypto():
             total = 0
             for byte in bytes:
                 total = (total << 8) + byte
-            return total
+            return long(total)
 
         def decrypt(self, data):
             return self._rsa.decrypt(data)
