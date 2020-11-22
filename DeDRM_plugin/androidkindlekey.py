@@ -136,7 +136,7 @@ class AndroidObfuscationV2(AndroidObfuscation):
     '''
 
     count = 503
-    password = 'Thomsun was here!'
+    password = b'Thomsun was here!'
 
     def __init__(self, salt):
         key = self.password + salt
@@ -182,7 +182,7 @@ def get_serials1(path=STORAGE1):
         obfuscation = AndroidObfuscation()
 
     def get_value(key):
-        encrypted_key = obfuscation.encrypt(key)
+        encrypted_key = obfuscation.encrypt(a2b_hex(key))
         encrypted_value = storage.get(encrypted_key)
         if encrypted_value:
             return obfuscation.decrypt(encrypted_value)
@@ -217,15 +217,14 @@ def get_serials2(path=STORAGE2):
     import sqlite3
     connection = sqlite3.connect(path)
     cursor = connection.cursor()
-    cursor.execute('''select userdata_value from userdata where userdata_key like '%/%token.device.deviceserialname%' ''')
-    userdata_keys = cursor.fetchall()
+    cursor.execute('''select device_data_value from device_data where device_data_key like '%serial.number%' ''')
+    device_data_keys = cursor.fetchall()
     dsns = []
-    for userdata_row in userdata_keys:
+    for device_data_row in device_data_keys:
         try:
-            if userdata_row and userdata_row[0]:
-                userdata_utf8 = userdata_row[0].encode('utf8')
-                if len(userdata_utf8) > 0:
-                    dsns.append(userdata_utf8)
+            if device_data_row and device_data_row[0]:
+                if len(device_data_row[0]) > 0:
+                    dsns.append(device_data_row[0])
         except:
             print("Error getting one of the device serial name keys")
             traceback.print_exc()
@@ -238,9 +237,12 @@ def get_serials2(path=STORAGE2):
     for userdata_row in userdata_keys:
         try:
             if userdata_row and userdata_row[0]:
-                userdata_utf8 = userdata_row[0].encode('utf8')
-                if len(userdata_utf8) > 0:
-                    tokens.append(userdata_utf8)
+                if len(userdata_row[0]) > 0:
+                    if ',' in userdata_row[0]:
+                        splits = userdata_row[0].split(',')
+                        for split in splits:
+                            tokens.append(split)
+                    tokens.append(userdata_row[0])
         except:
             print("Error getting one of the account token keys")
             traceback.print_exc()
@@ -249,11 +251,10 @@ def get_serials2(path=STORAGE2):
 
     serials = []
     for x in dsns:
-        serials.append(x)
         for y in tokens:
-            serials.append('%s%s' % (x, y))
-    for y in tokens:
-        serials.append(y)
+            serials.append(x)
+            serials.append(y)
+            serials.append(x+y)
     return serials
 
 def get_serials(path=STORAGE):
@@ -275,7 +276,7 @@ def get_serials(path=STORAGE):
     try :
         read = open(path, 'rb')
         head = read.read(24)
-        if head[:14] == 'ANDROID BACKUP':
+        if head[:14] == b'ANDROID BACKUP':
             output = StringIO(zlib.decompress(read.read()))
     except Exception:
         pass
@@ -313,7 +314,7 @@ def getkey(outfile, inpath):
     if len(keys) > 0:
         with open(outfile, 'w') as keyfileout:
             for key in keys:
-                keyfileout.write(key)
+                keyfileout.write(b2a_hex(key))
                 keyfileout.write("\n")
         return True
     return False

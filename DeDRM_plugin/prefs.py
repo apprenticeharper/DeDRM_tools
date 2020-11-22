@@ -6,7 +6,7 @@ __license__ = 'GPL v3'
 
 # Standard Python modules.
 import os, sys, re, hashlib
-import json
+import codecs, json
 import traceback
 
 from calibre.utils.config import dynamic, config_dir, JSONConfig
@@ -116,7 +116,7 @@ def convertprefs(always = False):
                 name, cc = keystring.split(',')
                 # Generate eReader user key from name and credit card number.
                 keyname = "{0}_{1}".format(name.strip(),cc.strip()[-4:])
-                keyvalue = getuser_key(name,cc).encode('hex')
+                keyvalue = codecs.encode(getuser_key(name,cc),'hex')
                 userkeys.append([keyname,keyvalue])
             except Exception as e:
                 traceback.print_exc()
@@ -146,7 +146,7 @@ def convertprefs(always = False):
                 key = os.path.splitext(filename)[0]
                 value = open(fpath, 'rb').read()
                 if encoding is not None:
-                    value = value.encode(encoding)
+                    value = codecs.encode(value,encoding)
                 userkeys.append([key,value])
             except:
                 traceback.print_exc()

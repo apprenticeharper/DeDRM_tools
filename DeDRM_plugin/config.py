@@ -6,7 +6,7 @@ __license__ = 'GPL v3'
 # Python 3, September 2020
 
 # Standard Python modules.
-import os, traceback, json, binascii
+import os, traceback, json, codecs
 
 from PyQt5.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
                       QGroupBox, QPushButton, QListWidget, QListWidgetItem,
@@ -378,7 +378,7 @@ class ManageKeysDialog(QDialog):
                 with open(fpath,'rb') as keyfile:
                     new_key_value = keyfile.read()
                 if self.binary_file:
-                    new_key_value = binascii.b2a_hex(new_key_value)
+                    new_key_value = codecs.encode(new_key_value,'hex')
                 elif self.json_file:
                     new_key_value = json.loads(new_key_value)
                 elif self.android_file:
@@ -433,18 +433,18 @@ class ManageKeysDialog(QDialog):
         if filename:
             if self.binary_file:
                 with open(filename, 'wb') as fname:
-                    fname.write(binascii.a2b_hex(self.plugin_keys[keyname]))
+                    fname.write(codecs.decode(self.plugin_keys[keyname],'hex'))
             elif self.json_file:
                 with open(filename, 'w') as fname:
                     fname.write(json.dumps(self.plugin_keys[keyname]))
             elif self.android_file:
                 with open(filename, 'w') as fname:
                     for key in self.plugin_keys[keyname]:
-                        fname.write(key.decode('utf-8'))
+                        fname.write(key)
                         fname.write('\n')
             else:
                 with open(filename, 'w') as fname:
-                    fname.write(self.plugin_keys[keyname].decode('utf-8'))
+                    fname.write(self.plugin_keys[keyname])
 
 
 
@@ -673,7 +673,7 @@ class AddEReaderDialog(QDialog):
     @property
     def key_value(self):
         from calibre_plugins.dedrm.erdr2pml import getuser_key as generate_ereader_key
-        return binascii.b2a_hex(generate_ereader_key(self.user_name, self.cc_number))
+        return codecs.encode(generate_ereader_key(self.user_name, self.cc_number),'hex')
 
     @property
     def user_name(self):
@@ -755,7 +755,7 @@ class AddAdeptDialog(QDialog):
 
     @property
     def key_value(self):
-        return binascii.b2a_hex(self.default_key)
+        return codecs.encode(self.default_key,'hex')
 
 
     def accept(self):

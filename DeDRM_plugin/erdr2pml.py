@@ -542,7 +542,7 @@ def usage():
     print("  It's enough to enter the last 8 digits of the credit card number")
     return
 
-def getuser_key(name, cc):
+def getuser_key(name,cc):
     newname = "".join(c for c in name.lower() if c >= 'a' and c <= 'z' or c >= '0' and c <= '9')
     cc = cc.replace(" ","")
     return struct.pack('>LL', binascii.crc32(bytes(newname.encode('utf-8'))) & 0xffffffff, binascii.crc32(bytes(cc[-8:].encode('utf-8'))) & 0xffffffff)
@@ -580,9 +580,9 @@ def cli_main():
     elif len(args)==4:
         infile, outpath, name, cc = args
 
-    print(binascii.b2a_hex(getuser_key(name, cc)))
+    print(binascii.b2a_hex(getuser_key(name,cc)))
 
-    return decryptBook(infile, outpath, make_pmlz, getuser_key(name, cc))
+    return decryptBook(infile, outpath, make_pmlz, getuser_key(name,cc))
 
 
 if __name__ == "__main__":

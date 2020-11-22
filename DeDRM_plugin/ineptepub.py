@@ -203,6 +203,7 @@ def _load_crypto_libcrypto():
 def _load_crypto_pycrypto():
     from Crypto.Cipher import AES as _AES
     from Crypto.PublicKey import RSA as _RSA
+    from Crypto.Cipher import PKCS1_v1_5 as _PKCS1_v1_5
 
     # ASN.1 parsing code from tlslite
     class ASN1Error(Exception):
@@ -294,14 +295,14 @@ def _load_crypto_pycrypto():
 
     class AES(object):
         def __init__(self, key):
-            self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
+            self._aes = _AES.new(key, _AES.MODE_CBC, b'\x00'*16)
 
         def decrypt(self, data):
             return self._aes.decrypt(data)
 
     class RSA(object):
         def __init__(self, der):
-            key = ASN1Parser([ord(x) for x in der])
+            key = ASN1Parser([x for x in der])
             key = [key.getChild(x).value for x in range(1, 4)]
             key = [self.bytesToNumber(v) for v in key]
             self._rsa = _RSA.construct(key)
@@ -313,7 +314,7 @@ def _load_crypto_pycrypto():
             return total
 
         def decrypt(self, data):
-            return self._rsa.decrypt(data)
+            return _PKCS1_v1_5.new(self._rsa).decrypt(data, 172)
 
     return (AES, RSA)
 
@@ -410,11 +411,14 @@ def decryptBook(userkey, inpath, outpath):
                 return 1
             bookkey = rsa.decrypt(codecs.decode(bookkey.encode('ascii'), 'base64'))
             # Padded as per RSAES-PKCS1-v1_5
-            if bookkey[-17] != '\x00' and bookkey[-17] != 0:
-                print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
-                return 2
+            if len(bookkey) != 16:
+                if bookkey[-17] != '\x00' and bookkey[-17] != 0:
+                    print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
+                    return 2
+                else:
+                    bookkey = bookkey[-16:]
             encryption = inf.read('META-INF/encryption.xml')
-            decryptor = Decryptor(bookkey[-16:], encryption)
+            decryptor = Decryptor(bookkey, encryption)
             kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
             with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
                 zi = ZipInfo('mimetype')
@@ -475,9 +479,9 @@ def cli_main():
 def gui_main():
     try:
         import tkinter
-        import tkinter_constants
-        import tkinter_filedialog
-        import tkinter_messagebox
+        import tkinter.constants
+        import tkinter.filedialog
+        import tkinter.messagebox
         import traceback
     except:
         return cli_main()
@@ -486,10 +490,10 @@ def gui_main():
         def __init__(self, root):
             tkinter.Frame.__init__(self, root, border=5)
             self.status = tkinter.Label(self, text="Select files for decryption")
-            self.status.pack(fill=tkinter_constants.X, expand=1)
+            self.status.pack(fill=tkinter.constants.X, expand=1)
             body = tkinter.Frame(self)
-            body.pack(fill=tkinter_constants.X, expand=1)
-            sticky = tkinter_constants.E + tkinter_constants.W
+            body.pack(fill=tkinter.constants.X, expand=1)
+            sticky = tkinter.constants.E + tkinter.constants.W
             body.grid_columnconfigure(1, weight=2)
             tkinter.Label(body, text="Key file").grid(row=0)
             self.keypath = tkinter.Entry(body, width=30)
@@ -512,41 +516,41 @@ def gui_main():
             buttons.pack()
             botton = tkinter.Button(
                 buttons, text="Decrypt", width=10, command=self.decrypt)
-            botton.pack(side=tkinter_constants.LEFT)
-            tkinter.Frame(buttons, width=10).pack(side=tkinter_constants.LEFT)
+            botton.pack(side=tkinter.constants.LEFT)
+            tkinter.Frame(buttons, width=10).pack(side=tkinter.constants.LEFT)
             button = tkinter.Button(
                 buttons, text="Quit", width=10, command=self.quit)
-            button.pack(side=tkinter_constants.RIGHT)
+            button.pack(side=tkinter.constants.RIGHT)
 
         def get_keypath(self):
-            keypath = tkinter_filedialog.askopenfilename(
+            keypath = tkinter.filedialog.askopenfilename(
                 parent=None, title="Select Adobe Adept \'.der\' key file",
                 defaultextension=".der",
                 filetypes=[('Adobe Adept DER-encoded files', '.der'),
                            ('All Files', '.*')])
             if keypath:
                 keypath = os.path.normpath(keypath)
-                self.keypath.delete(0, tkinter_constants.END)
+                self.keypath.delete(0, tkinter.constants.END)
                 self.keypath.insert(0, keypath)
             return
 
         def get_inpath(self):
-            inpath = tkinter_filedialog.askopenfilename(
+            inpath = tkinter.filedialog.askopenfilename(
                 parent=None, title="Select ADEPT-encrypted ePub file to decrypt",
                 defaultextension=".epub", filetypes=[('ePub files', '.epub')])
             if inpath:
                 inpath = os.path.normpath(inpath)
-                self.inpath.delete(0, tkinter_constants.END)
+                self.inpath.delete(0, tkinter.constants.END)
                 self.inpath.insert(0, inpath)
             return
 
         def get_outpath(self):
-            outpath = tkinter_filedialog.asksaveasfilename(
+            outpath = tkinter.filedialog.asksaveasfilename(
                 parent=None, title="Select unencrypted ePub file to produce",
                 defaultextension=".epub", filetypes=[('ePub files', '.epub')])
             if outpath:
                 outpath = os.path.normpath(outpath)
-                self.outpath.delete(0, tkinter_constants.END)
+                self.outpath.delete(0, tkinter.constants.END)
                 self.outpath.insert(0, outpath)
             return
 
@@ -576,13 +580,13 @@ def gui_main():
             if decrypt_status == 0:
                 self.status['text'] = "File successfully decrypted"
             else:
-                self.status['text'] = "The was an error decrypting the file."
+                self.status['text'] = "There was an error decrypting the file."
 
     root = tkinter.Tk()
     root.title("Adobe Adept ePub Decrypter v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(300, 0)
-    DecryptionDialog(root).pack(fill=tkinter_constants.X, expand=1)
+    DecryptionDialog(root).pack(fill=tkinter.constants.X, expand=1)
     root.mainloop()
     return 0
 
