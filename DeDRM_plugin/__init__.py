@@ -520,7 +520,7 @@ class DeDRM(FileTypePlugin):
         import calibre_plugins.dedrm.k4mobidedrm
 
         dedrmprefs = prefs.DeDRM_Prefs()
-        pids = dedrmprefs['pids']
+        pids = [bytes(pid.encode('utf-8')) for pid in dedrmprefs['pids']]
         serials = dedrmprefs['serials']
         for android_serials_list in dedrmprefs['androidkeys'].values():
             #print android_serials_list
