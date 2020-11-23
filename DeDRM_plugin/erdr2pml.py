@@ -545,7 +545,7 @@ def usage():
 def getuser_key(name,cc):
     newname = "".join(c for c in name.lower() if c >= 'a' and c <= 'z' or c >= '0' and c <= '9')
     cc = cc.replace(" ","")
-    return struct.pack('>LL', binascii.crc32(newname) & 0xffffffff,binascii.crc32(cc[-8:])& 0xffffffff)
+    return struct.pack('>LL', binascii.crc32(bytes(newname.encode('utf-8'))) & 0xffffffff, binascii.crc32(bytes(cc[-8:].encode('utf-8'))) & 0xffffffff)
 
 def cli_main():
     print("eRdr2Pml v{0}. Copyright © 2009–2020 The Dark Reverser et al.".format(__version__))
@@ -580,7 +580,7 @@ def cli_main():
     elif len(args)==4:
         infile, outpath, name, cc = args
 
-    print(getuser_key(name,cc).encode('hex'))
+    print(binascii.b2a_hex(getuser_key(name,cc)))
 
     return decryptBook(infile, outpath, make_pmlz, getuser_key(name,cc))
 

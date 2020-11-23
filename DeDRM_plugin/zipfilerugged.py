@@ -286,8 +286,8 @@ class ZipInfo (object):
         # This is used to ensure paths in generated ZIP files always use
         # forward slashes as the directory separator, as required by the
         # ZIP format specification.
-        if os.sep != "/" and os.sep in filename:
-            filename = filename.replace(os.sep, "/")
+        if os.sep != "/" and os.sep.encode('utf-8') in filename:
+            filename = filename.replace(os.sep.encode('utf-8'), b"/")
 
         self.filename = filename        # Normalized file name
         self.date_time = date_time      # year, month, day, hour, min, sec
