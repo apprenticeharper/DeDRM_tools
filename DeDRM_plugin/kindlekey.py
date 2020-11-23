@@ -157,27 +157,25 @@ def primes(n):
 # Encode the bytes in data with the characters in map
 # data and map should be byte arrays
 def encode(data, map):
-    result = ''
+    result = b''
     for char in data:
         value = char
         Q = (value ^ 0x80) // len(map)
         R = value % len(map)
-        result += map[Q]
-        result += map[R]
-    return result.encode('utf-8')
+        result += bytes([map[Q]])
+        result += bytes([map[R]])
+    return result
 
 # Hash the bytes in data and then encode the digest with the characters in map
 def encodeHash(data,map):
-    h = MD5(data)
-    return encode(h,map)
+    return encode(MD5(data),map)
 
 # Decode the string in data with the characters in map. Returns the decoded bytes
 def decode(data,map):
-    str_data = data.decode()
     result = b''
-    for i in range (0,len(str_data)-1,2):
-        high = map.find(str_data[i])
-        low = map.find(str_data[i+1])
+    for i in range (0,len(data)-1,2):
+        high = map.find(data[i])
+        low = map.find(data[i+1])
         if (high == -1) or (low == -1) :
             break
         value = (((high * len(map)) ^ 0x80) & 0xFF) + low
@@ -234,16 +232,8 @@ if iswindows:
         class DecryptNotBlockAlignedError(DecryptError):
             """ Error in decryption processing """
 
-        def xorS(a,b):
-            """ XOR two strings """
-            assert len(a)==len(b)
-            x = []
-            for i in range(len(a)):
-                x.append( chr(ord(a[i])^ord(b[i])))
-            return ''.join(x)
-
         def xor(a,b):
-            """ XOR two strings """
+            """ XOR two byte arrays, to lesser length """
             x = []
             for i in range(min(len(a),len(b))):
                 x.append( a[i] ^ b[i])
@@ -442,11 +432,10 @@ if iswindows:
                     7: {4:13,  5:13,  6:13,  7:13,  8:14},
                     8: {4:14,  5:14,  6:14,  7:14,  8:14}}
         #-------------------------------------
-        def keyExpansion(algInstance, keyString):
-            """ Expand a string of size keySize into a larger array """
+        def keyExpansion(algInstance, keyArray):
+            """ Expand a byte array of size keySize into a larger array """
             Nk, Nb, Nr = algInstance.Nk, algInstance.Nb, algInstance.Nr # for readability
-            key = [byte for byte in keyString]  # convert string to list
-            w = [[key[4*i],key[4*i+1],key[4*i+2],key[4*i+3]] for i in range(Nk)]
+            w = [[keyArray[4*i],keyArray[4*i+1],keyArray[4*i+2],keyArray[4*i+3]] for i in range(Nk)]
             for i in range(Nk,Nb*(Nr+1)):
                 temp = w[i-1]        # a four byte column
                 if (i%Nk) == 0 :
@@ -792,14 +781,9 @@ if iswindows:
             #                             [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
             def pbkdf2(self, passwd, salt, iter, keylen):
 
-                def xorstr( a, b ):
-                    if len(a) != len(b):
-                        raise Exception("xorstr(): lengths differ")
-                    return ''.join((chr(ord(x)^ord(y)) for x, y in zip(a, b)))
-                
                 def xorbytes( a, b ):
                     if len(a) != len(b):
-                        raise Exception("xorstr(): lengths differ")
+                        raise Exception("xorbytes(): lengths differ")
                     return bytes([x ^ y for x, y in zip(a, b)])
 
                 def prf( h, data ):
@@ -842,12 +826,12 @@ if iswindows:
 
     # Various character maps used to decrypt kindle info values.
     # Probably supposed to act as obfuscation
-    charMap2 = "AaZzB0bYyCc1XxDdW2wEeVv3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_"
-    charMap5 = "AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
+    charMap2 = b"AaZzB0bYyCc1XxDdW2wEeVv3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_"
+    charMap5 = b"AzB0bYyCeVvaZ3FfUuG4g-TtHh5SsIiR6rJjQq7KkPpL8lOoMm9Nn_c1XxDdW2wE"
     # New maps in K4PC 1.9.0
-    testMap1 = "n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
-    testMap6 = "9YzAb0Cd1Ef2n5Pr6St7Uvh3Jk4M8WxG"
-    testMap8 = "YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD"
+    testMap1 = b"n5Pr6St7Uv8Wx9YzAb0Cd1Ef2Gh3Jk4M"
+    testMap6 = b"9YzAb0Cd1Ef2n5Pr6St7Uvh3Jk4M8WxG"
+    testMap8 = b"YvaZ3FfUm9Nn_c1XuG4yCAzB0beVg-TtHh5SsIiR6rJjQdW2wEq7KkPpL8lOoMxD"
 
     # interface with Windows OS Routines
     class DataBlob(Structure):
@@ -987,7 +971,6 @@ if iswindows:
             print ('Could not find the folder in which to look for kinfoFiles.')
         else:
             # Probably not the best. To Fix (shouldn't ignore in encoding) or use utf-8
-            # print("searching for kinfoFiles in " + path.encode('ascii', 'ignore'))
             print("searching for kinfoFiles in " + path)
 
             # look for (K4PC 1.25.1 and later) .kinf2018 file
