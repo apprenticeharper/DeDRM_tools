@@ -311,7 +311,7 @@ def _load_crypto_pycrypto():
             total = 0
             for byte in bytes:
                 total = (total << 8) + byte
-            return long(total)
+            return total
 
         def decrypt(self, data):
             return _PKCS1_v1_5.new(self._rsa).decrypt(data, 172)
