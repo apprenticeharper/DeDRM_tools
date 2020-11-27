@@ -18,7 +18,7 @@ Just download and use these tools, that's all! Uh, almost. There are a few, uh, 
 
 But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the ebook stores selling ebooks compatible with Adobe Digital Editions 2.0.1, you should be able to remove the DRM that's been applied to your ebooks.
 
-### A Recent Change to Kindle for PC/Kindle for Mac
+### Recent Changes to Kindle for PC/Kindle for Mac
 Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source for conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name (PC) or disabling a component of the application (Mac). 
 
 Version 1.17 of Kindle is no longer available directly from Amazon, so you will need to search for the proper file name and find it on a third party site. The name is `KindleForPC-installer-1.17.44170.exe` for PC and `KindleForMac-44182.dmg` for Mac.
@@ -34,7 +34,7 @@ Verify the one of the following cryptographic hash values, using software of you
 * SHA-1: 7AB9A86B954CB23D622BD79E3257F8E2182D791C
 * SHA-256: 28DC21246A9C7CDEDD2D6F0F4082E6BF7EF9DB9CE9D485548E 8A9E1D19EAE2AC. 
 
-You will need to go to the preferences and uncheck the auto update checkbox. Then download and install 1.17 over the top of the newer installation. You'll also need to delete the KFX folders from your My Kindle Content folder.
+You will need to go to the preferences and uncheck the auto update checkbox. Then download and install 1.17 over the top of the newer installation. You'll also need to delete the KFX folders from your My Kindle Content folder. You may also need to take further action to prevent an auto update. The simplest wayis to find the 'updates' folder and replace it with a file. See [this thread] (http://www.mobileread.com/forums/showthread.php?t=283371) at MobileRead for a Script to do this on a PC. On a Mac you can find the folder at ~/Library/Application Support/Kindle/ just delete the folder 'updates' and save a blank text file called 'updates' in its place.
 
 Another possible solution is to use 1.19 or later, but disable KFX by renaming or disabling a necessary component of the application. This may or may not work on versions after 1.25. In a command window, enter the following commands when Kindle for PC/Mac is not running:
 
@@ -51,7 +51,7 @@ Mac Note: If the chmod command fails with a permission error try again using `su
 After restarting the Kindle program any books previously downloaded in KFX format will no longer open. You will need to remove them from your device and re-download them. All future downloads will use the older Kindle formats instead of KFX although they will continue to be placed in one individual subdirectory per book. Note that books soudl be downoad by right-click and 'Download', not by just opening the book. Recent (1.25+) versions of Kindle for Mac/PC may convert KF8 files to a new format that is not supported by these tools when the book is opened for reading.
 
 #### Decrypting KFX
-Thanks to work by several people, the tools can now decrypt KFX format ebooks from Kindle for Mac/PC. In addition to the DeDRM plugin, calibre users will also need to install jhowell's KFX Input plugin which is available through the standard plugin menu in calibre, or directly from [his plugin thread](https://www.mobileread.com/forums/showthread.php?t=291290) on Mobileread. 
+Thanks to work by several people, the tools can now decrypt KFX format ebooks from Kindle for Mac/PC version 1.26 or earlier (version later than 1.26 use a new encryption scheme for KFX files). In addition to the DeDRM plugin, calibre users will also need to install jhowell's KFX Input plugin which is available through the standard plugin menu in calibre, or directly from [his plugin thread](https://www.mobileread.com/forums/showthread.php?t=291290) on Mobileread. 
 
 #### Thanks
 Thanks to jhowell for his investigations into KFX format and the KFX Input plugin. Some of these instructions are from [his thread on the subject](https://www.mobileread.com/forums/showthread.php?t=283371) at MobileRead.
@@ -68,7 +68,7 @@ Install calibre. Install the DeDRM\_plugin in calibre. Install the Obok\_plugin 
 # Installing the Tools
 ## The calibre plugin
 ### I am trying to install the calibre plugin, but calibre says "ERROR: Unhandled exception: InvalidPlugin: The plugin in u’[path]DeDRM\_tools\_6.5.3.zip’ is invalid. It does not contain a top-level \_\_init\_\_.py file"
-You are trying to add the tools archive (e.g. `DeDRM_tools_6.5.3.zip`) instead of the plugin. The tools archive is not the plugin. It is a collection of DRM removal tools which includes the plugin. You must unzip the archive, and install the calibre plugin `DeDRM_plugin.zip` from a folder called `DeDRM_calibre_plugin` in the unzipped archive.
+You are trying to add the tools archive (e.g. `DeDRM_tools_6.8.0.zip`) instead of the plugin. The tools archive is not the plugin. It is a collection of DRM removal tools which includes the plugin. You must unzip the archive, and install the calibre plugin `DeDRM_plugin.zip` from a folder called `DeDRM_calibre_plugin` in the unzipped archive.
 
 ### I’ve unzipped the tools archive, but I can’t find the calibre plugin when I try to add them to calibre. I use Windows.
 You should select the zip file that is in the `DeDRM_calibre_plugin` folder, not any files inside the plugin’s zip archive. Make sure you are selecting from the folder that you created when you unzipped the tools archive and not selecting a file inside the still-zipped tools archive.
