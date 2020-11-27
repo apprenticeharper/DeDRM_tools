@@ -169,12 +169,12 @@ def getfiledata(file, zi):
 
 def encryption(infile):
     # returns encryption: one of Unencrypted, Adobe, B&N and Unknown
-    encryption = "Unknown"
+    encryption = "Error When Checking."
     try:
         with open(infile,'rb') as infileobject:
             bookdata = infileobject.read(58)
             # Check for Zip
-            if bookdata[0:0+2] == "PK":
+            if bookdata[0:0+2] == b"PK":
                 foundrights = False
                 foundencryption = False
                 inzip = zipfile.ZipFile(infile,'r')
@@ -198,7 +198,10 @@ def encryption(infile):
 
 def main():
     argv=unicode_argv()
-    print(encryption(argv[1]))
+    if len(argv) < 2:
+        print("Give an ePub file as a parameter.")
+    else:
+        print(encryption(argv[1]))
     return 0
 
 if __name__ == "__main__":
