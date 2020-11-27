@@ -35,7 +35,7 @@ class KFXZipBook:
             for filename in zf.namelist():
                 with zf.open(filename) as fh:
                     data = fh.read(8)
-                    if data != '\xeaDRMION\xee':
+                    if data != b'\xeaDRMION\xee':
                         continue
                     data += fh.read()
                     if self.voucher is None:
@@ -53,11 +53,11 @@ class KFXZipBook:
             for info in zf.infolist():
                 with zf.open(info.filename) as fh:
                     data = fh.read(4)
-                    if data != '\xe0\x01\x00\xea':
+                    if data != b'\xe0\x01\x00\xea':
                         continue
 
                     data += fh.read()
-                    if 'ProtectedData' in data:
+                    if b'ProtectedData' in data:
                         break   # found DRM voucher
             else:
                 raise Exception("The .kfx-zip archive contains an encrypted DRMION file without a DRM voucher")
