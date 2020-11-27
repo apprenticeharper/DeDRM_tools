@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # androidkindlekey.py
-# Copyright © 2010-20 by Thom, Apprentice  et al.
+# Copyright © 2010-20 by Thom, Apprentice Harper et al.
 
 # Revision history:
 #  1.0   - AmazonSecureStorage.xml decryption to serial number
@@ -30,10 +30,7 @@ import tempfile
 import zlib
 import tarfile
 from hashlib import md5
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from io import BytesIO as StringIO
+from io import BytesIO
 from binascii import a2b_hex, b2a_hex
 
 # Routines common to Mac and PC
@@ -116,7 +113,7 @@ class AndroidObfuscation(object):
         cipher = self._get_cipher()
         padding = len(self.key) - len(plaintext) % len(self.key)
         plaintext += chr(padding) * padding
-        return b2a_hex(cipher.encrypt(plaintext))
+        return b2a_hex(cipher.encrypt(plaintext.encode('utf-8')))
 
     def decrypt(self, ciphertext):
         cipher = self._get_cipher()
@@ -182,7 +179,7 @@ def get_serials1(path=STORAGE1):
         obfuscation = AndroidObfuscation()
 
     def get_value(key):
-        encrypted_key = obfuscation.encrypt(a2b_hex(key))
+        encrypted_key = obfuscation.encrypt(key)
         encrypted_value = storage.get(encrypted_key)
         if encrypted_value:
             return obfuscation.decrypt(encrypted_value)
@@ -198,6 +195,7 @@ def get_serials1(path=STORAGE1):
     try:
         tokens = set(get_value('kindle.account.tokens').split(','))
     except:
+        sys.stderr.write('cannot get kindle account tokens\n')
         return []
 
     serials = []
@@ -251,8 +249,8 @@ def get_serials2(path=STORAGE2):
 
     serials = []
     for x in dsns:
+        serials.append(x)
         for y in tokens:
-            serials.append(x)
             serials.append(y)
             serials.append(x+y)
     return serials
@@ -277,7 +275,7 @@ def get_serials(path=STORAGE):
         read = open(path, 'rb')
         head = read.read(24)
         if head[:14] == b'ANDROID BACKUP':
-            output = StringIO(zlib.decompress(read.read()))
+            output = BytesIO(zlib.decompress(read.read()))
     except Exception:
         pass
     finally:
@@ -314,7 +312,7 @@ def getkey(outfile, inpath):
     if len(keys) > 0:
         with open(outfile, 'w') as keyfileout:
             for key in keys:
-                keyfileout.write(b2a_hex(key))
+                keyfileout.write(key)
                 keyfileout.write("\n")
         return True
     return False
@@ -391,7 +389,7 @@ def gui_main():
         import tkinter.filedialog
     except:
         print("tkinter not installed")
-        return cli_main()
+        return 0
 
     class DecryptionDialog(tkinter.Frame):
         def __init__(self, root):
