@@ -76,7 +76,7 @@ def load_libcrypto():
             return ob.raw
         def decrypt(self, data):
             if not data:
-                return ''
+                return b''
             i = 0
             result = []
             while i < len(data):
@@ -84,6 +84,6 @@ def load_libcrypto():
                 processed_block = self.desdecrypt(block)
                 result.append(processed_block)
                 i += 8
-            return ''.join(result)
+            return b''.join(result)
 
     return DES
