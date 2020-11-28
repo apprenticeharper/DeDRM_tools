@@ -11,7 +11,10 @@ import shutil
 import zipfile
 
 from io import BytesIO
-from calibre_plugins.dedrm.ion import DrmIon, DrmIonVoucher
+try:
+    from ion import DrmIon, DrmIonVoucher
+except:
+    from calibre_plugins.dedrm.ion import DrmIon, DrmIonVoucher
 
 
 __license__ = 'GPL v3'
