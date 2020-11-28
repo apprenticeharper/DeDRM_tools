@@ -28,6 +28,7 @@ __version__ = '3.0'
 #  2.5   - Final Fix for Windows user names with non-ascii characters, thanks to oneofusoneofus
 #  2.6   - Start adding support for Kindle 1.25+ .kinf2018 file
 #  2.7   - Finish .kinf2018 support, PC & Mac by Apprentice Sakuya
+#  2.8   - Fix for Mac OS X Big Sur
 #  3.0   - Python 3 for calibre 5.0
 
 
