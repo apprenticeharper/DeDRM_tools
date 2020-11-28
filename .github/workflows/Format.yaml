@@ -1,0 +1,39 @@
+name: Python code format
+on: 
+  push:
+    branches: master
+jobs:
+  Format:
+    if: "contains(github.event.head_commit.message, '!format')"
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@main
+      - name: Set up Python
+        uses: actions/setup-python@main
+        with:
+          python-version: 3.x
+      - uses: actions/cache@main
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-format
+          restore-keys: |
+            ${{ runner.os }}-pip-format
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install autopep8 pycodestyle
+      - name: Format by autopep8 then Push
+        env:
+          GIT_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_ACTOR: github-actions[bot]
+        run: |
+          export HASH_SHORT=$(git rev-parse --short HEAD)
+          git checkout -b format--${HASH_SHORT}
+          git config --global user.email $GIT_EMAIL
+          git config --global user.name  $GIT_ACTOR
+          python -m autopep8 --in-place --aggressive --aggressive --experimental -r ./
+          git add -A
+          git commit -m 'Format by autopep8' -m From: -m $(git rev-parse HEAD)
+          git push --set-upstream origin format--${HASH_SHORT}
