@@ -4,7 +4,7 @@ on:
     branches: master
 jobs:
   Format:
-    if: "!contains(github.event.head_commit.message, '!format')"
+    if: "contains(github.event.head_commit.message, '!format')"
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
