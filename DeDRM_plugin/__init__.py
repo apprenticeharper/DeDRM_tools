@@ -7,7 +7,7 @@ from __future__ import with_statement
 # Copyright © 2008-2020 Apprentice Harper et al.
 
 __license__   = 'GPL v3'
-__version__ = '6.8.0'
+__version__ = '6.8.1'
 __docformat__ = 'restructuredtext en'
 
 
@@ -71,6 +71,7 @@ __docformat__ = 'restructuredtext en'
 #   6.6.3 - More cleanup of kindle book names and start of support for .kinf2018
 #   6.7.0 - Handle new library in calibre.
 #   6.8.0 - Full support for .kinf2018 and new KFX encryption (Kindle for PC/Mac 2.5+)
+#   6.8.1 - Kindle key fix for Mac OS X Big Syr
 
 """
 Decrypt DRMed ebooks.
