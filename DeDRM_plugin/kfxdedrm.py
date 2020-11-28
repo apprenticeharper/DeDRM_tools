@@ -11,6 +11,7 @@ import shutil
 import zipfile
 
 from io import BytesIO
+from calibre_plugins.dedrm.ion import DrmIon, DrmIonVoucher
 
 
 __license__ = 'GPL v3'
@@ -27,10 +28,6 @@ class KFXZipBook:
         return (None, None)
 
     def processBook(self, totalpids):
-        try:
-            import ion
-        except:
-            from calibre_plugins.dedrm import ion
         with zipfile.ZipFile(self.infile, 'r') as zf:
             for filename in zf.namelist():
                 with zf.open(filename) as fh:
@@ -42,7 +39,7 @@ class KFXZipBook:
                         self.decrypt_voucher(totalpids)
                     print("Decrypting KFX DRMION: {0}".format(filename))
                     outfile = BytesIO()
-                    ion.DrmIon(BytesIO(data[8:-8]), lambda name: self.voucher).parse(outfile)
+                    DrmIon(BytesIO(data[8:-8]), lambda name: self.voucher).parse(outfile)
                     self.decrypted[filename] = outfile.getvalue()
 
         if not self.decrypted:
@@ -72,7 +69,7 @@ class KFXZipBook:
                 continue
 
             try:
-                voucher = ion.DrmIonVoucher(BytesIO(data), pid[:dsn_len], pid[dsn_len:])
+                voucher = DrmIonVoucher(BytesIO(data), pid[:dsn_len], pid[dsn_len:])
                 voucher.parse()
                 voucher.decryptvoucher()
                 break
