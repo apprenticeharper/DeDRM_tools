@@ -901,7 +901,7 @@ if iswindows:
                 # double the buffer size
                 buffer = create_unicode_buffer(len(buffer) * 2)
                 size.value = len(buffer)
-            
+
             # replace any non-ASCII values with 0xfffd
             for i in xrange(0,len(buffer)):
                 if buffer[i]>u"\u007f":
@@ -987,7 +987,7 @@ if iswindows:
                 found = True
                 print('Found K4PC 1.25+ kinf2018 file: ' + kinfopath.encode('ascii','ignore'))
                 kInfoFiles.append(kinfopath)
-                
+
             # look for (K4PC 1.9.0 and later) .kinf2011 file
             kinfopath = path +'\\Amazon\\Kindle\\storage\\.kinf2011'
             if os.path.isfile(kinfopath):
@@ -1183,8 +1183,12 @@ elif isosx:
 
         libcrypto = find_library('crypto')
         if libcrypto is None:
-            raise DrmException(u"libcrypto not found")
-        libcrypto = CDLL(libcrypto)
+            libcrypto = '/usr/lib/libcrypto.dylib'
+        try:
+            libcrypto = CDLL(libcrypto)
+        except Exception as e:
+            raise DrmException(u"libcrypto not found: " % e)
+
 
         # From OpenSSL's crypto aes header
         #
@@ -1534,7 +1538,7 @@ elif isosx:
             try:
                 DB = {}
                 items = data.split('/')
-               
+
                 # the headerblob is the encrypted information needed to build the entropy string
                 headerblob = items.pop(0)
                 encryptedValue = decode(headerblob, charMap1)
