@@ -31,7 +31,7 @@ import struct
 from io import BytesIO
 
 from Crypto.Cipher import AES
-from Crypto.Util.py3compat import bchr, bord
+from Crypto.Util.py3compat import bchr
 
 try:
     # lzma library from calibre 4.6.0 or later
@@ -89,7 +89,7 @@ LEN_IS_VAR_LEN = 0xE
 LEN_IS_NULL = 0xF
 
 
-VERSION_MARKER = b"\x01\x00\xEA"
+VERSION_MARKER = [b"\x01", b"\x00", b"\xEA"]
 
 
 # asserts must always raise exceptions for proper functioning
@@ -347,7 +347,7 @@ class BinaryIonParser(object):
         b = self.stream.read(1)
         if len(b) < 1:
             return -1
-        b = bord(b)
+        b = ord(b)
         result = b >> 4
         ln = b & 0xF
 
@@ -372,13 +372,13 @@ class BinaryIonParser(object):
         return result
 
     def readvarint(self):
-        b = bord(self.read())
+        b = ord(self.read())
         negative = ((b & 0x40) != 0)
         result = (b & 0x3F)
 
         i = 0
         while (b & 0x80) == 0 and i < 4:
-            b = bord(self.read())
+            b = ord(self.read())
             result = (result << 7) | (b & 0x7F)
             i += 1
 
@@ -389,12 +389,12 @@ class BinaryIonParser(object):
         return result
 
     def readvaruint(self):
-        b = bord(self.read())
+        b = ord(self.read())
         result = (b & 0x7F)
 
         i = 0
         while (b & 0x80) == 0 and i < 4:
-            b = bord(self.read())
+            b = ord(self.read())
             result = (result << 7) | (b & 0x7F)
             i += 1
 
@@ -414,7 +414,7 @@ class BinaryIonParser(object):
         _assert(self.localremaining <= 8, "Decimal overflow")
 
         signed = False
-        b = [bord(x) for x in self.read(self.localremaining)]
+        b = [ord(x) for x in self.read(self.localremaining)]
         if (b[0] & 0x80) != 0:
             b[0] = b[0] & 0x7F
             signed = True
@@ -579,7 +579,7 @@ class BinaryIonParser(object):
                 _assert(self.valuelen <= 4, "int too long: %d" % self.valuelen)
                 v = 0
                 for i in range(self.valuelen - 1, -1, -1):
-                    v = (v | (bord(self.read()) << (i * 8)))
+                    v = (v | (ord(self.read()) << (i * 8)))
 
                 if self.valuetid == TID_NEGINT:
                     self.value = -v
@@ -649,7 +649,7 @@ class BinaryIonParser(object):
 
         result = ""
         for i in b:
-            result += ("%02x " % bord(i))
+            result += ("%02x " % ord(i))
 
         if len(result) > 0:
             result = result[:-1]
@@ -748,7 +748,8 @@ def pkcs7pad(msg, blocklen):
 def pkcs7unpad(msg, blocklen):
     _assert(len(msg) % blocklen == 0)
 
-    paddinglen = bord(msg[-1])
+    paddinglen = msg[-1]
+
     _assert(paddinglen > 0 and paddinglen <= blocklen, "Incorrect padding - Wrong key")
     _assert(msg[-paddinglen:] == bchr(paddinglen) * paddinglen, "Incorrect padding - Wrong key")
 
@@ -806,7 +807,7 @@ class DrmIonVoucher(object):
     secretkey = b""
 
     def __init__(self, voucherenv, dsn, secret):
-        self.dsn,self.secret = dsn,secret
+        self.dsn, self.secret = dsn, secret
 
         self.lockparams = []
 
@@ -827,7 +828,7 @@ class DrmIonVoucher(object):
 
         sharedsecret = obfuscate(shared.encode('ASCII'), self.version)
 
-        key = hmac.new(sharedsecret, "PIDv3", digestmod=hashlib.sha256).digest()
+        key = hmac.new(sharedsecret, b"PIDv3", digestmod=hashlib.sha256).digest()
         aes = AES.new(key[:32], AES.MODE_CBC, self.cipheriv[:16])
         b = aes.decrypt(self.ciphertext)
         b = pkcs7unpad(b, 16)
@@ -1024,7 +1025,7 @@ class DrmIon(object):
             outpages.write(msg)
             return
 
-        _assert(msg[0] == b"\x00", "LZMA UseFilter not supported")
+        _assert(msg[0] == 0, "LZMA UseFilter not supported")
 
         if calibre_lzma is not None:
             with calibre_lzma.decompress(msg[1:], bufsize=0x1000000) as f:
