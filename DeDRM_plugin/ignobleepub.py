@@ -35,6 +35,7 @@ __version__ = "5.0"
 import sys
 import os
 import traceback
+import base64
 import zlib
 import zipfile
 from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
@@ -151,7 +152,7 @@ def _load_crypto_libcrypto():
 
         def decrypt(self, data):
             out = create_string_buffer(len(data))
-            iv = ("\x00" * self._blocksize)
+            iv = (b'\x00' * self._blocksize)
             rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
             if rv == 0:
                 raise IGNOBLEError('AES decryption failed')
@@ -164,7 +165,7 @@ def _load_crypto_pycrypto():
 
     class AES(object):
         def __init__(self, key):
-            self._aes = _AES.new(key, _AES.MODE_CBC, '\x00'*16)
+            self._aes = _AES.new(key, _AES.MODE_CBC, b'\x00'*16)
 
         def decrypt(self, data):
             return self._aes.decrypt(data)
@@ -207,15 +208,15 @@ class Decryptor(object):
     def decompress(self, bytes):
         dc = zlib.decompressobj(-15)
         bytes = dc.decompress(bytes)
-        ex = dc.decompress('Z') + dc.flush()
+        ex = dc.decompress(b'Z') + dc.flush()
         if ex:
             bytes = bytes + ex
         return bytes
 
     def decrypt(self, path, data):
-        if path in self._encrypted:
+        if bytes(path,'utf-8') in self._encrypted:
             data = self._aes.decrypt(data)[16:]
-            data = data[:-ord(data[-1])]
+            data = data[:-data[-1]]
             data = self.decompress(data)
         return data
 
@@ -241,7 +242,7 @@ def ignobleBook(inpath):
 def decryptBook(keyb64, inpath, outpath):
     if AES is None:
         raise IGNOBLEError("PyCrypto or OpenSSL must be installed.")
-    key = keyb64.decode('base64')[:16]
+    key = base64.b64decode(keyb64)[:16]
     aes = AES(key)
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
         namelist = set(inf.namelist())
@@ -259,8 +260,8 @@ def decryptBook(keyb64, inpath, outpath):
             if len(bookkey) != 64:
                 print("{0:s} is not a secure Barnes & Noble ePub.".format(os.path.basename(inpath)))
                 return 1
-            bookkey = aes.decrypt(bookkey.decode('base64'))
-            bookkey = bookkey[:-ord(bookkey[-1])]
+            bookkey = aes.decrypt(base64.b64decode(bookkey))
+            bookkey = bookkey[:-bookkey[-1]]
             encryption = inf.read('META-INF/encryption.xml')
             decryptor = Decryptor(bookkey[-16:], encryption)
             kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
