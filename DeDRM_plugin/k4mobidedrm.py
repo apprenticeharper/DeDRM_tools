@@ -228,7 +228,10 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
         serials.extend(androidkindlekey.get_serials(aFile))
     # extend PID list with book-specific PIDs from seriala and kDatabases
     md1, md2 = mb.getPIDMetaInfo()
-    totalpids.extend(kgenpids.getPidList(md1, md2, serials, kDatabases))
+    bookspecific = kgenpids.getPidList(md1, md2, serials, kDatabases)
+    # kgenpids.getPidList returns each pid as a (mutable) bytearray
+    # conversion to (immutable) bytes is nessesary as otherwise the set() function below will fail
+    totalpids.extend((bytes(pid) for pid in bookspecific))
     # remove any duplicates
     totalpids = list(set(totalpids))
     print("Found {1:d} keys to try after {0:.1f} seconds".format(time.time()-starttime, len(totalpids)))
