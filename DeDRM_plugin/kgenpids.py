@@ -296,14 +296,14 @@ def getPidList(md1, md2, serials=[], kDatabases=[]):
 
     for kDatabase in kDatabases:
         try:
-            pidlst.extend(getK4Pids(md1, md2, kDatabase))
+            pidlst.extend(map(bytes,getK4Pids(md1, md2, kDatabase)))
         except Exception as e:
             print("Error getting PIDs from database {0}: {1}".format(kDatabase[0],e.args[0]))
             traceback.print_exc()
 
     for serialnum in serials:
         try:
-            pidlst.extend(getKindlePids(md1, md2, serialnum))
+            pidlst.extend(map(bytes,getKindlePids(md1, md2, serialnum)))
         except Exception as e:
             print("Error getting PIDs from serial number {0}: {1}".format(serialnum ,e.args[0]))
             traceback.print_exc()
