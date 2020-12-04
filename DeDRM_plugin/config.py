@@ -175,7 +175,7 @@ class ConfigWidget(QWidget):
     def load_resource(self, name):
         with ZipFile(self.plugin_path, 'r') as zf:
             if name in zf.namelist():
-                return zf.read(name)
+                return zf.read(name).decode('utf-8')
         return ""
 
 
