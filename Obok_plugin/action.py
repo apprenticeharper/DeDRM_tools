@@ -197,7 +197,7 @@ class InterfacePluginAction(InterfaceAction):
             # We will write the help file out every time, in case the user upgrades the plugin zip
             # and there is a newer help file contained within it.
             file_path = os.path.join(config_dir, 'plugins', HELPFILE_NAME)
-            file_data = self.load_resources(HELPFILE_NAME)[HELPFILE_NAME]
+            file_data = self.load_resources(HELPFILE_NAME)[HELPFILE_NAME].decode('utf-8')
             with open(file_path,'w') as f:
                 f.write(file_data)
             return file_path
