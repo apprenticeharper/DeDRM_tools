@@ -63,6 +63,7 @@ import hashlib
 from decimal import Decimal
 import itertools
 import xml.etree.ElementTree as etree
+import codecs
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -430,8 +431,9 @@ def choplist(n, seq):
             r = []
     return
 
-def nunpack(s, default=0):
+def nunpack(ss, default=0):
     '''Unpacks up to 4 bytes big endian.'''
+    s = ss.encode('cp437')
     l = len(s)
     if not l:
         return default
@@ -479,9 +481,9 @@ class PSLiteral(PSObject):
         name = []
         for char in self.name:
             if not char.isalnum():
-                char = b'#%02x' % ord(char)
+                char = (b'#%02x' % ord(char)).decode('cp437')
             name.append(char)
-        return b'/%s' % ''.join(name)
+        return '/%s' % ''.join(name)
 
 # PSKeyword
 class PSKeyword(PSObject):
@@ -613,7 +615,7 @@ class PSBaseParser(object):
         if self.charpos < len(self.buf): return
         # fetch next chunk.
         self.bufpos = self.fp.tell()
-        self.buf = self.fp.read(self.BUFSIZ)
+        self.buf = self.fp.read(self.BUFSIZ).decode('cp437')
         if not self.buf:
             raise PSEOF('Unexpected EOF')
         self.charpos = 0
@@ -845,7 +847,7 @@ class PSBaseParser(object):
             prevpos = pos
             pos = max(0, pos-self.BUFSIZ)
             self.fp.seek(pos)
-            s = self.fp.read(prevpos-pos)
+            s = self.fp.read(prevpos-pos).decode('cp437')
             if not s: break
             while 1:
                 n = max(s.rfind('\r'), s.rfind('\n'))
@@ -1020,7 +1022,7 @@ def resolve_all(x):
     if isinstance(x, list):
         x = [ resolve_all(v) for v in x ]
     elif isinstance(x, dict):
-        for (k,v) in x.iteritems():
+        for (k,v) in x.items():
             x[k] = resolve_all(v)
     return x
 
@@ -1029,12 +1031,12 @@ def decipher_all(decipher, objid, genno, x):
     Recursively decipher X.
     '''
     if isinstance(x, str):
-        return decipher(objid, genno, x)
+        return decipher(objid, genno, x.encode('cp437')).decode('cp437')
     decf = lambda v: decipher_all(decipher, objid, genno, v)
     if isinstance(x, list):
         x = [decf(v) for v in x]
     elif isinstance(x, dict):
-        x = dict((k, decf(v)) for (k, v) in x.iteritems())
+        x = dict((k, decf(v)) for (k, v) in x.items())
     return x
 
 
@@ -1130,7 +1132,7 @@ class PDFStream(PDFObject):
                 cutdiv = len(rawdata) // 16
                 rawdata = rawdata[:16*cutdiv]
         else:
-            if eol in (b'\r', b'\n', b'\r\n'):
+            if eol in ('\r', '\n', '\r\n'):
                 rawdata = rawdata[:length]
 
         self.dic = dic
@@ -1160,7 +1162,8 @@ class PDFStream(PDFObject):
         data = self.rawdata
         if self.decipher:
             # Handle encryption
-            data = self.decipher(self.objid, self.genno, data)
+            data = self.decipher(self.objid, self.genno, data.encode('cp437'))\
+                .decode('cp437')
             if gen_xref_stm:
                 self.decdata = data # keep decrypted data
         if 'Filter' not in self.dic:
@@ -1174,7 +1177,7 @@ class PDFStream(PDFObject):
         for f in filters:
             if f in LITERALS_FLATE_DECODE:
                 # will get errors if the document is encrypted.
-                data = zlib.decompress(data)
+                data = zlib.decompress(data.encode('cp437')).decode('cp437')
             elif f in LITERALS_LZW_DECODE:
                 data = ''.join(LZWDecoder(BytesIO(data)).run())
             elif f in LITERALS_ASCII85_DECODE:
@@ -1201,14 +1204,14 @@ class PDFStream(PDFObject):
                     buf = b''
                     ent0 = b'\x00' * columns
                     for i in range(0, len(data), columns+1):
-                        pred = data[i]
-                        ent1 = data[i+1:i+1+columns]
+                        pred = data[i].encode('cp437')
+                        ent1 = data[i+1:i+1+columns].encode('cp437')
                         if pred == b'\x02':
-                            ent1 = ''.join(bytes([(a+b) & 255]) \
+                            ent1 = b''.join(bytes([(a+b) & 255]) \
                                            for (a,b) in zip(ent0,ent1))
                         buf += ent1
                         ent0 = ent1
-                    data = buf
+                    data = buf.decode('cp437')
         self.data = data
         self.rawdata = None
         return
@@ -1227,7 +1230,8 @@ class PDFStream(PDFObject):
         data = self.rawdata
         if self.decipher and data:
             # Handle encryption
-            data = self.decipher(self.objid, self.genno, data)
+            data = self.decipher(self.objid, self.genno, data.encode('cp437'))\
+                .decode('cp437')
         return data
 
 
@@ -1261,7 +1265,7 @@ class PDFXRef(object):
         return '<PDFXRef: objs=%d>' % len(self.offsets)
 
     def objids(self):
-        return self.offsets.iterkeys()
+        return self.offsets.keys()
 
     def load(self, parser):
         self.offsets = {}
@@ -1587,16 +1591,18 @@ class PDFDocument(object):
     def initialize_ebx(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         rsa = RSA(password)
-        length = int_value(param.get('Length', 0)) / 8
-        rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
+        length = int_value(param.get('Length', 0)) // 8
+        rights = str_value(param.get('ADEPT_LICENSE')).encode('cp437')
+        rights = codecs.decode(rights, 'base64')
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
         expr = './/{http://ns.adobe.com/adept}encryptedKey'
-        bookkey = ''.join(rights.findtext(expr)).decode('base64')
+        bookkey = ''.join(rights.findtext(expr)).encode('cp437')
+        bookkey = codecs.decode(bookkey, 'base64')
         bookkey = rsa.decrypt(bookkey)
-        if bookkey[0] != '\x02':
+        if bookkey[0:1] != b'\x02':
             raise ADEPTError('error decrypting book session key')
-        index = bookkey.index('\0') + 1
+        index = bookkey.index(b'\0') + 1
         bookkey = bookkey[index:]
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
@@ -1834,7 +1840,7 @@ class PDFParser(PSStackParser):
                 return
             pos += len(line)
             self.fp.seek(pos)
-            data = self.fp.read(objlen)
+            data = self.fp.read(objlen).decode('cp437')
             self.seek(pos+objlen)
             while 1:
                 try:
@@ -1974,7 +1980,7 @@ class PDFSerializer(object):
     def __init__(self, inf, userkey):
         global GEN_XREF_STM, gen_xref_stm
         gen_xref_stm = GEN_XREF_STM > 1
-        self.version = inf.read(8)
+        self.version = inf.read(8).decode('cp437')
         inf.seek(0)
         self.doc = doc = PDFDocument()
         parser = PDFParser(doc, inf)
@@ -1994,11 +2000,14 @@ class PDFSerializer(object):
     def dump(self, outf):
         self.outf = outf
         self.write(self.version)
-        self.write('\n%\xe2\xe3\xcf\xd3\n')
+        self.write(b'\n%\xe2\xe3\xcf\xd3\n')
         doc = self.doc
         objids = self.objids
         xrefs = {}
-        maxobj = max(objids)
+        if(objids):
+            maxobj = max(objids)
+        else:
+            raise Exception('Aaaargh! No objects!')
         trailer = dict(self.trailer)
         trailer['Size'] = maxobj + 1
         for objid in objids:
@@ -2072,21 +2081,23 @@ class PDFSerializer(object):
                     # f3 = objref[1]
                     f3 = 0
 
-                data.append(struct.pack('>B', f1))
-                data.append(struct.pack('>L', f2)[-fl2:])
-                data.append(struct.pack('>L', f3)[-fl3:])
+                data.append(struct.pack('>B', f1).decode('cp437'))
+                data.append(struct.pack('>L', f2)[-fl2:].decode('cp437'))
+                data.append(struct.pack('>L', f3)[-fl3:].decode('cp437'))
             index.extend((first, prev - first + 1))
-            data = zlib.compress(''.join(data))
+            data = zlib.compress(''.join(data).encode('cp437'))
             dic = {'Type': LITERAL_XREF, 'Size': prev + 1, 'Index': index,
                    'W': [1, fl2, fl3], 'Length': len(data),
                    'Filter': LITERALS_FLATE_DECODE[0],
                    'Root': trailer['Root'],}
             if 'Info' in trailer:
                 dic['Info'] = trailer['Info']
-            xrefstm = PDFStream(dic, data)
+            xrefstm = PDFStream(dic, data.decode('cp437'))
             self.serialize_indirect(maxobj, xrefstm)
             self.write('startxref\n%d\n%%%%EOF' % startxref)
     def write(self, data):
+        if (type(data)==str):
+            data = data.encode('cp437')
         self.outf.write(data)
         self.last = data[-1:]
 
@@ -2098,7 +2109,7 @@ class PDFSerializer(object):
         string = string.replace('\n', r'\n')
         string = string.replace('(', r'\(')
         string = string.replace(')', r'\)')
-         # get rid of ciando id
+        # get rid of ciando id
         regularexp = re.compile(r'http://www.ciando.com/index.cfm/intRefererID/\d{5}')
         if regularexp.match(string): return ('http://www.ciando.com')
         return string
@@ -2122,7 +2133,7 @@ class PDFSerializer(object):
                 self.serialize_object(val)
             self.write(']')
         elif isinstance(obj, str):
-            self.write('(%s)' % self.escape_string(obj))
+            self.write(f'({self.escape_string(obj)})'.encode())
         elif isinstance(obj, bool):
             if self.last.isalnum():
                 self.write(' ')
@@ -2149,7 +2160,7 @@ class PDFSerializer(object):
                 data = obj.get_decdata()
                 self.serialize_object(obj.dic)
                 self.write('stream\n')
-                self.write(data)
+                self.write(data.encode('cp437'))
                 self.write('\nendstream')
         else:
             data = str(obj)
