@@ -66,21 +66,21 @@ class fixZip:
 
     def uncompress(self, cmpdata):
         dc = zlib.decompressobj(-15)
-        data = ''
+        data = b''
         while len(cmpdata) > 0:
             if len(cmpdata) > _MAX_SIZE :
                 newdata = cmpdata[0:_MAX_SIZE]
                 cmpdata = cmpdata[_MAX_SIZE:]
             else:
                 newdata = cmpdata
-                cmpdata = ''
+                cmpdata = b''
             newdata = dc.decompress(newdata)
             unprocessed = dc.unconsumed_tail
             if len(unprocessed) == 0:
                 newdata += dc.flush()
             data += newdata
             cmpdata += unprocessed
-            unprocessed = ''
+            unprocessed = b''
         return data
 
     def getfiledata(self, zi):
@@ -123,7 +123,7 @@ class fixZip:
             mimeinfo.internal_attr = 1 # text file
             try:
                 # if the mimetype is present, get its info, including time-stamp
-                oldmimeinfo = self.inzip.getinfo('mimetype')
+                oldmimeinfo = self.inzip.getinfo(b'mimetype')
                 # copy across useful fields
                 mimeinfo.date_time = oldmimeinfo.date_time
                 mimeinfo.comment = oldmimeinfo.comment
@@ -137,7 +137,7 @@ class fixZip:
 
         # write the rest of the files
         for zinfo in self.inzip.infolist():
-            if zinfo.filename != "mimetype" or self.ztype != 'epub':
+            if zinfo.filename != b"mimetype" or self.ztype != 'epub':
                 data = None
                 try:
                     data = self.inzip.read(zinfo.filename)
