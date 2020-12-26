@@ -191,19 +191,21 @@ def PC1(key, src, decryption=True):
         dst+=bytes([curByte])
     return dst
 
+# accepts unicode returns unicode
 def checksumPid(s):
     letters = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
-    crc = (~binascii.crc32(s,-1))&0xFFFFFFFF
+    crc = (~binascii.crc32(s.encode('utf-8'),-1))&0xFFFFFFFF
     crc = crc ^ (crc >> 16)
     res = s
     l = len(letters)
     for i in (0,1):
         b = crc & 0xff
         pos = (b // l) ^ (b % l)
-        res += letters[pos%l].encode('ascii')
+        res += letters[pos%l]
         crc >>= 8
     return res
 
+# expects bytearray
 def getSizeOfTrailingDataEntries(ptr, size, flags):
     def getSizeOfTrailingDataEntry(ptr, size):
         bitpos, result = 0, 0
@@ -282,7 +284,7 @@ class MobiBook:
         self.mobi_codepage = 1252
         self.mobi_version = -1
 
-        if self.magic == 'TEXtREAd':
+        if self.magic == b'TEXtREAd':
             print("PalmDoc format book detected.")
             return
 
@@ -301,7 +303,7 @@ class MobiBook:
         # if exth region exists parse it for metadata array
         try:
             exth_flag, = struct.unpack('>L', self.sect[0x80:0x84])
-            exth = ''
+            exth = b''
             if exth_flag & 0x40:
                 exth = self.sect[16 + self.mobi_length:]
             if (len(exth) >= 12) and (exth[:4] == b'EXTH'):
@@ -323,12 +325,13 @@ class MobiBook:
         except Exception as e:
             print("Cannot set meta_array: Error: {:s}".format(e.args[0]))
 
+    #returns unicode
     def getBookTitle(self):
         codec_map = {
             1252 : 'windows-1252',
             65001 : 'utf-8',
         }
-        title = ''
+        title = b''
         codec = 'windows-1252'
         if self.magic == b'BOOKMOBI':
             if 503 in self.meta_array:
@@ -339,7 +342,7 @@ class MobiBook:
                 title = self.sect[toff:tend]
             if self.mobi_codepage in codec_map.keys():
                 codec = codec_map[self.mobi_codepage]
-        if title == '':
+        if title == b'':
             title = self.header[:32]
             title = title.split(b'\0')[0]
         return title.decode(codec)
@@ -355,13 +358,15 @@ class MobiBook:
             # if that key exists in the meta_array, append its contents to the token
             for i in range(0,len(data),5):
                 val,  = struct.unpack('>I',data[i+1:i+5])
-                sval = self.meta_array.get(val,'')
+                sval = self.meta_array.get(val,b'')
                 token += sval
         return rec209, token
 
+    # new must be byte array
     def patch(self, off, new):
         self.data_file = self.data_file[:off] + new + self.data_file[off+len(new):]
 
+    # new must be byte array
     def patchSection(self, section, new, in_off = 0):
         if (section + 1 == self.num_sections):
             endoff = len(self.data_file)
@@ -371,12 +376,12 @@ class MobiBook:
         assert off + in_off + len(new) <= endoff
         self.patch(off + in_off, new)
 
+    # pids in pidlist must be unicode, returned key is byte array, pid is unicode
     def parseDRM(self, data, count, pidlist):
         found_key = None
         keyvec1 = b'\x72\x38\x33\xB0\xB4\xF2\xE3\xCA\xDF\x09\x01\xD6\xE2\xE0\x3F\x96'
         for pid in pidlist:
-            bigpid = pid.ljust(16,b'\0')
-            bigpid = bigpid
+            bigpid = pid.encode('utf-8').ljust(16,b'\0')
             temp_key = PC1(keyvec1, bigpid, False)
             temp_key_sum = sum(temp_key) & 0xff
             found_key = None
@@ -424,6 +429,7 @@ class MobiBook:
             return ".azw3"
         return ".mobi"
 
+    # pids in pidlist may be unicode or bytearrays or bytes
     def processBook(self, pidlist):
         crypto_type, = struct.unpack('>H', self.sect[0xC:0xC+2])
         print("Crypto Type is: {0:d}".format(crypto_type))
@@ -445,6 +451,8 @@ class MobiBook:
         goodpids = []
         # print("DEBUG ==== pidlist = ", pidlist)
         for pid in pidlist:
+            if isinstance(pid,(bytearray,bytes)):
+                pid = pid.decode('utf-8')
             if len(pid)==10:
                 if checksumPid(pid[0:-2]) != pid:
                     print("Warning: PID {0} has incorrect checksum, should have been {1}".format(pid,checksumPid(pid[0:-2])))
@@ -457,8 +465,8 @@ class MobiBook:
         # print("======= DEBUG good pids = ", goodpids)
 
         if self.crypto_type == 1:
-            t1_keyvec = 'QDCVEPMU675RUBSZ'
-            if self.magic == 'TEXtREAd':
+            t1_keyvec = b'QDCVEPMU675RUBSZ'
+            if self.magic == b'TEXtREAd':
                 bookkey_data = self.sect[0x0E:0x0E+16]
             elif self.mobi_version < 0:
                 bookkey_data = self.sect[0x90:0x90+16]
@@ -473,7 +481,7 @@ class MobiBook:
                 raise DrmException("Encryption not initialised. Must be opened with Mobipocket Reader first.")
             found_key, pid = self.parseDRM(self.sect[drm_ptr:drm_ptr+drm_size], drm_count, goodpids)
             if not found_key:
-                raise DrmException("No key found in {0:d} keys tried.".format(len(goodpids)))
+                raise DrmException("No key found in {0:d} PIDs tried.".format(len(goodpids)))
             # kill the drm keys
             self.patchSection(0, b'\0' * drm_size, drm_ptr)
             # kill the drm pointers
@@ -509,6 +517,7 @@ class MobiBook:
         print("done")
         return
 
+# pids in pidlist must be unicode
 def getUnencryptedBook(infile,pidlist):
     if not os.path.isfile(infile):
         raise DrmException("Input File Not Found.")
@@ -530,8 +539,7 @@ def cli_main():
         infile = argv[1]
         outfile = argv[2]
         if len(argv) == 4:
-            # convert from unicode to bytearray before splitting.
-            pidlist = argv[3].encode('utf-8').split(b',')
+            pidlist = argv[3].split(',')
         else:
             pidlist = []
         try:
