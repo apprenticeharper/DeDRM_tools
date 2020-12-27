@@ -353,12 +353,16 @@ class Decryptor(object):
 
     def decompress(self, bytes):
         dc = zlib.decompressobj(-15)
-        bytes = dc.decompress(bytes)
-        ex = dc.decompress(b'Z') + dc.flush()
-        if ex:
-            bytes = bytes + ex
-        return bytes
-
+        try:
+            decompressed_bytes = dc.decompress(bytes)
+            ex = dc.decompress(b'Z') + dc.flush()
+            if ex:
+                decompressed_bytes = decompressed_bytes + ex
+        except:
+            # possibly not compressed by zip - just return bytes
+            return bytes
+        return decompressed_bytes 
+    
     def decrypt(self, path, data):
         if path.encode('utf-8') in self._encrypted:
             data = self._aes.decrypt(data)[16:]
