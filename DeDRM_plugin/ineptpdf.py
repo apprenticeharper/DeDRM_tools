@@ -54,12 +54,14 @@ Decrypts Adobe ADEPT-encrypted PDF files.
 __license__ = 'GPL v3'
 __version__ = "9.0.0"
 
+import codecs
 import sys
 import os
 import re
 import zlib
 import struct
 import hashlib
+from io import BytesIO
 from decimal import Decimal
 import itertools
 import xml.etree.ElementTree as etree
@@ -403,7 +405,6 @@ def _load_crypto():
 ARC4, RSA, AES = _load_crypto()
 
 
-from io import BytesIO
 
 
 # Do we generate cross reference streams on output?
@@ -472,16 +473,16 @@ class PSLiteral(PSObject):
     Use PSLiteralTable.intern() instead.
     '''
     def __init__(self, name):
-        self.name = name
+        self.name = name.decode('utf-8')
         return
 
     def __repr__(self):
         name = []
         for char in self.name:
             if not char.isalnum():
-                char = b'#%02x' % ord(char)
+                char = '#%02x' % ord(char)
             name.append(char)
-        return b'/%s' % ''.join(name)
+        return '/%s' % ''.join(name)
 
 # PSKeyword
 class PSKeyword(PSObject):
@@ -491,7 +492,7 @@ class PSKeyword(PSObject):
     Use PSKeywordTable.intern() instead.
     '''
     def __init__(self, name):
-        self.name = name
+        self.name = name.decode('utf-8')
         return
 
     def __repr__(self):
@@ -521,12 +522,12 @@ PSLiteralTable = PSSymbolTable(PSLiteral)
 PSKeywordTable = PSSymbolTable(PSKeyword)
 LIT = PSLiteralTable.intern
 KWD = PSKeywordTable.intern
-KEYWORD_BRACE_BEGIN = KWD('{')
-KEYWORD_BRACE_END = KWD('}')
-KEYWORD_ARRAY_BEGIN = KWD('[')
-KEYWORD_ARRAY_END = KWD(']')
-KEYWORD_DICT_BEGIN = KWD('<<')
-KEYWORD_DICT_END = KWD('>>')
+KEYWORD_BRACE_BEGIN = KWD(b'{')
+KEYWORD_BRACE_END = KWD(b'}')
+KEYWORD_ARRAY_BEGIN = KWD(b'[')
+KEYWORD_ARRAY_END = KWD(b']')
+KEYWORD_DICT_BEGIN = KWD(b'<<')
+KEYWORD_DICT_END = KWD(b'>>')
 
 
 def literal_name(x):
@@ -548,18 +549,18 @@ def keyword_name(x):
 
 ##  PSBaseParser
 ##
-EOL = re.compile(r'[\r\n]')
-SPC = re.compile(r'\s')
-NONSPC = re.compile(r'\S')
-HEX = re.compile(r'[0-9a-fA-F]')
-END_LITERAL = re.compile(r'[#/%\[\]()<>{}\s]')
-END_HEX_STRING = re.compile(r'[^\s0-9a-fA-F]')
-HEX_PAIR = re.compile(r'[0-9a-fA-F]{2}|.')
-END_NUMBER = re.compile(r'[^0-9]')
-END_KEYWORD = re.compile(r'[#/%\[\]()<>{}\s]')
-END_STRING = re.compile(r'[()\134]')
-OCT_STRING = re.compile(r'[0-7]')
-ESC_STRING = { 'b':8, 't':9, 'n':10, 'f':12, 'r':13, '(':40, ')':41, '\\':92 }
+EOL = re.compile(rb'[\r\n]')
+SPC = re.compile(rb'\s')
+NONSPC = re.compile(rb'\S')
+HEX = re.compile(rb'[0-9a-fA-F]')
+END_LITERAL = re.compile(rb'[#/%\[\]()<>{}\s]')
+END_HEX_STRING = re.compile(rb'[^\s0-9a-fA-F]')
+HEX_PAIR = re.compile(rb'[0-9a-fA-F]{2}|.')
+END_NUMBER = re.compile(rb'[^0-9]')
+END_KEYWORD = re.compile(rb'[#/%\[\]()<>{}\s]')
+END_STRING = re.compile(rb'[()\\]')
+OCT_STRING = re.compile(rb'[0-7]')
+ESC_STRING = { b'b':8, b't':9, b'n':10, b'f':12, b'r':13, b'(':40, b')':41, b'\\':92 }
 
 class PSBaseParser(object):
 
@@ -602,7 +603,7 @@ class PSBaseParser(object):
         self.fp.seek(pos)
         # reset the status for nextline()
         self.bufpos = pos
-        self.buf = ''
+        self.buf = b''
         self.charpos = 0
         # reset the status for nexttoken()
         self.parse1 = self.parse_main
@@ -624,32 +625,32 @@ class PSBaseParser(object):
         if not m:
             return (self.parse_main, len(s))
         j = m.start(0)
-        c = s[j]
+        c = bytes([s[j]])
         self.tokenstart = self.bufpos+j
-        if c == '%':
-            self.token = '%'
+        if c == b'%':
+            self.token = c
             return (self.parse_comment, j+1)
-        if c == '/':
-            self.token = ''
+        if c == b'/':
+            self.token = b''
             return (self.parse_literal, j+1)
-        if c in '-+' or c.isdigit():
+        if c in b'-+' or c.isdigit():
             self.token = c
             return (self.parse_number, j+1)
-        if c == '.':
+        if c == b'.':
             self.token = c
             return (self.parse_decimal, j+1)
         if c.isalpha():
             self.token = c
             return (self.parse_keyword, j+1)
-        if c == '(':
-            self.token = ''
+        if c == b'(':
+            self.token = b''
             self.paren = 1
             return (self.parse_string, j+1)
-        if c == '<':
-            self.token = ''
+        if c == b'<':
+            self.token = b''
             return (self.parse_wopen, j+1)
-        if c == '>':
-            self.token = ''
+        if c == b'>':
+            self.token = b''
             return (self.parse_wclose, j+1)
         self.add_token(KWD(c))
         return (self.parse_main, j+1)
@@ -676,20 +677,20 @@ class PSBaseParser(object):
             return (self.parse_literal, len(s))
         j = m.start(0)
         self.token += s[i:j]
-        c = s[j]
-        if c == '#':
-            self.hex = ''
+        c = bytes([s[j]])
+        if c == b'#':
+            self.hex = b''
             return (self.parse_literal_hex, j+1)
         self.add_token(LIT(self.token))
         return (self.parse_main, j)
 
     def parse_literal_hex(self, s, i):
-        c = s[i]
+        c = bytes([s[i]])
         if HEX.match(c) and len(self.hex) < 2:
             self.hex += c
             return (self.parse_literal_hex, i+1)
         if self.hex:
-            self.token += chr(int(self.hex, 16))
+            self.token += bytes([int(self.hex, 16)])
         return (self.parse_literal, i)
 
     def parse_number(self, s, i):
@@ -699,8 +700,8 @@ class PSBaseParser(object):
             return (self.parse_number, len(s))
         j = m.start(0)
         self.token += s[i:j]
-        c = s[j]
-        if c == '.':
+        c = bytes([s[j]])
+        if c == b'.':
             self.token += c
             return (self.parse_decimal, j+1)
         try:
@@ -716,7 +717,7 @@ class PSBaseParser(object):
             return (self.parse_decimal, len(s))
         j = m.start(0)
         self.token += s[i:j]
-        self.add_token(Decimal(self.token))
+        self.add_token(Decimal(self.token.decode('utf-8')))
         return (self.parse_main, j)
 
     def parse_keyword(self, s, i):
@@ -742,58 +743,59 @@ class PSBaseParser(object):
             return (self.parse_string, len(s))
         j = m.start(0)
         self.token += s[i:j]
-        c = s[j]
-        if c == '\\':
+        c = bytes([s[j]])
+        if c == b'\\':
             self.oct = ''
             return (self.parse_string_1, j+1)
-        if c == '(':
+        if c == b'(':
             self.paren += 1
             self.token += c
             return (self.parse_string, j+1)
-        if c == ')':
+        if c == b')':
             self.paren -= 1
             if self.paren:
                 self.token += c
                 return (self.parse_string, j+1)
         self.add_token(self.token)
         return (self.parse_main, j+1)
+
     def parse_string_1(self, s, i):
-        c = s[i]
+        c = bytes([s[i]])
         if OCT_STRING.match(c) and len(self.oct) < 3:
             self.oct += c
             return (self.parse_string_1, i+1)
         if self.oct:
-            self.token += chr(int(self.oct, 8))
+            self.token += bytes([int(self.oct, 8)])
             return (self.parse_string, i)
         if c in ESC_STRING:
-            self.token += chr(ESC_STRING[c])
+            self.token += bytes([ESC_STRING[c]])
         return (self.parse_string, i+1)
 
     def parse_wopen(self, s, i):
-        c = s[i]
+        c = bytes([s[i]])
         if c.isspace() or HEX.match(c):
             return (self.parse_hexstring, i)
-        if c == '<':
+        if c == b'<':
             self.add_token(KEYWORD_DICT_BEGIN)
             i += 1
         return (self.parse_main, i)
 
     def parse_wclose(self, s, i):
-        c = s[i]
-        if c == '>':
+        c = bytes([s[i]])
+        if c == b'>':
             self.add_token(KEYWORD_DICT_END)
             i += 1
         return (self.parse_main, i)
 
     def parse_hexstring(self, s, i):
-        m = END_HEX_STRING.search(s, i)
-        if not m:
+        m1 = END_HEX_STRING.search(s, i)
+        if not m1:
             self.token += s[i:]
             return (self.parse_hexstring, len(s))
-        j = m.start(0)
+        j = m1.start(0)
         self.token += s[i:j]
-        token = HEX_PAIR.sub(lambda m: chr(int(m.group(0), 16)),
-                                                 SPC.sub('', self.token))
+        token = HEX_PAIR.sub(lambda m2: bytes([int(m2.group(0), 16)]),
+                                                 SPC.sub(b'', self.token))
         self.add_token(token)
         return (self.parse_main, j)
 
@@ -808,15 +810,15 @@ class PSBaseParser(object):
         '''
         Fetches a next line that ends either with \\r or \\n.
         '''
-        linebuf = ''
+        linebuf = b''
         linepos = self.bufpos + self.charpos
         eol = False
         while 1:
             self.fillbuf()
             if eol:
-                c = self.buf[self.charpos]
+                c = bytes([self.buf[self.charpos]])
                 # handle '\r\n'
-                if c == '\n':
+                if c == b'\n':
                     linebuf += c
                     self.charpos += 1
                 break
@@ -824,7 +826,7 @@ class PSBaseParser(object):
             if m:
                 linebuf += self.buf[self.charpos:m.end(0)]
                 self.charpos = m.end(0)
-                if linebuf[-1] == '\r':
+                if bytes([linebuf[-1]]) == b'\r':
                     eol = True
                 else:
                     break
@@ -840,7 +842,7 @@ class PSBaseParser(object):
         '''
         self.fp.seek(0, 2)
         pos = self.fp.tell()
-        buf = ''
+        buf = b''
         while 0 < pos:
             prevpos = pos
             pos = max(0, pos-self.BUFSIZ)
@@ -848,13 +850,13 @@ class PSBaseParser(object):
             s = self.fp.read(prevpos-pos)
             if not s: break
             while 1:
-                n = max(s.rfind('\r'), s.rfind('\n'))
+                n = max(s.rfind(b'\r'), s.rfind(b'\n'))
                 if n == -1:
                     buf = s + buf
                     break
                 yield s[n:]+buf
                 s = s[:n]
-                buf = ''
+                buf = b''
         return
 
 
@@ -910,7 +912,7 @@ class PSStackParser(PSBaseParser):
 
     def nextobject(self, direct=False):
         '''
-        Yields a list of objects: keywords, literals, strings,
+        Yields a list of objects: keywords, literals, strings (byte arrays),
         numbers, arrays and dictionaries. Arrays and dictionaries
         are represented as Python sequence and dictionaries.
         '''
@@ -920,7 +922,8 @@ class PSStackParser(PSBaseParser):
             if (isinstance(token, int) or
                     isinstance(token, Decimal) or
                     isinstance(token, bool) or
-                    isinstance(token, str) or
+                    isinstance(token, bytearray) or
+                    isinstance(token, bytes) or
                     isinstance(token, PSLiteral)):
                 # normal token
                 self.push((pos, token))
@@ -963,10 +966,10 @@ class PSStackParser(PSBaseParser):
         return obj
 
 
-LITERAL_CRYPT = PSLiteralTable.intern('Crypt')
-LITERALS_FLATE_DECODE = (PSLiteralTable.intern('FlateDecode'), PSLiteralTable.intern('Fl'))
-LITERALS_LZW_DECODE = (PSLiteralTable.intern('LZWDecode'), PSLiteralTable.intern('LZW'))
-LITERALS_ASCII85_DECODE = (PSLiteralTable.intern('ASCII85Decode'), PSLiteralTable.intern('A85'))
+LITERAL_CRYPT = LIT(b'Crypt')
+LITERALS_FLATE_DECODE = (LIT(b'FlateDecode'), LIT(b'Fl'))
+LITERALS_LZW_DECODE = (LIT(b'LZWDecode'), LIT(b'LZW'))
+LITERALS_ASCII85_DECODE = (LIT(b'ASCII85Decode'), LIT(b'A85'))
 
 
 ##  PDF Objects
@@ -1020,7 +1023,7 @@ def resolve_all(x):
     if isinstance(x, list):
         x = [ resolve_all(v) for v in x ]
     elif isinstance(x, dict):
-        for (k,v) in x.iteritems():
+        for (k,v) in iter(x.items()):
             x[k] = resolve_all(v)
     return x
 
@@ -1034,7 +1037,7 @@ def decipher_all(decipher, objid, genno, x):
     if isinstance(x, list):
         x = [decf(v) for v in x]
     elif isinstance(x, dict):
-        x = dict((k, decf(v)) for (k, v) in x.iteritems())
+        x = dict((k, decf(v)) for (k, v) in iter(x.items()))
     return x
 
 
@@ -1065,7 +1068,7 @@ def num_value(x):
 
 def str_value(x):
     x = resolve1(x)
-    if not isinstance(x, str):
+    if not (isinstance(x, bytearray) or isinstance(x, bytes)):
         if STRICT:
             raise PDFTypeError('String required: %r' % x)
         return ''
@@ -1176,7 +1179,7 @@ class PDFStream(PDFObject):
                 # will get errors if the document is encrypted.
                 data = zlib.decompress(data)
             elif f in LITERALS_LZW_DECODE:
-                data = ''.join(LZWDecoder(BytesIO(data)).run())
+                data = b''.join(LZWDecoder(BytesIO(data)).run())
             elif f in LITERALS_ASCII85_DECODE:
                 data = ascii85decode(data)
             elif f == LITERAL_CRYPT:
@@ -1204,7 +1207,7 @@ class PDFStream(PDFObject):
                         pred = data[i]
                         ent1 = data[i+1:i+1+columns]
                         if pred == b'\x02':
-                            ent1 = ''.join(bytes([(a+b) & 255]) \
+                            ent1 = b''.join(bytes([(a+b) & 255]) \
                                            for (a,b) in zip(ent0,ent1))
                         buf += ent1
                         ent0 = ent1
@@ -1239,11 +1242,11 @@ class PDFEncryptionError(PDFException): pass
 class PDFPasswordIncorrect(PDFEncryptionError): pass
 
 # some predefined literals and keywords.
-LITERAL_OBJSTM = PSLiteralTable.intern('ObjStm')
-LITERAL_XREF = PSLiteralTable.intern('XRef')
-LITERAL_PAGE = PSLiteralTable.intern('Page')
-LITERAL_PAGES = PSLiteralTable.intern('Pages')
-LITERAL_CATALOG = PSLiteralTable.intern('Catalog')
+LITERAL_OBJSTM = LIT(b'ObjStm')
+LITERAL_XREF = LIT(b'XRef')
+LITERAL_PAGE = LIT(b'Page')
+LITERAL_PAGES = LIT(b'Pages')
+LITERAL_CATALOG = LIT(b'Catalog')
 
 
 ##  XRefs
@@ -1261,7 +1264,7 @@ class PDFXRef(object):
         return '<PDFXRef: objs=%d>' % len(self.offsets)
 
     def objids(self):
-        return self.offsets.iterkeys()
+        return iter(self.offsets.keys())
 
     def load(self, parser):
         self.offsets = {}
@@ -1272,10 +1275,10 @@ class PDFXRef(object):
                 raise PDFNoValidXRef('Unexpected EOF - file corrupted?')
             if not line:
                 raise PDFNoValidXRef('Premature eof: %r' % parser)
-            if line.startswith('trailer'):
+            if line.startswith(b'trailer'):
                 parser.seek(pos)
                 break
-            f = line.strip().split(' ')
+            f = line.strip().split(b' ')
             if len(f) != 2:
                 raise PDFNoValidXRef('Trailer not found: %r: line=%r' % (parser, line))
             try:
@@ -1287,16 +1290,17 @@ class PDFXRef(object):
                     (_, line) = parser.nextline()
                 except PSEOF:
                     raise PDFNoValidXRef('Unexpected EOF - file corrupted?')
-                f = line.strip().split(' ')
+                f = line.strip().split(b' ')
                 if len(f) != 3:
                     raise PDFNoValidXRef('Invalid XRef format: %r, line=%r' % (parser, line))
                 (pos, genno, use) = f
-                if use != 'n': continue
-                self.offsets[objid] = (int(genno), int(pos))
+                if use != b'n':
+                    continue
+                self.offsets[objid] = (int(genno.decode('utf-8')), int(pos.decode('utf-8')))
         self.load_trailer(parser)
         return
 
-    KEYWORD_TRAILER = PSKeywordTable.intern('trailer')
+    KEYWORD_TRAILER = KWD(b'trailer')
     def load_trailer(self, parser):
         try:
             (_,kwd) = parser.nexttoken()
@@ -1401,7 +1405,8 @@ class PDFDocument(object):
     # set_parser(parser)
     #   Associates the document with an (already initialized) parser object.
     def set_parser(self, parser):
-        if self.parser: return
+        if self.parser:
+            return
         self.parser = parser
         # The document is set to be temporarily ready during collecting
         # all the basic information about the document, e.g.
@@ -1423,13 +1428,13 @@ class PDFDocument(object):
                                    dict_value(trailer['Encrypt']))
                 # fix for bad files
                 except:
-                    self.encryption = ('ffffffffffffffffffffffffffffffffffff',
+                    self.encryption = (b'ffffffffffffffffffffffffffffffffffff',
                                        dict_value(trailer['Encrypt']))
             if 'Root' in trailer:
                 self.set_root(dict_value(trailer['Root']))
                 break
-        else:
-            raise PDFSyntaxError('No /Root object! - Is this really a PDF?')
+            else:
+                raise PDFSyntaxError('No /Root object! - Is this really a PDF?')
         # The document is set to be non-ready again, until all the
         # proper initialization (asking the password key and
         # verifying the access permission, so on) is finished.
@@ -1450,7 +1455,7 @@ class PDFDocument(object):
     #   Perform the initialization with a given password.
     #   This step is mandatory even if there's no password associated
     #   with the document.
-    def initialize(self, password=''):
+    def initialize(self, password=b''):
         if not self.encryption:
             self.is_printable = self.is_modifiable = self.is_extractable = True
             self.ready = True
@@ -1477,14 +1482,14 @@ class PDFDocument(object):
     def genkey_adobe_ps(self, param):
         # nice little offline principal keys dictionary
         # global static principal key for German Onleihe / Bibliothek Digital
-        principalkeys = { 'bibliothek-digital.de': 'rRwGv2tbpKov1krvv7PO0ws9S436/lArPlfipz5Pqhw='.decode('base64')}
+        principalkeys = { b'bibliothek-digital.de': codecs.decode(b'rRwGv2tbpKov1krvv7PO0ws9S436/lArPlfipz5Pqhw=','base64')}
         self.is_printable = self.is_modifiable = self.is_extractable = True
         length = int_value(param.get('Length', 0)) / 8
         edcdata = str_value(param.get('EDCData')).decode('base64')
         pdrllic = str_value(param.get('PDRLLic')).decode('base64')
         pdrlpol = str_value(param.get('PDRLPol')).decode('base64')
         edclist = []
-        for pair in edcdata.split('\n'):
+        for pair in edcdata.split(b'\n'):
             edclist.append(pair)
         # principal key request
         for key in principalkeys:
@@ -1493,9 +1498,9 @@ class PDFDocument(object):
             else:
                 raise ADEPTError('Cannot find principal key for this pdf')
         shakey = SHA256(principalkey)
-        ivector = 16 * chr(0)
+        ivector = bytes(16) # 16 zero bytes
         plaintext = AES.new(shakey,AES.MODE_CBC,ivector).decrypt(edclist[9].decode('base64'))
-        if plaintext[-16:] != 16 * chr(16):
+        if plaintext[-16:] != bytearray(b'\0x10')*16:
             raise ADEPTError('Offlinekey cannot be decrypted, aborting ...')
         pdrlpol = AES.new(plaintext[16:32],AES.MODE_CBC,edclist[2].decode('base64')).decrypt(pdrlpol)
         if pdrlpol[-1] < 1 or pdrlpol[-1] > 16:
@@ -1505,8 +1510,8 @@ class PDFDocument(object):
             pdrlpol = pdrlpol[:cutter]
         return plaintext[:16]
 
-    PASSWORD_PADDING = '(\xbfN^Nu\x8aAd\x00NV\xff\xfa\x01\x08..' \
-                       '\x00\xb6\xd0h>\x80/\x0c\xa9\xfedSiz'
+    PASSWORD_PADDING = b'(\xbfN^Nu\x8aAd\x00NV\xff\xfa\x01\x08..' \
+                       b'\x00\xb6\xd0h>\x80/\x0c\xa9\xfedSiz'
     # experimental aes pw support
     def initialize_standard(self, password, docid, param):
         # copy from a global variable
@@ -1523,7 +1528,7 @@ class PDFDocument(object):
         try:
             EncMetadata = str_value(param['EncryptMetadata'])
         except:
-            EncMetadata = 'True'
+            EncMetadata = b'True'
         self.is_printable = bool(P & 4)
         self.is_modifiable = bool(P & 8)
         self.is_extractable = bool(P & 16)
@@ -1540,7 +1545,7 @@ class PDFDocument(object):
         hash.update(docid[0]) # 5
         # aes special handling if metadata isn't encrypted
         if EncMetadata == ('False' or 'false'):
-            hash.update('ffffffff'.decode('hex'))
+            hash.update(codecs.decode(b'ffffffff','hex'))
         if 5 <= R:
             # 8
             for _ in range(50):
@@ -1555,7 +1560,7 @@ class PDFDocument(object):
             hash.update(docid[0]) # 3
             x = ARC4.new(key).decrypt(hash.digest()[:16]) # 4
             for i in range(1,19+1):
-                k = ''.join(bytes([c ^ i]) for c in key )
+                k = b''.join(bytes([c ^ i]) for c in key )
                 x = ARC4.new(k).decrypt(x)
             u1 = x+x # 32bytes total
         if R == 2:
@@ -1588,15 +1593,15 @@ class PDFDocument(object):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         rsa = RSA(password)
         length = int_value(param.get('Length', 0)) / 8
-        rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
+        rights = codecs.decode(param.get('ADEPT_LICENSE'), 'base64')
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
         expr = './/{http://ns.adobe.com/adept}encryptedKey'
-        bookkey = ''.join(rights.findtext(expr)).decode('base64')
+        bookkey = codecs.decode(''.join(rights.findtext(expr)).encode('utf-8'),'base64')
         bookkey = rsa.decrypt(bookkey)
-        if bookkey[0] != '\x02':
+        if bookkey[0] != 2:
             raise ADEPTError('error decrypting book session key')
-        index = bookkey.index('\0') + 1
+        index = bookkey.index(b'\0') + 1
         bookkey = bookkey[index:]
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
@@ -1643,7 +1648,7 @@ class PDFDocument(object):
         objid = struct.pack('<L', objid ^ 0x3569ac)
         genno = struct.pack('<L', genno ^ 0xca96)
         key = self.decrypt_key
-        key += objid[0] + genno[0] + objid[1] + genno[1] + objid[2] + 'sAlT'
+        key += objid[0] + genno[0] + objid[1] + genno[1] + objid[2] + b'sAlT'
         hash = hashlib.md5(key)
         key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
@@ -1652,7 +1657,7 @@ class PDFDocument(object):
     def genkey_v4(self, objid, genno):
         objid = struct.pack('<L', objid)[:3]
         genno = struct.pack('<L', genno)[:2]
-        key = self.decrypt_key + objid + genno + 'sAlT'
+        key = self.decrypt_key + objid + genno + b'sAlT'
         hash = hashlib.md5(key)
         key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
@@ -1684,7 +1689,7 @@ class PDFDocument(object):
         return ARC4.new(key).decrypt(data)
 
 
-    KEYWORD_OBJ = PSKeywordTable.intern('obj')
+    KEYWORD_OBJ = KWD(b'obj')
 
     def getobj(self, objid):
         if not self.ready:
@@ -1791,11 +1796,11 @@ class PDFParser(PSStackParser):
     def __repr__(self):
         return '<PDFParser>'
 
-    KEYWORD_R = PSKeywordTable.intern('R')
-    KEYWORD_ENDOBJ = PSKeywordTable.intern('endobj')
-    KEYWORD_STREAM = PSKeywordTable.intern('stream')
-    KEYWORD_XREF = PSKeywordTable.intern('xref')
-    KEYWORD_STARTXREF = PSKeywordTable.intern('startxref')
+    KEYWORD_R = KWD(b'R')
+    KEYWORD_ENDOBJ = KWD(b'endobj')
+    KEYWORD_STREAM = KWD(b'stream')
+    KEYWORD_XREF = KWD(b'xref')
+    KEYWORD_STARTXREF = KWD(b'startxref')
     def do_keyword(self, pos, token):
         if token in (self.KEYWORD_XREF, self.KEYWORD_STARTXREF):
             self.add_results(*self.pop(1))
@@ -1843,8 +1848,8 @@ class PDFParser(PSStackParser):
                     if STRICT:
                         raise PDFSyntaxError('Unexpected EOF')
                     break
-                if 'endstream' in line:
-                    i = line.index('endstream')
+                if b'endstream' in line:
+                    i = line.index(b'endstream')
                     objlen += i
                     data += line[:i]
                     break
@@ -1864,7 +1869,7 @@ class PDFParser(PSStackParser):
         prev = None
         for line in self.revreadlines():
             line = line.strip()
-            if line == 'startxref': break
+            if line == b'startxref': break
             if line:
                 prev = line
         else:
@@ -1916,7 +1921,7 @@ class PDFParser(PSStackParser):
         except PDFNoValidXRef:
             # fallback
             self.seek(0)
-            pat = re.compile(r'^(\d+)\s+(\d+)\s+obj\b')
+            pat = re.compile(rb'^(\d+)\s+(\d+)\s+obj\b')
             offsets = {}
             xref = PDFXRef()
             while 1:
@@ -1924,7 +1929,7 @@ class PDFParser(PSStackParser):
                     (pos, line) = self.nextline()
                 except PSEOF:
                     break
-                if line.startswith('trailer'):
+                if line.startswith(b'trailer'):
                     trailerpos = pos # remember last trailer
                 m = pat.match(line)
                 if not m: continue
@@ -1951,7 +1956,7 @@ class PDFObjStrmParser(PDFParser):
         self.add_results(*self.popall())
         return
 
-    KEYWORD_R = KWD('R')
+    KEYWORD_R = KWD(b'R')
     def do_keyword(self, pos, token):
         if token is self.KEYWORD_R:
             # reference to indirect object
@@ -1994,7 +1999,7 @@ class PDFSerializer(object):
     def dump(self, outf):
         self.outf = outf
         self.write(self.version)
-        self.write('\n%\xe2\xe3\xcf\xd3\n')
+        self.write(b'\n%\xe2\xe3\xcf\xd3\n')
         doc = self.doc
         objids = self.objids
         xrefs = {}
@@ -2016,18 +2021,18 @@ class PDFSerializer(object):
         startxref = self.tell()
 
         if not gen_xref_stm:
-            self.write('xref\n')
-            self.write('0 %d\n' % (maxobj + 1,))
+            self.write(b'xref\n')
+            self.write(b'0 %d\n' % (maxobj + 1,))
             for objid in range(0, maxobj + 1):
                 if objid in xrefs:
                     # force the genno to be 0
-                    self.write("%010d 00000 n \n" % xrefs[objid][0])
+                    self.write(b"%010d 00000 n \n" % xrefs[objid][0])
                 else:
-                    self.write("%010d %05d f \n" % (0, 65535))
+                    self.write(b"%010d %05d f \n" % (0, 65535))
 
-            self.write('trailer\n')
+            self.write(b'trailer\n')
             self.serialize_object(trailer)
-            self.write('\nstartxref\n%d\n%%%%EOF' % startxref)
+            self.write(b'\nstartxref\n%d\n%%%%EOF' % startxref)
 
         else: # Generate crossref stream.
 
@@ -2076,7 +2081,7 @@ class PDFSerializer(object):
                 data.append(struct.pack('>L', f2)[-fl2:])
                 data.append(struct.pack('>L', f3)[-fl3:])
             index.extend((first, prev - first + 1))
-            data = zlib.compress(''.join(data))
+            data = zlib.compress(b''.join(data))
             dic = {'Type': LITERAL_XREF, 'Size': prev + 1, 'Index': index,
                    'W': [1, fl2, fl3], 'Length': len(data),
                    'Filter': LITERALS_FLATE_DECODE[0],
@@ -2085,7 +2090,7 @@ class PDFSerializer(object):
                 dic['Info'] = trailer['Info']
             xrefstm = PDFStream(dic, data)
             self.serialize_indirect(maxobj, xrefstm)
-            self.write('startxref\n%d\n%%%%EOF' % startxref)
+            self.write(b'startxref\n%d\n%%%%EOF' % startxref)
     def write(self, data):
         self.outf.write(data)
         self.last = data[-1:]
@@ -2094,13 +2099,10 @@ class PDFSerializer(object):
         return self.outf.tell()
 
     def escape_string(self, string):
-        string = string.replace('\\', '\\\\')
-        string = string.replace('\n', r'\n')
-        string = string.replace('(', r'\(')
-        string = string.replace(')', r'\)')
-         # get rid of ciando id
-        regularexp = re.compile(r'http://www.ciando.com/index.cfm/intRefererID/\d{5}')
-        if regularexp.match(string): return ('http://www.ciando.com')
+        string = string.replace(b'\\', b'\\\\')
+        string = string.replace(b'\n', rb'\n')
+        string = string.replace(b'(', rb'\(')
+        string = string.replace(b')', rb'\)')
         return string
 
     def serialize_object(self, obj):
@@ -2111,34 +2113,38 @@ class PDFSerializer(object):
                 obj['Subtype'] = obj['Type']
                 del obj['Type']
             # end - hope this doesn't have bad effects
-            self.write('<<')
+            self.write(b'<<')
             for key, val in obj.items():
-                self.write('/%s' % key)
+                self.write(b'/%s' % key.encode('utf-8'))
                 self.serialize_object(val)
-            self.write('>>')
+            self.write(b'>>')
         elif isinstance(obj, list):
-            self.write('[')
+            self.write(b'[')
             for val in obj:
                 self.serialize_object(val)
-            self.write(']')
+            self.write(b']')
+        elif isinstance(obj, bytearray):
+            self.write(b'(%s)' % self.escape_string(obj))
+        elif isinstance(obj, bytes):
+            self.write(b'(%s)' % self.escape_string(obj))
         elif isinstance(obj, str):
-            self.write('(%s)' % self.escape_string(obj))
+            self.write(b'(%s)' % self.escape_string(obj.encode('utf-8')))
         elif isinstance(obj, bool):
             if self.last.isalnum():
-                self.write(' ')
-            self.write(str(obj).lower())
+                self.write(b' ')
+            self.write(str(obj).lower().encode('utf-8'))
         elif isinstance(obj, int):
             if self.last.isalnum():
-                self.write(' ')
-            self.write(str(obj))
+                self.write(b' ')
+            self.write(str(obj).encode('utf-8'))
         elif isinstance(obj, Decimal):
             if self.last.isalnum():
-                self.write(' ')
-            self.write(str(obj))
+                self.write(b' ')
+            self.write(str(obj).encode('utf-8'))
         elif isinstance(obj, PDFObjRef):
             if self.last.isalnum():
-                self.write(' ')
-            self.write('%d %d R' % (obj.objid, 0))
+                self.write(b' ')
+            self.write(b'%d %d R' % (obj.objid, 0))
         elif isinstance(obj, PDFStream):
             ### If we don't generate cross ref streams the object streams
             ### are no longer useful, as we have extracted all objects from
@@ -2148,21 +2154,21 @@ class PDFSerializer(object):
             else:
                 data = obj.get_decdata()
                 self.serialize_object(obj.dic)
-                self.write('stream\n')
+                self.write(b'stream\n')
                 self.write(data)
-                self.write('\nendstream')
+                self.write(b'\nendstream')
         else:
-            data = str(obj)
-            if data[0].isalnum() and self.last.isalnum():
-                self.write(' ')
+            data = str(obj).encode('utf-8')
+            if bytes([data[0]]).isalnum() and self.last.isalnum():
+                self.write(b' ')
             self.write(data)
 
     def serialize_indirect(self, objid, obj):
-        self.write('%d 0 obj' % (objid,))
+        self.write(b'%d 0 obj' % (objid,))
         self.serialize_object(obj)
         if self.last.isalnum():
-            self.write('\n')
-        self.write('endobj\n')
+            self.write(b'\n')
+        self.write(b'endobj\n')
 
 
 
@@ -2182,7 +2188,7 @@ def decryptBook(userkey, inpath, outpath):
             try:
                 serializer.dump(outf)
             except Exception as e:
-                print("error writing pdf: {0}".format(e.args[0]))
+                print("error writing pdf: {0}".format(e))
                 return 2
     return 0
 
