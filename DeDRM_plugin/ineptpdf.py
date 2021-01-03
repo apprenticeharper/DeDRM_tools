@@ -592,7 +592,6 @@ class PSBaseParser(object):
         if not pos:
             pos = self.bufpos+self.charpos
         self.fp.seek(pos)
-        ##print >>sys.stderr, 'poll(%d): %r' % (pos, self.fp.read(n))
         self.fp.seek(pos0)
         return
 
@@ -918,7 +917,6 @@ class PSStackParser(PSBaseParser):
         '''
         while not self.results:
             (pos, token) = self.nexttoken()
-            ##print (pos,token), (self.curtype, self.curstack)
             if (isinstance(token, int) or
                     isinstance(token, Decimal) or
                     isinstance(token, bool) or
@@ -1031,7 +1029,7 @@ def decipher_all(decipher, objid, genno, x):
     '''
     Recursively decipher X.
     '''
-    if isinstance(x, str):
+    if isinstance(x, bytearray) or isinstance(x,bytes):
         return decipher(objid, genno, x)
     decf = lambda v: decipher_all(decipher, objid, genno, v)
     if isinstance(x, list):
@@ -1169,7 +1167,6 @@ class PDFStream(PDFObject):
         if 'Filter' not in self.dic:
             self.data = data
             self.rawdata = None
-            ##print self.dict
             return
         filters = self.dic['Filter']
         if not isinstance(filters, list):
@@ -1669,7 +1666,6 @@ class PDFDocument(object):
         plaintext = AES.new(key,AES.MODE_CBC,ivector).decrypt(data)
         # remove pkcs#5 aes padding
         cutter = -1 * plaintext[-1]
-        #print cutter
         plaintext = plaintext[:cutter]
         return plaintext
 
@@ -1680,7 +1676,6 @@ class PDFDocument(object):
         plaintext = AES.new(key,AES.MODE_CBC,ivector).decrypt(data)
         # remove pkcs#5 aes padding
         cutter = -1 * plaintext[-1]
-        #print cutter
         plaintext = plaintext[:cutter]
         return plaintext
 
@@ -2115,7 +2110,7 @@ class PDFSerializer(object):
             # end - hope this doesn't have bad effects
             self.write(b'<<')
             for key, val in obj.items():
-                self.write(b'/%s' % key.encode('utf-8'))
+                self.write(str(LIT(key.encode('utf-8'))).encode('utf-8'))
                 self.serialize_object(val)
             self.write(b'>>')
         elif isinstance(obj, list):
@@ -2175,14 +2170,9 @@ class PDFSerializer(object):
 
 def decryptBook(userkey, inpath, outpath):
     if RSA is None:
-        raise ADEPTError("PyCrypto or OpenSSL must be installed.")
+        raise ADEPTError("PyCryptodome or OpenSSL must be installed.")
     with open(inpath, 'rb') as inf:
-        #try:
         serializer = PDFSerializer(inf, userkey)
-        #except:
-        #    print "Error serializing pdf {0}. Probably wrong key.".format(os.path.basename(inpath))
-        #    return 2
-        # hope this will fix the 'bad file descriptor' problem
         with open(outpath, 'wb') as outf:
             # help construct to make sure the method runs to the end
             try:
