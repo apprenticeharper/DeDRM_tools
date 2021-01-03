@@ -260,7 +260,8 @@ def _load_crypto_pycrypto():
     from Crypto.PublicKey import RSA as _RSA
     from Crypto.Cipher import ARC4 as _ARC4
     from Crypto.Cipher import AES as _AES
-
+    from Crypto.Cipher import PKCS1_v1_5 as _PKCS1_v1_5
+    
     # ASN.1 parsing code from tlslite
     class ASN1Error(Exception):
         pass
@@ -374,7 +375,7 @@ def _load_crypto_pycrypto():
 
     class RSA(object):
         def __init__(self, der):
-            key = ASN1Parser([ord(x) for x in der])
+            key = ASN1Parser([x for x in der])
             key = [key.getChild(x).value for x in range(1, 4)]
             key = [self.bytesToNumber(v) for v in key]
             self._rsa = _RSA.construct(key)
@@ -386,7 +387,7 @@ def _load_crypto_pycrypto():
             return total
 
         def decrypt(self, data):
-            return self._rsa.decrypt(data)
+            return _PKCS1_v1_5.new(self._rsa).decrypt(data, 172)
 
     return (ARC4, RSA, AES)
 
@@ -1596,10 +1597,13 @@ class PDFDocument(object):
         expr = './/{http://ns.adobe.com/adept}encryptedKey'
         bookkey = codecs.decode(''.join(rights.findtext(expr)).encode('utf-8'),'base64')
         bookkey = rsa.decrypt(bookkey)
-        if bookkey[0] != 2:
-            raise ADEPTError('error decrypting book session key')
-        index = bookkey.index(b'\0') + 1
-        bookkey = bookkey[index:]
+        #if bookkey[0] != 2:
+        #    raise ADEPTError('error decrypting book session key')
+        try:
+        	index = bookkey.index(b'\0') + 1
+        	bookkey = bookkey[index:]
+        except ValueError:
+        	pass
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
         # added because of improper booktype / decryption book session key errors

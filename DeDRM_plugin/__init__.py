@@ -5,7 +5,7 @@
 # Copyright © 2008-2020 Apprentice Harper et al.
 
 __license__   = 'GPL v3'
-__version__ = '7.0.0'
+__version__ = '7.0.2'
 __docformat__ = 'restructuredtext en'
 
 
@@ -72,6 +72,7 @@ __docformat__ = 'restructuredtext en'
 #   6.8.1 - Kindle key fix for Mac OS X Big Sur
 #   7.0.0 - Switched to Python 3 for calibre 5.0. Thanks to all who contributed
 #   7.0.1 - More Python 3 changes. Adobe PDF decryption should now work in some cases
+#   7.0.2 - More Python 3 changes. Adobe PDF decryption should now work on PC too.
 
 """
 Decrypt DRMed ebooks.
