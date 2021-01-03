@@ -260,6 +260,7 @@ def _load_crypto_pycrypto():
     from Crypto.PublicKey import RSA as _RSA
     from Crypto.Cipher import ARC4 as _ARC4
     from Crypto.Cipher import AES as _AES
+    from Crypto.Cipher import PKCS1_v1_5 as _PKCS1_v1_5
 
     # ASN.1 parsing code from tlslite
     class ASN1Error(Exception):
@@ -374,7 +375,7 @@ def _load_crypto_pycrypto():
 
     class RSA(object):
         def __init__(self, der):
-            key = ASN1Parser([ord(x) for x in der])
+            key = ASN1Parser([x for x in der])
             key = [key.getChild(x).value for x in range(1, 4)]
             key = [self.bytesToNumber(v) for v in key]
             self._rsa = _RSA.construct(key)
@@ -386,7 +387,7 @@ def _load_crypto_pycrypto():
             return total
 
         def decrypt(self, data):
-            return self._rsa.decrypt(data)
+            return _PKCS1_v1_5.new(self._rsa).decrypt(data, 172)
 
     return (ARC4, RSA, AES)
 
@@ -1031,7 +1032,7 @@ def decipher_all(decipher, objid, genno, x):
     '''
     Recursively decipher X.
     '''
-    if isinstance(x, str):
+    if isinstance(x, bytes):
         return decipher(objid, genno, x)
     decf = lambda v: decipher_all(decipher, objid, genno, v)
     if isinstance(x, list):
@@ -1592,17 +1593,20 @@ class PDFDocument(object):
     def initialize_ebx(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         rsa = RSA(password)
-        length = int_value(param.get('Length', 0)) / 8
+        length = int_value(param.get('Length', 0)) // 8
         rights = codecs.decode(param.get('ADEPT_LICENSE'), 'base64')
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
         expr = './/{http://ns.adobe.com/adept}encryptedKey'
         bookkey = codecs.decode(''.join(rights.findtext(expr)).encode('utf-8'),'base64')
         bookkey = rsa.decrypt(bookkey)
-        if bookkey[0] != 2:
-            raise ADEPTError('error decrypting book session key')
-        index = bookkey.index(b'\0') + 1
-        bookkey = bookkey[index:]
+        # if bookkey[0] != 2: # apparently bookkey[0] doesn't have to be 2
+        #     raise ADEPTError('error decrypting book session key')
+        try:
+            index = bookkey.index(b'\0') + 1
+            bookkey = bookkey[index:]
+        except ValueError:
+            pass
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
         # added because of improper booktype / decryption book session key errors
