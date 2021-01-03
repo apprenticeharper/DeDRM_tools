@@ -1482,7 +1482,7 @@ class PDFDocument(object):
         # global static principal key for German Onleihe / Bibliothek Digital
         principalkeys = { b'bibliothek-digital.de': codecs.decode(b'rRwGv2tbpKov1krvv7PO0ws9S436/lArPlfipz5Pqhw=','base64')}
         self.is_printable = self.is_modifiable = self.is_extractable = True
-        length = int_value(param.get('Length', 0)) / 8
+        length = int_value(param.get('Length', 0)) // 8
         edcdata = str_value(param.get('EDCData')).decode('base64')
         pdrllic = str_value(param.get('PDRLLic')).decode('base64')
         pdrlpol = str_value(param.get('PDRLPol')).decode('base64')
@@ -1547,8 +1547,8 @@ class PDFDocument(object):
         if 5 <= R:
             # 8
             for _ in range(50):
-                hash = hashlib.md5(hash.digest()[:length/8])
-        key = hash.digest()[:length/8]
+                hash = hashlib.md5(hash.digest()[:length//8])
+        key = hash.digest()[:length//8]
         if R == 2:
             # Algorithm 3.4
             u1 = ARC4.new(key).decrypt(password)
@@ -1590,7 +1590,7 @@ class PDFDocument(object):
     def initialize_ebx(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         rsa = RSA(password)
-        length = int_value(param.get('Length', 0)) / 8
+        length = int_value(param.get('Length', 0)) // 8
         rights = codecs.decode(param.get('ADEPT_LICENSE'), 'base64')
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
