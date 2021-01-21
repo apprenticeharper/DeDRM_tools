@@ -512,6 +512,8 @@ class BinaryIonParser(object):
 
         if table is not None:
             self.symbols.import_(table, min(maxid, len(table.symnames)))
+            if len(table.symnames) < maxid:
+                self.symbols.importunknown(name + "-unknown", maxid - len(table.symnames))
         else:
             self.symbols.importunknown(name, maxid)
 
