@@ -736,7 +736,10 @@ SYM_NAMES = [ 'com.amazon.drm.Envelope@1.0',
               'com.amazon.drm.PlainText@2.0', 'compression_algorithm',
               'com.amazon.drm.Compressed@1.0', 'page_index_table',
               'com.amazon.drm.VoucherEnvelope@2.0', 'com.amazon.drm.VoucherEnvelope@3.0' ]
-
+              ] + ['com.amazon.drm.VoucherEnvelope@%d.0' % n
+                   for n in list(range(2, 29)) + [
+                                   9708, 1031, 2069, 9041, 3646,
+                                   6052, 9479, 9888, 4648, 5683]]
 def addprottable(ion):
     ion.addtocatalog("ProtectedData", 1, SYM_NAMES)
 
@@ -759,9 +762,45 @@ def pkcs7unpad(msg, blocklen):
 
 
 # every VoucherEnvelope version has a corresponding "word" and magic number, used in obfuscating the shared secret
-VOUCHER_VERSION_INFOS = {
-    2: [b'Antidisestablishmentarianism', 5],
-    3: [b'Floccinaucinihilipilification', 8]
+OBFUSCATION_TABLE = {
+    "V1":    (0x00, None),
+    "V2":    (0x05, b'Antidisestablishmentarianism'),
+    "V3":    (0x08, b'Floccinaucinihilipilification'),
+    "V4":    (0x07, b'>\x14\x0c\x12\x10-\x13&\x18U\x1d\x05Rlt\x03!\x19\x1b\x13\x04]Y\x19,\t\x1b'),
+    "V5":    (0x06, b'~\x18~\x16J\\\x18\x10\x05\x0b\x07\t\x0cZ\r|\x1c\x15\x1d\x11>,\x1b\x0e\x03"4\x1b\x01'),
+    "V6":    (0x09, b'3h\x055\x03[^>\x19\x1c\x08\x1b\rtm4\x02Rp\x0c\x16B\n'),
+    "V7":    (0x05, b'\x10\x1bJ\x18\nh!\x10"\x03>Z\'\r\x01]W\x06\x1c\x1e?\x0f\x13'),
+    "V8":    (0x09, b"K\x0c6\x1d\x1a\x17pO}Rk\x1d'w1^\x1f$\x1c{C\x02Q\x06\x1d`"),
+    "V9":    (0x05, b'X.\x0eW\x1c*K\x12\x12\t\n\n\x17Wx\x01\x02Yf\x0f\x18\x1bVXPi\x01'),
+    "V10":   (0x07, b'z3\n\x039\x12\x13`\x06=v,\x02MTK\x1e%}L\x1c\x1f\x15\x0c\x11\x02\x0c\n8\x17p'),
+    "V11":   (0x05, b'L=\nhVm\x07go\n6\x14\x06\x16L\r\x02\x0b\x0c\x1b\x04#p\t'),
+    "V12":   (0x06, b',n\x1d\rl\x13\x1c\x13\x16p\x14\x07U\x0c\x1f\x19w\x16\x16\x1d5T'),
+    "V13":   (0x07, b'I\x05\t\x08\x03r)\x01$N\x0fr3n\x0b062D\x0f\x13'),
+    "V14":   (0x05, b"\x03\x02\x1c9\x19\x15\x15q\x1057\x08\x16\x0cF\x1b.Fw\x01\x12\x03\x13\x02\x17S'hk6"),
+    "V15":   (0x0A, b'&,4B\x1dcI\x0bU\x03I\x07\x04\x1c\t\x05c\x07%ws\x0cj\t\x1a\x08\x0f'),
+    "V16":   (0x0A, b'\x06\x18`h,b><\x06PqR\x02Zc\x034\n\x16\x1e\x18\x06#e'),
+    "V17":   (0x07, b'y\r\x12\x08fw.[\x02\t\n\x13\x11\x0c\x11b\x1e8L\x10(\x13<Jx6c\x0f'),
+    "V18":   (0x07, b'I\x0b\x0e,\x19\x1aIa\x10s\x19g\\\x1b\x11!\x18yf\x0f\t\x1d7[bSp\x03'),
+    "V19":   (0x05, b'\n6>)N\x02\x188\x016s\x13\x14\x1b\x16jeN\n\x146\x04\x18\x1c\x0c\x19\x1f,\x02]'),
+    "V20":   (0x08, b'_\r\x01\x12]\\\x14*\x17i\x14\r\t!\x1e,~hZ\x12jK\x17\x1e*1'),
+    "V21":   (0x07, b'e\x1d\x19|\ty\x1di|N\x13\x0e\x04\x1bj<h\x13\x15k\x12\x08=\x1f\x16~\x13l'),
+    "V22":   (0x08, b'?\x17yi$k7Pc\tEo\x0c\x07\x07\t\x1f,*i\x12\x0cI0\x10I\x1a?2\x04'),
+    "V23":   (0x08, b'\x16+db\x13\x04\x18\rc%\x14\x17\x0f\x13F\x0c[\t9\x1ay\x01\x1eH'),
+    "V24":   (0x06, b'|6\\\x1a\r\x10\nP\x07\x0fu\x1f\t,\rr`uv\\~55\x11]N'),
+    "V25":   (0x09, b'\x07\x14w\x1e,^y\x01:\x08\x07\x1fr\tU#j\x16\x12\x1eB\x04\x16=\x06fZ\x07\x02\x06'),
+    "V26":   (0x06, b'\x03IL\x1e"K\x1f\x0f\x1fp0\x01`X\x02z0`\x03\x0eN\x07'),
+    "V27":   (0x07, b'Xk\x10y\x02\x18\x10\x17\x1d,\x0e\x05e\x10\x15"e\x0fh(\x06s\x1c\x08I\x0c\x1b\x0e'),
+    "V28":   (0x0A, b'6P\x1bs\x0f\x06V.\x1cM\x14\x02\n\x1b\x07{P0:\x18zaU\x05'),
+    "V9708": (0x05, b'\x1diIm\x08a\x17\x1e!am\x1d\x1aQ.\x16!\x06*\}x04\x11\t\x06\x04?'),
+    "V1031": (0x08, b'Antidisestablishmentarianism'),
+    "V2069": (0x07, b'Floccinaucinihilipilification'),
+    "V9041": (0x06, b'>\x14\x0c\x12\x10-\x13&\x18U\x1d\x05Rlt\x03!\x19\x1b\x13\x04]Y\x19,\t\x1b'),
+    "V3646": (0x09, b'~\x18~\x16J\\\x18\x10\x05\x0b\x07\t\x0cZ\r|\x1c\x15\x1d\x11>,\x1b\x0e\x03"4\x1b\x01'),
+    "V6052": (0x05, b'3h\x055\x03[^>\x19\x1c\x08\x1b\rtm4\x02Rp\x0c\x16B\n'),
+    "V9479": (0x09, b'\x10\x1bJ\x18\nh!\x10"\x03>Z\'\r\x01]W\x06\x1c\x1e?\x0f\x13'),
+    "V9888": (0x05, b"K\x0c6\x1d\x1a\x17pO}Rk\x1d'w1^\x1f$\x1c{C\x02Q\x06\x1d`"),
+    "V4648": (0x07, b'X.\x0eW\x1c*K\x12\x12\t\n\n\x17Wx\x01\x02Yf\x0f\x18\x1bVXPi\x01'),
+    "V5683": (0x05, b'z3\n\x039\x12\x13`\x06=v,\x02MTK\x1e%}L\x1c\x1f\x15\x0c\x11\x02\x0c\n8\x17p'),
 }
 
 
@@ -770,9 +809,7 @@ def obfuscate(secret, version):
     if version == 1:  # v1 does not use obfuscation
         return secret
 
-    params = VOUCHER_VERSION_INFOS[version]
-    word = params[0]
-    magic = params[1]
+    magic, word = OBFUSCATION_TABLE["V%d" % version]
 
     # extend secret so that its length is divisible by the magic number
     if len(secret) % magic != 0:
