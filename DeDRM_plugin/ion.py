@@ -735,11 +735,11 @@ SYM_NAMES = [ 'com.amazon.drm.Envelope@1.0',
               'com.amazon.drm.EncryptedPage@2.0',
               'com.amazon.drm.PlainText@2.0', 'compression_algorithm',
               'com.amazon.drm.Compressed@1.0', 'page_index_table',
-              'com.amazon.drm.VoucherEnvelope@2.0', 'com.amazon.drm.VoucherEnvelope@3.0' ]
               ] + ['com.amazon.drm.VoucherEnvelope@%d.0' % n
                    for n in list(range(2, 29)) + [
                                    9708, 1031, 2069, 9041, 3646,
                                    6052, 9479, 9888, 4648, 5683]]
+
 def addprottable(ion):
     ion.addtocatalog("ProtectedData", 1, SYM_NAMES)
 
