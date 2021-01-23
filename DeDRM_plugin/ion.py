@@ -815,18 +815,18 @@ class DrmIonVoucher(object):
         addprottable(self.envelope)
 
     def decryptvoucher(self):
-        shared = "PIDv3" + self.encalgorithm + self.enctransformation + self.hashalgorithm
+        shared = ("PIDv3" + self.encalgorithm + self.enctransformation + self.hashalgorithm).encode('ASCII')
 
         self.lockparams.sort()
         for param in self.lockparams:
             if param == "ACCOUNT_SECRET":
-                shared += param + self.secret
+                shared += param.encode('ASCII') + self.secret
             elif param == "CLIENT_ID":
-                shared += param + self.dsn
+                shared += param.encode('ASCII') + self.dsn
             else:
                 _assert(False, "Unknown lock parameter: %s" % param)
 
-        sharedsecret = obfuscate(shared.encode('ASCII'), self.version)
+        sharedsecret = obfuscate(shared, self.version)
 
         key = hmac.new(sharedsecret, b"PIDv3", digestmod=hashlib.sha256).digest()
         aes = AES.new(key[:32], AES.MODE_CBC, self.cipheriv[:16])
