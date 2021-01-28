@@ -415,12 +415,12 @@ def decryptBook(userkey, inpath, outpath):
                 return 1
             bookkey = rsa.decrypt(codecs.decode(bookkey.encode('ascii'), 'base64'))
             # Padded as per RSAES-PKCS1-v1_5
-            if len(bookkey) != 16:
-                if bookkey[-17] != '\x00' and bookkey[-17] != 0:
+            if len(bookkey) > 16:
+                if bookkey[-17] == '\x00' or bookkey[-17] == 0:
+                    bookkey = bookkey[-16:]
+                else:
                     print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
                     return 2
-                else:
-                    bookkey = bookkey[-16:]
             encryption = inf.read('META-INF/encryption.xml')
             decryptor = Decryptor(bookkey, encryption)
             kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)

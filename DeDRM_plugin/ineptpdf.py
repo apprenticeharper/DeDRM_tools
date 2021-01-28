@@ -1599,11 +1599,10 @@ class PDFDocument(object):
         bookkey = rsa.decrypt(bookkey)
         #if bookkey[0] != 2:
         #    raise ADEPTError('error decrypting book session key')
-        try:
-        	index = bookkey.index(b'\0') + 1
-        	bookkey = bookkey[index:]
-        except ValueError:
-        	pass
+        if len(bookkey) > 16:
+            if bookkey[-17] == '\x00' or bookkey[-17] == 0:
+                bookkey = bookkey[-16:]
+                length = 16
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
         # added because of improper booktype / decryption book session key errors
