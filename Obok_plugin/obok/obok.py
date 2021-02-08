@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# Version 4.1.0 February 2021
+# Add detection for Kobo directory location on Linux
+
 # Version 4.0.0 September 2020
 # Python 3.0
 #
@@ -365,9 +368,33 @@ class KoboLibrary(object):
                     self.kobodir = os.path.join(self.kobodir, "Kobo", "Kobo Desktop Edition")
                 elif sys.platform.startswith('darwin'):
                     self.kobodir = os.path.join(os.environ['HOME'], "Library", "Application Support", "Kobo", "Kobo Desktop Edition")
-            #elif linux_path != None:
-                # Probably Linux, let's get the wine prefix and path to Kobo.
-            #   self.kobodir = os.path.join(linux_path, "Local Settings", "Application Data", "Kobo", "Kobo Desktop Edition")
+                elif sys.platform.startswith('linux'):
+
+                    #sets ~/.config/calibre as the location to store the kobodir location info file and creates this directory if necessary
+                    kobodir_cache_dir = os.path.join(os.environ['HOME'], ".config", "calibre")
+                    if not os.path.isdir(kobodir_cache_dir):
+                        os.mkdir(kobodir_cache_dir)
+                    
+                    #appends the name of the file we're storing the kobodir location info to the above path
+                    kobodir_cache_file = str(kobodir_cache_dir) + "/" + "kobo location"
+                    
+                    """if the above file does not exist, recursively searches from the root
+                    of the filesystem until kobodir is found and stores the location of kobodir
+                    in that file so this loop can be skipped in the future"""
+                    original_stdout = sys.stdout
+                    if not os.path.isfile(kobodir_cache_file):
+                        for root, dirs, files in os.walk('/'):
+                            for file in files:
+                                if file == 'Kobo.sqlite':
+                                    kobo_linux_path = str(root)
+                                    with open(kobodir_cache_file, 'w') as f:
+                                        sys.stdout = f
+                                        print(kobo_linux_path, end='')
+                                        sys.stdout = original_stdout
+
+                    f = open(kobodir_cache_file, 'r' )
+                    self.kobodir = f.read()
+
             # desktop versions use Kobo.sqlite
             kobodb = os.path.join(self.kobodir, "Kobo.sqlite")
             # check for existence of file
