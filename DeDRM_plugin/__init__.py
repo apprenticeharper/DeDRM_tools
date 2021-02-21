@@ -5,7 +5,7 @@
 # Copyright © 2008-2020 Apprentice Harper et al.
 
 __license__   = 'GPL v3'
-__version__ = '7.0.3'
+__version__ = '7.1.0'
 __docformat__ = 'restructuredtext en'
 
 
@@ -74,6 +74,7 @@ __docformat__ = 'restructuredtext en'
 #   7.0.1 - More Python 3 changes. Adobe PDF decryption should now work in some cases
 #   7.0.2 - More Python 3 changes. Adobe PDF decryption should now work on PC too.
 #   7.0.3 - More Python 3 changes. Integer division in ineptpdf.py
+#   7.1.0 - Full release for calibre 5.x
 
 """
 Decrypt DRMed ebooks.
