@@ -20,7 +20,10 @@ class SimplePrefs(object):
             self.file2key[filename] = key
         self.target = target + 'Prefs'
         if sys.platform.startswith('win'):
-            import winreg
+            try:
+                import winreg
+            except ImportError:
+                import _winreg as winreg
             regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders\\")
             path = winreg.QueryValueEx(regkey, 'Local AppData')[0]
             prefdir = path + os.sep + self.target

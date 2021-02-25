@@ -42,7 +42,10 @@ class legacy_obok(object):
         pwsdid = ''
         try:
             if sys.platform.startswith('win'):
-                import winreg
+                try:
+                    import winreg
+                except ImportError:
+                    import _winreg as winreg
                 regkey_browser = winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\\Kobo\\Kobo Desktop Edition\\Browser')
                 cookies = winreg.QueryValueEx(regkey_browser, 'cookies')
                 bytearrays = cookies[0]

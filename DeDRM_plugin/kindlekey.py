@@ -195,7 +195,11 @@ if iswindows:
         create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
         string_at, Structure, c_void_p, cast
 
-    import winreg
+    try:
+        import winreg
+    except ImportError:
+        import _winreg as winreg
+
     MAX_PATH = 255
     kernel32 = windll.kernel32
     advapi32 = windll.advapi32
