@@ -346,7 +346,10 @@ class KoboLibrary(object):
         if (self.kobodir == u""):
             # step 4. we haven't found a device with serials, so try desktop apps
             if sys.platform.startswith('win'):
-                import winreg
+                try:
+                    import winreg
+                except ImportError:
+                    import _winreg as winreg
                 if sys.getwindowsversion().major > 5:
                     if 'LOCALAPPDATA' in os.environ.keys():
                         # Python 2.x does not return unicode env. Use Python 3.x
