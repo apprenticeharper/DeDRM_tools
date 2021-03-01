@@ -470,8 +470,8 @@ class KoboLibrary(object):
         """The list of all MAC addresses on this machine."""
         macaddrs = []
         if sys.platform.startswith('win'):
-            c = re.compile('\s(' + '[0-9a-f]{2}-' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
-            output = subprocess.Popen('ipconfig /all', shell=True, stdout=subprocess.PIPE, text=True).stdout
+            c = re.compile('\s?(' + '[0-9a-f]{2}[:\-]' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
+            output = subprocess.Popen('wmic nic where PhysicalAdapter=True get MACAddress', shell=True, stdout=subprocess.PIPE, text=True).stdout
             for line in output:
                 m = c.search(line)
                 if m:
