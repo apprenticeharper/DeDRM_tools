@@ -478,7 +478,7 @@ class KoboLibrary(object):
                     macaddrs.append(re.sub("-", ":", m.group(1)).upper())
         elif sys.platform.startswith('darwin'):
             c = re.compile('\s(' + '[0-9a-f]{2}:' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
-            output = subprocess.check_output('/sbin/ifconfig -a', shell=True)
+            output = subprocess.check_output('/sbin/ifconfig -a', shell=True, encoding='utf-8')
             matches = c.findall(output)
             for m in matches:
                 # print "m:{0}".format(m[0])
