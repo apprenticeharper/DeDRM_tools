@@ -559,7 +559,7 @@ class DocParser(object):
                     if (link > 0):
                         linktype = self.link_type[link-1]
                         title = self.link_title[link-1]
-                        title = title.rstrip(b'. ')
+                        title = title.rstrip(b'. ').decode('utf-8')
                         alt_title = parares[lstart:]
                         alt_title = alt_title.strip()
                         # now strip off the actual printed page number
