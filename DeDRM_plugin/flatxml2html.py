@@ -770,10 +770,10 @@ class DocParser(object):
                             first_para_continued = False
                         (pclass, pdesc) = self.getParaDescription(start,end, regtype)
                         if not pclass:
-                            if orig_regtype.endswith(b'.right')     : pclass = 'cl-right'
-                            elif orig_regtype.endswith(b'.center')  : pclass = 'cl-center'
-                            elif orig_regtype.endswith(b'.left')    : pclass = 'cl-left'
-                            elif orig_regtype.endswith(b'.justify') : pclass = 'cl-justify'
+                            if orig_regtype.endswith(b'.right')     : pclass = b'cl-right'
+                            elif orig_regtype.endswith(b'.center')  : pclass = b'cl-center'
+                            elif orig_regtype.endswith(b'.left')    : pclass = b'cl-left'
+                            elif orig_regtype.endswith(b'.justify') : pclass = b'cl-justify'
                         if pclass and (ptype == 'full') and (len(pclass) >= 6):
                             tag = 'p'
                             if pclass[3:6] == b'h1-' : tag = 'h4'
