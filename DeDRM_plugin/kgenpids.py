@@ -209,7 +209,7 @@ def getK4Pids(rec209, token, kindleDatabase):
         kindleAccountToken = bytearray.fromhex((kindleDatabase[1])['kindle.account.tokens'])
 
     except KeyError:
-        kindleAccountToken=""
+        kindleAccountToken = b''
         pass
 
     try:
