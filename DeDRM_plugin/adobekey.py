@@ -115,7 +115,9 @@ if iswindows:
 
     def _load_crypto_libcrypto():
         from ctypes.util import find_library
-        libcrypto = find_library('libeay32')
+        libcrypto = find_library('libcrypto-1_1')
+        if libcrypto is None:
+            libcrypto = find_library('libeay32')
         if libcrypto is None:
             raise ADEPTError('libcrypto not found')
         libcrypto = CDLL(libcrypto)
