@@ -153,6 +153,7 @@ class fixZip:
                 nzinfo.internal_attr=zinfo.internal_attr
                 nzinfo.external_attr=zinfo.external_attr
                 nzinfo.create_system=zinfo.create_system
+                nzinfo.flag_bits = zinfo.flag_bits & 0x800  # preserve UTF-8 flag
                 self.outzip.writestr(nzinfo,data)
 
         self.bzf.close()
