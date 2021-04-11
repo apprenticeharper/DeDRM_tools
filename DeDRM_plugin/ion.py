@@ -993,6 +993,7 @@ class DrmIon(object):
 
                 elif self.ion.gettypename() in ["com.amazon.drm.EncryptedPage@1.0", "com.amazon.drm.EncryptedPage@2.0"]:
                     decompress = False
+                    decrypt = True
                     ct = None
                     civ = None
                     self.ion.stepin()
@@ -1006,7 +1007,23 @@ class DrmIon(object):
                             civ = self.ion.lobvalue()
 
                     if ct is not None and civ is not None:
-                        self.processpage(ct, civ, outpages, decompress)
+                        self.processpage(ct, civ, outpages, decompress, decrypt)
+                    self.ion.stepout()
+
+                elif self.ion.gettypename() in ["com.amazon.drm.PlainText@1.0", "com.amazon.drm.PlainText@2.0"]:
+                    decompress = False
+                    decrypt = False
+                    plaintext = None
+                    self.ion.stepin()
+                    while self.ion.hasnext():
+                        self.ion.next()
+                        if self.ion.gettypename() == "com.amazon.drm.Compressed@1.0":
+                            decompress = True
+                        if self.ion.getfieldname() == "data":
+                            plaintext = self.ion.lobvalue()
+
+                    if plaintext is not None:
+                        self.processpage(plaintext, None, outpages, decompress, decrypt)
                     self.ion.stepout()
 
             self.ion.stepout()
@@ -1017,9 +1034,12 @@ class DrmIon(object):
     def print_(self, lst):
         self.ion.print_(lst)
 
-    def processpage(self, ct, civ, outpages, decompress):
-        aes = AES.new(self.key[:16], AES.MODE_CBC, civ[:16])
-        msg = pkcs7unpad(aes.decrypt(ct), 16)
+    def processpage(self, ct, civ, outpages, decompress, decrypt):
+        if decrypt:
+            aes = AES.new(self.key[:16], AES.MODE_CBC, civ[:16])
+            msg = pkcs7unpad(aes.decrypt(ct), 16)
+        else:
+            msg = ct
 
         if not decompress:
             outpages.write(msg)
