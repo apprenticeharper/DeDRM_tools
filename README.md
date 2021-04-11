@@ -10,14 +10,12 @@ The individual scripts are now released as two plugins for calibre: DeDRM and Ob
 The DeDRM plugin handles books that use Amazon DRM, Adobe Digital Editions DRM (version 1), Barnes & Noble DRM, and some historical formats.
 The Obok plugin handles Kobo DRM.
 
-Users with calibre 5.x or later should use release 7.0.0b2 or later of the tools.
-Users with calibe 4.x or earlier should use release 6.8.0 of the tools.
-
-Developers might be interested in forking the repository, as it contains unzipped versions of those tools that are zipped to make the changes over time easier to follow.
+Users with calibre 5.x or later should use release 7.2.0 or later of the tools.
+Users with calibe 4.x or earlier should use release 6.8.x of the tools.
 
 For the latest Amazon KFX format, users of the calibre plugin should also install the KFX Input plugin from the standard calibre plugin menu. It's also available from the MobileRead thread here: https://www.mobileread.com/forums/showthread.php?t=291290
 
-Note that DRM can only be removed from KFX format files downloaded with Kindle for PC/Mac 1.26 or earlier. Amazon changes the DRM for KFX files in Kindle for PC/Mac 1.27 and later.
+Note that Amazon changes the DRM for KFX files frequently. What works for KFX today might not work tomorrow.
 
 I welcome contributions from others to improve these tools, from expanding the range of books handled, improving key retrieval,  to just general bug fixes, speed improvements and UI enhancements.
 

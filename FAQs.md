@@ -51,7 +51,9 @@ Mac Note: If the chmod command fails with a permission error try again using `su
 After restarting the Kindle program any books previously downloaded in KFX format will no longer open. You will need to remove them from your device and re-download them. All future downloads will use the older Kindle formats instead of KFX although they will continue to be placed in one individual subdirectory per book. Note that books soudl be downoad by right-click and 'Download', not by just opening the book. Recent (1.25+) versions of Kindle for Mac/PC may convert KF8 files to a new format that is not supported by these tools when the book is opened for reading.
 
 #### Decrypting KFX
-Thanks to work by several people, the tools can now decrypt KFX format ebooks from Kindle for Mac/PC version 1.26 or earlier (version later than 1.26 use a new encryption scheme for KFX files). In addition to the DeDRM plugin, calibre users will also need to install jhowell's KFX Input plugin which is available through the standard plugin menu in calibre, or directly from [his plugin thread](https://www.mobileread.com/forums/showthread.php?t=291290) on Mobileread. 
+Thanks to work by several people, the tools can now decrypt KFX format ebooks from Kindle for Mac/PC. In addition to the DeDRM plugin, calibre users will also need to install jhowell's KFX Input plugin which is available through the standard plugin menu in calibre, or directly from [his plugin thread](https://www.mobileread.com/forums/showthread.php?t=291290) on Mobileread. 
+
+It's quite possible that Amazon will update their KFX DeDRM to prevent DRM removal from KFX books again. So Remove DRM as soon as possible!
 
 #### Thanks
 Thanks to jhowell for his investigations into KFX format and the KFX Input plugin. Some of these instructions are from [his thread on the subject](https://www.mobileread.com/forums/showthread.php?t=283371) at MobileRead.

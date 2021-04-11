@@ -4,10 +4,12 @@
 # Engine to remove drm from Kindle KFX ebooks
 
 #  2.0   - Python 3 for calibre 5.0
+#  2.1   - Some fixes for debugging
 
 
 import os
 import shutil
+import traceback
 import zipfile
 
 from io import BytesIO
@@ -65,6 +67,9 @@ class KFXZipBook:
         print("Decrypting KFX DRM voucher: {0}".format(info.filename))
 
         for pid in [''] + totalpids:
+        	# Belt and braces. PIDs should be unicode strings, but just in case...
+            if isinstance(pid, bytes):
+                pid = pid.decode('ascii')
             for dsn_len,secret_len in [(0,0), (16,0), (16,40), (32,40), (40,0), (40,40)]:
                 if len(pid) == dsn_len + secret_len:
                     break       # split pid into DSN and account secret
@@ -77,7 +82,8 @@ class KFXZipBook:
                 voucher.decryptvoucher()
                 break
             except:
-                pass
+   				traceback.print_exc()
+                    pass
         else:
             raise Exception("Failed to decrypt KFX DRM voucher with any key")
 
