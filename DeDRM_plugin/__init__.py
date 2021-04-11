@@ -5,7 +5,7 @@
 # Copyright © 2008-2020 Apprentice Harper et al.
 
 __license__   = 'GPL v3'
-__version__ = '7.2.0'
+__version__ = '7.2.1'
 __docformat__ = 'restructuredtext en'
 
 
@@ -76,6 +76,7 @@ __docformat__ = 'restructuredtext en'
 #   7.0.3 - More Python 3 changes. Integer division in ineptpdf.py
 #   7.1.0 - Full release for calibre 5.x
 #   7.2.0 - Update for latest KFX changes, and Python 3 Obok fixes.
+#   7.2.1 - Whitespace!
 
 """
 Decrypt DRMed ebooks.

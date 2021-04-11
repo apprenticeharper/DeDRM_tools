@@ -848,6 +848,12 @@ class DrmIonVoucher(object):
     def __init__(self, voucherenv, dsn, secret):
         self.dsn, self.secret = dsn, secret
 
+        if isinstance(dsn, str):
+            self.dsn = dsn.encode('ASCII')
+
+        if isinstance(secret, str):
+            self.secret = secret.encode('ASCII')
+
         self.lockparams = []
 
         self.envelope = BinaryIonParser(voucherenv)
