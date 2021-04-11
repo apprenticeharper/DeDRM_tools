@@ -27,12 +27,12 @@ Verify the one of the following cryptographic hash values, using software of you
 #### Kindle for PC `KindleForPC-installer-1.17.44170.exe`:
 * MD-5: 53F793B562F4823721AA47D7DE099869
 * SHA-1: 73C404D719F0DD8D4AE1C2C96612B095D6C86255
-* SHA-256: 14E0F0053F1276C0C7C446892DC170344F707FBFE99B695176 2C120144163200
+* SHA-256: 14E0F0053F1276C0C7C446892DC170344F707FBFE99B6951762C120144163200
 
 #### Kindle for Mac `KindleForMac-44182.dmg`:
 * MD-5: E7E36D5369E1F3CF1D28E5D9115DF15F
 * SHA-1: 7AB9A86B954CB23D622BD79E3257F8E2182D791C
-* SHA-256: 28DC21246A9C7CDEDD2D6F0F4082E6BF7EF9DB9CE9D485548E 8A9E1D19EAE2AC. 
+* SHA-256: 28DC21246A9C7CDEDD2D6F0F4082E6BF7EF9DB9CE9D485548E8A9E1D19EAE2AC
 
 You will need to go to the preferences and uncheck the auto update checkbox. Then download and install 1.17 over the top of the newer installation. You'll also need to delete the KFX folders from your My Kindle Content folder. You may also need to take further action to prevent an auto update. The simplest wayis to find the 'updates' folder and replace it with a file. See [this thread] (http://www.mobileread.com/forums/showthread.php?t=283371) at MobileRead for a Script to do this on a PC. On a Mac you can find the folder at ~/Library/Application Support/Kindle/ just delete the folder 'updates' and save a blank text file called 'updates' in its place.
 
