@@ -191,7 +191,7 @@ def unescape(text):
         else:
             # named entity
             try:
-                text = chr(htmlentitydefs.name2codepoint[text[1:-1]])
+                text = chr(html.entities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
         return text # leave as is
