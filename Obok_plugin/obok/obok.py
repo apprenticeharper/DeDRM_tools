@@ -471,11 +471,18 @@ class KoboLibrary(object):
         macaddrs = []
         if sys.platform.startswith('win'):
             c = re.compile('\s?(' + '[0-9a-f]{2}[:\-]' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
-            output = subprocess.Popen('wmic nic where PhysicalAdapter=True get MACAddress', shell=True, stdout=subprocess.PIPE, text=True).stdout
-            for line in output:
-                m = c.search(line)
-                if m:
-                    macaddrs.append(re.sub("-", ":", m.group(1)).upper())
+            try: 
+                output = subprocess.Popen('ipconfig /all', shell=True, stdout=subprocess.PIPE, text=True).stdout
+                for line in output:
+                    m = c.search(line)
+                    if m:
+                        macaddrs.append(re.sub("-", ":", m.group(1)).upper())
+            except:
+                output = subprocess.Popen('wmic nic where PhysicalAdapter=True get MACAddress', shell=True, stdout=subprocess.PIPE, text=True).stdout
+                for line in output:
+                    m = c.search(line)
+                    if m:
+                        macaddrs.append(re.sub("-", ":", m.group(1)).upper())
         elif sys.platform.startswith('darwin'):
             c = re.compile('\s(' + '[0-9a-f]{2}:' * 5 + '[0-9a-f]{2})(\s|$)', re.IGNORECASE)
             output = subprocess.check_output('/sbin/ifconfig -a', shell=True, encoding='utf-8')
