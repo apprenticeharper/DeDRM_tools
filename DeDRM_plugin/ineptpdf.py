@@ -1204,7 +1204,7 @@ class PDFStream(PDFObject):
                     for i in range(0, len(data), columns+1):
                         pred = data[i]
                         ent1 = data[i+1:i+1+columns]
-                        if pred == b'\x02':
+                        if pred == 2:
                             ent1 = b''.join(bytes([(a+b) & 255]) \
                                            for (a,b) in zip(ent0,ent1))
                         buf += ent1
@@ -1349,8 +1349,8 @@ class PDFXRefStream(object):
             raise PDFNoValidXRef('Invalid PDF stream spec.')
         size = stream.dic['Size']
         index = stream.dic.get('Index', (0,size))
-        self.index = zip(itertools.islice(index, 0, None, 2),
-                         itertools.islice(index, 1, None, 2))
+        self.index = list(zip(itertools.islice(index, 0, None, 2),
+                              itertools.islice(index, 1, None, 2)))
         (self.fl1, self.fl2, self.fl3) = stream.dic['W']
         self.data = stream.get_data()
         self.entlen = self.fl1+self.fl2+self.fl3
