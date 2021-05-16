@@ -21,7 +21,7 @@ But otherwise, if your ebook is from Amazon, Kobo, Barnes & Noble or any of the 
 ### Recent Changes to Kindle for PC/Kindle for Mac
 Starting with version 1.19, Kindle for PC/Mac uses Amazon's new KFX format which isn't quite as good a source for conversion to ePub as the older KF8 (& MOBI) formats. There are two options to get the older formats. Either stick with version 1.17 or earlier, or modify the executable by changing a file name (PC) or disabling a component of the application (Mac). 
 
-Version 1.17 of Kindle is no longer available directly from Amazon, so you will need to search for the proper file name and find it on a third party site. The name is `KindleForPC-installer-1.17.44170.exe` for PC and `KindleForMac-44182.dmg` for Mac.
+Version 1.17 of Kindle is no longer available directly from Amazon, so you will need to search for the proper file name and find it on a third party site. The name is `KindleForPC-installer-1.17.44170.exe` for PC and `KindleForMac-44182.dmg` for Mac.  (Note that this is a 32-bit application on the Mac, so will not work on Catalina and newer versions of macOS.)
 Verify the one of the following cryptographic hash values, using software of your choice, before installing the downloaded file in order to avoid viruses. If the hash does not match, delete the downloaded file and try again from another site.
 
 #### Kindle for PC `KindleForPC-installer-1.17.44170.exe`:
