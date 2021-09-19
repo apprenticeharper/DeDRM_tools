@@ -350,7 +350,7 @@ class TopazBook:
             # use 8 digit pids here
             pid = pid[0:8]
             if isinstance(pid, str):
-                pid = pid.encode('latin-1')
+                pid = pid.encode('utf-8')
             print("Trying: {0}".format(pid))
             bookKeys = []
             data = keydata
