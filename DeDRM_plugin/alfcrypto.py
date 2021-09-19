@@ -207,8 +207,9 @@ def _load_python_alfcrypto():
 
         def ctx_init(self, key):
             ctx1 = 0x0CAFFE19E
-            for keyChar in key:
-                keyByte = ord(keyChar)
+            if isinstance(key, str):
+                key = key.encode('latin-1')
+            for keyByte in key:
                 ctx2 = ctx1
                 ctx1 = ((((ctx1 >>2) * (ctx1 >>7))&0xFFFFFFFF) ^ (keyByte * keyByte * 0x0F902007)& 0xFFFFFFFF )
             self._ctx = [ctx1, ctx2]
@@ -220,8 +221,9 @@ def _load_python_alfcrypto():
             ctx1 = ctx[0]
             ctx2 = ctx[1]
             plainText = ""
-            for dataChar in data:
-                dataByte = ord(dataChar)
+            if isinstance(data, str):
+                data = data.encode('latin-1')
+            for dataByte in data:
                 m = (dataByte ^ ((ctx1 >> 3) &0xFF) ^ ((ctx2<<3) & 0xFF)) &0xFF
                 ctx2 = ctx1
                 ctx1 = (((ctx1 >> 2) * (ctx1 >> 7)) &0xFFFFFFFF) ^((m * m * 0x0F902007) &0xFFFFFFFF)
