@@ -132,7 +132,7 @@ class DeDRM(FileTypePlugin):
     author                  = "Apprentice Alf, Aprentice Harper, The Dark Reverser and i♥cabbages"
     version                 = PLUGIN_VERSION_TUPLE
     minimum_calibre_version = (5, 0, 0)  # Python 3.
-    file_types              = set(['epub','pdf','pdb','prc','mobi','pobi','azw','azw1','azw3','azw4','azw8','tpz','kfx','kfx-zip'])
+    file_types              = set(['epub','pdf','pdb','prc','mobi','pobi','azw','azw1','azw3','azw4','azw8','tpz','kfx','kfx-zip','acsm'])
     on_import               = True
     on_preprocess           = True
     priority                = 600
