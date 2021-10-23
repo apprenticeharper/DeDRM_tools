@@ -2282,7 +2282,7 @@ class PDFDocument(object):
         self.fileopen['AcroReader']='Yes'
         self.fileopen['OSBuild']='7600'
         self.fileopen['AcroVersion']='9.1024'
-        self.fileopen['Build']='879'
+        self.fileopen['Build']='996'
         # write hardware keys
         hwkey = 0
         # get the os type and save it in ostype
