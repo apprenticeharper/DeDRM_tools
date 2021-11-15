@@ -110,6 +110,9 @@ def unicode_argv():
 class ADEPTError(Exception):
     pass
 
+class ADEPTNewVersionError(Exception):
+    pass
+
 def _load_crypto_libcrypto():
     from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
         Structure, c_ulong, create_string_buffer, cast
@@ -468,6 +471,12 @@ def decryptBook(userkey, inpath, outpath):
             adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
             expr = './/%s' % (adept('encryptedKey'),)
             bookkey = ''.join(rights.findtext(expr))
+            if len(bookkey) == 192:
+                print("{0:s} seems to be an Adobe ADEPT ePub with Adobe's new DRM".format(os.path.basename(inpath)))
+                print("This DRM cannot be removed yet. ")
+                print("Try getting your distributor to give you a new ACSM file, then open that in an old version of ADE (2.0).")
+                print("If your book distributor is not enforcing the new DRM yet, this will give you a copy with the old DRM.")
+                raise ADEPTNewVersionError("Book uses new ADEPT encryption")
             if len(bookkey) != 172:
                 print("{0:s} is not a secure Adobe Adept ePub.".format(os.path.basename(inpath)))
                 return 1

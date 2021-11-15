@@ -373,6 +373,10 @@ class DeDRM(FileTypePlugin):
                         if result == 0:
                             print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
                             return self.checkFonts(of.name)
+                    except ineptepub.ADEPTNewVersionError:
+                        print("{0} v{1}: Book uses unsupported (too new) Adobe DRM.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                        return path_to_ebook
+
                     except:
                         print("{0} v{1}: Exception when decrypting after {2:.1f} seconds - trying other keys".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                         traceback.print_exc()
@@ -387,6 +391,9 @@ class DeDRM(FileTypePlugin):
                 # Give the user key, ebook and TemporaryPersistent file to the decryption function.
                 try:
                     result = ineptepub.decryptBook(userkey, inf.name, of.name)
+                except ineptepub.ADEPTNewVersionError:
+                    print("{0} v{1}: Book uses unsupported (too new) Adobe DRM.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                    return path_to_ebook
                 except:
                     print("{0} v{1}: Exception when decrypting after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                     traceback.print_exc()
@@ -521,6 +528,10 @@ class DeDRM(FileTypePlugin):
                     if result == 0:
                         print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
                         return of.name
+                       
+                except ineptpdf.ADEPTNewVersionError:
+                    print("{0} v{1}: Book uses unsupported (too new) Adobe DRM.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                    return path_to_ebook
                 except:
                     print("{0} v{1}: Exception when decrypting after {2:.1f} seconds - trying other keys".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                     traceback.print_exc()
@@ -537,6 +548,9 @@ class DeDRM(FileTypePlugin):
             # Give the user key, ebook and TemporaryPersistent file to the decryption function.
             try:
                 result = ineptpdf.decryptBook(userkey, path_to_ebook, of.name)
+            except ineptpdf.ADEPTNewVersionError:
+                print("{0} v{1}: Book uses unsupported (too new) Adobe DRM.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                return path_to_ebook
             except:
                 print("{0} v{1}: Exception when decrypting after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                 traceback.print_exc()

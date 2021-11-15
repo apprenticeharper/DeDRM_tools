@@ -125,6 +125,9 @@ def unicode_argv():
 class ADEPTError(Exception):
     pass
 
+class ADEPTNewVersionError(Exception):
+    pass
+
 
 import hashlib
 
@@ -1615,7 +1618,16 @@ class PDFDocument(object):
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
         expr = './/{http://ns.adobe.com/adept}encryptedKey'
-        bookkey = codecs.decode(''.join(rights.findtext(expr)).encode('utf-8'),'base64')
+        bookkey = ''.join(rights.findtext(expr))
+
+        if len(bookkey) == 192:
+            print("This seems to be an Adobe ADEPT PDF with Adobe's new DRM")
+            print("This DRM cannot be removed yet. ")
+            print("Try getting your distributor to give you a new ACSM file, then open that in an old version of ADE (2.0).")
+            print("If your book distributor is not enforcing the new DRM yet, this will give you a copy with the old DRM.")
+            raise ADEPTNewVersionError("Book uses new ADEPT encryption")
+
+        bookkey = codecs.decode(bookkey.encode('utf-8'),'base64')
         bookkey = rsa.decrypt(bookkey)
 
         if len(bookkey) > 16:
