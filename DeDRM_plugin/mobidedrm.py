@@ -320,9 +320,15 @@ class MobiBook:
                     elif type == 404 and size == 9:
                         # make sure text to speech is enabled
                         self.patchSection(0, b'\0', 16 + self.mobi_length + pos + 8)
-                    elif type == 208 and size == 219:
+                    elif type == 405 and size == 9:
+                        # remove rented book flag
+                        self.patchSection(0, b'\0', 16 + self.mobi_length + pos + 8)
+                    elif type == 406 and size == 16:
+                        # remove rental due date
+                        self.patchSection(0, b'\0'*8, 16 + self.mobi_length + pos + 8)
+                    elif type == 208:
                         # remove watermark (atv:kin: stuff)
-                        self.patchSection(0, '\0'*211, 16 + self.mobi_length + pos + 8)
+                        self.patchSection(0, b'\0'*(size-8), 16 + self.mobi_length + pos + 8)
                     # print type, size, content, content.encode('hex')
                     pos += size
         except Exception as e:
