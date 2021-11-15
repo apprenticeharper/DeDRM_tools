@@ -9,7 +9,7 @@ __license__ = 'GPL v3'
 import os, traceback, json, codecs
 
 from PyQt5.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
-                      QGroupBox, QPushButton, QListWidget, QListWidgetItem,
+                      QGroupBox, QPushButton, QListWidget, QListWidgetItem, QCheckBox,
                       QAbstractItemView, QIcon, QDialog, QDialogButtonBox, QUrl, 
                       QCheckBox)
 
@@ -51,6 +51,7 @@ class ConfigWidget(QWidget):
         self.tempdedrmprefs['serials'] = list(self.dedrmprefs['serials'])
         self.tempdedrmprefs['adobewineprefix'] = self.dedrmprefs['adobewineprefix']
         self.tempdedrmprefs['kindlewineprefix'] = self.dedrmprefs['kindlewineprefix']
+        self.tempdedrmprefs['deobfuscate_fonts'] = self.dedrmprefs['deobfuscate_fonts']
 
         # Start Qt Gui dialog layout
         layout = QVBoxLayout(self)
@@ -108,6 +109,11 @@ class ConfigWidget(QWidget):
         button_layout.addWidget(self.ereader_button)
         button_layout.addWidget(self.adept_button)
         button_layout.addWidget(self.kindle_key_button)
+
+        self.chkFontObfuscation = QtGui.QCheckBox(_("Deobfuscate EPUB fonts"))
+        self.chkFontObfuscation.setToolTip("Deobfuscates fonts in EPUB files after DRM removal")
+        self.chkFontObfuscation.setChecked(self.tempdedrmprefs["deobfuscate_fonts"])
+        button_layout.addWidget(self.chkFontObfuscation)
 
         self.resize(self.sizeHint())
 
@@ -171,6 +177,7 @@ class ConfigWidget(QWidget):
         self.dedrmprefs.set('adobewineprefix', self.tempdedrmprefs['adobewineprefix'])
         self.dedrmprefs.set('kindlewineprefix', self.tempdedrmprefs['kindlewineprefix'])
         self.dedrmprefs.set('configured', True)
+        self.dedrmprefs.set('deobfuscate_fonts', self.chkFontObfuscation.isChecked())
         self.dedrmprefs.writeprefs()
 
     def load_resource(self, name):

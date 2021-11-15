@@ -200,6 +200,31 @@ class DeDRM(FileTypePlugin):
             traceback.print_exc()
             raise
 
+    def checkFonts(self, path_to_ebook):
+        # This is called after the normal DRM removal is done. 
+        # It checks if there's fonts that need to be deobfuscated
+
+        import calibre_plugins.dedrm.prefs as prefs
+        dedrmprefs = prefs.DeDRM_Prefs()
+
+        if dedrmprefs["deobfuscate_fonts"] is True:
+            import calibre_plugins.dedrm.epubfontdecrypt as epubfontdecrypt
+
+            output = self.temporary_file(".epub").name
+            ret = epubfontdecrypt.decryptFontsBook(path_to_ebook, output)
+
+            if (ret == 0):
+                print("Font deobfuscation successful")
+                return output
+            elif (ret == 1):
+                print("No font obfuscation found")
+                return path_to_ebook
+            else:
+                print("Errors during font deobfuscation!")
+                raise DeDRMError("Font deobfuscation failed")
+        else: 
+            return path_to_ebook
+
     def ePubDecrypt(self,path_to_ebook):
         # Create a TemporaryPersistent file to work with.
         # Check original epub archive for zip errors.
@@ -245,7 +270,7 @@ class DeDRM(FileTypePlugin):
                 if  result == 0:
                     # Decryption was successful.
                     # Return the modified PersistentTemporary file to calibre.
-                    return of.name
+                    return self.checkFonts(of.name)
 
                 print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname_masked,time.time()-self.starttime))
 
@@ -304,7 +329,7 @@ class DeDRM(FileTypePlugin):
                                 print("{0} v{1}: Exception saving a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                                 traceback.print_exc()
                             # Return the modified PersistentTemporary file to calibre.
-                            return of.name
+                            return self.checkFonts(of.name)
 
                         print("{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                 except Exception as e:
@@ -347,7 +372,7 @@ class DeDRM(FileTypePlugin):
                         of.close()
                         if result == 0:
                             print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
-                            return of.name
+                            return self.checkFonts(of.name)
                     except:
                         print("{0} v{1}: Exception when decrypting after {2:.1f} seconds - trying other keys".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                         traceback.print_exc()
@@ -376,7 +401,7 @@ class DeDRM(FileTypePlugin):
                     # Decryption was successful.
                     # Return the modified PersistentTemporary file to calibre.
                     print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
-                    return of.name
+                    return self.checkFonts(of.name)
 
                 print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
 
@@ -444,7 +469,7 @@ class DeDRM(FileTypePlugin):
                                 traceback.print_exc()
                             print("{0} v{1}: Decrypted with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                             # Return the modified PersistentTemporary file to calibre.
-                            return of.name
+                            return self.checkFonts(of.name)
 
                         print("{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                 except Exception as e:
@@ -457,9 +482,10 @@ class DeDRM(FileTypePlugin):
             raise DeDRMError("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
         # Not a Barnes & Noble nor an Adobe Adept
-        # Import the fixed epub.
+        # Probably a DRM-free EPUB, but we should still check for fonts.
         print("{0} v{1}: “{2}” is neither an Adobe Adept nor a Barnes & Noble encrypted ePub".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
-        raise DeDRMError("{0} v{1}: Couldn't decrypt after {2:.1f} seconds. DRM free perhaps?".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+        return self.checkFonts(inf.name)
+        #raise DeDRMError("{0} v{1}: Couldn't decrypt after {2:.1f} seconds. DRM free perhaps?".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
     def PDFDecrypt(self,path_to_ebook):
         import calibre_plugins.dedrm.prefs as prefs
@@ -501,7 +527,7 @@ class DeDRM(FileTypePlugin):
 
 
         # If we end up here, we didn't find a key with a matching UUID, so lets just try all of them.
-        
+
         # Attempt to decrypt epub with each encryption key (generated or provided).        
         for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
             userkey = codecs.decode(userkeyhex,'hex')

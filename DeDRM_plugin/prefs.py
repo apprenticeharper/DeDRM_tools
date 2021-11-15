@@ -19,6 +19,7 @@ class DeDRM_Prefs():
         self.dedrmprefs = JSONConfig(JSON_PATH)
 
         self.dedrmprefs.defaults['configured'] = False
+        self.dedrmprefs.defaults['deobfuscate_fonts'] = True
         self.dedrmprefs.defaults['bandnkeys'] = {}
         self.dedrmprefs.defaults['adeptkeys'] = {}
         self.dedrmprefs.defaults['ereaderkeys'] = {}
