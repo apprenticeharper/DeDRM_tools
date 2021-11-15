@@ -290,6 +290,8 @@ class ManageKeysDialog(QDialog):
             for key in self.plugin_keys:
                 self.listy.addItem(QListWidgetItem(key))
 
+        self.listy.setMinimumWidth(self.listy.sizeHintForColumn(0) + 20)
+
     def add_key(self):
         d = self.create_key(self)
         d.exec_()
