@@ -1992,6 +1992,32 @@ class PDFObjStrmParser(PDFParser):
         self.push((pos, token))
         return
 
+
+# Takes a PDF file name as input, and if this is an ADE-protected PDF,
+# returns the UUID of the user that's licensed to open this file.
+def adeptGetUserUUID(inf):
+    try: 
+        doc = PDFDocument()
+        pars = PDFParser(doc, inf)
+
+        (docid, param) = doc.encryption
+        type = literal_name(param['Filter'])
+        if type != 'EBX_HANDLER':
+            # No EBX_HANDLER, no idea which user key can decrypt this.
+            return None
+
+        rights = codecs.decode(param.get('ADEPT_LICENSE'), 'base64')
+        rights = zlib.decompress(rights, -15)
+        rights = etree.fromstring(rights)
+        expr = './/{http://ns.adobe.com/adept}user'
+        user_uuid = ''.join(rights.findtext(expr))
+        if user_uuid[:9] != "urn:uuid:": 
+            return None
+        return user_uuid[9:]
+
+    except: 
+        return None
+
 ###
 ### My own code, for which there is none else to blame
 

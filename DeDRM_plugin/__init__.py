@@ -463,14 +463,49 @@ class DeDRM(FileTypePlugin):
 
     def PDFDecrypt(self,path_to_ebook):
         import calibre_plugins.dedrm.prefs as prefs
-        import calibre_plugins.dedrm.ineptpdf
-
+        import calibre_plugins.dedrm.ineptpdf as ineptpdf
         dedrmprefs = prefs.DeDRM_Prefs()
-        # Attempt to decrypt epub with each encryption key (generated or provided).
-        print("{0} v{1}: {2} is a PDF ebook".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
+
+        book_uuid = None
+        try: 
+            # Try to figure out which Adobe account this book is licensed for.
+            book_uuid = ineptpdf.adeptGetUserUUID(path_to_ebook)
+        except:
+            pass
+
+        if book_uuid is None: 
+            print("{0} v{1}: {2} is a PDF ebook".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
+        else:
+            print("{0} v{1}: {2} is a PDF ebook for UUID {3}".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook), book_uuid))
+
+        if book_uuid is not None:
+            # Check if we have a key for that UUID
+            for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
+                if not book_uuid.lower() in keyname.lower():
+                    continue
+            
+                # Found matching key
+                userkey = codecs.decode(userkeyhex, 'hex')
+                print("{0} v{1}: Trying UUID-matched encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
+                of = self.temporary_file(".pdf")
+
+                try: 
+                    result = ineptpdf.decryptBook(userkey, path_to_ebook, of.name)
+                    of.close()
+                    if result == 0:
+                        print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
+                        return of.name
+                except:
+                    print("{0} v{1}: Exception when decrypting after {2:.1f} seconds - trying other keys".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                    traceback.print_exc()
+
+
+        # If we end up here, we didn't find a key with a matching UUID, so lets just try all of them.
+        
+        # Attempt to decrypt epub with each encryption key (generated or provided).        
         for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
             userkey = codecs.decode(userkeyhex,'hex')
-            print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
+            print("{0} v{1}: Trying encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
             of = self.temporary_file(".pdf")
 
             # Give the user key, ebook and TemporaryPersistent file to the decryption function.
@@ -486,6 +521,7 @@ class DeDRM(FileTypePlugin):
             if  result == 0:
                 # Decryption was successful.
                 # Return the modified PersistentTemporary file to calibre.
+                print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
                 return of.name
 
             print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
