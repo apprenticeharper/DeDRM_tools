@@ -442,7 +442,7 @@ def nunpack(s, default=0):
     elif l == 2:
         return struct.unpack('>H', s)[0]
     elif l == 3:
-        return struct.unpack('>L', b'\x00'+s)[0]
+        return struct.unpack('>L', bytes([0]) + s)[0]
     elif l == 4:
         return struct.unpack('>L', s)[0]
     else:
