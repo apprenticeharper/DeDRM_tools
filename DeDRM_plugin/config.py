@@ -10,7 +10,8 @@ import os, traceback, json, codecs
 
 from PyQt5.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
                       QGroupBox, QPushButton, QListWidget, QListWidgetItem,
-                      QAbstractItemView, QIcon, QDialog, QDialogButtonBox, QUrl)
+                      QAbstractItemView, QIcon, QDialog, QDialogButtonBox, QUrl, 
+                      QCheckBox)
 
 from PyQt5 import Qt as QtGui
 from zipfile import ZipFile
@@ -562,6 +563,11 @@ class AddBandNKeyDialog(QDialog):
         data_group_box_layout.addWidget(ccn_disclaimer_label)
         layout.addSpacing(10)
 
+        self.chkOldAlgo = QCheckBox(_("Try to use the old algorithm"))
+        self.chkOldAlgo.setToolTip(_("Leave this off if you're unsure."))
+        data_group_box_layout.addWidget(self.chkOldAlgo)
+        layout.addSpacing(10)
+
         key_group = QHBoxLayout()
         data_group_box_layout.addLayout(key_group)
         key_group.addWidget(QLabel("Retrieved key:", self))
@@ -599,13 +605,25 @@ class AddBandNKeyDialog(QDialog):
         return str(self.cc_ledit.text()).strip()
 
     def retrieve_key(self):
-        from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as fetch_bandn_key
-        fetched_key = fetch_bandn_key(self.user_name,self.cc_number)
-        if fetched_key == "":
-            errmsg = "Could not retrieve key. Check username, password and intenet connectivity and try again."
-            error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
-        else:
-            self.key_display.setText(fetched_key)
+
+        if self.chkOldAlgo.isChecked(): 
+            # old method, try to generate
+            from calibre_plugins.dedrm.ignoblekeygen import generate_key as generate_bandn_key
+            generated_key = generate_bandn_key(self.user_name, self.cc_number)
+            if generated_key == "":
+                errmsg = "Could not generate key."
+                error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+            else: 
+                self.key_display.setText(generated_key.decode("latin-1"))
+        else: 
+            # New method, try to connect to server
+            from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as fetch_bandn_key
+            fetched_key = fetch_bandn_key(self.user_name,self. cc_number)
+            if fetched_key == "":
+                errmsg = "Could not retrieve key. Check username, password and intenet connectivity and try again."
+                error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+            else:
+                self.key_display.setText(fetched_key)
 
     def accept(self):
         if len(self.key_name) == 0 or len(self.user_name) == 0 or len(self.cc_number) == 0 or self.key_name.isspace() or self.user_name.isspace() or self.cc_number.isspace():
