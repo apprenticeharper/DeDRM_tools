@@ -46,7 +46,7 @@ import zlib
 import zipfile
 from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
 from contextlib import closing
-import xml.etree.ElementTree as etree
+from lxml import etree
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -333,7 +333,7 @@ def _load_crypto():
 
 AES, RSA = _load_crypto()
 
-META_NAMES = ('mimetype', 'META-INF/rights.xml', 'META-INF/encryption.xml')
+META_NAMES = ('mimetype', 'META-INF/rights.xml')
 NSMAP = {'adept': 'http://ns.adobe.com/adept',
          'enc': 'http://www.w3.org/2001/04/xmlenc#'}
 
@@ -343,13 +343,35 @@ class Decryptor(object):
         self._aes = AES(bookkey)
         encryption = etree.fromstring(encryption)
         self._encrypted = encrypted = set()
+        self._otherData = otherData = set()
+
+        self._json_elements_to_remove = json_elements_to_remove = set()
+        self._has_remaining_xml = False
         expr = './%s/%s/%s' % (enc('EncryptedData'), enc('CipherData'),
                                enc('CipherReference'))
         for elem in encryption.findall(expr):
             path = elem.get('URI', None)
+            encryption_type_url = (elem.getparent().getparent().find("./%s" % (enc('EncryptionMethod'))).get('Algorithm', None))
             if path is not None:
-                path = path.encode('utf-8')
-                encrypted.add(path)
+                if (encryption_type_url == "http://www.w3.org/2001/04/xmlenc#aes128-cbc"):
+                    # Adobe
+                    path = path.encode('utf-8')
+                    encrypted.add(path)
+                    json_elements_to_remove.add(elem.getparent().getparent())
+                else: 
+                    path = path.encode('utf-8')
+                    otherData.add(path)
+                    self._has_remaining_xml = True
+        
+        for elem in json_elements_to_remove:
+            elem.getparent().remove(elem)
+
+    def check_if_remaining(self):
+        return self._has_remaining_xml
+
+    def get_xml(self):
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + etree.tostring(self._encryption, encoding="utf-8", pretty_print=True, xml_declaration=False).decode("utf-8")
+
 
     def decompress(self, bytes):
         dc = zlib.decompressobj(-15)
@@ -434,7 +456,7 @@ def decryptBook(userkey, inpath, outpath):
         raise ADEPTError("PyCrypto or OpenSSL must be installed.")
     rsa = RSA(userkey)
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
-        namelist = set(inf.namelist())
+        namelist = inf.namelist()
         if 'META-INF/rights.xml' not in namelist or \
            'META-INF/encryption.xml' not in namelist:
             print("{0:s} is DRM-free.".format(os.path.basename(inpath)))
@@ -461,26 +483,25 @@ def decryptBook(userkey, inpath, outpath):
             decryptor = Decryptor(bookkey, encryption)
             kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
             with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
-                zi = ZipInfo('mimetype')
-                zi.compress_type=ZIP_STORED
-                try:
-                    # if the mimetype is present, get its info, including time-stamp
-                    oldzi = inf.getinfo('mimetype')
-                    # copy across fields to be preserved
-                    zi.date_time = oldzi.date_time
-                    zi.comment = oldzi.comment
-                    zi.extra = oldzi.extra
-                    zi.internal_attr = oldzi.internal_attr
-                    # external attributes are dependent on the create system, so copy both.
-                    zi.external_attr = oldzi.external_attr
-                    zi.create_system = oldzi.create_system
-                except:
-                    pass
-                outf.writestr(zi, inf.read('mimetype'))
-                for path in namelist:
+
+                for path in (["mimetype"] + namelist):
                     data = inf.read(path)
                     zi = ZipInfo(path)
                     zi.compress_type=ZIP_DEFLATED
+
+                    if path == "mimetype":
+                        zi.compress_type = ZIP_STORED
+
+                    elif path == "META-INF/encryption.xml":
+                        # Check if there's still something in there
+                        if (decryptor.check_if_remaining()):
+                            data = decryptor.get_xml()
+                            print("Adding encryption.xml for the remaining embedded files.")
+                            # We removed DRM, but there's still stuff like obfuscated fonts.
+                        else:
+                            continue
+
+
                     try:
                         # get the file info, including time-stamp
                         oldzi = inf.getinfo(path)
@@ -492,9 +513,15 @@ def decryptBook(userkey, inpath, outpath):
                         # external attributes are dependent on the create system, so copy both.
                         zi.external_attr = oldzi.external_attr
                         zi.create_system = oldzi.create_system
+                        if any(ord(c) >= 128 for c in path) or any(ord(c) >= 128 for c in zi.comment):
+                            # If the file name or the comment contains any non-ASCII char, set the UTF8-flag
+                            zi.flag_bits |= 0x800
                     except:
                         pass
-                    outf.writestr(zi, decryptor.decrypt(path, data))
+                    if path == "META-INF/encryption.xml":
+                        outf.writestr(zi, data)
+                    else:
+                        outf.writestr(zi, decryptor.decrypt(path, data))
         except:
             print("Could not decrypt {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc()))
             return 2

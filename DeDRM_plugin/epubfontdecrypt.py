@@ -24,7 +24,7 @@ import zlib
 import zipfile
 from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
 from contextlib import closing
-import xml.etree.ElementTree as etree
+from lxml import etree
 import itertools
 import hashlib
 import binascii
@@ -140,7 +140,7 @@ class Decryptor(object):
 def decryptFontsBook(inpath, outpath):
 
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
-        namelist = set(inf.namelist())
+        namelist = inf.namelist()
         if 'META-INF/encryption.xml' not in namelist:
             print("{0:s} has no obfuscated fonts".format(os.path.basename(inpath)))
             return 1
