@@ -317,7 +317,41 @@ class DeDRM(FileTypePlugin):
         import calibre_plugins.dedrm.ineptepub as ineptepub
 
         if ineptepub.adeptBook(inf.name):
-            print("{0} v{1}: {2} is a secure Adobe Adept ePub".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
+            book_uuid = None
+            try: 
+                # This tries to figure out which Adobe account UUID the book is licensed for. 
+                # If we know that we can directly use the correct key instead of having to
+                # try them all.
+                book_uuid = ineptepub.adeptGetUserUUID(inf.name)
+            except: 
+                pass
+
+            if book_uuid is None: 
+                print("{0} v{1}: {2} is a secure Adobe Adept ePub".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
+            else: 
+                print("{0} v{1}: {2} is a secure Adobe Adept ePub for UUID {3}".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook), book_uuid))
+
+
+            if book_uuid is not None: 
+                # Check if we have a key with that UUID in its name: 
+                for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
+                    if not book_uuid.lower() in keyname.lower(): 
+                        continue
+
+                    # Found matching key
+                    userkey = codecs.decode(userkeyhex, 'hex')
+                    print("{0} v{1}: Trying UUID-matched encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
+                    of = self.temporary_file(".epub")
+                    try: 
+                        result = ineptepub.decryptBook(userkey, inf.name, of.name)
+                        of.close()
+                        if result == 0:
+                            print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
+                            return of.name
+                    except:
+                        print("{0} v{1}: Exception when decrypting after {2:.1f} seconds - trying other keys".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                        traceback.print_exc()
+
 
             # Attempt to decrypt epub with each encryption key (generated or provided).
             for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
@@ -363,7 +397,10 @@ class DeDRM(FileTypePlugin):
                     scriptpath = os.path.join(self.alfdir,"adobekey.py")
                     defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
 
-                self.default_key = defaultkeys[0]
+                try: 
+                    self.default_key = defaultkeys[0]
+                except: 
+                    print("{0} v{1}: No ADE key found".format(PLUGIN_NAME, PLUGIN_VERSION))
             except:
                 print("{0} v{1}: Exception when getting default Adobe Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                 traceback.print_exc()
@@ -470,7 +507,10 @@ class DeDRM(FileTypePlugin):
                 scriptpath = os.path.join(self.alfdir,"adobekey.py")
                 defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
 
-            self.default_key = defaultkeys[0]
+            try:
+                self.default_key = defaultkeys[0]
+            except: 
+                print("{0} v{1}: No ADE key found".format(PLUGIN_NAME, PLUGIN_VERSION))
         except:
             print("{0} v{1}: Exception when getting default Adobe Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
             traceback.print_exc()

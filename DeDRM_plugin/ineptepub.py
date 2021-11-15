@@ -393,6 +393,42 @@ def adeptBook(inpath):
             return True
     return False
 
+# Checks the license file and returns the UUID the book is licensed for. 
+# This is used so that the Calibre plugin can pick the correct decryption key
+# first try without having to loop through all possible keys.
+def adeptGetUserUUID(inpath): 
+    with closing(ZipFile(open(inpath, 'rb'))) as inf:
+        try:
+            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+            expr = './/%s' % (adept('user'),)
+            user_uuid = ''.join(rights.findtext(expr))
+            if user_uuid[:9] != "urn:uuid:": 
+                return None
+            return user_uuid[9:]
+        except:
+            return None
+
+def verify_book_key(bookkey):
+    if bookkey[-17] != '\x00' and bookkey[-17] != 0:
+        # Byte not null, invalid result
+        return False
+
+    if ((bookkey[0] != '\x02' and bookkey[0] != 2) and
+        ((bookkey[0] != '\x00' and bookkey[0] != 0) or 
+        (bookkey[1] != '\x02' and bookkey[1] != 2))):
+        # Key not starting with "00 02" or "02" -> error
+        return False
+
+    keylen = len(bookkey) - 17
+    for i in range(1, keylen):
+        if bookkey[i] == 0 or bookkey[i] == '\x00':
+            # Padding data contains a space - that's not allowed. 
+            # Probably bad decryption.
+            return False
+
+    return True
+
 def decryptBook(userkey, inpath, outpath):
     if AES is None:
         raise ADEPTError("PyCrypto or OpenSSL must be installed.")
@@ -416,7 +452,7 @@ def decryptBook(userkey, inpath, outpath):
             bookkey = rsa.decrypt(codecs.decode(bookkey.encode('ascii'), 'base64'))
             # Padded as per RSAES-PKCS1-v1_5
             if len(bookkey) > 16:
-                if bookkey[-17] == '\x00' or bookkey[-17] == 0:
+                if verify_book_key(bookkey):
                     bookkey = bookkey[-16:]
                 else:
                     print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))

@@ -1587,6 +1587,26 @@ class PDFDocument(object):
         self.ready = True
         return
 
+    def verify_book_key(self, bookkey):
+        if bookkey[-17] != '\x00' and bookkey[-17] != 0:
+            # Byte not null, invalid result
+            return False
+
+        if ((bookkey[0] != '\x02' and bookkey[0] != 2) and
+            ((bookkey[0] != '\x00' and bookkey[0] != 0) or 
+            (bookkey[1] != '\x02' and bookkey[1] != 2))):
+            # Key not starting with "00 02" or "02" -> error
+            return False
+
+        keylen = len(bookkey) - 17
+        for i in range(1, keylen):
+            if bookkey[i] == 0 or bookkey[i] == '\x00':
+                # Padding data contains a space - that's not allowed. 
+                # Probably bad decryption.
+                return False
+
+        return True
+
     def initialize_ebx(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         rsa = RSA(password)
@@ -1597,12 +1617,14 @@ class PDFDocument(object):
         expr = './/{http://ns.adobe.com/adept}encryptedKey'
         bookkey = codecs.decode(''.join(rights.findtext(expr)).encode('utf-8'),'base64')
         bookkey = rsa.decrypt(bookkey)
-        #if bookkey[0] != 2:
-        #    raise ADEPTError('error decrypting book session key')
+
         if len(bookkey) > 16:
-            if bookkey[-17] == '\x00' or bookkey[-17] == 0:
+            if (self.verify_book_key(bookkey)):
                 bookkey = bookkey[-16:]
                 length = 16
+            else:
+                raise ADEPTError('error decrypting book session key')
+
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
         # added because of improper booktype / decryption book session key errors
