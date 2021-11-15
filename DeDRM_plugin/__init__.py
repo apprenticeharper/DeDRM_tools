@@ -3,6 +3,7 @@
 
 # __init__.py for DeDRM_plugin
 # Copyright © 2008-2020 Apprentice Harper et al.
+# Copyright © 2021 NoDRM
 
 __license__   = 'GPL v3'
 __version__ = '7.2.1'
@@ -129,7 +130,7 @@ class DeDRM(FileTypePlugin):
     name                    = PLUGIN_NAME
     description             = "Removes DRM from Amazon Kindle, Adobe Adept (including Kobo), Barnes & Noble, Mobipocket and eReader ebooks. Credit given to i♥cabbages and The Dark Reverser for the original stand-alone scripts."
     supported_platforms     = ['linux', 'osx', 'windows']
-    author                  = "Apprentice Alf, Aprentice Harper, The Dark Reverser and i♥cabbages"
+    author                  = "Apprentice Alf, Apprentice Harper, NoDRM, The Dark Reverser and i♥cabbages"
     version                 = PLUGIN_VERSION_TUPLE
     minimum_calibre_version = (5, 0, 0)  # Python 3.
     file_types              = set(['epub','pdf','pdb','prc','mobi','pobi','azw','azw1','azw3','azw4','azw8','tpz','kfx','kfx-zip'])

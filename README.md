@@ -4,6 +4,10 @@ Refer to [Wiki Page](https://github.com/apprenticeharper/DeDRM_tools/wiki/Exactl
 # DeDRM_tools
 DeDRM tools for ebooks
 
+This is a fork of Apprentice Harper's version of the DeDRM tools. I've added some of the PRs that still haven't been merged, as well as added some more features / bugfixes myself.
+
+# Original README from Apprentice Harper
+
 This is a repository that tracks all the scripts and other tools for removing DRM from ebooks that I could find, committed in date order as best as I could manage. (Except for the Requiem tools for Apple's iBooks, and Convert LIT for Microsoft's .lit ebooks.) This includes the tools from a time before Apprentice Alf had a blog, and continues through to when Apprentice Harper (with help) took over maintenance of the tools.
 
 The individual scripts are now released as two plugins for calibre: DeDRM and Obok. 
