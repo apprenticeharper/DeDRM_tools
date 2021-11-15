@@ -355,12 +355,12 @@ class DeDRM(FileTypePlugin):
                 if iswindows or isosx:
                     from calibre_plugins.dedrm.adobekey import adeptkeys
 
-                    defaultkeys = adeptkeys()
+                    defaultkeys, defaultnames = adeptkeys()
                 else: # linux
                     from .wineutils import WineGetKeys
 
                     scriptpath = os.path.join(self.alfdir,"adobekey.py")
-                    defaultkeys = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
+                    defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
 
                 self.default_key = defaultkeys[0]
             except:
@@ -369,9 +369,13 @@ class DeDRM(FileTypePlugin):
                 self.default_key = ""
 
             newkeys = []
+            newnames = []
+            idx = 0
             for keyvalue in defaultkeys:
                 if codecs.encode(keyvalue, 'hex').decode('ascii') not in dedrmprefs['adeptkeys'].values():
                     newkeys.append(keyvalue)
+                    newnames.append(defaultnames[idx])
+                idx += 1
 
             if len(newkeys) > 0:
                 try:
@@ -394,7 +398,7 @@ class DeDRM(FileTypePlugin):
                             # Store the new successful key in the defaults
                             print("{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION))
                             try:
-                                dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key',codecs.encode(keyvalue, 'hex').decode('ascii'))
+                                dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key_uuid_' + newnames[i], codecs.encode(userkey, 'hex').decode('ascii'))
                                 dedrmprefs.writeprefs()
                                 print("{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                             except:
@@ -458,12 +462,12 @@ class DeDRM(FileTypePlugin):
             if iswindows or isosx:
                 from calibre_plugins.dedrm.adobekey import adeptkeys
 
-                defaultkeys = adeptkeys()
+                defaultkeys, defaultnames = adeptkeys()
             else: # linux
                 from .wineutils import WineGetKeys
 
                 scriptpath = os.path.join(self.alfdir,"adobekey.py")
-                defaultkeys = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
+                defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
 
             self.default_key = defaultkeys[0]
         except:
@@ -472,9 +476,13 @@ class DeDRM(FileTypePlugin):
             self.default_key = ""
 
         newkeys = []
+        newnames = []
+        idx = 0
         for keyvalue in defaultkeys:
             if codecs.encode(keyvalue,'hex') not in dedrmprefs['adeptkeys'].values():
                 newkeys.append(keyvalue)
+                newnames.append(defaultnames[idx])
+            idx += 1
 
         if len(newkeys) > 0:
             try:
@@ -497,7 +505,7 @@ class DeDRM(FileTypePlugin):
                         # Store the new successful key in the defaults
                         print("{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION))
                         try:
-                            dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key',codecs.encode(keyvalue,'hex'))
+                            dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key_uuid_' + newnames[i], codecs.encode(userkey,'hex').decode('ascii'))
                             dedrmprefs.writeprefs()
                             print("{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                         except:

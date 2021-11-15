@@ -362,6 +362,7 @@ if iswindows:
         keykey = CryptUnprotectData(device, entropy)
         userkey = None
         keys = []
+        names = []
         try:
             plkroot = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_PATH)
         except WindowsError:
@@ -374,12 +375,15 @@ if iswindows:
             ktype = winreg.QueryValueEx(plkparent, None)[0]
             if ktype != 'credentials':
                 continue
+            uuid_name = "Unknown"
             for j in range(0, 16):
                 try:
                     plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
                 except WindowsError:
                     break
                 ktype = winreg.QueryValueEx(plkkey, None)[0]
+                if ktype == 'user':
+                    uuid_name = winreg.QueryValueEx(plkkey, 'value')[0]
                 if ktype != 'privateLicenseKey':
                     continue
                 userkey = winreg.QueryValueEx(plkkey, 'value')[0]
@@ -387,12 +391,13 @@ if iswindows:
                 aes = AES(keykey)
                 userkey = aes.decrypt(userkey)
                 userkey = userkey[26:-ord(userkey[-1:])]
-                #print "found key:",userkey.encode('hex')
+                # print ("found " + uuid_name + " key: " + str(userkey))
                 keys.append(userkey)
+                names.append(uuid_name[9:])
         if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')
         print("Found {0:d} keys".format(len(keys)))
-        return keys
+        return keys, names
 
 
 elif isosx:
@@ -431,19 +436,25 @@ elif isosx:
         tree = etree.parse(actpath)
         adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
         expr = '//%s/%s' % (adept('credentials'), adept('privateLicenseKey'))
+        exprUUID = '//%s/%s' % (adept('credentials'), adept('user'))
         userkey = tree.findtext(expr)
+        userUUID = "Unknown"
+        try: 
+            userUUID = tree.findtext(exprUUID)
+        except: 
+            pass
         userkey = b64decode(userkey)
         userkey = userkey[26:]
-        return [userkey]
+        return [userkey], [userUUID[9:]]
 
 else:
     def adeptkeys():
         raise ADEPTError("This script only supports Windows and Mac OS X.")
-        return []
+        return [], []
 
 # interface for Python DeDRM
 def getkey(outpath):
-    keys = adeptkeys()
+    keys, names = adeptkeys()
     if len(keys) > 0:
         if not os.path.isdir(outpath):
             outfile = outpath
@@ -452,15 +463,17 @@ def getkey(outpath):
             print("Saved a key to {0}".format(outfile))
         else:
             keycount = 0
+            name_index = 0
             for key in keys:
                 while True:
                     keycount += 1
-                    outfile = os.path.join(outpath,"adobekey_{0:d}.der".format(keycount))
+                    outfile = os.path.join(outpath,"adobekey{0:d}_uuid_{1}.der".format(keycount, names[name_index]))
                     if not os.path.exists(outfile):
                         break
                 with open(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
                 print("Saved a key to {0}".format(outfile))
+                name_index += 1
         return True
     return False
 
@@ -506,7 +519,7 @@ def cli_main():
     # make sure the outpath is the
     outpath = os.path.realpath(os.path.normpath(outpath))
 
-    keys = adeptkeys()
+    keys, names = adeptkeys()
     if len(keys) > 0:
         if not os.path.isdir(outpath):
             outfile = outpath
@@ -515,15 +528,17 @@ def cli_main():
             print("Saved a key to {0}".format(outfile))
         else:
             keycount = 0
+            name_index = 0
             for key in keys:
                 while True:
                     keycount += 1
-                    outfile = os.path.join(outpath,"adobekey_{0:d}.der".format(keycount))
+                    outfile = os.path.join(outpath,"adobekey{0:d}_uuid_{1}.der".format(keycount, names[name_index]))
                     if not os.path.exists(outfile):
                         break
                 with open(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
                 print("Saved a key to {0}".format(outfile))
+                name_index += 1
     else:
         print("Could not retrieve Adobe Adept key.")
     return 0
@@ -556,12 +571,15 @@ def gui_main():
     progpath, progname = os.path.split(argv[0])
     success = False
     try:
-        keys = adeptkeys()
+        keys, names = adeptkeys()
+        print(keys)
+        print(names)
         keycount = 0
+        name_index = 0
         for key in keys:
             while True:
                 keycount += 1
-                outfile = os.path.join(progpath,"adobekey_{0:d}.der".format(keycount))
+                outfile = os.path.join(progpath,"adobekey{0:d}_uuid_{1}.der".format(keycount, names[name_index]))
                 if not os.path.exists(outfile):
                     break
 
@@ -569,6 +587,7 @@ def gui_main():
                 keyfileout.write(key)
             success = True
             tkinter.messagebox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
+            name_index += 1
     except ADEPTError as e:
         tkinter.messagebox.showerror(progname, "Error: {0}".format(str(e)))
     except Exception:

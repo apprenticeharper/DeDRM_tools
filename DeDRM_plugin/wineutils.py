@@ -93,6 +93,7 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
 
     # try finding winekeys anyway, even if above code errored
     winekeys = []
+    winekey_names = []
     # get any files with extension in the output dir
     files = [f for f in os.listdir(outdirpath) if f.endswith(extension)]
     for filename in files:
@@ -104,9 +105,10 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
                 else:
                     new_key_value = keyfile.read()
             winekeys.append(new_key_value)
+            winekey_names.append(filename)
         except:
             print("{0} v{1}: Error loading file {2}".format(PLUGIN_NAME, PLUGIN_VERSION, filename))
             traceback.print_exc()
         os.remove(fpath)
     print("{0} v{1}: Found and decrypted {2} {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(winekeys), "key file" if len(winekeys) == 1 else "key files"))
-    return winekeys
+    return winekeys, winekey_names
