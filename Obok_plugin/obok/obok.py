@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# Version 10.0.0 November 2021
+# Merge https://github.com/apprenticeharper/DeDRM_tools/pull/1691 to fix
+# key fetch issues on some machines.
+#
 # Version 4.1.0 February 2021
 # Add detection for Kobo directory location on Linux
-
+#
 # Version 4.0.0 September 2020
 # Python 3.0
 #

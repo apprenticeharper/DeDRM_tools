@@ -204,7 +204,7 @@ class AddSerialDialog(QDialog):
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():
-            errmsg = "Please enter an eInk Kindle Serial Number or click Cancel in the dialog."
+            errmsg = "Please enter an eInk Kobo Serial Number or click Cancel in the dialog."
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         if len(self.key_name) != 13:
             errmsg = "EInk Kobo Serial Numbers must be 13 characters long. This is {0:d} characters long.".format(len(self.key_name))
