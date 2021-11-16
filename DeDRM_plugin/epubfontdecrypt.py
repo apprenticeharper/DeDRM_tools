@@ -15,6 +15,8 @@
 Decrypts / deobfuscates font files in EPUB files
 """
 
+from __future__ import print_function
+
 __license__ = 'GPL v3'
 __version__ = "1"
 
@@ -132,7 +134,11 @@ class Decryptor(object):
             return data
 
     def deobfuscate_single_data(self, key, data):
-        msg = bytes([c^k for c,k in zip(data, itertools.cycle(key))])
+        try: 
+            msg = bytes([c^k for c,k in zip(data, itertools.cycle(key))])
+        except TypeError:
+            # Python 2
+            msg = ''.join(chr(ord(c)^ord(k)) for c,k in itertools.izip(data, itertools.cycle(key)))
         return msg
 
 
@@ -308,6 +314,7 @@ def decryptFontsBook(inpath, outpath):
                         outf.writestr(zi, decryptor.decrypt(path, data))
         except:
             print("Could not decrypt fonts in {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc()))
+            traceback.print_exc()
             return 2
     return 0
 
