@@ -30,6 +30,37 @@ from calibre_plugins.dedrm.utilities import uStrCmp
 import calibre_plugins.dedrm.prefs as prefs
 import calibre_plugins.dedrm.androidkindlekey as androidkindlekey
 
+def checkForDeACSMkeys(): 
+        try: 
+            from calibre_plugins.deacsm.libadobeAccount import exportAccountEncryptionKeyDER, getAccountUUID
+            from calibre.ptempfile import TemporaryFile
+       
+
+            acc_uuid = getAccountUUID()
+            if acc_uuid is None: 
+                return None, None
+
+            name = "DeACSM_uuid_" + getAccountUUID()
+
+            # Unfortunately, the DeACSM plugin only has code to export to a file, not to return raw key bytes.
+            # Make a temporary file, have the plugin write to that, then read (& delete) that file.
+
+            with TemporaryFile(suffix='.der') as tmp_key_file:
+                export_result = exportAccountEncryptionKeyDER(tmp_key_file)
+
+                if (export_result is False): 
+                    return None, None
+
+                # Read key file
+                with open(tmp_key_file,'rb') as keyfile:
+                    new_key_value = keyfile.read()
+
+            return new_key_value, name
+        except: 
+            traceback.print_exc()
+            return None, None
+
+
 class ConfigWidget(QWidget):
     def __init__(self, plugin_path, alfdir):
         QWidget.__init__(self)
@@ -461,7 +492,6 @@ class ManageKeysDialog(QDialog):
 
 class RenameKeyDialog(QDialog):
     def __init__(self, parent=None,):
-        print(repr(self), repr(parent))
         QDialog.__init__(self, parent)
         self.parent = parent
         self.setWindowTitle("{0} {1}: Rename {0}".format(PLUGIN_NAME, PLUGIN_VERSION, parent.key_type_name))
@@ -510,12 +540,6 @@ class RenameKeyDialog(QDialog):
     @property
     def key_name(self):
         return str(self.key_ledit.text()).strip()
-
-
-
-
-
-
 
 
 class AddBandNKeyDialog(QDialog):
@@ -745,10 +769,38 @@ class AddAdeptDialog(QDialog):
 
             self.default_key = defaultkeys[0]
             self.default_name_A = defaultnames[0]
+
+            for key in self.parent.plugin_keys.values():
+                if key == codecs.encode(self.default_key,'hex').decode("utf-8"):
+                    # We already have the ADE key imported into the plugin.
+                    # Set it back to "" as if we had not found anything, 
+                    # so the next code path searches more places for potential keys.
+                    print("Found key '{0}' in ADE - already present, skipping.".format(self.default_name_A))
+                    self.default_key = ""
+                    break
+
         except:
-            traceback.print_exc()
             self.default_key = ""
 
+        self.foundInPlugin = False
+
+        
+        if len(self.default_key) == 0: 
+            # No (new) key found in ADE. Check the DeACSM calibre plugin instead.
+            key, name = checkForDeACSMkeys()
+
+            if key is not None: 
+                self.default_key = key
+                self.default_name_A = name
+
+                for key in self.parent.plugin_keys.values():
+                    if key == codecs.encode(self.default_key,'hex').decode("utf-8"):
+                        # We already have the ADE key imported into the plugin.
+                        # Set it back to "" as if we had not found anything, 
+                        # so the next code path searches more places for potential keys.
+                        print("Found key '{0}' in DeACSM - already present, skipping.".format(self.default_name_A))
+                        self.default_key = ""
+                        break
         
 
         if len(self.default_key)>0:
@@ -763,14 +815,16 @@ class AddAdeptDialog(QDialog):
             data_group_box_layout.addLayout(key_group)
             key_group.addWidget(QLabel("Unique Key Name:", self))
             self.key_ledit = QLineEdit(self.default_name_A, self)
-            self.key_ledit.setToolTip("<p>Enter an identifying name for the current default Adobe Digital Editions key.")
+            self.key_ledit.setToolTip("<p>Enter an identifying name for the current Adobe key. Note that it's recommended to leave the UUID (the random-looking digits and letters) as it is.")
             key_group.addWidget(self.key_ledit)
 
             self.button_box.accepted.connect(self.accept)
-        else:
+        else:       
+            # No new key found - neither in ADE nor in the DeACSM plugin
+
             self.button_box = QDialogButtonBox(QDialogButtonBox.Ok)
 
-            default_key_error = QLabel("The default encryption key for Adobe Digital Editions could not be found.", self)
+            default_key_error = QLabel("No new ADE key could be found. Either ADE is not installed, or the key is already present in the plugin.", self)
             default_key_error.setAlignment(Qt.AlignHCenter)
             layout.addWidget(default_key_error)
             # if no default, bot buttons do the same
@@ -787,7 +841,7 @@ class AddAdeptDialog(QDialog):
 
     @property
     def key_value(self):
-        return codecs.encode(self.default_key,'hex')
+        return codecs.encode(self.default_key,'hex').decode("utf-8")
 
 
     def accept(self):

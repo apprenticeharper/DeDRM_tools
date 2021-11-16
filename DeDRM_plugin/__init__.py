@@ -508,8 +508,23 @@ class DeDRM(FileTypePlugin):
             for keyvalue in defaultkeys:
                 if codecs.encode(keyvalue, 'hex').decode('ascii') not in dedrmprefs['adeptkeys'].values():
                     newkeys.append(keyvalue)
-                    newnames.append(defaultnames[idx])
+                    newnames.append("default_ade_key_uuid_" + defaultnames[idx])
                 idx += 1
+
+            # Check for DeACSM keys:
+            try: 
+                from calibre_plugins.dedrm.config import checkForDeACSMkeys
+
+                newkey, newname = checkForDeACSMkeys()
+
+                if newkey is not None: 
+                    if codecs.encode(newkey, 'hex').decode('ascii') not in dedrmprefs['adeptkeys'].values():
+                        print("{0} v{1}: Found new key '{2}' in DeACSM plugin".format(PLUGIN_NAME, PLUGIN_VERSION, newname))
+                        newkeys.append(newkey)
+                        newnames.append(newname)
+            except:
+                traceback.print_exc()
+                pass
 
             if len(newkeys) > 0:
                 try:
@@ -532,7 +547,7 @@ class DeDRM(FileTypePlugin):
                             # Store the new successful key in the defaults
                             print("{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION))
                             try:
-                                dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key_uuid_' + newnames[i], codecs.encode(userkey, 'hex').decode('ascii'))
+                                dedrmprefs.addnamedvaluetoprefs('adeptkeys', newnames[i], codecs.encode(userkey, 'hex').decode('ascii'))
                                 dedrmprefs.writeprefs()
                                 print("{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                             except:
@@ -662,8 +677,22 @@ class DeDRM(FileTypePlugin):
         for keyvalue in defaultkeys:
             if codecs.encode(keyvalue,'hex') not in dedrmprefs['adeptkeys'].values():
                 newkeys.append(keyvalue)
-                newnames.append(defaultnames[idx])
+                newnames.append("default_ade_key_uuid_" + defaultnames[idx])
             idx += 1
+
+        # Check for DeACSM keys:
+        try: 
+            from calibre_plugins.dedrm.config import checkForDeACSMkeys
+
+            newkey, newname = checkForDeACSMkeys()
+
+            if newkey is not None: 
+                if codecs.encode(newkey, 'hex').decode('ascii') not in dedrmprefs['adeptkeys'].values():
+                    print("{0} v{1}: Found new key '{2}' in DeACSM plugin".format(PLUGIN_NAME, PLUGIN_VERSION, newname))
+                    newkeys.append(keyvalue)
+                    newnames.append(newname)
+        except:
+            pass
 
         if len(newkeys) > 0:
             try:
@@ -686,7 +715,7 @@ class DeDRM(FileTypePlugin):
                         # Store the new successful key in the defaults
                         print("{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION))
                         try:
-                            dedrmprefs.addnamedvaluetoprefs('adeptkeys','default_key_uuid_' + newnames[i], codecs.encode(userkey,'hex').decode('ascii'))
+                            dedrmprefs.addnamedvaluetoprefs('adeptkeys', newnames[i], codecs.encode(userkey,'hex').decode('ascii'))
                             dedrmprefs.writeprefs()
                             print("{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                         except:
