@@ -736,21 +736,24 @@ class AddAdeptDialog(QDialog):
             if iswindows or isosx:
                 from calibre_plugins.dedrm.adobekey import adeptkeys
 
-                defaultkeys = adeptkeys()
+                defaultkeys, defaultnames = adeptkeys()
             else:  # linux
                 from .wineutils import WineGetKeys
 
                 scriptpath = os.path.join(parent.parent.alfdir,"adobekey.py")
-                defaultkeys = WineGetKeys(scriptpath, ".der",parent.getwineprefix())
+                defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",parent.getwineprefix())
 
             self.default_key = defaultkeys[0]
+            self.default_name_A = defaultnames[0]
         except:
             traceback.print_exc()
             self.default_key = ""
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        
 
         if len(self.default_key)>0:
+            self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
             data_group_box = QGroupBox("", self)
             layout.addWidget(data_group_box)
             data_group_box_layout = QVBoxLayout()
@@ -759,12 +762,14 @@ class AddAdeptDialog(QDialog):
             key_group = QHBoxLayout()
             data_group_box_layout.addLayout(key_group)
             key_group.addWidget(QLabel("Unique Key Name:", self))
-            self.key_ledit = QLineEdit("default_key", self)
+            self.key_ledit = QLineEdit(self.default_name_A, self)
             self.key_ledit.setToolTip("<p>Enter an identifying name for the current default Adobe Digital Editions key.")
             key_group.addWidget(self.key_ledit)
 
             self.button_box.accepted.connect(self.accept)
         else:
+            self.button_box = QDialogButtonBox(QDialogButtonBox.Ok)
+
             default_key_error = QLabel("The default encryption key for Adobe Digital Editions could not be found.", self)
             default_key_error.setAlignment(Qt.AlignHCenter)
             layout.addWidget(default_key_error)
