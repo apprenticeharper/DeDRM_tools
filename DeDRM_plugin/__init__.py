@@ -94,7 +94,9 @@ import sys, os, re
 import time
 import zipfile
 import traceback
-from zipfile import ZipFile
+from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
+from contextlib import closing
+
 
 class DeDRMError(Exception):
     pass
@@ -205,35 +207,92 @@ class DeDRM(FileTypePlugin):
             traceback.print_exc()
             raise
 
+    def postProcessEPUB(self, path_to_ebook):
+        # This is called after the DRM is removed (or if no DRM was present)
+        # It does stuff like de-obfuscating fonts (by calling checkFonts) 
+        # or removing watermarks. 
+        path_to_ebook = self.checkFonts(path_to_ebook)
+        path_to_ebook = self.removeCDPwatermarkFromEPUB(path_to_ebook)
+
+        return path_to_ebook
+
+    def removeCDPwatermarkFromEPUB(self, path_to_ebook):
+        # "META-INF/cdp.info" is a watermark file used by some Tolino vendors. 
+        # We don't want that in our eBooks, so lets remove that file.
+        try: 
+            infile = ZipFile(open(path_to_ebook, 'rb'))
+            namelist = infile.namelist()
+            if 'META-INF/cdp.info' not in namelist:
+                return path_to_ebook
+
+            namelist.remove("mimetype")
+            namelist.remove("META-INF/cdp.info")
+
+            output = self.temporary_file(".epub").name
+
+            kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
+            with closing(ZipFile(open(output, 'wb'), 'w', **kwds)) as outf:
+                for path in (["mimetype"] + namelist):
+
+                    data = infile.read(path)
+                    
+                    zi = ZipInfo(path)
+                    oldzi = infile.getinfo(path)
+                    try: 
+                        zi.compress_type = oldzi.compress_type
+                        if path == "mimetype":
+                            zi.compress_type = ZIP_STORED
+                        zi.date_time = oldzi.date_time
+                        zi.comment = oldzi.comment
+                        zi.extra = oldzi.extra
+                        zi.internal_attr = oldzi.internal_attr
+                        zi.external_attr = oldzi.external_attr
+                        zi.create_system = oldzi.create_system
+                        if any(ord(c) >= 128 for c in path) or any(ord(c) >= 128 for c in zi.comment):
+                            # If the file name or the comment contains any non-ASCII char, set the UTF8-flag
+                            zi.flag_bits |= 0x800
+                    except:
+                        pass
+
+                    outf.writestr(zi, data)
+            
+            print("{0} v{1}: Successfully removed cdp.info watermark".format(PLUGIN_NAME, PLUGIN_VERSION))
+            return output
+
+        except: 
+            return path_to_ebook
+
     def checkFonts(self, path_to_ebook):
         # This is called after the normal DRM removal is done. 
         # It checks if there's fonts that need to be deobfuscated
 
-        import calibre_plugins.dedrm.prefs as prefs
-        dedrmprefs = prefs.DeDRM_Prefs()
+        try: 
+            import calibre_plugins.dedrm.prefs as prefs
+            dedrmprefs = prefs.DeDRM_Prefs()
 
-        if dedrmprefs["deobfuscate_fonts"] is True:
-            import calibre_plugins.dedrm.epubfontdecrypt as epubfontdecrypt
+            if dedrmprefs["deobfuscate_fonts"] is True:
+                import calibre_plugins.dedrm.epubfontdecrypt as epubfontdecrypt
 
-            output = self.temporary_file(".epub").name
-            ret = epubfontdecrypt.decryptFontsBook(path_to_ebook, output)
+                output = self.temporary_file(".epub").name
+                ret = epubfontdecrypt.decryptFontsBook(path_to_ebook, output)
 
-            if (ret == 0):
-                print("Font deobfuscation successful")
-                return output
-            elif (ret == 1):
-                print("No font obfuscation found")
+                if (ret == 0):
+                    return output
+                elif (ret == 1):
+                    return path_to_ebook
+                else:
+                    print("{0} v{1}: Error during font deobfuscation".format(PLUGIN_NAME, PLUGIN_VERSION))
+                    raise DeDRMError("Font deobfuscation failed")
+            else: 
                 return path_to_ebook
-            else:
-                print("Errors during font deobfuscation!")
-                raise DeDRMError("Font deobfuscation failed")
-        else: 
+        except: 
+            print("{0} v{1}: Error during font deobfuscation".format(PLUGIN_NAME, PLUGIN_VERSION))
             return path_to_ebook
 
     def ePubDecrypt(self,path_to_ebook):
         # Create a TemporaryPersistent file to work with.
         # Check original epub archive for zip errors.
-        import calibre_plugins.dedrm.zipfix
+        import calibre_plugins.dedrm.zipfix as zipfix
 
         inf = self.temporary_file(".epub")
         try:
@@ -275,7 +334,7 @@ class DeDRM(FileTypePlugin):
                 if  result == 0:
                     # Decryption was successful.
                     # Return the modified PersistentTemporary file to calibre.
-                    return self.checkFonts(of.name)
+                    return self.postProcessEPUB(of.name)
 
                 print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname_masked,time.time()-self.starttime))
 
@@ -334,7 +393,7 @@ class DeDRM(FileTypePlugin):
                                 print("{0} v{1}: Exception saving a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                                 traceback.print_exc()
                             # Return the modified PersistentTemporary file to calibre.
-                            return self.checkFonts(of.name)
+                            return self.postProcessEPUB(of.name)
 
                         print("{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                 except Exception as e:
@@ -377,10 +436,10 @@ class DeDRM(FileTypePlugin):
                         of.close()
                         if result == 0:
                             print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
-                            return self.checkFonts(of.name)
+                            return self.postProcessEPUB(of.name)
                     except ineptepub.ADEPTNewVersionError:
                         print("{0} v{1}: Book uses unsupported (too new) Adobe DRM.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
-                        return path_to_ebook
+                        return self.postProcessEPUB(path_to_ebook)
 
                     except:
                         print("{0} v{1}: Exception when decrypting after {2:.1f} seconds - trying other keys".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
@@ -398,7 +457,7 @@ class DeDRM(FileTypePlugin):
                     result = ineptepub.decryptBook(userkey, inf.name, of.name)
                 except ineptepub.ADEPTNewVersionError:
                     print("{0} v{1}: Book uses unsupported (too new) Adobe DRM.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
-                    return path_to_ebook
+                    return self.postProcessEPUB(path_to_ebook)
                 except:
                     print("{0} v{1}: Exception when decrypting after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                     traceback.print_exc()
@@ -413,7 +472,7 @@ class DeDRM(FileTypePlugin):
                     # Decryption was successful.
                     # Return the modified PersistentTemporary file to calibre.
                     print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
-                    return self.checkFonts(of.name)
+                    return self.postProcessEPUB(of.name)
 
                 print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
 
@@ -481,7 +540,7 @@ class DeDRM(FileTypePlugin):
                                 traceback.print_exc()
                             print("{0} v{1}: Decrypted with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                             # Return the modified PersistentTemporary file to calibre.
-                            return self.checkFonts(of.name)
+                            return self.postProcessEPUB(of.name)
 
                         print("{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                 except Exception as e:
@@ -496,7 +555,7 @@ class DeDRM(FileTypePlugin):
         # Not a Barnes & Noble nor an Adobe Adept
         # Probably a DRM-free EPUB, but we should still check for fonts.
         print("{0} v{1}: “{2}” is neither an Adobe Adept nor a Barnes & Noble encrypted ePub".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
-        return self.checkFonts(inf.name)
+        return self.postProcessEPUB(inf.name)
         #raise DeDRMError("{0} v{1}: Couldn't decrypt after {2:.1f} seconds. DRM free perhaps?".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
     def PDFDecrypt(self,path_to_ebook):
