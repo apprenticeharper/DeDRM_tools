@@ -1488,7 +1488,7 @@ class PDFDocument(object):
     #   Perform the initialization with a given password.
     #   This step is mandatory even if there's no password associated
     #   with the document.
-    def initialize(self, password=b''):
+    def initialize(self, password=b'', inept=True):
         if not self.encryption:
             self.is_printable = self.is_modifiable = self.is_extractable = True
             self.ready = True
@@ -1500,8 +1500,11 @@ class PDFDocument(object):
             return self.initialize_adobe_ps(password, docid, param)
         if type == 'Standard':
             return self.initialize_standard(password, docid, param)
-        if type == 'EBX_HANDLER':
-            return self.initialize_ebx(password, docid, param)
+        if type == 'EBX_HANDLER' and inept is True:
+            return self.initialize_ebx_inept(password, docid, param)
+        if type == 'EBX_HANDLER' and inept is False:
+            return self.initialize_ebx_ignoble(password, docid, param)
+
         raise PDFEncryptionError('Unknown filter: param=%r' % param)
 
     def initialize_adobe_ps(self, password, docid, param):
@@ -1642,7 +1645,52 @@ class PDFDocument(object):
 
         return True
 
-    def initialize_ebx(self, password, docid, param):
+    def initialize_ebx_ignoble(self, keyb64, docid, param):
+        self.is_printable = self.is_modifiable = self.is_extractable = True
+        key = keyb64.decode('base64')[:16]
+        aes = AES.new(key,AES.MODE_CBC,"\x00" * len(key))
+        length = int_value(param.get('Length', 0)) / 8
+        rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
+        rights = zlib.decompress(rights, -15)
+        rights = etree.fromstring(rights)
+        expr = './/{http://ns.adobe.com/adept}encryptedKey'
+        bookkey = ''.join(rights.findtext(expr)).decode('base64')
+        bookkey = aes.decrypt(bookkey)
+        bookkey = bookkey[:-ord(bookkey[-1])]
+        bookkey = bookkey[-16:]
+        ebx_V = int_value(param.get('V', 4))
+        ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
+        # added because of improper booktype / decryption book session key errors
+        if length > 0:
+            if len(bookkey) == length:
+                if ebx_V == 3:
+                    V = 3
+                else:
+                    V = 2
+            elif len(bookkey) == length + 1:
+                V = bookkey[0]
+                bookkey = bookkey[1:]
+            else:
+                print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
+                print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
+                print("bookkey[0] is %d" % bookkey[0])
+                raise ADEPTError('error decrypting book session key - mismatched length')
+        else:
+            # proper length unknown try with whatever you have
+            print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
+            print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
+            print("bookkey[0] is %d" % ord(bookkey[0]))
+            if ebx_V == 3:
+                V = 3
+            else:
+                V = 2
+        self.decrypt_key = bookkey
+        self.genkey = self.genkey_v3 if V == 3 else self.genkey_v2
+        self.decipher = self.decrypt_rc4
+        self.ready = True
+        return
+
+    def initialize_ebx_inept(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         rsa = RSA(password)
         length = int_value(param.get('Length', 0)) // 8
@@ -2042,15 +2090,19 @@ class PDFObjStrmParser(PDFParser):
 def adeptGetUserUUID(inf):
     try: 
         doc = PDFDocument()
+        inf = open(inf, 'rb')
         pars = PDFParser(doc, inf)
 
         (docid, param) = doc.encryption
         type = literal_name(param['Filter'])
         if type != 'EBX_HANDLER':
             # No EBX_HANDLER, no idea which user key can decrypt this.
+            inf.close()
             return None
 
         rights = codecs.decode(param.get('ADEPT_LICENSE'), 'base64')
+        inf.close()
+
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
         expr = './/{http://ns.adobe.com/adept}user'
@@ -2066,14 +2118,14 @@ def adeptGetUserUUID(inf):
 ### My own code, for which there is none else to blame
 
 class PDFSerializer(object):
-    def __init__(self, inf, userkey):
+    def __init__(self, inf, userkey, inept=True):
         global GEN_XREF_STM, gen_xref_stm
         gen_xref_stm = GEN_XREF_STM > 1
         self.version = inf.read(8)
         inf.seek(0)
         self.doc = doc = PDFDocument()
         parser = PDFParser(doc, inf)
-        doc.initialize(userkey)
+        doc.initialize(userkey, inept)
         self.objids = objids = set()
         for xref in reversed(doc.xrefs):
             trailer = xref.trailer
@@ -2263,11 +2315,11 @@ class PDFSerializer(object):
 
 
 
-def decryptBook(userkey, inpath, outpath):
+def decryptBook(userkey, inpath, outpath, inept=True):
     if RSA is None:
         raise ADEPTError("PyCryptodome or OpenSSL must be installed.")
     with open(inpath, 'rb') as inf:
-        serializer = PDFSerializer(inf, userkey)
+        serializer = PDFSerializer(inf, userkey, inept)
         with open(outpath, 'wb') as outf:
             # help construct to make sure the method runs to the end
             try:

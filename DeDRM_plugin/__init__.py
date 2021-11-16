@@ -544,7 +544,7 @@ class DeDRM(FileTypePlugin):
 
         # If we end up here, we didn't find a key with a matching UUID, so lets just try all of them.
 
-        # Attempt to decrypt epub with each encryption key (generated or provided).        
+        # Attempt to decrypt PDF with each encryption key (generated or provided).        
         for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
             userkey = codecs.decode(userkeyhex,'hex')
             print("{0} v{1}: Trying encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
@@ -639,6 +639,36 @@ class DeDRM(FileTypePlugin):
                     print("{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
             except Exception as e:
                 pass
+
+
+        # Unable to decrypt the PDF with any of the existing keys. Is it a B&N PDF?
+        # Attempt to decrypt PDF with each encryption key (generated or provided).        
+        for keyname, userkey in dedrmprefs['bandnkeys'].items():
+            keyname_masked = "".join(("X" if (x.isdigit()) else x) for x in keyname)
+            print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname_masked))
+            of = self.temporary_file(".pdf")
+
+            # Give the user key, ebook and TemporaryPersistent file to the decryption function.
+            try:
+                result = ineptpdf.decryptBook(userkey, path_to_ebook, of.name, False)
+            except ineptpdf.ADEPTNewVersionError:
+                print("{0} v{1}: Book uses unsupported (too new) Adobe DRM.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                return path_to_ebook
+            except:
+                print("{0} v{1}: Exception when decrypting after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                traceback.print_exc()
+                result = 1
+
+            of.close()
+
+            if  result == 0:
+                # Decryption was successful.
+                # Return the modified PersistentTemporary file to calibre.
+                print("{0} v{1}: Decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
+                return of.name
+
+            print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
+
 
         # Something went wrong with decryption.
         print("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))

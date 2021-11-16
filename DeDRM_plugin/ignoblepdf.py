@@ -24,6 +24,7 @@ Decrypts Barnes & Noble encrypted PDF files.
 __license__ = 'GPL v3'
 __version__ = "0.3"
 
+import codecs
 import sys
 import os
 import re
@@ -312,7 +313,7 @@ class PSLiteral(PSObject):
     Use PSLiteralTable.intern() instead.
     '''
     def __init__(self, name):
-        self.name = name
+        self.name = name.decode('utf-8')
         return
 
     def __repr__(self):
@@ -1448,7 +1449,7 @@ class PDFDocument(object):
             self.decipher = self.decipher_rc4  # XXX may be AES
         # aes
         elif V == 4 and length == 128:
-            elf.decipher = self.decipher_aes
+            self.decipher = self.decipher_aes
         elif V == 4 and length == 256:
             raise PDFNotImplementedError('AES256 encryption is currently unsupported')
         self.ready = True
@@ -1491,7 +1492,7 @@ class PDFDocument(object):
             # proper length unknown try with whatever you have
             print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
             print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
-            print("bookkey[0] is %d" % ord(bookkey[0]))
+            print("bookkey[0] is %d" % bookkey[0])
             if ebx_V == 3:
                 V = 3
             else:
