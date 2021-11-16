@@ -76,11 +76,17 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data, str):
+        if isinstance(data,str) or isinstance(data,unicode):
+            # str for Python3, unicode for Python2
             data = data.encode(self.encoding,"replace")
-        self.stream.buffer.write(data)
-        self.stream.buffer.flush()
-
+        try:
+            buffer = getattr(self.stream, 'buffer', self.stream)
+            # self.stream.buffer for Python3, self.stream for Python2
+            buffer.write(data)
+            buffer.flush()
+        except:
+            # We can do nothing if a write fails
+            raise
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -119,7 +125,7 @@ def unicode_argv():
         return ["ineptpdf.py"]
     else:
         argvencoding = sys.stdin.encoding or "utf-8"
-        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
+        return [arg if (isinstance(arg, str) or isinstance(arg,unicode)) else str(arg, argvencoding) for arg in sys.argv]
 
 
 class ADEPTError(Exception):
@@ -553,17 +559,17 @@ def keyword_name(x):
 
 ##  PSBaseParser
 ##
-EOL = re.compile(rb'[\r\n]')
-SPC = re.compile(rb'\s')
-NONSPC = re.compile(rb'\S')
-HEX = re.compile(rb'[0-9a-fA-F]')
-END_LITERAL = re.compile(rb'[#/%\[\]()<>{}\s]')
-END_HEX_STRING = re.compile(rb'[^\s0-9a-fA-F]')
-HEX_PAIR = re.compile(rb'[0-9a-fA-F]{2}|.')
-END_NUMBER = re.compile(rb'[^0-9]')
-END_KEYWORD = re.compile(rb'[#/%\[\]()<>{}\s]')
-END_STRING = re.compile(rb'[()\\]')
-OCT_STRING = re.compile(rb'[0-7]')
+EOL = re.compile(br'[\r\n]')
+SPC = re.compile(br'\s')
+NONSPC = re.compile(br'\S')
+HEX = re.compile(br'[0-9a-fA-F]')
+END_LITERAL = re.compile(br'[#/%\[\]()<>{}\s]')
+END_HEX_STRING = re.compile(br'[^\s0-9a-fA-F]')
+HEX_PAIR = re.compile(br'[0-9a-fA-F]{2}|.')
+END_NUMBER = re.compile(br'[^0-9]')
+END_KEYWORD = re.compile(br'[#/%\[\]()<>{}\s]')
+END_STRING = re.compile(br'[()\\]')
+OCT_STRING = re.compile(br'[0-7]')
 ESC_STRING = { b'b':8, b't':9, b'n':10, b'f':12, b'r':13, b'(':40, b')':41, b'\\':92 }
 
 class PSBaseParser(object):
@@ -628,7 +634,12 @@ class PSBaseParser(object):
         if not m:
             return (self.parse_main, len(s))
         j = m.start(0)
-        c = bytes([s[j]])
+        if isinstance(s[j], str):
+            # Python 2
+            c = s[j]
+        else: 
+            # Python 3
+            c = bytes([s[j]])
         self.tokenstart = self.bufpos+j
         if c == b'%':
             self.token = c
@@ -680,7 +691,10 @@ class PSBaseParser(object):
             return (self.parse_literal, len(s))
         j = m.start(0)
         self.token += s[i:j]
-        c = bytes([s[j]])
+        if isinstance(s[j], str):
+            c = s[j]
+        else:
+            c = bytes([s[j]])
         if c == b'#':
             self.hex = b''
             return (self.parse_literal_hex, j+1)
@@ -688,7 +702,10 @@ class PSBaseParser(object):
         return (self.parse_main, j)
 
     def parse_literal_hex(self, s, i):
-        c = bytes([s[i]])
+        if isinstance(s[i], str):
+            c = s[i]
+        else:
+            c = bytes([s[i]])
         if HEX.match(c) and len(self.hex) < 2:
             self.hex += c
             return (self.parse_literal_hex, i+1)
@@ -703,7 +720,10 @@ class PSBaseParser(object):
             return (self.parse_number, len(s))
         j = m.start(0)
         self.token += s[i:j]
-        c = bytes([s[j]])
+        if isinstance(s[j], str):
+            c = s[j]
+        else:
+            c = bytes([s[j]])
         if c == b'.':
             self.token += c
             return (self.parse_decimal, j+1)
@@ -746,7 +766,10 @@ class PSBaseParser(object):
             return (self.parse_string, len(s))
         j = m.start(0)
         self.token += s[i:j]
-        c = bytes([s[j]])
+        if isinstance(s[j], str):
+            c = s[j]
+        else:
+            c = bytes([s[j]])
         if c == b'\\':
             self.oct = ''
             return (self.parse_string_1, j+1)
@@ -763,7 +786,10 @@ class PSBaseParser(object):
         return (self.parse_main, j+1)
 
     def parse_string_1(self, s, i):
-        c = bytes([s[i]])
+        if isinstance(s[i], str):
+            c = s[i]
+        else:
+            c = bytes([s[i]])
         if OCT_STRING.match(c) and len(self.oct) < 3:
             self.oct += c
             return (self.parse_string_1, i+1)
@@ -775,7 +801,10 @@ class PSBaseParser(object):
         return (self.parse_string, i+1)
 
     def parse_wopen(self, s, i):
-        c = bytes([s[i]])
+        if isinstance(s[i], str):
+            c = s[i]
+        else:
+            c = bytes([s[i]])
         if c.isspace() or HEX.match(c):
             return (self.parse_hexstring, i)
         if c == b'<':
@@ -784,7 +813,10 @@ class PSBaseParser(object):
         return (self.parse_main, i)
 
     def parse_wclose(self, s, i):
-        c = bytes([s[i]])
+        if isinstance(s[i], str):
+            c = s[i]
+        else:
+            c = bytes([s[i]])
         if c == b'>':
             self.add_token(KEYWORD_DICT_END)
             i += 1
@@ -926,6 +958,7 @@ class PSStackParser(PSBaseParser):
                     isinstance(token, bool) or
                     isinstance(token, bytearray) or
                     isinstance(token, bytes) or
+                    isinstance(token, str) or
                     isinstance(token, PSLiteral)):
                 # normal token
                 self.push((pos, token))
@@ -1033,7 +1066,7 @@ def decipher_all(decipher, objid, genno, x):
     '''
     Recursively decipher X.
     '''
-    if isinstance(x, bytearray) or isinstance(x,bytes):
+    if isinstance(x, bytearray) or isinstance(x,bytes) or isinstance(x,str):
         return decipher(objid, genno, x)
     decf = lambda v: decipher_all(decipher, objid, genno, v)
     if isinstance(x, list):
@@ -1070,7 +1103,7 @@ def num_value(x):
 
 def str_value(x):
     x = resolve1(x)
-    if not (isinstance(x, bytearray) or isinstance(x, bytes)):
+    if not (isinstance(x, bytearray) or isinstance(x, bytes) or isinstance(x, str)):
         if STRICT:
             raise PDFTypeError('String required: %r' % x)
         return ''
@@ -1420,7 +1453,6 @@ class PDFDocument(object):
         for xref in self.xrefs:
             trailer = xref.trailer
             if not trailer: continue
-
             # If there's an encryption info, remember it.
             if 'Encrypt' in trailer:
                 #assert not self.encryption
@@ -1953,7 +1985,7 @@ class PDFParser(PSStackParser):
         except PDFNoValidXRef:
             # fallback
             self.seek(0)
-            pat = re.compile(rb'^(\d+)\s+(\d+)\s+obj\b')
+            pat = re.compile(b'^(\\d+)\\s+(\\d+)\\s+obj\\b')
             offsets = {}
             xref = PDFXRef()
             while 1:
@@ -2158,9 +2190,9 @@ class PDFSerializer(object):
 
     def escape_string(self, string):
         string = string.replace(b'\\', b'\\\\')
-        string = string.replace(b'\n', rb'\n')
-        string = string.replace(b'(', rb'\(')
-        string = string.replace(b')', rb'\)')
+        string = string.replace(b'\n', b'\\n')
+        string = string.replace(b'(', b'\\(')
+        string = string.replace(b')', b'\\)')
         return string
 
     def serialize_object(self, obj):

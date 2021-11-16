@@ -41,7 +41,7 @@ def unicode_argv():
         return ["DeDRM.py"]
     else:
         argvencoding = sys.stdin.encoding or "utf-8"
-        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
+        return [arg if (isinstance(arg, str) or isinstance(arg,unicode)) else str(arg, argvencoding) for arg in sys.argv]
 
 
 def add_cp65001_codec():

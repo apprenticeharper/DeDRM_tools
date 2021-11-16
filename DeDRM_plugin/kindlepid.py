@@ -26,11 +26,17 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data, str):
+        if isinstance(data,str) or isinstance(data,unicode):
+            # str for Python3, unicode for Python2
             data = data.encode(self.encoding,"replace")
-        self.stream.buffer.write(data)
-        self.stream.buffer.flush()
-
+        try:
+            buffer = getattr(self.stream, 'buffer', self.stream)
+            # self.stream.buffer for Python3, self.stream for Python2
+            buffer.write(data)
+            buffer.flush()
+        except:
+            # We can do nothing if a write fails
+            raise
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -71,7 +77,7 @@ def unicode_argv():
         return ["kindlepid.py"]
     else:
         argvencoding = sys.stdin.encoding or "utf-8"
-        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
+        return [arg if (isinstance(arg, str) or isinstance(arg,unicode)) else str(arg, argvencoding) for arg in sys.argv]
 
 letters = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
 

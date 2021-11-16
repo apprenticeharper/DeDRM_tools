@@ -115,14 +115,17 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,str):
+        if isinstance(data,str) or isinstance(data,unicode):
+            # str for Python3, unicode for Python2
             data = data.encode(self.encoding,"replace")
         try:
-            self.stream.buffer.write(data)
-            self.stream.buffer.flush()
+            buffer = getattr(self.stream, 'buffer', self.stream)
+            # self.stream.buffer for Python3, self.stream for Python2
+            buffer.write(data)
+            buffer.flush()
         except:
             # We can do nothing if a write fails
-            pass
+            raise
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
 
@@ -132,7 +135,8 @@ class DeDRM(FileTypePlugin):
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = "Apprentice Alf, Apprentice Harper, NoDRM, The Dark Reverser and i♥cabbages"
     version                 = PLUGIN_VERSION_TUPLE
-    minimum_calibre_version = (5, 0, 0)  # Python 3.
+    #minimum_calibre_version = (5, 0, 0)  # Python 3.
+    minimum_calibre_version = (2, 0, 0)  # Needs Calibre 1.0 minimum. 1.X untested.
     file_types              = set(['epub','pdf','pdb','prc','mobi','pobi','azw','azw1','azw3','azw4','azw8','tpz','kfx','kfx-zip'])
     on_import               = True
     on_preprocess           = True
@@ -151,6 +155,7 @@ class DeDRM(FileTypePlugin):
         The extraction only happens once per version of the plugin
         Also perform upgrade of preferences once per version
         """
+
         try:
             self.pluginsdir = os.path.join(config_dir,"plugins")
             if not os.path.exists(self.pluginsdir):
@@ -237,7 +242,7 @@ class DeDRM(FileTypePlugin):
             fr.fix()
         except Exception as e:
             print("{0} v{1}: Error \'{2}\' when checking zip archive".format(PLUGIN_NAME, PLUGIN_VERSION, e.args[0]))
-            raise Exception(e)
+            raise
 
         # import the decryption keys
         import calibre_plugins.dedrm.prefs as prefs
