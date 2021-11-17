@@ -90,12 +90,9 @@ PLUGIN_VERSION = ".".join([str(x)for x in PLUGIN_VERSION_TUPLE])
 RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
 
 import codecs
-import sys, os, re
+import sys, os
 import time
-import zipfile
 import traceback
-from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
-from contextlib import closing
 
 
 class DeDRMError(Exception):
@@ -211,55 +208,31 @@ class DeDRM(FileTypePlugin):
         # This is called after the DRM is removed (or if no DRM was present)
         # It does stuff like de-obfuscating fonts (by calling checkFonts) 
         # or removing watermarks. 
-        path_to_ebook = self.checkFonts(path_to_ebook)
-        path_to_ebook = self.removeCDPwatermarkFromEPUB(path_to_ebook)
 
-        return path_to_ebook
-
-    def removeCDPwatermarkFromEPUB(self, path_to_ebook):
-        # "META-INF/cdp.info" is a watermark file used by some Tolino vendors. 
-        # We don't want that in our eBooks, so lets remove that file.
         try: 
-            infile = ZipFile(open(path_to_ebook, 'rb'))
-            namelist = infile.namelist()
-            if 'META-INF/cdp.info' not in namelist:
+            import calibre_plugins.dedrm.prefs as prefs
+            dedrmprefs = prefs.DeDRM_Prefs()
+
+            if dedrmprefs["deobfuscate_fonts"] is True:
+                # Deobfuscate fonts
+                path_to_ebook = self.checkFonts(path_to_ebook) or path_to_ebook
+
+            if dedrmprefs["remove_watermarks"] is True:
+                import calibre_plugins.dedrm.epubwatermark as watermark
+
+                # Remove Tolino's CDP watermark file
+                path_to_ebook = watermark.removeCDPwatermark(self, path_to_ebook) or path_to_ebook
+
+                # Remove watermarks (currently just Amazon) from the OPF file
+                path_to_ebook = watermark.removeOPFwatermarks(self, path_to_ebook) or path_to_ebook
+                    
+                # Remove watermarks (currently just Adobe's resource ID) from all HTML and XHTML files
+                path_to_ebook = watermark.removeHTMLwatermarks(self, path_to_ebook) or path_to_ebook
+            
                 return path_to_ebook
 
-            namelist.remove("mimetype")
-            namelist.remove("META-INF/cdp.info")
-
-            output = self.temporary_file(".epub").name
-
-            kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
-            with closing(ZipFile(open(output, 'wb'), 'w', **kwds)) as outf:
-                for path in (["mimetype"] + namelist):
-
-                    data = infile.read(path)
-                    
-                    zi = ZipInfo(path)
-                    oldzi = infile.getinfo(path)
-                    try: 
-                        zi.compress_type = oldzi.compress_type
-                        if path == "mimetype":
-                            zi.compress_type = ZIP_STORED
-                        zi.date_time = oldzi.date_time
-                        zi.comment = oldzi.comment
-                        zi.extra = oldzi.extra
-                        zi.internal_attr = oldzi.internal_attr
-                        zi.external_attr = oldzi.external_attr
-                        zi.create_system = oldzi.create_system
-                        if any(ord(c) >= 128 for c in path) or any(ord(c) >= 128 for c in zi.comment):
-                            # If the file name or the comment contains any non-ASCII char, set the UTF8-flag
-                            zi.flag_bits |= 0x800
-                    except:
-                        pass
-
-                    outf.writestr(zi, data)
-            
-            print("{0} v{1}: Successfully removed cdp.info watermark".format(PLUGIN_NAME, PLUGIN_VERSION))
-            return output
-
         except: 
+            print("Error while checking settings")
             return path_to_ebook
 
     def checkFonts(self, path_to_ebook):
@@ -267,10 +240,6 @@ class DeDRM(FileTypePlugin):
         # It checks if there's fonts that need to be deobfuscated
 
         try: 
-            import calibre_plugins.dedrm.prefs as prefs
-            dedrmprefs = prefs.DeDRM_Prefs()
-
-            if dedrmprefs["deobfuscate_fonts"] is True:
                 import calibre_plugins.dedrm.epubfontdecrypt as epubfontdecrypt
 
                 output = self.temporary_file(".epub").name
@@ -283,10 +252,10 @@ class DeDRM(FileTypePlugin):
                 else:
                     print("{0} v{1}: Error during font deobfuscation".format(PLUGIN_NAME, PLUGIN_VERSION))
                     raise DeDRMError("Font deobfuscation failed")
-            else: 
-                return path_to_ebook
+ 
         except: 
             print("{0} v{1}: Error during font deobfuscation".format(PLUGIN_NAME, PLUGIN_VERSION))
+            traceback.print_exc()
             return path_to_ebook
 
     def ePubDecrypt(self,path_to_ebook):

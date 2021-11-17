@@ -83,6 +83,7 @@ class ConfigWidget(QWidget):
         self.tempdedrmprefs['adobewineprefix'] = self.dedrmprefs['adobewineprefix']
         self.tempdedrmprefs['kindlewineprefix'] = self.dedrmprefs['kindlewineprefix']
         self.tempdedrmprefs['deobfuscate_fonts'] = self.dedrmprefs['deobfuscate_fonts']
+        self.tempdedrmprefs['remove_watermarks'] = self.dedrmprefs['remove_watermarks']
 
         # Start Qt Gui dialog layout
         layout = QVBoxLayout(self)
@@ -145,6 +146,11 @@ class ConfigWidget(QWidget):
         self.chkFontObfuscation.setToolTip("Deobfuscates fonts in EPUB files after DRM removal")
         self.chkFontObfuscation.setChecked(self.tempdedrmprefs["deobfuscate_fonts"])
         button_layout.addWidget(self.chkFontObfuscation)
+
+        self.chkRemoveWatermarks = QtGui.QCheckBox(_("Remove watermarks"))
+        self.chkRemoveWatermarks.setToolTip("Tries to remove watermarks from files")
+        self.chkRemoveWatermarks.setChecked(self.tempdedrmprefs["remove_watermarks"])
+        button_layout.addWidget(self.chkRemoveWatermarks)
 
         self.resize(self.sizeHint())
 
@@ -209,6 +215,7 @@ class ConfigWidget(QWidget):
         self.dedrmprefs.set('kindlewineprefix', self.tempdedrmprefs['kindlewineprefix'])
         self.dedrmprefs.set('configured', True)
         self.dedrmprefs.set('deobfuscate_fonts', self.chkFontObfuscation.isChecked())
+        self.dedrmprefs.set('remove_watermarks', self.chkRemoveWatermarks.isChecked())
         self.dedrmprefs.writeprefs()
 
     def load_resource(self, name):

@@ -20,6 +20,7 @@ class DeDRM_Prefs():
 
         self.dedrmprefs.defaults['configured'] = False
         self.dedrmprefs.defaults['deobfuscate_fonts'] = True
+        self.dedrmprefs.defaults['remove_watermarks'] = False
         self.dedrmprefs.defaults['bandnkeys'] = {}
         self.dedrmprefs.defaults['adeptkeys'] = {}
         self.dedrmprefs.defaults['ereaderkeys'] = {}
