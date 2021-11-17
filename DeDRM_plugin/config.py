@@ -84,6 +84,7 @@ class ConfigWidget(QWidget):
         self.tempdedrmprefs['kindlewineprefix'] = self.dedrmprefs['kindlewineprefix']
         self.tempdedrmprefs['deobfuscate_fonts'] = self.dedrmprefs['deobfuscate_fonts']
         self.tempdedrmprefs['remove_watermarks'] = self.dedrmprefs['remove_watermarks']
+        self.tempdedrmprefs['lcp_passphrases'] = list(self.dedrmprefs['lcp_passphrases'])
 
         # Start Qt Gui dialog layout
         layout = QVBoxLayout(self)
@@ -134,6 +135,10 @@ class ConfigWidget(QWidget):
         self.ereader_button.setToolTip(_("Click to manage keys for eReader ebooks"))
         self.ereader_button.setText("eReader ebooks")
         self.ereader_button.clicked.connect(self.ereader_keys)
+        self.lcp_button = QtGui.QPushButton(self)
+        self.lcp_button.setToolTip(_("Click to manage passphrases for Readium LCP ebooks"))
+        self.lcp_button.setText("Readium LCP ebooks")
+        self.lcp_button.clicked.connect(self.readium_lcp_keys)
         button_layout.addWidget(self.kindle_serial_button)
         button_layout.addWidget(self.kindle_android_button)
         button_layout.addWidget(self.bandn_button)
@@ -141,6 +146,7 @@ class ConfigWidget(QWidget):
         button_layout.addWidget(self.ereader_button)
         button_layout.addWidget(self.adept_button)
         button_layout.addWidget(self.kindle_key_button)
+        button_layout.addWidget(self.lcp_button)
 
         self.chkFontObfuscation = QtGui.QCheckBox(_("Deobfuscate EPUB fonts"))
         self.chkFontObfuscation.setToolTip("Deobfuscates fonts in EPUB files after DRM removal")
@@ -192,6 +198,10 @@ class ConfigWidget(QWidget):
         d = ManageKeysDialog(self,"eReader Key",self.tempdedrmprefs['ereaderkeys'], AddEReaderDialog, 'b63')
         d.exec_()
 
+    def readium_lcp_keys(self):
+        d = ManageKeysDialog(self,"Readium LCP passphrase",self.tempdedrmprefs['lcp_passphrases'], AddLCPKeyDialog)
+        d.exec_()
+
     def help_link_activated(self, url):
         def get_help_file_resource():
             # Copy the HTML helpfile to the plugin directory each time the
@@ -216,6 +226,7 @@ class ConfigWidget(QWidget):
         self.dedrmprefs.set('configured', True)
         self.dedrmprefs.set('deobfuscate_fonts', self.chkFontObfuscation.isChecked())
         self.dedrmprefs.set('remove_watermarks', self.chkRemoveWatermarks.isChecked())
+        self.dedrmprefs.set('lcp_passphrases', self.tempdedrmprefs['lcp_passphrases'])
         self.dedrmprefs.writeprefs()
 
     def load_resource(self, name):
@@ -1106,3 +1117,43 @@ class AddPIDDialog(QDialog):
         QDialog.accept(self)
 
 
+class AddLCPKeyDialog(QDialog):
+    def __init__(self, parent=None,):
+        QDialog.__init__(self, parent)
+        self.parent = parent
+        self.setWindowTitle("{0} {1}: Add new Readium LCP passphrase".format(PLUGIN_NAME, PLUGIN_VERSION))
+        layout = QVBoxLayout(self)
+        self.setLayout(layout)
+
+        data_group_box = QGroupBox("", self)
+        layout.addWidget(data_group_box)
+        data_group_box_layout = QVBoxLayout()
+        data_group_box.setLayout(data_group_box_layout)
+
+        key_group = QHBoxLayout()
+        data_group_box_layout.addLayout(key_group)
+        key_group.addWidget(QLabel("Readium LCP passphrase:", self))
+        self.key_ledit = QLineEdit("", self)
+        self.key_ledit.setToolTip("Enter your Readium LCP passphrase")
+        key_group.addWidget(self.key_ledit)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+        self.resize(self.sizeHint())
+
+    @property
+    def key_name(self):
+        return None
+
+    @property
+    def key_value(self):
+        return str(self.key_ledit.text())
+
+    def accept(self):
+        if len(self.key_value) == 0 or self.key_value.isspace():
+            errmsg = "Please enter your LCP passphrase or click Cancel in the dialog."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        QDialog.accept(self)

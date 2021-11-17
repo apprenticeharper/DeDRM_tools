@@ -55,6 +55,7 @@ It may be possible to use the plugins on a Linux system, but no support is given
 Credits
 -------
 The original inept and ignoble scripts were by i♥cabbages
+The original Readium LCP DRM removal by NoDRM
 The original mobidedrm and erdr2pml scripts were by The Dark Reverser
 The original topaz DRM removal script was by CMBDTC
 The original topaz format conversion scripts were by some_updates, clarknova and Bart Simpson

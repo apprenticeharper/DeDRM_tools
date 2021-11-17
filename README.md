@@ -1,10 +1,11 @@
-# [Guide] How to remove DRM
-Refer to [Wiki Page](https://github.com/apprenticeharper/DeDRM_tools/wiki/Exactly-how-to-remove-DRM)
-
 # DeDRM_tools
 DeDRM tools for ebooks
 
 This is a fork of Apprentice Harper's version of the DeDRM tools. I've added some of the PRs that still haven't been merged, as well as added some more features / bugfixes myself.
+
+Take a look at [the CHANGELOG](https://github.com/noDRM/DeDRM_tools/blob/master/CHANGELOG.md) to see a list of changes since the last version by Apprentice Harper (v7.2.1). This plugin will start with version v10.0.0 so there won't be conflicting / duplicate version numbers when Apprentice Harper's version is updated again.
+
+The v10.0.0 versions of this plugin should both work with Calibre 5.x (Python 3) as well as Calibre 4.x and lower (Python 2). If you encounter issues with this plugin in Calibre 4.x or lower, please open a bug report.
 
 # Original README from Apprentice Harper
 

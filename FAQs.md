@@ -59,7 +59,7 @@ It's quite possible that Amazon will update their KFX DeDRM to prevent DRM remov
 Thanks to jhowell for his investigations into KFX format and the KFX Input plugin. Some of these instructions are from [his thread on the subject](https://www.mobileread.com/forums/showthread.php?t=283371) at MobileRead.
 
 ## Where can I get the latest version of these free DRM removal tools?
-Right here at github. Just go to the [releases page](https://github.com/apprenticeharper/DeDRM_tools/releases) and download the latest zip archive of the tools, named `DeDRM\_tools\_X.X.X.zip`, where X.X.X is the version number. You do not need to download the source code archive.
+Right here at github. Just go to the [releases page](https://github.com/noDRM/DeDRM_tools/releases) and download the latest zip archive of the tools, named `DeDRM\_tools\_X.X.X.zip`, where X.X.X is the version number. You do not need to download the source code archive. This will get you the forked version by noDRM. If you want to download the original version by Apprentice Harper, go to [this page](https://github.com/noDRM/DeDRM_tools/releases) instead. 
 
 ## I've downloaded the tools archive. Now what?
 First, unzip the archive. You should now have a DeDRM folder containing several other folders and a `ReadMe_Overview.txt` file. Please read the `ReadMe_Overview.txt` file! That will explain what the folders are, and you'll be able to work out which of the tools you need.
@@ -69,7 +69,7 @@ Install calibre. Install the DeDRM\_plugin in calibre. Install the Obok\_plugin 
 
 # Installing the Tools
 ## The calibre plugin
-### I am trying to install the calibre plugin, but calibre says "ERROR: Unhandled exception: InvalidPlugin: The plugin in u’[path]DeDRM\_tools\_6.5.3.zip’ is invalid. It does not contain a top-level \_\_init\_\_.py file"
+### I am trying to install the calibre plugin, but calibre says "ERROR: Unhandled exception: InvalidPlugin: The plugin in u’[path]DeDRM\_tools\_6.8.0.zip’ is invalid. It does not contain a top-level \_\_init\_\_.py file"
 You are trying to add the tools archive (e.g. `DeDRM_tools_6.8.0.zip`) instead of the plugin. The tools archive is not the plugin. It is a collection of DRM removal tools which includes the plugin. You must unzip the archive, and install the calibre plugin `DeDRM_plugin.zip` from a folder called `DeDRM_calibre_plugin` in the unzipped archive.
 
 ### I’ve unzipped the tools archive, but I can’t find the calibre plugin when I try to add them to calibre. I use Windows.
@@ -95,7 +95,7 @@ Your ebooks are stored on your computer or on your ebook reader. You need to fin
 ### Macintosh
 Navigating from your home folder,
 
-Kindle for Mac ebooks are in either `Library/Application Support/Kindle/My Kindle Content` or `Documents/My Kindle Content or Library/Containers/com.amazon.Kindle/Data/Library/Application Support/Kindle/My Kindle Content`, depending on your version of Kindle for Mac.
+Kindle for Mac ebooks are in either `Library/Application Support/Kindle/My Kindle Content` or `Documents/My Kindle Content` or `Library/Containers/com.amazon.Kindle/Data/Library/Application Support/Kindle/My Kindle Content`, depending on your version of Kindle for Mac.
 
 Adobe Digital Editions ebooks are in `Documents/Digital Editions`
 
@@ -120,21 +120,20 @@ If this book is from Kindle for Mac or Kindle for PC, you must have the Kindle S
 
 If the book is from Kindle for PC or Kindle for Mac and you think you are doing everything right, and you are getting this message, it is possible that the files containing the encryption key aren’t quite in the format the tools expect. To try to fix this:
 
-1. Deregister Kindle for PC(Mac) from your Amazon account.
-1. Uninstall Kindle for PC(Mac)
-1. Delete the Kindle for PC(Mac) preferences
+1. Deregister Kindle for PC/Mac from your Amazon account.
+1. Uninstall Kindle for PC/Mac
+1. Delete the Kindle for PC/Mac preferences
     * PC: Delete the directory `[home folder]\AppData\Local\Amazon` (it might be hidden) and `[home folder]\My Documents\My Kindle Content`
     * Mac: Delete the directory `[home folder]/Library/Application Support/Kindle/` and/or `[home folder]/Library/Containers/com.amazon.Kindle/Data/Library/Application Support/Kindle/` (one or both may be present and should be deleted)
-1. Reinstall Kindle for PC(Mac) version 1.17 or earlier (see above for download links).
-1. Re-register Kindle for PC(Mac) with your Amazon account
+1. Reinstall Kindle for PC/Mac version 1.17 or earlier (see above for download links).
+1. Re-register Kindle for PC/Mac with your Amazon account
 1. Download the ebook again. Do not use the files you have downloaded previously.
 
 ## Some of my books had their DRM removed, but some still say that they have DRM and will not convert.
 There are several possible reasons why only some books get their DRM removed.
 * You still don’t have the DRM removal tools working correctly, but some of your books didn’t have DRM in the first place.
-* Kindle only: It is a Topaz format book and contains some coding that the tools do not understand. You will need to get a log of the DeDRM attempt, and then create a [new issue at Apprentice Harper's github repository](https://github.com/apprenticeharper/DeDRM_tools/issues/), attaching the book and the log, so that the tools can be updated.
 
-If you are still having problems with particular books, you will need to create a log of the DRM removal attempt for one of the problem books, and post that in a comment at Apprentice Alf's blog or in a new issue at Apprentice Harper's github repository.
+If you are still having problems with particular books, you will need to create a log of the DRM removal attempt for one of the problem books. If you're using NoDRM's fork, open [a new issue](https://github.com/noDRM/DeDRM_tools/issues) in the GitHub repo. If you're using Apprentice Harpers version, post that logfile as a comment at Apprentice Alf's blog or in a new issue at [Apprentice Harper's github repository](https://github.com/apprenticeharper/DeDRM_tools/issues).
 
 ## My Kindle book has imported and the DRM has been removed, but all the pictures are gone.
 Most likely, this is a book downloaded from Amazon directly to an eInk Kindle (e.g. Paperwhite). Unfortunately, the pictures are probably in a `.azw6` file that the tools don't understand. You must download the book manually from Amazon's web site "For transfer via USB" to your Kindle. When you download the eBook in this manner, Amazon will package the pictures in the with text in a single file that the tools will be able to import successfully.
@@ -148,9 +147,6 @@ If you use the Kobo desktop application for Mac or PC, install the Obok plugin. 
 ## I registered Adobe Digital Editions 3.0 or later with an Adobe ID before downloading, but my epub or PDF still has DRM.
 Adobe introduced a new DRM scheme with ADE 3.0 and later. Install ADE 2.0.1 and register with the same Adobe ID. If you can't open your book in ADE 2.01, then you have a book with the new DRM scheme. These tools can't help. You can avoid the new DRM scheme by always downloading your ebooks with ADE 2.0.1. Some retailers will require ADE 3.0 or later, in which case you won't be able to download with ADE 2.0.1.
 
-## The DRM wasn't removed and the log says "Failed to decrypt with error: Cannot decode library or rented ebooks." What now?
-You're trying to remove the DRM from an ebook that's only on loan to you. No help will be given to remove DRM from such ebooks. If you think that you have received this message for a book you own, please create an issue at github, or comment at the blog.
-
 ## I cannot solve my problem with the DeDRM plugin, and now I need to ‘post a log’. How do I do that?
 Remove the DRMed book from calibre. Click the Preferences drop-down menu and choose 'Restart in debug mode'. Once calibre has re-started, import the problem ebook. Now close calibre. A log will appear that you can copy and paste into a comment at Apprentice Alf's blog, or into a new issue at Apprentice Harper's github repository.
 
@@ -160,7 +156,7 @@ See the [Calibre command line interface (CLI) instructions](CALIBRE_CLI_INSTRUCT
 # General Questions
 
 ## Once the DRM has been removed, is there any trace of my personal identity left in the ebook?
-The tools only remove the DRM. No attempt is made to remove any personally identifying information.
+That question cannot be answered for sure. While it is easy to check if a book has DRM or not, it is very difficult to verify if all (traces of) personal information have been removed from a book. The tools attempt to remove watermarks when they are detected, but that will not be the case for all watermarks. 
 
 ## Why do some of my Kindle ebooks import as HTMLZ format in calibre?
 Most Amazon Kindle ebooks are Mobipocket format ebooks, or the new KF8 format. However, some are in a format known as Topaz. The Topaz format is only used by Amazon. A Topaz ebook is a collections of glyphs and their positions on each page tagged with some additional information from that page including OCRed text (Optical Character Recognition generated Text) to allow searching, and some additional layout information. Each page of a Topaz ebook is effectively a description of an image of that page. To convert a Topaz ebook to another format is not easy as there is not a one-to-one mapping between glyphs and characters/fonts. To account for this, two different formats are generated by the DRM removal software. The first is an html description built from the OCRtext and images stored in the Topaz file (HTMLZ). This format is easily reflowed but may suffer from typical OCRtext errors including typos, garbled text, missing italics, missing bolds, etc. The second format uses the glyph and position information to create an accurate scalable vector graphics (SVG) image of each page of the book that can be viewed in web browsers that support svg images (Safari, Firefox 4 or later, etc). Additional conversion software can be used to convert these SVG images to an image only PDF file. The DeDRM calibre plugin only imports the HTMLZ versions of the Topaz ebook. The html version can be manually cleaned up and spell checked and then converted using Sigil/calibre to epubs, mobi ebooks, and etc.
@@ -171,7 +167,7 @@ All the DRM removal tools hosted here are almost entirely scripts of one kind or
 There are some optional shared libraries (`*.dll`, `*.dylib`, and `*.so`) included for performance. The source for any compiled pieces are provided within `alfcrypto_src.zip`. If this is a concern either delete the binary files or manually rebuild them.
 
 ## What ebooks do these tools work on?
-The tools linked from this blog remove DRM from PDF, ePub, kePub (Kobo), eReader, Kindle (Mobipocket, KF8, Print Replica and Topaz) format ebooks using Adobe Adept, Barnes & Noble, Amazon, Kobo and eReader DRM schemes.
+The Calibre plugin removes DRM from PDF, ePub, kePub (Kobo), eReader, Kindle (Mobipocket, KF8, Print Replica and Topaz) format ebooks using Adobe Adept, Barnes & Noble, Readium LCP, Amazon, Kobo and eReader DRM schemes.
 
 Note these tools do NOT ‘crack’ the DRM. They simply allow the book’s owner to use the encryption key information already stored someplace on their computer or device to decrypt the ebook in the same manner the official ebook reading software uses.
 
@@ -190,11 +186,12 @@ Apple regularly change the details of their DRM and so the tools in the main too
 ## I’ve got the tools archive and I’ve read all the FAQs but I still can’t install the tools and/or the DRM removal doesn’t work
 * Read the `ReadMe_Overview.txt` file in the top level of the tools archive
 * Read the ReadMe file for the tool you want to use.
-* If you still can’t remove the DRM, ask in the comments section of Apprentice Alf's blog or create a new issue at Apprentice Harper's github repository, reporting the error as precisely as you can, what platform you use, what tool you have tried, what errors you get, and what versions you are using. If the problem happens when running one of the tools, post a log (see previous questions on how to do this).
+* If you still can’t remove the DRM, create a new [GitHub issue](https://github.com/noDRM/DeDRM_tools/issues). If you are using Apprentice Harper's original version and not this fork, you can also ask in the comments section of Apprentice Alf's blog or create a new issue at Apprentice Harper's github repository. If you do report an issue in any of the GitHub repositories, please report the error as precisely as you can. Include what platform you use, what tool you have tried, what errors you get, and what versions you are using. If the problem happens when running one of the tools, post a log (see previous questions on how to do this).
 
 ## Who wrote these scripts?
 The authors tend to identify themselves only by pseudonyms:
 * The Adobe Adept and Barnes & Noble scripts were created by i♥cabbages
+* The Readium LCP support for this plugin was created by NoDRM
 * The Amazon Mobipocket and eReader scripts were created by The Dark Reverser
 * The Amazon K4PC DRM/format was further decoded by Bart Simpson aka Skindle
 * The Amazon K4 Mobi tool was created by by some_updates, mdlnx and others

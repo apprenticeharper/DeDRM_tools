@@ -12,6 +12,7 @@
 #  1.00 - Cut to epubtest.py, testing ePub files only by Apprentice Alf
 #  1.01 - Added routine for use by Windows DeDRM
 #  2.00 - Python 3, September 2020
+#  2.01 - Add new Adobe DRM, add Readium LCP
 #
 # Written in 2011 by Paul Durrant
 # Released with unlicense. See http://unlicense.org/
@@ -185,7 +186,13 @@ def encryption(infile):
                 foundencryption = False
                 inzip = zipfile.ZipFile(infile,'r')
                 namelist = set(inzip.namelist())
-                if 'META-INF/rights.xml' not in namelist or 'META-INF/encryption.xml' not in namelist:
+                if (
+                    'META-INF/encryption.xml' in namelist and
+                    'META-INF/license.lcpl' in namelist and
+                    b"EncryptedContentKey" in inzip.read("META-INF/encryption.xml")):
+                    encryption = "Readium LCP"
+                
+                elif 'META-INF/rights.xml' not in namelist or 'META-INF/encryption.xml' not in namelist:
                     encryption = "Unencrypted"
                 else:
                     rights = etree.fromstring(inzip.read('META-INF/rights.xml'))
@@ -193,7 +200,9 @@ def encryption(infile):
                     expr = './/%s' % (adept('encryptedKey'),)
                     bookkey = ''.join(rights.findtext(expr))
                     if len(bookkey) == 172:
-                        encryption = "Adobe"
+                        encryption = "Adobe (old)"
+                    if len(bookkey) == 192:
+                        encryption = "Adobe (new)"
                     elif len(bookkey) == 64:
                         encryption = "B&N"
                     else:

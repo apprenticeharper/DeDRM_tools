@@ -28,6 +28,7 @@ class DeDRM_Prefs():
         self.dedrmprefs.defaults['androidkeys'] = {}
         self.dedrmprefs.defaults['pids'] = []
         self.dedrmprefs.defaults['serials'] = []
+        self.dedrmprefs.defaults['lcp_passphrases'] = []
         self.dedrmprefs.defaults['adobewineprefix'] = ""
         self.dedrmprefs.defaults['kindlewineprefix'] = ""
 
@@ -49,6 +50,8 @@ class DeDRM_Prefs():
             self.dedrmprefs['pids'] = []
         if self.dedrmprefs['serials'] == []:
             self.dedrmprefs['serials'] = []
+        if self.dedrmprefs['lcp_passphrases'] == []:
+            self.dedrmprefs['lcp_passphrases'] = []
 
     def __getitem__(self,kind = None):
         if kind is not None:

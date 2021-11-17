@@ -6,7 +6,7 @@
 # Copyright © 2021 NoDRM
 
 __license__   = 'GPL v3'
-__version__ = '7.2.1'
+__version__ = '10.0.0'
 __docformat__ = 'restructuredtext en'
 
 
@@ -78,6 +78,7 @@ __docformat__ = 'restructuredtext en'
 #   7.1.0 - Full release for calibre 5.x
 #   7.2.0 - Update for latest KFX changes, and Python 3 Obok fixes.
 #   7.2.1 - Whitespace!
+#  10.0.0 - First forked version by NoDRM. See CHANGELOG.md for details.
 
 """
 Decrypt DRMed ebooks.
@@ -130,7 +131,7 @@ class SafeUnbuffered:
 
 class DeDRM(FileTypePlugin):
     name                    = PLUGIN_NAME
-    description             = "Removes DRM from Amazon Kindle, Adobe Adept (including Kobo), Barnes & Noble, Mobipocket and eReader ebooks. Credit given to i♥cabbages and The Dark Reverser for the original stand-alone scripts."
+    description             = "Removes DRM from Amazon Kindle, Adobe Adept (including Kobo), Readium LCP, Barnes & Noble, Mobipocket and eReader ebooks. Credit given to i♥cabbages and The Dark Reverser for the original stand-alone scripts."
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = "Apprentice Alf, Apprentice Harper, NoDRM, The Dark Reverser and i♥cabbages"
     version                 = PLUGIN_VERSION_TUPLE
@@ -225,10 +226,10 @@ class DeDRM(FileTypePlugin):
 
                 # Remove watermarks (currently just Amazon) from the OPF file
                 path_to_ebook = watermark.removeOPFwatermarks(self, path_to_ebook) or path_to_ebook
-                    
+
                 # Remove watermarks (currently just Adobe's resource ID) from all HTML and XHTML files
                 path_to_ebook = watermark.removeHTMLwatermarks(self, path_to_ebook) or path_to_ebook
-            
+
                 return path_to_ebook
 
         except: 
@@ -240,18 +241,18 @@ class DeDRM(FileTypePlugin):
         # It checks if there's fonts that need to be deobfuscated
 
         try: 
-                import calibre_plugins.dedrm.epubfontdecrypt as epubfontdecrypt
+            import calibre_plugins.dedrm.epubfontdecrypt as epubfontdecrypt
 
-                output = self.temporary_file(".epub").name
-                ret = epubfontdecrypt.decryptFontsBook(path_to_ebook, output)
+            output = self.temporary_file(".epub").name
+            ret = epubfontdecrypt.decryptFontsBook(path_to_ebook, output)
 
-                if (ret == 0):
-                    return output
-                elif (ret == 1):
-                    return path_to_ebook
-                else:
-                    print("{0} v{1}: Error during font deobfuscation".format(PLUGIN_NAME, PLUGIN_VERSION))
-                    raise DeDRMError("Font deobfuscation failed")
+            if (ret == 0):
+                return output
+            elif (ret == 1):
+                return path_to_ebook
+            else:
+                print("{0} v{1}: Error during font deobfuscation".format(PLUGIN_NAME, PLUGIN_VERSION))
+                raise DeDRMError("Font deobfuscation failed")
  
         except: 
             print("{0} v{1}: Error during font deobfuscation".format(PLUGIN_NAME, PLUGIN_VERSION))
@@ -275,6 +276,22 @@ class DeDRM(FileTypePlugin):
         # import the decryption keys
         import calibre_plugins.dedrm.prefs as prefs
         dedrmprefs = prefs.DeDRM_Prefs()
+
+
+        # import the LCP handler
+        import calibre_plugins.dedrm.lcpdedrm as lcpdedrm
+
+        if (lcpdedrm.isLCPbook(path_to_ebook)):
+            try: 
+                retval = lcpdedrm.decryptLCPbook(path_to_ebook, dedrmprefs['lcp_passphrases'], self)
+            except:
+                print("Looks like that didn't work:")
+                raise
+
+            return self.postProcessEPUB(retval)
+        
+
+        # Not an LCP book, do the normal EPUB (Adobe) handling.
 
         # import the Barnes & Noble ePub handler
         import calibre_plugins.dedrm.ignobleepub as ignobleepub
@@ -545,7 +562,20 @@ class DeDRM(FileTypePlugin):
     def PDFDecrypt(self,path_to_ebook):
         import calibre_plugins.dedrm.prefs as prefs
         import calibre_plugins.dedrm.ineptpdf as ineptpdf
+        import calibre_plugins.dedrm.lcpdedrm as lcpdedrm
         dedrmprefs = prefs.DeDRM_Prefs()
+
+        if (lcpdedrm.isLCPbook(path_to_ebook)):
+            try: 
+                retval = lcpdedrm.decryptLCPbook(path_to_ebook, dedrmprefs['lcp_passphrases'], self)
+            except:
+                print("Looks like that didn't work:")
+                raise
+
+            return retval
+        
+
+        # Not an LCP book, do the normal Adobe handling.
 
         book_uuid = None
         try: 

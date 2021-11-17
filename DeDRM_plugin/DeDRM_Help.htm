@@ -17,15 +17,19 @@ p {margin-top: 0}
 
 <body>
 
-<h1>DeDRM Plugin <span class="version">(v6.7.0)</span></h1>
+<h1>DeDRM Plugin <span class="version">(v10.0.0)</span></h1>
 
 <p>This plugin removes DRM from ebooks when they are imported into calibre. If you already have DRMed ebooks in your calibre library, you will need to remove them and import them again.</p>
+
+<p>It is a forked version created by NoDRM, based on the original plugin by Apprentice Alf and Apprentice Harper.</p>
 
 <h3>Installation</h3>
 <p>You have obviously managed to install the plugin, as otherwise you wouldn’t be reading this help file. However, you should also delete any older DRM removal plugins, as this DeDRM plugin replaces the five older plugins: Kindle and Mobipocket DeDRM (K4MobiDeDRM), Ignoble Epub DeDRM (ignobleepub), Inept Epub DeDRM (ineptepub), Inept PDF DeDRM (ineptepub) and eReader PDB 2 PML (eReaderPDB2PML).</p>
 
 <h3>Configuration</h3>
-<p>On Windows and Mac, the keys for ebooks downloaded for Kindle for Mac/PC and Adobe Digital Editions are automatically generated. If all your DRMed ebooks can be opened and read in Kindle for Mac/PC and/or Adobe Digital Editions on the same computer on which you are running calibre, you do not need to do any configuration of this plugin. On Linux, keys for Kindle for PC and Adobe Digital Editions need to be generated separately (see the Linux section below)</p>
+<p>On Windows and Mac, the keys for ebooks downloaded for Kindle for Mac/PC and Adobe Digital Editions are automatically generated. If all your DRMed ebooks can be opened and read in Kindle for Mac/PC and/or Adobe Digital Editions on the same computer on which you are running calibre, you do not need to do any configuration of this plugin. On Linux, keys for Kindle for PC and Adobe Digital Editions need to be generated separately (see the Linux section below).</p>
+
+<p>If you are using the <a href="https://www.mobileread.com/forums/showthread.php?t=341975">DeACSM / ACSM Input Plugin</a> for Calibre, the keys will also automatically be dumped for you.</p>
 
 <p>If you have other DRMed ebooks, you will need to enter extra configuration information. The buttons in this dialog will open individual configuration dialogs that will allow you to enter the needed information, depending on the type and source of your DRMed eBooks. Additional help on the information required is available in each of the the dialogs.</p>
 
@@ -42,11 +46,12 @@ p {margin-top: 0}
 
 <h3>Credits:</h3>
 <ul>
+<li>NoDRM for a bunch of updates and the Readium LCP support</li>
 <li>The Dark Reverser for the Mobipocket and eReader scripts</li>
 <li>i♥cabbages for the Adobe Digital Editions scripts</li>
 <li>Skindle aka Bart Simpson for the Amazon Kindle for PC script</li>
 <li>CMBDTC for Amazon Topaz DRM removal script</li>
-<li>some_updates, clarknova and Bart Simpson for  Amazon Topaz conversion scripts</li>
+<li>some_updates, clarknova and Bart Simpson for Amazon Topaz conversion scripts</li>
 <li>DiapDealer for the first calibre plugin versions of the tools</li>
 <li>some_updates, DiapDealer, Apprentice Alf and mdlnx for Amazon Kindle/Mobipocket tools</li>
 <li>some_updates for the DeDRM all-in-one Python tool</li>
@@ -55,7 +60,8 @@ p {margin-top: 0}
 <li>And probably many more.</li>
 </ul>
 
-<h3> For additional help read the <a href="https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md">FAQs</a> at <a href="https://github.com/apprenticeharper/DeDRM_tools/">Apprentice Harpers’s GitHub repository</a>. You can ask questions in the comments section of the <a href="http://apprenticealf.wordpress.com/2012/09/10/drm-removal-tools-for-ebooks/">first post</a> at <a href="http://wordpress.com/apprenticealf/">Apprentice Alf's blog</a> or <a href="https://github.com/apprenticeharper/DeDRM_tools/issues">raise an issue</a>. </h3>
+<h3>For additional help read the <a href="https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md">FAQs</a> at <a href="https://github.com/noDRM/DeDRM_tools">NoDRM's GitHub repository</a> (or the corresponding <a href="https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md">FAQs</a> at <a href="https://github.com/apprenticeharper/DeDRM_tools/">Apprentice Harpers’s GitHub repository</a>). You can <a href="https://github.com/noDRM/DeDRM_tools/issues">open issue reports</a>related to this fork at NoDRM's GitHub repository.</h3>
+
 
 <h2>Linux Systems Only</h2>
 <h3>Generating decryption keys for Adobe Digital Editions and Kindle for PC</h3>

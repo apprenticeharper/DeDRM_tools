@@ -30,7 +30,7 @@ def removeHTMLwatermarks(object, path_to_ebook):
         modded_contents = []
 
         for file in namelist:
-            if not (file.endswith('.html') or file.endswith('.xhtml')):
+            if not (file.endswith('.html') or file.endswith('.xhtml') or file.endswith('.xml')):
                 continue
 
             try:

@@ -148,7 +148,6 @@ def decryptFontsBook(inpath, outpath):
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
         namelist = inf.namelist()
         if 'META-INF/encryption.xml' not in namelist:
-            print("{0:s} has no obfuscated fonts".format(os.path.basename(inpath)))
             return 1
 
         # Font key handling:
@@ -173,7 +172,7 @@ def decryptFontsBook(inpath, outpath):
         # If path is set, it's the path to the main content OPF file.
 
         if (path is None):
-            print("No OPF for font obfuscation found")
+            print("FontDecrypt: No OPF for font obfuscation found")
             return 1
         else:
             packageNS = lambda tag: '{%s}%s' % ('http://www.idpf.org/2007/opf', tag)
@@ -185,7 +184,7 @@ def decryptFontsBook(inpath, outpath):
                 container = []
 
             ## IETF font key algorithm:
-            print("Checking {0} for IETF font obfuscation keys ... ".format(path), end='')
+            print("FontDecrypt: Checking {0} for IETF font obfuscation keys ... ".format(path), end='')
             secret_key_name = None
             try:
                 secret_key_name = container.get("unique-identifier")
@@ -216,7 +215,7 @@ def decryptFontsBook(inpath, outpath):
                 print("not found")
 
             ## Adobe font key algorithm
-            print("Checking {0} for Adobe font obfuscation keys ... ".format(path), end='')
+            print("FontDecrypt: Checking {0} for Adobe font obfuscation keys ... ".format(path), end='')
 
             try: 
                 metadata = container.find(packageNS("metadata"))
@@ -284,7 +283,7 @@ def decryptFontsBook(inpath, outpath):
                         # Check if there's still other entries not related to fonts
                         if (decryptor.check_if_remaining()):
                             data = decryptor.get_xml()
-                            print("There's remaining entries in encryption.xml, adding file ...")
+                            print("FontDecrypt: There's remaining entries in encryption.xml, adding file ...")
                         else: 
                             # No remaining entries, no need for that file.
                             continue
@@ -313,7 +312,7 @@ def decryptFontsBook(inpath, outpath):
                     else: 
                         outf.writestr(zi, decryptor.decrypt(path, data))
         except:
-            print("Could not decrypt fonts in {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc()))
+            print("FontDecrypt: Could not decrypt fonts in {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc()))
             traceback.print_exc()
             return 2
     return 0
