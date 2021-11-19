@@ -29,6 +29,12 @@ def removeHTMLwatermarks(object, path_to_ebook):
         modded_names = []
         modded_contents = []
 
+        count_adept = 0
+
+        count_lemonink_invisible = 0
+        count_lemonink_visible = 0
+        lemonink_trackingID = None
+
         for file in namelist:
             if not (file.endswith('.html') or file.endswith('.xhtml') or file.endswith('.xml')):
                 continue
@@ -40,8 +46,33 @@ def removeHTMLwatermarks(object, path_to_ebook):
                 # Remove Adobe ADEPT watermarks
                 # Match optional newline at the beginning, then a "meta" tag with name = "Adept.expected.resource" or "Adept.resource"
                 # and either a "value" or a "content" element with an Adobe UUID
+                pre_remove = str_new
                 str_new = re.sub(r'((\r\n|\r|\n)\s*)?\<meta\s+name=\"(Adept\.resource|Adept\.expected\.resource)\"\s+(content|value)=\"urn:uuid:[0-9a-fA-F\-]+\"\s*\/>', '', str_new)
                 str_new = re.sub(r'((\r\n|\r|\n)\s*)?\<meta\s+(content|value)=\"urn:uuid:[0-9a-fA-F\-]+\"\s+name=\"(Adept\.resource|Adept\.expected\.resource)\"\s*\/>', '', str_new)
+
+                if (str_new != pre_remove):
+                    count_adept += 1
+
+                # Remove eLibri / LemonInk watermark
+                # Run this in a loop, as it is possible a file has been watermarked twice ...
+                while True: 
+                    pre_remove = str_new
+                    unique_id = re.search(r'<body[^>]+class="[^"]*(t0x[0-9a-fA-F]{25})[^"]*"[^>]*>', str_new)
+                    if (unique_id):
+                        lemonink_trackingID = unique_id.groups()[0]
+                        count_lemonink_invisible += 1
+                        str_new = re.sub(lemonink_trackingID, '', str_new)
+                        pre_remove = str_new
+                        pm = r'(<body[^>]+class="[^"]*"[^>]*>)'
+                        pm += r'\<div style\=\'padding\:0\;border\:0\;text\-indent\:0\;line\-height\:normal\;margin\:0 1cm 0.5cm 1cm\;[^\']*text\-decoration\:none\;[^\']*background\:none\;[^\']*\'\>(.*?)</div>'
+                        pm += r'\<div style\=\'padding\:0\;border\:0\;text\-indent\:0\;line\-height\:normal\;margin\:0 1cm 0.5cm 1cm\;[^\']*text\-decoration\:none\;[^\']*background\:none\;[^\']*\'\>(.*?)</div>'
+                        str_new = re.sub(pm, r'\1', str_new)
+
+                        if (str_new != pre_remove):
+                            count_lemonink_visible += 1
+                    else: 
+                        break
+
             except:
                 traceback.print_exc()
                 continue
@@ -51,6 +82,7 @@ def removeHTMLwatermarks(object, path_to_ebook):
 
             modded_names.append(file)
             modded_contents.append(str_new)
+
         
         if len(modded_names) == 0:
             # No file modified, return original
@@ -58,7 +90,7 @@ def removeHTMLwatermarks(object, path_to_ebook):
 
         if len(modded_names) != len(modded_contents):
             # Something went terribly wrong, return original
-            print("Watermark: Error during ADEPT watermark removal")
+            print("Watermark: Error during watermark removal")
             return path_to_ebook
 
         # Re-package with modified files:
@@ -105,12 +137,20 @@ def removeHTMLwatermarks(object, path_to_ebook):
             traceback.print_exc()
             return path_to_ebook
 
+        if (count_adept > 0):
+            print("Watermark: Successfully stripped {0} ADEPT watermark(s) from ebook.".format(count_adept))
+        
+        if (count_lemonink_invisible > 0 or count_lemonink_visible > 0):
+            print("Watermark: Successfully stripped {0} visible and {1} invisible LemonInk watermark(s) (\"{2}\") from ebook."
+                .format(count_lemonink_visible, count_lemonink_invisible, lemonink_trackingID))
+
+        return output
+
     except:
         traceback.print_exc()
         return path_to_ebook
         
-    print("Watermark: Successfully stripped {0} ADEPT watermark(s) from ebook.".format(len(modded_names)))
-    return output
+
 
 
 # Finds the main OPF file, then uses RegEx to remove watermarks
@@ -141,10 +181,27 @@ def removeOPFwatermarks(object, path_to_ebook):
             container_str = inf.read(opf_path).decode("utf-8")
             container_str_new = container_str
 
+            had_amazon = False
+            had_elibri = False
+
             # Remove Amazon hex watermarks
             # Match optional newline at the beginning, then spaces, then a "meta" tag with name = "Watermark" or "Watermark_(hex)" and a "content" element.
-            container_str_new = re.sub(r'((\r\n|\r|\n)\s*)?\<meta\s+name=\"Watermark(_\(hex\))?\"\s+content=\"[0-9a-fA-F]+\"\s*\/>', '', container_str_new)
-            container_str_new = re.sub(r'((\r\n|\r|\n)\s*)?\<meta\s+content=\"[0-9a-fA-F]+\"\s+name=\"Watermark(_\(hex\))?\"\s*\/>', '', container_str_new)
+            # This regex also matches DuMont watermarks with meta name="watermark", with the case-insensitive match on the "w" in watermark.
+            pre_remove = container_str_new
+            container_str_new = re.sub(r'((\r\n|\r|\n)\s*)?\<meta\s+name=\"[Ww]atermark(_\(hex\))?\"\s+content=\"[0-9a-fA-F]+\"\s*\/>', '', container_str_new)
+            container_str_new = re.sub(r'((\r\n|\r|\n)\s*)?\<meta\s+content=\"[0-9a-fA-F]+\"\s+name=\"[Ww]atermark(_\(hex\))?\"\s*\/>', '', container_str_new)
+            if pre_remove != container_str_new:
+                had_amazon = True
+
+            # Remove elibri / lemonink watermark
+            # Lemonink replaces all "id" fields in the opf with "idX_Y", with X being the watermark and Y being a number for that particular ID.
+            # This regex replaces all "idX_Y" IDs with "id_Y", removing the watermark IDs.
+            pre_remove = container_str_new
+            container_str_new = re.sub(r'((\r\n|\r|\n)\s*)?\<\!\-\-\s*Wygenerowane przez elibri dla zamówienia numer [0-9a-fA-F]+\s*\-\-\>', '', container_str_new)
+            container_str_new = re.sub(r'\=\"id[0-9]+_([0-9]+)\"', r'="id_\1"', container_str_new)
+            if pre_remove != container_str_new:
+                had_elibri = True
+
         except:
             traceback.print_exc()
             return path_to_ebook
@@ -191,7 +248,11 @@ def removeOPFwatermarks(object, path_to_ebook):
             traceback.print_exc()
             return path_to_ebook
         
-        print("Watermark: Successfully stripped Amazon watermark from OPF file.")
+        if had_elibri:
+            print("Watermark: Successfully stripped eLibri watermark from OPF file.")
+        if had_amazon:
+            print("Watermark: Successfully stripped Amazon watermark from OPF file.")
+
         return output
 
 

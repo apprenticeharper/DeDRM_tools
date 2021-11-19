@@ -6,7 +6,7 @@
 # Copyright © 2021 NoDRM
 
 __license__   = 'GPL v3'
-__version__ = '10.0.0'
+__version__ = '10.0.1'
 __docformat__ = 'restructuredtext en'
 
 
@@ -79,6 +79,7 @@ __docformat__ = 'restructuredtext en'
 #   7.2.0 - Update for latest KFX changes, and Python 3 Obok fixes.
 #   7.2.1 - Whitespace!
 #  10.0.0 - First forked version by NoDRM. See CHANGELOG.md for details.
+#  10.0.1 - Fixes a bug in the watermark code.
 
 """
 Decrypt DRMed ebooks.
@@ -210,6 +211,8 @@ class DeDRM(FileTypePlugin):
         # It does stuff like de-obfuscating fonts (by calling checkFonts) 
         # or removing watermarks. 
 
+        postProcessStart = time.time()
+
         try: 
             import calibre_plugins.dedrm.prefs as prefs
             dedrmprefs = prefs.DeDRM_Prefs()
@@ -224,13 +227,17 @@ class DeDRM(FileTypePlugin):
                 # Remove Tolino's CDP watermark file
                 path_to_ebook = watermark.removeCDPwatermark(self, path_to_ebook) or path_to_ebook
 
-                # Remove watermarks (currently just Amazon) from the OPF file
+                # Remove watermarks (Amazon or LemonInk) from the OPF file
                 path_to_ebook = watermark.removeOPFwatermarks(self, path_to_ebook) or path_to_ebook
 
-                # Remove watermarks (currently just Adobe's resource ID) from all HTML and XHTML files
+                # Remove watermarks (Adobe or LemonInk) from all HTML and XHTML files
                 path_to_ebook = watermark.removeHTMLwatermarks(self, path_to_ebook) or path_to_ebook
 
-                return path_to_ebook
+                postProcessEnd = time.time()
+                print("{0} v{1}: Post-processing took {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, postProcessEnd-postProcessStart))
+
+
+            return path_to_ebook
 
         except: 
             print("Error while checking settings")
