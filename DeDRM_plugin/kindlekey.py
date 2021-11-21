@@ -1526,7 +1526,7 @@ elif isosx:
             b'SerialNumber',\
             b'UsernameHash',\
             b'kindle.directedid.info',\
-            b'DSN'
+            b'DSN',\
             b'kindle.accounttype.info',\
             b'krx.flashcardsplugin.data.encryption_key',\
             b'krx.notebookexportplugin.data.encryption_key',\
