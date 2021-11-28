@@ -228,6 +228,20 @@ if iswindows:
         return GetUserName
     GetUserName = GetUserName()
 
+    def GetUserName2():
+        try:
+            import winreg
+        except ImportError:
+            import _winreg as winreg
+
+        try: 
+            DEVICE_KEY_PATH = r'Software\Adobe\Adept\Device'
+            regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, DEVICE_KEY_PATH)
+            userREG = winreg.QueryValueEx(regkey, 'username')[0].encode('utf-16-le')[::2]
+            return userREG
+        except: 
+            return None
+
     PAGE_EXECUTE_READWRITE = 0x40
     MEM_COMMIT  = 0x1000
     MEM_RESERVE = 0x2000
@@ -351,7 +365,9 @@ if iswindows:
         serial = GetVolumeSerialNumber(root)
         vendor = cpuid0()
         signature = struct.pack('>I', cpuid1())[1:]
-        user = GetUserName()
+        user = GetUserName2()
+        if user is None: 
+            user = GetUserName()
         entropy = struct.pack('>I12s3s13s', serial, vendor, signature, user)
         cuser = winreg.HKEY_CURRENT_USER
         try:
