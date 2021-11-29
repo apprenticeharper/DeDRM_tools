@@ -10,10 +10,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Package
-        run: python3 make_release.py 10.0.1
+        run: python3 make_release.py
       - name: Upload
         uses: actions/upload-artifact@v2
         with: 
           name: plugin
           path: |
             DeDRM_tools_*.zip
+            DeDRM_tools.zip
