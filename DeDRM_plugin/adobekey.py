@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# adobekey.pyw, version 6.0
-# Copyright © 2009-2020 i♥cabbages, Apprentice Harper et al.
+# adobekey.pyw, version 7.1
+# Copyright © 2009-2021 i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -29,13 +29,14 @@
 #   5.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   6.0 - Work if TkInter is missing
 #   7.0 - Python 3 for calibre 5
+#   7.1 - Fix "failed to decrypt user key key" error (read username from registry)
 
 """
 Retrieve Adobe ADEPT user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '7.0'
+__version__ = '7.1'
 
 import sys, os, struct, getopt
 from base64 import b64decode
@@ -288,8 +289,13 @@ if iswindows:
 
         def __del__(self):
             if self._buf is not None:
-                VirtualFree(self._buf)
-                self._buf = None
+                try: 
+                    VirtualFree(self._buf)
+                    self._buf = None
+                except TypeError:
+                    # Apparently this sometimes gets cleared on application exit
+                    # Causes a useless exception in the log, so let's just catch and ignore that.
+                    pass
 
     if struct.calcsize("P") == 4:
         CPUID0_INSNS = (
@@ -400,7 +406,7 @@ if iswindows:
             ktype = winreg.QueryValueEx(plkparent, None)[0]
             if ktype != 'credentials':
                 continue
-            uuid_name = "Unknown"
+            uuid_name = ""
             for j in range(0, 16):
                 try:
                     plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
@@ -408,17 +414,32 @@ if iswindows:
                     break
                 ktype = winreg.QueryValueEx(plkkey, None)[0]
                 if ktype == 'user':
-                    uuid_name = winreg.QueryValueEx(plkkey, 'value')[0]
-                if ktype != 'privateLicenseKey':
-                    continue
-                userkey = winreg.QueryValueEx(plkkey, 'value')[0]
-                userkey = b64decode(userkey)
-                aes = AES(keykey)
-                userkey = aes.decrypt(userkey)
-                userkey = userkey[26:-ord(userkey[-1:])]
-                # print ("found " + uuid_name + " key: " + str(userkey))
-                keys.append(userkey)
-                names.append(uuid_name[9:])
+                    # Add Adobe UUID to key name
+                    uuid_name = uuid_name + winreg.QueryValueEx(plkkey, 'value')[0][9:] + "_"
+                if ktype == 'username':
+                    # Add account type & email to key name, if present
+                    try: 
+                        uuid_name = uuid_name + winreg.QueryValueEx(plkkey, 'method')[0] + "_" 
+                    except:
+                        pass
+                    try: 
+                        uuid_name = uuid_name + winreg.QueryValueEx(plkkey, 'value')[0] + "_"
+                    except:
+                        pass
+                if ktype == 'privateLicenseKey':
+                    userkey = winreg.QueryValueEx(plkkey, 'value')[0]
+                    userkey = b64decode(userkey)
+                    aes = AES(keykey)
+                    userkey = aes.decrypt(userkey)
+                    userkey = userkey[26:-ord(userkey[-1:])]
+                    # print ("found " + uuid_name + " key: " + str(userkey))
+                    keys.append(userkey)
+
+            if uuid_name == "":
+                names.append("Unknown")
+            else:
+                names.append(uuid_name[:-1])
+
         if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')
         print("Found {0:d} keys".format(len(keys)))
@@ -461,16 +482,32 @@ elif isosx:
         tree = etree.parse(actpath)
         adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
         expr = '//%s/%s' % (adept('credentials'), adept('privateLicenseKey'))
-        exprUUID = '//%s/%s' % (adept('credentials'), adept('user'))
         userkey = tree.findtext(expr)
-        userUUID = "Unknown"
+
+        exprUUID = '//%s/%s' % (adept('credentials'), adept('user'))
+        keyName = ""
         try: 
-            userUUID = tree.findtext(exprUUID)
+            keyName = tree.findtext(exprUUID)[9:] + "_"
         except: 
             pass
+
+        try: 
+            exprMail = '//%s/%s' % (adept('credentials'), adept('username'))
+            keyName = keyName + tree.find(exprMail).attrib["method"] + "_"
+            keyName = keyName + tree.findtext(exprMail) + "_"
+        except:
+            pass
+
+        if keyName == "":
+            keyName = "Unknown"
+        else:
+            keyName = keyName[:-1]
+
+
+
         userkey = b64decode(userkey)
         userkey = userkey[26:]
-        return [userkey], [userUUID[9:]]
+        return [userkey], [keyName]
 
 else:
     def adeptkeys():

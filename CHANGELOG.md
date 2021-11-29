@@ -2,6 +2,8 @@
 
 List of changes since the fork of Apprentice Harper's repository: 
 
+## Fixes in v10.0.0 (2021-11-17):
+
 - CI testing / linting removed as that always failed anyways. The CI now "just" packages the plugin.
 - Support for the Readium LCP DRM (also known as "CARE DRM" or "TEA DRM"). This supports EPUB and PDF files. It does not yet support Readium LCPDF/LPF/LCPA/LCPAU/LCPDI files, as I don't have access to any of these. If you have an LCP-protected file in one of these formats that this plugin does not work with, please open [an issue](https://github.com/noDRM/DeDRM_tools/issues) and attach the file to the report.
 - Add new Github issue report form which forces the user to include stuff like their Calibre version to hopefully increase the quality of bug reports.
@@ -21,3 +23,14 @@ List of changes since the fork of Apprentice Harper's repository:
 - Added back support for Python2 (Calibre 2.0+). Only tested with ADEPT (PDF & EPUB) and Readium LCP so far, please open an issue if there's errors with other book types.
 - Begin work on removing some kinds of watermarks from files after DRM removal. This isn't tested a lot, and is disabled by default. You can enable it in the plugin settings.
 - If you're using the [ACSM Input Plugin / DeACSM](https://www.mobileread.com/forums/showthread.php?t=341975), the encryption key will automatically be extracted from that plugin if necessary.
+
+## Fixes in v10.0.1 (2021-11-19): 
+
+- Hotfix update to fix broken EPUB DRM removal due to a typo.
+
+## Fixes in v10.0.2 (2021-11-29):
+
+- Fix Kindle for Mac key retrieval (merged [apprenticeharper/DeDRM_tools#1936](https://github.com/apprenticeharper/DeDRM_tools/pull/1936) ), fixing #1. 
+- Fix Adobe key retrieval in case the username has been changed (merged [apprenticeharper/DeDRM_tools#1946](https://github.com/apprenticeharper/DeDRM_tools/pull/1946) ). This should fix the error "failed to decrypt user key key".
+- Fix small issue with elibri watermark removal.
+- Adobe key name will now contain account email.

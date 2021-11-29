@@ -832,7 +832,7 @@ class AddAdeptDialog(QDialog):
             key_group = QHBoxLayout()
             data_group_box_layout.addLayout(key_group)
             key_group.addWidget(QLabel("Unique Key Name:", self))
-            self.key_ledit = QLineEdit(self.default_name_A, self)
+            self.key_ledit = QLineEdit("default_ade_key_uuid_" + self.default_name_A, self)
             self.key_ledit.setToolTip("<p>Enter an identifying name for the current Adobe key. Note that it's recommended to leave the UUID (the random-looking digits and letters) as it is.")
             key_group.addWidget(self.key_ledit)
 

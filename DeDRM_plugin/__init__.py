@@ -6,7 +6,7 @@
 # Copyright © 2021 NoDRM
 
 __license__   = 'GPL v3'
-__version__ = '10.0.1'
+__version__ = '10.0.2'
 __docformat__ = 'restructuredtext en'
 
 
@@ -80,6 +80,7 @@ __docformat__ = 'restructuredtext en'
 #   7.2.1 - Whitespace!
 #  10.0.0 - First forked version by NoDRM. See CHANGELOG.md for details.
 #  10.0.1 - Fixes a bug in the watermark code.
+#  10.0.2 - Fix Kindle for Mac & update Adobe key retrieval
 
 """
 Decrypt DRMed ebooks.
