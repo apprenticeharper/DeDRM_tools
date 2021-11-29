@@ -198,7 +198,9 @@ def removeOPFwatermarks(object, path_to_ebook):
             # This regex replaces all "idX_Y" IDs with "id_Y", removing the watermark IDs.
             pre_remove = container_str_new
             container_str_new = re.sub(r'((\r\n|\r|\n)\s*)?\<\!\-\-\s*Wygenerowane przez elibri dla zamówienia numer [0-9a-fA-F]+\s*\-\-\>', '', container_str_new)
-            container_str_new = re.sub(r'\=\"id[0-9]+_([0-9]+)\"', r'="id_\1"', container_str_new)
+            if pre_remove != container_str_new:
+                # To prevent this Regex from applying to books without that watermark, only do that if the watermark above was found.
+                container_str_new = re.sub(r'\=\"id[0-9]+_([0-9]+)\"', r'="id_\1"', container_str_new)
             if pre_remove != container_str_new:
                 had_elibri = True
 
