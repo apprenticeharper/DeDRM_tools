@@ -375,7 +375,6 @@ class InterfacePluginAction(InterfaceAction):
         #print ('Kobo library filename: {0}'.format(book.filename))
         for userkey in self.userkeys:
             print (_('Trying key: '), codecs.encode(userkey, 'hex'))
-            check = True
             try:
                 fileout = PersistentTemporaryFile('.epub', dir=self.tdir)
                 #print ('Temp file: {0}'.format(fileout.name))
@@ -396,8 +395,7 @@ class InterfacePluginAction(InterfaceAction):
                         file = book.encryptedfiles[filename]
                         contents = file.decrypt(userkey, contents)
                         # Parse failures mean the key is probably wrong.
-                        if check:
-                            check = not file.check(contents)
+                        file.check(contents)
                     zout.writestr(filename, contents)
                 zout.close()
                 zin.close()
