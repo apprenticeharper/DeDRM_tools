@@ -30,13 +30,14 @@
 #   6.0 - Work if TkInter is missing
 #   7.0 - Python 3 for calibre 5
 #   7.1 - Fix "failed to decrypt user key key" error (read username from registry)
+#   7.2 - Fix decryption error on Python2 if there's unicode in the username
 
 """
 Retrieve Adobe ADEPT user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '7.1'
+__version__ = '7.2'
 
 import sys, os, struct, getopt
 from base64 import b64decode
@@ -240,14 +241,21 @@ if iswindows:
 
     def GetUserName2():
         try:
-            import winreg
+            from winreg import OpenKey, QueryValueEx, HKEY_CURRENT_USER
         except ImportError:
-            import _winreg as winreg
+            # We're on Python 2
+            try:
+                # The default _winreg on Python2 isn't unicode-safe.
+                # Check if we have winreg_unicode, a unicode-safe alternative. 
+                # Without winreg_unicode, this will fail with Unicode chars in the username.
+                from adobekey_winreg_unicode import OpenKey, QueryValueEx, HKEY_CURRENT_USER
+            except:
+                from _winreg import OpenKey, QueryValueEx, HKEY_CURRENT_USER
 
         try: 
             DEVICE_KEY_PATH = r'Software\Adobe\Adept\Device'
-            regkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, DEVICE_KEY_PATH)
-            userREG = winreg.QueryValueEx(regkey, 'username')[0].encode('utf-16-le')[::2]
+            regkey = OpenKey(HKEY_CURRENT_USER, DEVICE_KEY_PATH)
+            userREG = QueryValueEx(regkey, 'username')[0].encode('utf-16-le')[::2]
             return userREG
         except: 
             return None
@@ -398,11 +406,16 @@ if iswindows:
             plkroot = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_PATH)
         except WindowsError:
             raise ADEPTError("Could not locate ADE activation")
-        for i in range(0, 16):
+
+        i = -1
+        while True:
+            i = i + 1   # start with 0
             try:
                 plkparent = winreg.OpenKey(plkroot, "%04d" % (i,))
-            except WindowsError:
+            except:
+                # No more keys
                 break
+                
             ktype = winreg.QueryValueEx(plkparent, None)[0]
             if ktype != 'credentials':
                 continue
@@ -476,6 +489,8 @@ elif isosx:
         return None
 
     def adeptkeys():
+        # TODO: All the code to support extracting multiple activation keys
+        # TODO: seems to be Windows-only currently, still needs to be added for Mac.
         actpath = findActivationDat()
         if actpath is None:
             raise ADEPTError("Could not find ADE activation.dat file.")
