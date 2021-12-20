@@ -6,7 +6,7 @@ __license__ = 'GPL v3'
 # Python 3, September 2020
 
 # Standard Python modules.
-import os, traceback, json, codecs
+import sys, os, traceback, json, codecs
 
 from PyQt5.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
                       QGroupBox, QPushButton, QListWidget, QListWidgetItem, QCheckBox,
@@ -33,6 +33,11 @@ import calibre_plugins.dedrm.androidkindlekey as androidkindlekey
 def checkForDeACSMkeys(): 
         try: 
             from calibre_plugins.deacsm.libadobeAccount import exportAccountEncryptionKeyDER, getAccountUUID
+        except: 
+            # Looks like DeACSM is not installed. 
+            return None, None
+
+        try:
             from calibre.ptempfile import TemporaryFile
        
 
@@ -774,6 +779,9 @@ class AddAdeptDialog(QDialog):
         layout = QVBoxLayout(self)
         self.setLayout(layout)
 
+        self.new_keys = []
+        self.new_names = []
+
         try:
             if iswindows or isosx:
                 from calibre_plugins.dedrm.adobekey import adeptkeys
@@ -785,43 +793,64 @@ class AddAdeptDialog(QDialog):
                 scriptpath = os.path.join(parent.parent.alfdir,"adobekey.py")
                 defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",parent.getwineprefix())
 
-            self.default_key = defaultkeys[0]
-            self.default_name_A = defaultnames[0]
+            if sys.version_info[0] < 3:
+                # Python2
+                import itertools
+                zip_function = itertools.izip
+            else:
+                # Python3
+                zip_function = zip
 
-            for key in self.parent.plugin_keys.values():
-                if key == codecs.encode(self.default_key,'hex').decode("utf-8"):
-                    # We already have the ADE key imported into the plugin.
-                    # Set it back to "" as if we had not found anything, 
-                    # so the next code path searches more places for potential keys.
-                    print("Found key '{0}' in ADE - already present, skipping.".format(self.default_name_A))
-                    self.default_key = ""
-                    break
-
+            for key, name in zip_function(defaultkeys, defaultnames):
+                if codecs.encode(key,'hex').decode("latin-1") in self.parent.plugin_keys.values():
+                    print("Found key '{0}' in ADE - already present, skipping.".format(name))
+                else:
+                    self.new_keys.append(key)
+                    self.new_names.append(name)
         except:
-            self.default_key = ""
-
-        self.foundInPlugin = False
+            print("Exception while checking for ADE keys")
+            traceback.print_exc()
 
         
-        if len(self.default_key) == 0: 
-            # No (new) key found in ADE. Check the DeACSM calibre plugin instead.
+        # Check for keys in the DeACSM plugin
+        try: 
             key, name = checkForDeACSMkeys()
 
             if key is not None: 
-                self.default_key = key
-                self.default_name_A = name
 
-                for key in self.parent.plugin_keys.values():
-                    if key == codecs.encode(self.default_key,'hex').decode("utf-8"):
-                        # We already have the ADE key imported into the plugin.
-                        # Set it back to "" as if we had not found anything, 
-                        # so the next code path searches more places for potential keys.
-                        print("Found key '{0}' in DeACSM - already present, skipping.".format(self.default_name_A))
-                        self.default_key = ""
-                        break
+                if codecs.encode(key,'hex').decode("latin-1") in self.parent.plugin_keys.values():
+                    print("Found key '{0}' in DeACSM - already present, skipping.".format(name))
+                else: 
+                    # Found new key, add that.
+                    self.new_keys.append(key)
+                    self.new_names.append(name)
+        except: 
+            print("Exception while checking for DeACSM keys")
+            traceback.print_exc()
+
+        # Just in case ADE and DeACSM are activated with the same account, 
+        # check the new_keys list for duplicates and remove them, if they exist.
+
+        new_keys_2 = []
+        new_names_2 = []
+        i = 0
+        while True: 
+            if i >= len(self.new_keys):
+                break
+            if not self.new_keys[i] in new_keys_2:
+                new_keys_2.append(self.new_keys[i])
+                new_names_2.append(self.new_names[i])
+                i = i + 1
         
+        self.new_keys = new_keys_2
+        self.new_names = new_names_2
+    
 
-        if len(self.default_key)>0:
+        # Okay, new_keys is now a list of new keys, and new_names has the names for these keys. 
+        # Right now this code only supports adding one key per each invocation, 
+        # so if the user has multiple keys, he's going to need to add the "plus" button multiple times.
+
+        if len(self.new_keys)>0:
             self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
             data_group_box = QGroupBox("", self)
@@ -832,9 +861,14 @@ class AddAdeptDialog(QDialog):
             key_group = QHBoxLayout()
             data_group_box_layout.addLayout(key_group)
             key_group.addWidget(QLabel("Unique Key Name:", self))
-            self.key_ledit = QLineEdit("default_ade_key_uuid_" + self.default_name_A, self)
+            self.key_ledit = QLineEdit("ade_key_uuid_" + self.new_names[0], self)
             self.key_ledit.setToolTip("<p>Enter an identifying name for the current Adobe key. Note that it's recommended to leave the UUID (the random-looking digits and letters) as it is.")
             key_group.addWidget(self.key_ledit)
+            
+            if len(self.new_keys) > 1:
+                # The code currently doesn't support adding multiple keys. 
+                # If there are more keys, tell the user to trigger this again.
+                data_group_box_layout.addWidget(QLabel("<p>There are more keys available. <br/>Click the 'plus' icon again after adding this key to add the other keys.</p>", self))
 
             self.button_box.accepted.connect(self.accept)
         else:       
@@ -859,12 +893,12 @@ class AddAdeptDialog(QDialog):
 
     @property
     def key_value(self):
-        return codecs.encode(self.default_key,'hex').decode("utf-8")
+        return codecs.encode(self.new_keys[0],'hex').decode("utf-8")
 
 
     def accept(self):
         if len(self.key_name) == 0 or self.key_name.isspace():
-            errmsg = "All fields are required!"
+            errmsg = "Key name must not be empty!"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         if len(self.key_name) < 4:
             errmsg = "Key name must be at <i>least</i> 4 characters long!"
