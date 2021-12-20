@@ -234,9 +234,10 @@ class DeDRM(FileTypePlugin):
                 # Remove watermarks (Adobe or LemonInk) from all HTML and XHTML files
                 path_to_ebook = watermark.removeHTMLwatermarks(self, path_to_ebook) or path_to_ebook
 
-                postProcessEnd = time.time()
-                print("{0} v{1}: Post-processing took {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, postProcessEnd-postProcessStart))
-
+            
+            
+            postProcessEnd = time.time()
+            print("{0} v{1}: Post-processing took {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, postProcessEnd-postProcessStart))
 
             return path_to_ebook
 
@@ -487,14 +488,9 @@ class DeDRM(FileTypePlugin):
                     scriptpath = os.path.join(self.alfdir,"adobekey.py")
                     defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
 
-                try: 
-                    self.default_key = defaultkeys[0]
-                except: 
-                    print("{0} v{1}: No ADE key found".format(PLUGIN_NAME, PLUGIN_VERSION))
             except:
                 print("{0} v{1}: Exception when getting default Adobe Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                 traceback.print_exc()
-                self.default_key = ""
 
             newkeys = []
             newnames = []
@@ -669,14 +665,9 @@ class DeDRM(FileTypePlugin):
                 scriptpath = os.path.join(self.alfdir,"adobekey.py")
                 defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
 
-            try:
-                self.default_key = defaultkeys[0]
-            except: 
-                print("{0} v{1}: No ADE key found".format(PLUGIN_NAME, PLUGIN_VERSION))
         except:
             print("{0} v{1}: Exception when getting default Adobe Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
             traceback.print_exc()
-            self.default_key = ""
 
         newkeys = []
         newnames = []
