@@ -34,3 +34,10 @@ List of changes since the fork of Apprentice Harper's repository:
 - Fix Adobe key retrieval in case the username has been changed (merged [apprenticeharper/DeDRM_tools#1946](https://github.com/apprenticeharper/DeDRM_tools/pull/1946) ). This should fix the error "failed to decrypt user key key".
 - Fix small issue with elibri watermark removal.
 - Adobe key name will now contain account email.
+
+## Fixes on master (not yet released):
+
+- Fix issue where importing a key from Adobe Digital Editions would fail in Python2 (Calibre < 5) if there were non-ASCII characters in the username.
+- Add code to support importing multiple decryption keys from ADE (click the 'plus' button multiple times).
+- Improve epubtest.py to also detect Kobo & Apple DRM.
+- Small updates to the LCP DRM error messages.
