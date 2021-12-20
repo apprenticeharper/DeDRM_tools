@@ -175,15 +175,13 @@ def getfiledata(file, zi):
     return data
 
 def encryption(infile):
-    # returns encryption: one of Unencrypted, Adobe, B&N and Unknown
-    encryption = "Error When Checking."
+    # Supports Adobe (old & new), B&N, Kobo, Apple, Readium LCP.    
+    encryption = "Error"
     try:
         with open(infile,'rb') as infileobject:
             bookdata = infileobject.read(58)
             # Check for Zip
             if bookdata[0:0+2] == b"PK":
-                foundrights = False
-                foundencryption = False
                 inzip = zipfile.ZipFile(infile,'r')
                 namelist = set(inzip.namelist())
                 if (
@@ -191,21 +189,32 @@ def encryption(infile):
                     'META-INF/license.lcpl' in namelist and
                     b"EncryptedContentKey" in inzip.read("META-INF/encryption.xml")):
                     encryption = "Readium LCP"
+
+                elif 'META-INF/sinf.xml' in namelist and b"fairplay" in inzip.read("META-INF/sinf.xml"):
+                    # Untested, just found this info on Google
+                    encryption = "Apple"
+
+                elif 'META-INF/rights.xml' in namelist and b"<kdrm>" in inzip.read("META-INF/rights.xml"):
+                    # Untested, just found this info on Google
+                    encryption = "Kobo"
                 
                 elif 'META-INF/rights.xml' not in namelist or 'META-INF/encryption.xml' not in namelist:
                     encryption = "Unencrypted"
                 else:
-                    rights = etree.fromstring(inzip.read('META-INF/rights.xml'))
-                    adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
-                    expr = './/%s' % (adept('encryptedKey'),)
-                    bookkey = ''.join(rights.findtext(expr))
-                    if len(bookkey) == 172:
-                        encryption = "Adobe (old)"
-                    if len(bookkey) == 192:
-                        encryption = "Adobe (new)"
-                    elif len(bookkey) == 64:
-                        encryption = "B&N"
-                    else:
+                    try: 
+                        rights = etree.fromstring(inzip.read('META-INF/rights.xml'))
+                        adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+                        expr = './/%s' % (adept('encryptedKey'),)
+                        bookkey = ''.join(rights.findtext(expr))
+                        if len(bookkey) == 172:
+                            encryption = "Adobe (old)"
+                        if len(bookkey) == 192:
+                            encryption = "Adobe (new)"
+                        elif len(bookkey) == 64:
+                            encryption = "B&N"
+                        else:
+                            encryption = "Unknown (key len " + str(len(bookkey)) + ")"
+                    except: 
                         encryption = "Unknown"
     except:
         traceback.print_exc()
