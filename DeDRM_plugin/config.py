@@ -6,12 +6,12 @@ __license__ = 'GPL v3'
 # Python 3, September 2020
 
 # Standard Python modules.
-import sys, os, traceback, json, codecs
+import sys, os, traceback, json, codecs, base64
 
 from PyQt5.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
                       QGroupBox, QPushButton, QListWidget, QListWidgetItem, QCheckBox,
                       QAbstractItemView, QIcon, QDialog, QDialogButtonBox, QUrl, 
-                      QCheckBox)
+                      QCheckBox, QComboBox)
 
 from PyQt5 import Qt as QtGui
 from zipfile import ZipFile
@@ -113,8 +113,8 @@ class ConfigWidget(QWidget):
         button_layout = QVBoxLayout()
         keys_group_box_layout.addLayout(button_layout)
         self.bandn_button = QtGui.QPushButton(self)
-        self.bandn_button.setToolTip(_("Click to manage keys for Barnes and Noble ebooks"))
-        self.bandn_button.setText("Barnes and Noble ebooks")
+        self.bandn_button.setToolTip(_("Click to manage keys for ADE books with PassHash algorithm. <br/>Commonly used by Barnes and Noble"))
+        self.bandn_button.setText("ADE PassHash (B&&N) ebooks")
         self.bandn_button.clicked.connect(self.bandn_keys)
         self.kindle_android_button = QtGui.QPushButton(self)
         self.kindle_android_button.setToolTip(_("Click to manage keys for Kindle for Android ebooks"))
@@ -196,7 +196,7 @@ class ConfigWidget(QWidget):
         d.exec_()
 
     def bandn_keys(self):
-        d = ManageKeysDialog(self,"Barnes and Noble Key",self.tempdedrmprefs['bandnkeys'], AddBandNKeyDialog, 'b64')
+        d = ManageKeysDialog(self,"ADE PassHash Key",self.tempdedrmprefs['bandnkeys'], AddBandNKeyDialog, 'b64')
         d.exec_()
 
     def ereader_keys(self):
@@ -566,79 +566,173 @@ class RenameKeyDialog(QDialog):
 
 
 class AddBandNKeyDialog(QDialog):
-    def __init__(self, parent=None,):
-        QDialog.__init__(self, parent)
-        self.parent = parent
-        self.setWindowTitle("{0} {1}: Create New Barnes & Noble Key".format(PLUGIN_NAME, PLUGIN_VERSION))
-        layout = QVBoxLayout(self)
-        self.setLayout(layout)
 
-        data_group_box = QGroupBox("", self)
-        layout.addWidget(data_group_box)
-        data_group_box_layout = QVBoxLayout()
-        data_group_box.setLayout(data_group_box_layout)
+    def update_form(self, idx):
+        self.cbType.hide()
 
-        key_group = QHBoxLayout()
-        data_group_box_layout.addLayout(key_group)
-        key_group.addWidget(QLabel("Unique Key Name:", self))
+        if idx == 1:
+            self.add_fields_for_passhash()
+        elif idx == 2: 
+            self.add_fields_for_b64_passhash()
+        elif idx == 3:
+            self.add_fields_for_windows_nook()
+        elif idx == 4:
+            self.add_fields_for_android_nook()
+
+
+    def add_fields_for_android_nook(self):
+
+        self.andr_nook_group_box = QGroupBox("", self)
+        andr_nook_group_box_layout = QVBoxLayout()
+        self.andr_nook_group_box.setLayout(andr_nook_group_box_layout)
+
+        self.layout.addWidget(self.andr_nook_group_box)
+
+        ph_key_name_group = QHBoxLayout()
+        andr_nook_group_box_layout.addLayout(ph_key_name_group)
+        ph_key_name_group.addWidget(QLabel("Unique Key Name:", self))
+        self.key_ledit = QLineEdit("", self)
+        self.key_ledit.setToolTip(_("<p>Enter an identifying name for this new key.</p>"))
+        ph_key_name_group.addWidget(self.key_ledit)
+
+        andr_nook_group_box_layout.addWidget(QLabel("Hidden in the Android application data is a " +
+            "folder\nnamed '.adobe-digital-editions'. Please enter\nthe full path to that folder.", self))
+
+        ph_path_group = QHBoxLayout()
+        andr_nook_group_box_layout.addLayout(ph_path_group)
+        ph_path_group.addWidget(QLabel("Path:", self))
+        self.cc_ledit = QLineEdit("", self)
+        self.cc_ledit.setToolTip(_("<p>Enter path to .adobe-digital-editions folder.</p>"))
+        ph_path_group.addWidget(self.cc_ledit)
+
+        self.button_box.hide()
+        
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept_android_nook)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
+
+        self.resize(self.sizeHint())
+
+    def add_fields_for_windows_nook(self):
+
+        self.win_nook_group_box = QGroupBox("", self)
+        win_nook_group_box_layout = QVBoxLayout()
+        self.win_nook_group_box.setLayout(win_nook_group_box_layout)
+
+        self.layout.addWidget(self.win_nook_group_box)
+
+        ph_key_name_group = QHBoxLayout()
+        win_nook_group_box_layout.addLayout(ph_key_name_group)
+        ph_key_name_group.addWidget(QLabel("Unique Key Name:", self))
+        self.key_ledit = QLineEdit("", self)
+        self.key_ledit.setToolTip(_("<p>Enter an identifying name for this new key.</p>"))
+        ph_key_name_group.addWidget(self.key_ledit)
+
+        self.button_box.hide()
+        
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept_win_nook)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
+
+        self.resize(self.sizeHint())
+
+    def add_fields_for_b64_passhash(self):
+
+        self.passhash_group_box = QGroupBox("", self)
+        passhash_group_box_layout = QVBoxLayout()
+        self.passhash_group_box.setLayout(passhash_group_box_layout)
+
+        self.layout.addWidget(self.passhash_group_box)
+
+        ph_key_name_group = QHBoxLayout()
+        passhash_group_box_layout.addLayout(ph_key_name_group)
+        ph_key_name_group.addWidget(QLabel("Unique Key Name:", self))
         self.key_ledit = QLineEdit("", self)
         self.key_ledit.setToolTip(_("<p>Enter an identifying name for this new key.</p>" +
                                 "<p>It should be something that will help you remember " +
                                 "what personal information was used to create it."))
-        key_group.addWidget(self.key_ledit)
+        ph_key_name_group.addWidget(self.key_ledit)
 
-        name_group = QHBoxLayout()
-        data_group_box_layout.addLayout(name_group)
-        name_group.addWidget(QLabel("B&N/nook account email address:", self))
-        self.name_ledit = QLineEdit("", self)
-        self.name_ledit.setToolTip(_("<p>Enter your email address as it appears in your B&N " +
-                                "account.</p>" +
-                                "<p>It will only be used to generate this " +
-                                "key and won\'t be stored anywhere " +
-                                "in calibre or on your computer.</p>" +
-                                "<p>eg: apprenticeharper@gmail.com</p>"))
-        name_group.addWidget(self.name_ledit)
-        name_disclaimer_label = QLabel(_("(Will not be saved in configuration data)"), self)
-        name_disclaimer_label.setAlignment(Qt.AlignHCenter)
-        data_group_box_layout.addWidget(name_disclaimer_label)
-
-        ccn_group = QHBoxLayout()
-        data_group_box_layout.addLayout(ccn_group)
-        ccn_group.addWidget(QLabel("B&N/nook account password:", self))
+        ph_name_group = QHBoxLayout()
+        passhash_group_box_layout.addLayout(ph_name_group)
+        ph_name_group.addWidget(QLabel("Base64 key string:", self))
         self.cc_ledit = QLineEdit("", self)
-        self.cc_ledit.setToolTip(_("<p>Enter the password " +
-                                "for your B&N account.</p>" +
-                                "<p>The password will only be used to generate this " +
-                                "key and won\'t be stored anywhere in " +
-                                "calibre or on your computer."))
-        ccn_group.addWidget(self.cc_ledit)
-        ccn_disclaimer_label = QLabel(_('(Will not be saved in configuration data)'), self)
-        ccn_disclaimer_label.setAlignment(Qt.AlignHCenter)
-        data_group_box_layout.addWidget(ccn_disclaimer_label)
-        layout.addSpacing(10)
+        self.cc_ledit.setToolTip(_("<p>Enter the Base64 key string</p>"))
+        ph_name_group.addWidget(self.cc_ledit)
 
-        self.chkOldAlgo = QCheckBox(_("Try to use the old algorithm"))
-        self.chkOldAlgo.setToolTip(_("Leave this off if you're unsure."))
-        data_group_box_layout.addWidget(self.chkOldAlgo)
-        layout.addSpacing(10)
-
-        key_group = QHBoxLayout()
-        data_group_box_layout.addLayout(key_group)
-        key_group.addWidget(QLabel("Retrieved key:", self))
-        self.key_display = QLabel("", self)
-        self.key_display.setToolTip(_("Click the Retrieve Key button to fetch your B&N encryption key from the B&N servers"))
-        key_group.addWidget(self.key_display)
-        self.retrieve_button = QtGui.QPushButton(self)
-        self.retrieve_button.setToolTip(_("Click to retrieve your B&N encryption key from the B&N servers"))
-        self.retrieve_button.setText("Retrieve Key")
-        self.retrieve_button.clicked.connect(self.retrieve_key)
-        key_group.addWidget(self.retrieve_button)
-        layout.addSpacing(10)
-
+        self.button_box.hide()
+        
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.button_box.accepted.connect(self.accept)
+        self.button_box.accepted.connect(self.accept_b64_passhash)
         self.button_box.rejected.connect(self.reject)
-        layout.addWidget(self.button_box)
+        self.layout.addWidget(self.button_box)
+
+        self.resize(self.sizeHint())
+
+
+    def add_fields_for_passhash(self):
+
+        self.passhash_group_box = QGroupBox("", self)
+        passhash_group_box_layout = QVBoxLayout()
+        self.passhash_group_box.setLayout(passhash_group_box_layout)
+
+        self.layout.addWidget(self.passhash_group_box)
+
+        ph_key_name_group = QHBoxLayout()
+        passhash_group_box_layout.addLayout(ph_key_name_group)
+        ph_key_name_group.addWidget(QLabel("Unique Key Name:", self))
+        self.key_ledit = QLineEdit("", self)
+        self.key_ledit.setToolTip(_("<p>Enter an identifying name for this new key.</p>" +
+                                "<p>It should be something that will help you remember " +
+                                "what personal information was used to create it."))
+        ph_key_name_group.addWidget(self.key_ledit)
+
+        ph_name_group = QHBoxLayout()
+        passhash_group_box_layout.addLayout(ph_name_group)
+        ph_name_group.addWidget(QLabel("Username:", self))
+        self.name_ledit = QLineEdit("", self)
+        self.name_ledit.setToolTip(_("<p>Enter the PassHash username</p>"))
+        ph_name_group.addWidget(self.name_ledit)
+
+        ph_pass_group = QHBoxLayout()
+        passhash_group_box_layout.addLayout(ph_pass_group)
+        ph_pass_group.addWidget(QLabel("Password:", self))
+        self.cc_ledit = QLineEdit("", self)
+        self.cc_ledit.setToolTip(_("<p>Enter the PassHash password</p>"))
+        ph_pass_group.addWidget(self.cc_ledit)
+
+        self.button_box.hide()
+        
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept_passhash)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
+
+        self.resize(self.sizeHint())
+
+
+
+    def __init__(self, parent=None,):
+        QDialog.__init__(self, parent)
+        self.parent = parent
+        self.setWindowTitle("{0} {1}: Create New PassHash (B&N) Key".format(PLUGIN_NAME, PLUGIN_VERSION))
+        self.layout = QVBoxLayout(self)
+        self.setLayout(self.layout)
+
+        self.cbType = QComboBox()
+        self.cbType.addItem("--- Select key type ---")
+        self.cbType.addItem("Adobe PassHash username & password")
+        self.cbType.addItem("Base64-encoded PassHash key string")
+        self.cbType.addItem("Extract key from Nook Windows application")
+        self.cbType.addItem("Extract key from Nook Android application")
+        self.cbType.currentIndexChanged.connect(self.update_form, self.cbType.currentIndex())
+        self.layout.addWidget(self.cbType)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Cancel)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
 
         self.resize(self.sizeHint())
 
@@ -648,7 +742,7 @@ class AddBandNKeyDialog(QDialog):
 
     @property
     def key_value(self):
-        return str(self.key_display.text()).strip()
+        return self.result_data
 
     @property
     def user_name(self):
@@ -658,39 +752,107 @@ class AddBandNKeyDialog(QDialog):
     def cc_number(self):
         return str(self.cc_ledit.text()).strip()
 
-    def retrieve_key(self):
+    def accept_android_nook(self):
+        
+        if len(self.key_name) < 4:
+            errmsg = "Key name must be at <i>least</i> 4 characters long!"
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
 
-        if self.chkOldAlgo.isChecked(): 
-            # old method, try to generate
-            from calibre_plugins.dedrm.ignoblekeygen import generate_key as generate_bandn_key
-            generated_key = generate_bandn_key(self.user_name, self.cc_number)
-            if generated_key == "":
-                errmsg = "Could not generate key."
-                error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
-            else: 
-                self.key_display.setText(generated_key.decode("latin-1"))
+        path_to_ade_data = self.cc_number
+
+        if (os.path.isfile(os.path.join(path_to_ade_data, ".adobe-digital-editions", "activation.xml"))):
+            path_to_ade_data = os.path.join(path_to_ade_data, ".adobe-digital-editions")
+        elif (os.path.isfile(os.path.join(path_to_ade_data, "activation.xml"))):
+            pass
         else: 
-            # New method, try to connect to server
-            from calibre_plugins.dedrm.ignoblekeyfetch import fetch_key as fetch_bandn_key
-            fetched_key = fetch_bandn_key(self.user_name,self. cc_number)
-            if fetched_key == "":
-                errmsg = "Could not retrieve key. Check username, password and intenet connectivity and try again."
-                error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
-            else:
-                self.key_display.setText(fetched_key)
+            errmsg = "This isn't the correct path, or the data is invalid."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
 
-    def accept(self):
+        from calibre_plugins.dedrm.ignoblekeyAndroid import dump_keys
+        store_result = dump_keys(path_to_ade_data)
+
+        if len(store_result) == 0:
+            errmsg = "Failed to extract keys. Is this the correct folder?"
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+
+        self.result_data = store_result[0]
+        QDialog.accept(self)
+
+
+
+
+    def accept_win_nook(self):
+
+        if len(self.key_name) < 4:
+            errmsg = "Key name must be at <i>least</i> 4 characters long!"
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+
+        try: 
+            from calibre_plugins.dedrm.ignoblekeyWindowsStore import dump_keys
+            store_result = dump_keys(False)
+        except:
+            errmsg = "Failed to import from Nook Microsoft Store app."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+
+        if len(store_result) == 0:
+            # Nothing found, try the Nook Study app
+            from calibre_plugins.dedrm.ignoblekeyNookStudy import nookkeys
+            store_result = nookkeys()
+
+        # Take the first key we found. In the future it might be a good idea to import them all,
+        # but with how the import dialog is currently structured that's not easily possible.
+        if len(store_result) > 0: 
+            self.result_data = store_result[0]
+            QDialog.accept(self)
+            return
+
+        # Okay, we didn't find anything. How do we get rid of the window?
+        errmsg = "Didn't find any Nook keys in the Windows app."
+        error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        QDialog.reject(self)
+
+
+    def accept_b64_passhash(self):
+        if len(self.key_name) == 0 or len(self.cc_number) == 0 or self.key_name.isspace() or self.cc_number.isspace():
+            errmsg = "All fields are required!"
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        
+        if len(self.key_name) < 4:
+            errmsg = "Key name must be at <i>least</i> 4 characters long!"
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+
+        try: 
+            x = base64.b64decode(self.cc_number)
+        except: 
+            errmsg = "Key data is no valid base64 string!"
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+
+
+        self.result_data = self.cc_number
+        QDialog.accept(self)
+    
+    def accept_passhash(self):
         if len(self.key_name) == 0 or len(self.user_name) == 0 or len(self.cc_number) == 0 or self.key_name.isspace() or self.user_name.isspace() or self.cc_number.isspace():
             errmsg = "All fields are required!"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         if len(self.key_name) < 4:
             errmsg = "Key name must be at <i>least</i> 4 characters long!"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
-        if len(self.key_value) == 0:
-            self.retrieve_key()
-            if len(self.key_value) == 0:
-                return
+
+        try: 
+            from calibre_plugins.dedrm.ignoblekeyGenPassHash import generate_key
+            self.result_data = generate_key(self.user_name, self.cc_number)
+        except: 
+            errmsg = "Key generation failed."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        
+        if len(self.result_data) == 0:
+            errmsg = "Key generation failed."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+
         QDialog.accept(self)
+
+        
 
 class AddEReaderDialog(QDialog):
     def __init__(self, parent=None,):

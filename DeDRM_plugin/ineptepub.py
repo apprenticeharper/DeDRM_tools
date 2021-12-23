@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # ineptepub.py
-# Copyright © 2009-2020 by i♥cabbages, Apprentice Harper et al.
+# Copyright © 2009-2021 by i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -30,18 +30,19 @@
 #   6.5 - Completely remove erroneous check on DER file sanity
 #   6.6 - Import tkFileDialog, don't assume something else will import it.
 #   7.0 - Add Python 3 compatibility for calibre 5.0
+#   7.1 - Add ignoble support, dropping the dedicated ignobleepub.py script
 
 """
 Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "7.0"
+__version__ = "7.1"
 
-import codecs
 import sys
 import os
 import traceback
+import base64
 import zlib
 import zipfile
 from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
@@ -210,9 +211,14 @@ def _load_crypto_libcrypto():
     return (AES, RSA)
 
 def _load_crypto_pycrypto():
-    from Crypto.Cipher import AES as _AES
-    from Crypto.PublicKey import RSA as _RSA
-    from Crypto.Cipher import PKCS1_v1_5 as _PKCS1_v1_5
+    try: 
+        from Cryptodome.Cipher import AES as _AES
+        from Cryptodome.PublicKey import RSA as _RSA
+        from Cryptodome.Cipher import PKCS1_v1_5 as _PKCS1_v1_5
+    except:
+        from Crypto.Cipher import AES as _AES
+        from Crypto.PublicKey import RSA as _RSA
+        from Crypto.Cipher import PKCS1_v1_5 as _PKCS1_v1_5
 
     # ASN.1 parsing code from tlslite
     class ASN1Error(Exception):
@@ -417,11 +423,30 @@ def adeptBook(inpath):
             adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
             expr = './/%s' % (adept('encryptedKey'),)
             bookkey = ''.join(rights.findtext(expr))
-            if len(bookkey) == 172:
+            if len(bookkey) in [192, 172, 64]:
                 return True
         except:
             # if we couldn't check, assume it is
             return True
+    return False
+
+def isPassHashBook(inpath):
+    # If this is an Adobe book, check if it's a PassHash-encrypted book (B&N)
+    with closing(ZipFile(open(inpath, 'rb'))) as inf:
+        namelist = set(inf.namelist())
+        if 'META-INF/rights.xml' not in namelist or \
+           'META-INF/encryption.xml' not in namelist:
+            return False
+        try:
+            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+            expr = './/%s' % (adept('encryptedKey'),)
+            bookkey = ''.join(rights.findtext(expr))
+            if len(bookkey) == 64:
+                return True
+        except:
+            pass
+        
     return False
 
 # Checks the license file and returns the UUID the book is licensed for. 
@@ -463,7 +488,7 @@ def verify_book_key(bookkey):
 def decryptBook(userkey, inpath, outpath):
     if AES is None:
         raise ADEPTError("PyCrypto or OpenSSL must be installed.")
-    rsa = RSA(userkey)
+
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
         namelist = inf.namelist()
         if 'META-INF/rights.xml' not in namelist or \
@@ -483,10 +508,32 @@ def decryptBook(userkey, inpath, outpath):
                 print("Try getting your distributor to give you a new ACSM file, then open that in an old version of ADE (2.0).")
                 print("If your book distributor is not enforcing the new DRM yet, this will give you a copy with the old DRM.")
                 raise ADEPTNewVersionError("Book uses new ADEPT encryption")
-            if len(bookkey) != 172:
-                print("{0:s} is not a secure Adobe Adept ePub.".format(os.path.basename(inpath)))
+            
+            if len(bookkey) == 172:
+                print("{0:s} is a secure Adobe Adept ePub.".format(os.path.basename(inpath)))
+            elif len(bookkey) == 64:
+                print("{0:s} is a secure Adobe PassHash (B&N) ePub.".format(os.path.basename(inpath)))
+            else:
+                print("{0:s} is not an Adobe-protected ePub!".format(os.path.basename(inpath)))
                 return 1
-            bookkey = rsa.decrypt(codecs.decode(bookkey.encode('ascii'), 'base64'))
+
+            if len(bookkey) != 64:
+                # Normal Adobe ADEPT
+                rsa = RSA(userkey)
+                bookkey = rsa.decrypt(base64.b64decode(bookkey.encode('ascii')))
+            else: 
+                # Adobe PassHash / B&N
+                key = base64.b64decode(userkey)[:16]
+                aes = AES(key)
+                bookkey = aes.decrypt(base64.b64decode(bookkey))
+                if type(bookkey[-1]) != int:
+                    pad = ord(bookkey[-1])
+                else:
+                    pad = bookkey[-1]
+                
+                bookkey = bookkey[:-pad]
+
+
             # Padded as per RSAES-PKCS1-v1_5
             if len(bookkey) > 16:
                 if verify_book_key(bookkey):
@@ -494,6 +541,7 @@ def decryptBook(userkey, inpath, outpath):
                 else:
                     print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
                     return 2
+
             encryption = inf.read('META-INF/encryption.xml')
             decryptor = Decryptor(bookkey, encryption)
             kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)

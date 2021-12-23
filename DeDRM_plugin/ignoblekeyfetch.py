@@ -25,7 +25,12 @@
 #   2.0 - Python 3 for calibre 5.0
 
 """
-Fetch Barnes & Noble EPUB user key from B&N servers using email and password
+Fetch Barnes & Noble EPUB user key from B&N servers using email and password.
+
+NOTE: This script used to work in the past, but the server it uses is long gone.
+It can no longer be used to download keys from B&N servers, it is no longer
+supported by the Calibre plugin, and it will be removed in the future. 
+
 """
 
 __license__ = 'GPL v3'
