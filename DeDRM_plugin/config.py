@@ -361,21 +361,57 @@ class ManageKeysDialog(QDialog):
         if d.result() != d.Accepted:
             # New key generation cancelled.
             return
-        new_key_value = d.key_value
-        if type(self.plugin_keys) == dict:
-            if new_key_value in self.plugin_keys.values():
-                old_key_name = [name for name, value in self.plugin_keys.items() if value == new_key_value][0]
-                info_dialog(None, "{0} {1}: Duplicate {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
-                                    "The new {1} is the same as the existing {1} named <strong>{0}</strong> and has not been added.".format(old_key_name,self.key_type_name), show=True)
-                return
-            self.plugin_keys[d.key_name] = new_key_value
-        else:
-            if new_key_value in self.plugin_keys:
-                info_dialog(None, "{0} {1}: Duplicate {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
-                                    "This {0} is already in the list of {0}s has not been added.".format(self.key_type_name), show=True)
-                return
 
-            self.plugin_keys.append(d.key_value)
+        if d.k_key_list is not None: 
+            # importing multiple keys
+            idx = -1
+            dup_key_count = 0
+            added_key_count = 0
+            
+            while True:
+                idx = idx + 1
+                try: 
+                    new_key_value = d.k_key_list[idx]
+                except:
+                    break
+
+                if type(self.plugin_keys) == dict:
+                    if new_key_value in self.plugin_keys.values():
+                        dup_key_count = dup_key_count + 1
+                        continue
+                    print("Setting idx " + str(idx) + ", name " + d.k_name_list[idx] + " to " + new_key_value)
+                    self.plugin_keys[d.k_name_list[idx]] = new_key_value
+                    added_key_count = added_key_count + 1
+                else:
+                    if new_key_value in self.plugin_keys:
+                        dup_key_count = dup_key_count + 1
+                        continue
+                    self.plugin_keys.append(new_key_value)
+                    added_key_count = added_key_count + 1
+                
+
+            if (added_key_count > 0):
+                info_dialog(None, "{0} {1}: Adding {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
+                        "Successfully added {0} key(s).".format(added_key_count), show=True)
+
+        else:
+            # Import single key
+            new_key_value = d.key_value
+            if type(self.plugin_keys) == dict:
+                if new_key_value in self.plugin_keys.values():
+                    old_key_name = [name for name, value in self.plugin_keys.items() if value == new_key_value][0]
+                    info_dialog(None, "{0} {1}: Duplicate {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
+                                        "The new {1} is the same as the existing {1} named <strong>{0}</strong> and has not been added.".format(old_key_name,self.key_type_name), show=True)
+                    return
+                self.plugin_keys[d.key_name] = new_key_value
+            else:
+                if new_key_value in self.plugin_keys:
+                    info_dialog(None, "{0} {1}: Duplicate {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
+                                        "This {0} is already in the list of {0}s has not been added.".format(self.key_type_name), show=True)
+                    return
+
+                self.plugin_keys.append(d.key_value)
+
         self.listy.clear()
         self.populate_list()
 
@@ -574,10 +610,33 @@ class AddBandNKeyDialog(QDialog):
             self.add_fields_for_passhash()
         elif idx == 2: 
             self.add_fields_for_b64_passhash()
-        elif idx == 3:
-            self.add_fields_for_windows_nook()
+        elif idx == 3: 
+            self.add_fields_for_ade_passhash()
         elif idx == 4:
+            self.add_fields_for_windows_nook()
+        elif idx == 5:
             self.add_fields_for_android_nook()
+
+
+
+    def add_fields_for_ade_passhash(self):
+
+        self.ade_extr_group_box = QGroupBox("", self)
+        ade_extr_group_box_layout = QVBoxLayout()
+        self.ade_extr_group_box.setLayout(ade_extr_group_box_layout)
+
+        self.layout.addWidget(self.ade_extr_group_box)
+
+        ade_extr_group_box_layout.addWidget(QLabel("Click \"OK\" to try and dump PassHash data \nfrom Adobe Digital Editions. This works if\nyou've opened your PassHash books in ADE before.", self))
+
+        self.button_box.hide()
+        
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept_ade_dump_passhash)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
+
+        self.resize(self.sizeHint())
 
 
     def add_fields_for_android_nook(self):
@@ -725,6 +784,7 @@ class AddBandNKeyDialog(QDialog):
         self.cbType.addItem("--- Select key type ---")
         self.cbType.addItem("Adobe PassHash username & password")
         self.cbType.addItem("Base64-encoded PassHash key string")
+        self.cbType.addItem("Extract passhashes from Adobe Digital Editions")
         self.cbType.addItem("Extract key from Nook Windows application")
         self.cbType.addItem("Extract key from Nook Android application")
         self.cbType.currentIndexChanged.connect(self.update_form, self.cbType.currentIndex())
@@ -738,7 +798,10 @@ class AddBandNKeyDialog(QDialog):
 
     @property
     def key_name(self):
-        return str(self.key_ledit.text()).strip()
+        try: 
+            return str(self.key_ledit.text()).strip()
+        except:
+            return self.result_data_name
 
     @property
     def key_value(self):
@@ -751,6 +814,23 @@ class AddBandNKeyDialog(QDialog):
     @property
     def cc_number(self):
         return str(self.cc_ledit.text()).strip()
+
+
+    @property
+    def k_name_list(self):
+        # If the plugin supports returning multiple keys, return a list of names.
+        if self.k_full_name_list is not None and self.k_full_key_list is not None:
+            return self.k_full_name_list
+        return None
+
+    @property
+    def k_key_list(self):
+        # If the plugin supports returning multiple keys, return a list of keys.
+        if self.k_full_name_list is not None and self.k_full_key_list is not None:
+            return self.k_full_key_list
+        return None
+
+
 
     def accept_android_nook(self):
         
@@ -775,9 +855,46 @@ class AddBandNKeyDialog(QDialog):
             errmsg = "Failed to extract keys. Is this the correct folder?"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
 
+        # Take the first key we found. In the future it might be a good idea to import them all.
+        # See accept_ade_dump_passhash for an example on how to do that.
         self.result_data = store_result[0]
         QDialog.accept(self)
 
+
+    def accept_ade_dump_passhash(self):
+        
+        try: 
+            from calibre_plugins.dedrm.adobekey_get_passhash import passhash_keys
+            keys, names = passhash_keys()
+        except:
+            errmsg = "Failed to grab PassHash keys from ADE."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+
+        # Take the first new key we found.
+
+        idx = -1
+        new_keys = []
+        new_names = []
+        for key in keys:
+            idx = idx + 1
+            if key in self.parent.plugin_keys.values():
+                continue
+        
+            new_keys.append(key)
+            new_names.append(names[idx])
+
+        if len(new_keys) == 0:
+            # Okay, we didn't find anything. How do we get rid of the window?
+            errmsg = "Didn't find any PassHash keys in ADE."
+            error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+            QDialog.reject(self)
+            return
+
+        # Add new keys to list.
+        self.k_full_name_list = new_names
+        self.k_full_key_list = new_keys
+        QDialog.accept(self)
+        return
 
 
 
@@ -799,8 +916,8 @@ class AddBandNKeyDialog(QDialog):
             from calibre_plugins.dedrm.ignoblekeyNookStudy import nookkeys
             store_result = nookkeys()
 
-        # Take the first key we found. In the future it might be a good idea to import them all,
-        # but with how the import dialog is currently structured that's not easily possible.
+        # Take the first key we found. In the future it might be a good idea to import them all.
+        # See accept_ade_dump_passhash for an example on how to do that.
         if len(store_result) > 0: 
             self.result_data = store_result[0]
             QDialog.accept(self)
@@ -1011,6 +1128,9 @@ class AddAdeptDialog(QDialog):
         # Okay, new_keys is now a list of new keys, and new_names has the names for these keys. 
         # Right now this code only supports adding one key per each invocation, 
         # so if the user has multiple keys, he's going to need to add the "plus" button multiple times.
+
+        # In the future it might be a good idea to import them all.
+        # See accept_ade_dump_passhash for an example on how to do that.
 
         if len(self.new_keys)>0:
             self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)

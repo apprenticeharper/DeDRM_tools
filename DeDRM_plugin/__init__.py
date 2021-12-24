@@ -371,6 +371,19 @@ class DeDRM(FileTypePlugin):
                     print("{0} v{1}: Exception when getting default NOOK Microsoft App keys after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                     traceback.print_exc()
 
+                ###### Add keys from Adobe PassHash ADE activation data (adobekey_get_passhash.py)
+
+                try: 
+                    if iswindows:
+                        # Right now this is only implemented for Windows. MacOS support still needs to be added.
+                        from calibre_plugins.dedrm.adobekey_get_passhash import passhash_keys
+                        defaultkeys_ade, names = passhash_keys()
+                    if isosx:
+                        print("{0} v{1}: Dumping ADE PassHash data is not yet supported on MacOS.".format(PLUGIN_NAME, PLUGIN_VERSION))
+                except:
+                    print("{0} v{1}: Exception when getting PassHashes from ADE after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                    traceback.print_exc()
+
 
                 ###### Check if one of the new keys decrypts the book:
 
@@ -381,6 +394,10 @@ class DeDRM(FileTypePlugin):
 
                 if iswindows:
                     for keyvalue in defaultkeys_store:
+                        if keyvalue not in dedrmprefs['bandnkeys'].values() and keyvalue not in newkeys:
+                            newkeys.append(keyvalue)
+
+                    for keyvalue in defaultkeys_ade:
                         if keyvalue not in dedrmprefs['bandnkeys'].values() and keyvalue not in newkeys:
                             newkeys.append(keyvalue)
 
@@ -406,7 +423,10 @@ class DeDRM(FileTypePlugin):
                                 # Store the new successful key in the defaults
                                 print("{0} v{1}: Saving a new default key".format(PLUGIN_NAME, PLUGIN_VERSION))
                                 try:
-                                    dedrmprefs.addnamedvaluetoprefs('bandnkeys','nook_key_'+time.strftime("%Y-%m-%d"),keyvalue)
+                                    if userkey in defaultkeys_ade:
+                                        dedrmprefs.addnamedvaluetoprefs('bandnkeys','ade_passhash_'+str(int(time.time())),keyvalue)
+                                    else:
+                                        dedrmprefs.addnamedvaluetoprefs('bandnkeys','nook_key_'+str(int(time.time())),keyvalue)
                                     dedrmprefs.writeprefs()
                                     print("{0} v{1}: Saved a new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
                                 except:

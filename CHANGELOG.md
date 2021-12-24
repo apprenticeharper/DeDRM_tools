@@ -44,4 +44,5 @@ List of changes since the fork of Apprentice Harper's repository:
 - Merge ignobleepub into ineptepub so there's no duplicate code.
 - Support extracting the B&N / Nook key from the NOOK Microsoft Store application (based on [this script](https://github.com/noDRM/DeDRM_tools/discussions/9) by fesiwi).
 - Support extracting the B&N / Nook key from a data dump of the NOOK Android application.
-- Support adding an existing B&N key base64 string without having to write it to a file first.
+- Support adding an existing PassHash / B&N key base64 string without having to write it to a file first.
+- Support extracting PassHash keys from Adobe Digital Editions.
