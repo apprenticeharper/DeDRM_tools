@@ -379,7 +379,6 @@ class ManageKeysDialog(QDialog):
                     if new_key_value in self.plugin_keys.values():
                         dup_key_count = dup_key_count + 1
                         continue
-                    print("Setting idx " + str(idx) + ", name " + d.k_name_list[idx] + " to " + new_key_value)
                     self.plugin_keys[d.k_name_list[idx]] = new_key_value
                     added_key_count = added_key_count + 1
                 else:
@@ -389,10 +388,16 @@ class ManageKeysDialog(QDialog):
                     self.plugin_keys.append(new_key_value)
                     added_key_count = added_key_count + 1
                 
-
-            if (added_key_count > 0):
-                info_dialog(None, "{0} {1}: Adding {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
-                        "Successfully added {0} key(s).".format(added_key_count), show=True)
+            if (added_key_count > 0 or dup_key_count > 0):
+                if (added_key_count == 0):
+                    info_dialog(None, "{0} {1}: Adding {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
+                        "Skipped adding {0} duplicate / existing keys.".format(dup_key_count), show=True, show_copy_button=False)
+                elif (dup_key_count == 0):
+                    info_dialog(None, "{0} {1}: Adding {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
+                        "Added {0} new keys.".format(added_key_count), show=True, show_copy_button=False)
+                else:
+                    info_dialog(None, "{0} {1}: Adding {2}".format(PLUGIN_NAME, PLUGIN_VERSION,self.key_type_name),
+                        "Added {0} new keys, skipped adding {1} existing keys.".format(added_key_count, dup_key_count), show=True, show_copy_button=False)
 
         else:
             # Import single key
@@ -855,10 +860,25 @@ class AddBandNKeyDialog(QDialog):
             errmsg = "Failed to extract keys. Is this the correct folder?"
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
 
-        # Take the first key we found. In the future it might be a good idea to import them all.
-        # See accept_ade_dump_passhash for an example on how to do that.
-        self.result_data = store_result[0]
+        if len(store_result) == 1:
+            # Found exactly one key. Store it with that name.
+            self.result_data = store_result[0]
+            QDialog.accept(self)
+            return
+
+        # Found multiple keys
+        keys = []
+        names = []
+        idx = 1
+        for key in store_result: 
+            keys.append(key)
+            names.append(self.key_name + "_" + str(idx))
+            idx = idx + 1
+
+        self.k_full_name_list = names
+        self.k_full_key_list = keys
         QDialog.accept(self)
+        return
 
 
     def accept_ade_dump_passhash(self):
@@ -911,19 +931,36 @@ class AddBandNKeyDialog(QDialog):
             errmsg = "Failed to import from Nook Microsoft Store app."
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
 
-        if len(store_result) == 0:
-            # Nothing found, try the Nook Study app
+        try: 
+            # Try the Nook Study app
             from calibre_plugins.dedrm.ignoblekeyNookStudy import nookkeys
-            store_result = nookkeys()
+            study_result = nookkeys()
+        except:
+            errmsg = "Failed to import from Nook Study app."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
 
-        # Take the first key we found. In the future it might be a good idea to import them all.
-        # See accept_ade_dump_passhash for an example on how to do that.
-        if len(store_result) > 0: 
-            self.result_data = store_result[0]
+        # Add all found keys to a list
+        keys = []
+        names = []
+        idx = 1
+        for key in store_result: 
+            keys.append(key)
+            names.append(self.key_name + "_nookStore_" + str(idx))
+            idx = idx + 1
+        idx = 1
+        for key in study_result: 
+            keys.append(key)
+            names.append(self.key_name + "_nookStudy_" + str(idx))
+            idx = idx + 1
+
+        if len(keys) > 0:
+            self.k_full_name_list = names
+            self.k_full_key_list = keys
             QDialog.accept(self)
             return
 
-        # Okay, we didn't find anything. How do we get rid of the window?
+
+        # Okay, we didn't find anything. 
         errmsg = "Didn't find any Nook keys in the Windows app."
         error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         QDialog.reject(self)
@@ -1050,14 +1087,23 @@ class AddEReaderDialog(QDialog):
         QDialog.accept(self)
 
 
-class AddAdeptDialog(QDialog):
-    def __init__(self, parent=None,):
-        QDialog.__init__(self, parent)
-        self.parent = parent
-        self.setWindowTitle("{0} {1}: Getting Default Adobe Digital Editions Key".format(PLUGIN_NAME, PLUGIN_VERSION))
-        layout = QVBoxLayout(self)
-        self.setLayout(layout)
+class AddAdeptDialog():
+    # We don't actually need to show a dialog, but the wrapper class is expecting a QDialog here.
+    # Emulate enough methods and parameters so that that works ...
 
+    def exec_(self):
+        return
+
+    def result(self): 
+        return True
+
+    @property
+    def Accepted(self):
+        return True
+
+    def __init__(self, parent=None,):
+        
+        self.parent = parent
         self.new_keys = []
         self.new_names = []
 
@@ -1119,55 +1165,11 @@ class AddAdeptDialog(QDialog):
             if not self.new_keys[i] in new_keys_2:
                 new_keys_2.append(self.new_keys[i])
                 new_names_2.append(self.new_names[i])
-                i = i + 1
+            i = i + 1
         
-        self.new_keys = new_keys_2
-        self.new_names = new_names_2
-    
+        self.k_full_key_list = new_keys_2
+        self.k_full_name_list = new_names_2
 
-        # Okay, new_keys is now a list of new keys, and new_names has the names for these keys. 
-        # Right now this code only supports adding one key per each invocation, 
-        # so if the user has multiple keys, he's going to need to add the "plus" button multiple times.
-
-        # In the future it might be a good idea to import them all.
-        # See accept_ade_dump_passhash for an example on how to do that.
-
-        if len(self.new_keys)>0:
-            self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-
-            data_group_box = QGroupBox("", self)
-            layout.addWidget(data_group_box)
-            data_group_box_layout = QVBoxLayout()
-            data_group_box.setLayout(data_group_box_layout)
-
-            key_group = QHBoxLayout()
-            data_group_box_layout.addLayout(key_group)
-            key_group.addWidget(QLabel("Unique Key Name:", self))
-            self.key_ledit = QLineEdit("ade_key_uuid_" + self.new_names[0], self)
-            self.key_ledit.setToolTip("<p>Enter an identifying name for the current Adobe key. Note that it's recommended to leave the UUID (the random-looking digits and letters) as it is.")
-            key_group.addWidget(self.key_ledit)
-            
-            if len(self.new_keys) > 1:
-                # The code currently doesn't support adding multiple keys. 
-                # If there are more keys, tell the user to trigger this again.
-                data_group_box_layout.addWidget(QLabel("<p>There are more keys available. <br/>Click the 'plus' icon again after adding this key to add the other keys.</p>", self))
-
-            self.button_box.accepted.connect(self.accept)
-        else:       
-            # No new key found - neither in ADE nor in the DeACSM plugin
-
-            self.button_box = QDialogButtonBox(QDialogButtonBox.Ok)
-
-            default_key_error = QLabel("No new ADE key could be found. Either ADE is not installed, or the key is already present in the plugin.", self)
-            default_key_error.setAlignment(Qt.AlignHCenter)
-            layout.addWidget(default_key_error)
-            # if no default, bot buttons do the same
-            self.button_box.accepted.connect(self.reject)
-
-        self.button_box.rejected.connect(self.reject)
-        layout.addWidget(self.button_box)
-
-        self.resize(self.sizeHint())
 
     @property
     def key_name(self):
@@ -1177,15 +1179,20 @@ class AddAdeptDialog(QDialog):
     def key_value(self):
         return codecs.encode(self.new_keys[0],'hex').decode("utf-8")
 
+    
+    @property
+    def k_name_list(self):
+        # If the plugin supports returning multiple keys, return a list of names.
+        if self.k_full_name_list is not None and self.k_full_key_list is not None:
+            return self.k_full_name_list
+        return None
 
-    def accept(self):
-        if len(self.key_name) == 0 or self.key_name.isspace():
-            errmsg = "Key name must not be empty!"
-            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
-        if len(self.key_name) < 4:
-            errmsg = "Key name must be at <i>least</i> 4 characters long!"
-            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
-        QDialog.accept(self)
+    @property
+    def k_key_list(self):
+        # If the plugin supports returning multiple keys, return a list of keys.
+        if self.k_full_name_list is not None and self.k_full_key_list is not None:
+            return self.k_full_key_list
+        return None
 
 
 class AddKindleDialog(QDialog):

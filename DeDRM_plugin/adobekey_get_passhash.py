@@ -105,8 +105,11 @@ if iswindows:
                         fp = winreg.QueryValueEx(plkkey, 'value')[0]
                         #print("Found fingerprint: " + fp)
 
+
+            # Note: There can be multiple lists, with multiple entries each.
             if ktype == 'passHashList':
             
+                # Find operator (used in key name)
                 j = -1
                 lastOperator = "Unknown"
                 while True:
@@ -118,13 +121,23 @@ if iswindows:
                     ktype = winreg.QueryValueEx(plkkey, None)[0]
                     if ktype == 'operatorURL':
                         operatorURL = winreg.QueryValueEx(plkkey, 'value')[0]
-                        #print("Found operator URL: " + operatorURL)
                         try: 
                             lastOperator = operatorURL.split('//')[1].split('/')[0]
                         except:
-                            lastOperator = "Unknown"
+                            pass
+                
+                
+                # Find hashes
+                j = -1
+                while True:
+                    j = j + 1   # start with 0
+                    try:
+                        plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
+                    except WindowsError:
+                        break
+                    ktype = winreg.QueryValueEx(plkkey, None)[0]
 
-                    elif ktype == "passHash":
+                    if ktype == "passHash":
                         passhash_encrypted = winreg.QueryValueEx(plkkey, 'value')[0]
                         names.append("ADE_key_" + lastOperator + "_" + str(int(time.time())) + "_" + str(idx))
                         idx = idx + 1

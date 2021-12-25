@@ -38,7 +38,7 @@ List of changes since the fork of Apprentice Harper's repository:
 ## Fixes on master (not yet released):
 
 - Fix issue where importing a key from Adobe Digital Editions would fail in Python2 (Calibre < 5) if there were non-ASCII characters in the username.
-- Add code to support importing multiple decryption keys from ADE (click the 'plus' button multiple times).
+- Add code to support importing multiple decryption keys from ADE.
 - Improve epubtest.py to also detect Kobo & Apple DRM.
 - Small updates to the LCP DRM error messages.
 - Merge ignobleepub into ineptepub so there's no duplicate code.
