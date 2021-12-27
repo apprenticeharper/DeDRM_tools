@@ -1,5 +1,5 @@
 # No Longer Maintained
-I have not had the time to devote to this project in recent years that I would have liked. I am delighted to find that someone else has taken on the task of keeping the tools updated, and making releases. I shall be using noDRM's version of the tools from now on. 
+I have not had the time to devote to this project in recent years that I would have liked. I am delighted to find that someone else has taken on the task of keeping the tools updated, and making releases. I shall be using [noDRM's version of the tools](https://github.com/noDRM/DeDRM_tools) from now on. 
 
 [Guide] How to remove DRM
 Refer to [Wiki Page](https://github.com/apprenticeharper/DeDRM_tools/wiki/Exactly-how-to-remove-DRM)
