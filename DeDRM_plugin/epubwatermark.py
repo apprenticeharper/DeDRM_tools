@@ -30,7 +30,7 @@ def removeHTMLwatermarks(object, path_to_ebook):
         modded_contents = []
 
         count_adept = 0
-
+        count_pocketbook = 0
         count_lemonink_invisible = 0
         count_lemonink_visible = 0
         lemonink_trackingID = None
@@ -52,6 +52,14 @@ def removeHTMLwatermarks(object, path_to_ebook):
 
                 if (str_new != pre_remove):
                     count_adept += 1
+
+                # Remove Pocketbook watermarks
+                pre_remove = str_new
+                str_new = re.sub(r'\<div style\=\"padding\:0\;border\:0\;text\-indent\:0\;line\-height\:normal\;margin\:0 1cm 0.5cm 1cm\;[^\"]*opacity:0.0\;[^\"]*text\-decoration\:none\;[^\"]*background\:none\;[^\"]*\"\>(.*?)\<\/div\>', '', str_new)
+
+                if (str_new != pre_remove):
+                    count_pocketbook += 1
+
 
                 # Remove eLibri / LemonInk watermark
                 # Run this in a loop, as it is possible a file has been watermarked twice ...
@@ -143,6 +151,9 @@ def removeHTMLwatermarks(object, path_to_ebook):
         if (count_lemonink_invisible > 0 or count_lemonink_visible > 0):
             print("Watermark: Successfully stripped {0} visible and {1} invisible LemonInk watermark(s) (\"{2}\") from ebook."
                 .format(count_lemonink_visible, count_lemonink_invisible, lemonink_trackingID))
+            
+        if (count_pocketbook > 0):
+            print("Watermark: Successfully stripped {0} Pocketbook watermark(s) from ebook.".format(count_pocketbook))
 
         return output
 

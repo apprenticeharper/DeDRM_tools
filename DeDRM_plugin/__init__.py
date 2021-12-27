@@ -232,7 +232,7 @@ class DeDRM(FileTypePlugin):
                 # Remove watermarks (Amazon or LemonInk) from the OPF file
                 path_to_ebook = watermark.removeOPFwatermarks(self, path_to_ebook) or path_to_ebook
 
-                # Remove watermarks (Adobe or LemonInk) from all HTML and XHTML files
+                # Remove watermarks (Adobe, Pocketbook or LemonInk) from all HTML and XHTML files
                 path_to_ebook = watermark.removeHTMLwatermarks(self, path_to_ebook) or path_to_ebook
 
             
@@ -606,7 +606,9 @@ class DeDRM(FileTypePlugin):
             return self.postProcessEPUB(inf.name)
             #raise DeDRMError("{0} v{1}: Couldn't decrypt after {2:.1f} seconds. DRM free perhaps?".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
-    def PDFDecrypt(self,path_to_ebook):
+
+        # No DRM?
+        return self.postProcessEPUB(inf.name)
         import calibre_plugins.dedrm.prefs as prefs
         import calibre_plugins.dedrm.ineptpdf as ineptpdf
         import calibre_plugins.dedrm.lcpdedrm as lcpdedrm
