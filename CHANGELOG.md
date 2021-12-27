@@ -46,3 +46,11 @@ List of changes since the fork of Apprentice Harper's repository:
 - Support extracting the B&N / Nook key from a data dump of the NOOK Android application.
 - Support adding an existing PassHash / B&N key base64 string without having to write it to a file first.
 - Support extracting PassHash keys from Adobe Digital Editions.
+- Fix a bug that might have stopped the eReader PDB DRM removal from working (untested, I don't have any PDB books)
+- Fix a bug where the watermark removal code wouldn't run for DRM-free files.
+- ineptpdf: Add code to plugin to support "Standard" (tested) and "Adobe.APS" (untested) encrypted PDFs using the ineptpdf implementation (PDF passwords can be entered in the plugin settings)
+- ineptpdf: Support for decrypting PDF with owner password instead of user password.
+- ineptpdf: Add function to return Filter name.
+- ineptpdf: Support for V=5, R=5 and R=6 PDF files, and for AES256-encrypted PDFs.
+- ineptpdf: Disable cross-reference streams in the output file. This may make PDFs slightly larger, but the current code for cross-reference streams seems to be buggy and sometimes creates corrupted PDFs.
+- Drop support for importing key data from the ancient, pre "DeDRM" Calibre plugins ("Ignoble Epub DeDRM", "eReader PDB 2 PML" and "K4MobiDeDRM"). These are from 2011, I doubt anyone still has these installed, I can't even find a working link for these to test them. If you still have encryption keys in one of these plugins, you will need to update to DeDRM v10.0.2 or older (to convert the keys) before updating to DeDRM v10.0.3 or newer.
