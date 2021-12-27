@@ -377,7 +377,7 @@ class ManageKeysDialog(QDialog):
             # New key generation cancelled.
             return
 
-        if d.k_key_list is not None: 
+        if hasattr(d, "k_key_list") and d.k_key_list is not None: 
             # importing multiple keys
             idx = -1
             dup_key_count = 0
