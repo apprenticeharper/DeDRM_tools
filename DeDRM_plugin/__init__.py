@@ -102,8 +102,13 @@ class DeDRMError(Exception):
     pass
 
 from calibre.customize import FileTypePlugin
-from calibre.constants import iswindows, isosx
-from calibre.gui2 import is_ok_to_use_qt
+
+try:
+    from calibre.constants import iswindows, isosx
+except:
+    iswindows = sys.platform.startswith('win')
+    isosx = sys.platform.startswith('darwin')
+
 from calibre.utils.config import config_dir
 
 
@@ -196,10 +201,6 @@ class DeDRM(FileTypePlugin):
                         print("{0} v{1}: Exception when copying needed library files".format(PLUGIN_NAME, PLUGIN_VERSION))
                         traceback.print_exc()
                         pass
-
-                # convert old preferences, if necessary.
-                from calibre_plugins.dedrm.prefs import convertprefs
-                convertprefs()
 
                 # mark that this version has been initialized
                 os.mkdir(self.verdir)
