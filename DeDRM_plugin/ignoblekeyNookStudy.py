@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# ignoblekey.py
+# ignoblekeyNookStudy.py
 # Copyright © 2015-2020 Apprentice Alf, Apprentice Harper et al.
 
 # Based on kindlekey.py, Copyright © 2010-2013 by some_updates and Apprentice Alf

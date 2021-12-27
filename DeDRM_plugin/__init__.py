@@ -609,22 +609,13 @@ class DeDRM(FileTypePlugin):
 
         # No DRM?
         return self.postProcessEPUB(inf.name)
+
+    
+    def PDFIneptDecrypt(self, path_to_ebook):
+        # Sub function to prevent PDFDecrypt from becoming too large ...
         import calibre_plugins.dedrm.prefs as prefs
         import calibre_plugins.dedrm.ineptpdf as ineptpdf
-        import calibre_plugins.dedrm.lcpdedrm as lcpdedrm
         dedrmprefs = prefs.DeDRM_Prefs()
-
-        if (lcpdedrm.isLCPbook(path_to_ebook)):
-            try: 
-                retval = lcpdedrm.decryptLCPbook(path_to_ebook, dedrmprefs['lcp_passphrases'], self)
-            except:
-                print("Looks like that didn't work:")
-                raise
-
-            return retval
-        
-
-        # Not an LCP book, do the normal Adobe handling.
 
         book_uuid = None
         try: 
@@ -633,12 +624,8 @@ class DeDRM(FileTypePlugin):
         except:
             pass
 
-        if book_uuid is None: 
-            print("{0} v{1}: {2} is a PDF ebook".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
-        else:
-            print("{0} v{1}: {2} is a PDF ebook for UUID {3}".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook), book_uuid))
-
-        if book_uuid is not None:
+        if book_uuid is not None: 
+            print("{0} v{1}: {2} is a PDF ebook (EBX) for UUID {3}".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook), book_uuid))
             # Check if we have a key for that UUID
             for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
                 if not book_uuid.lower() in keyname.lower():
@@ -800,10 +787,89 @@ class DeDRM(FileTypePlugin):
 
             print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
 
+    def PDFStandardDecrypt(self, path_to_ebook):
+        # Sub function to prevent PDFDecrypt from becoming too large ...
+        import calibre_plugins.dedrm.prefs as prefs
+        import calibre_plugins.dedrm.ineptpdf as ineptpdf
+        dedrmprefs = prefs.DeDRM_Prefs()
 
-        # Something went wrong with decryption.
-        print("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
-        raise DeDRMError("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+        # Attempt to decrypt PDF with each encryption key (generated or provided).  
+        i = -1
+        for userpassword in [""] + dedrmprefs['adobe_pdf_passphrases']:
+            # Try the empty password, too.
+            i = i + 1
+            userpassword = bytearray(userpassword, "utf-8")
+            if i == 0:
+                print("{0} v{1}: Trying empty password ... ".format(PLUGIN_NAME, PLUGIN_VERSION), end="")
+            else:
+                print("{0} v{1}: Trying password {2} ... ".format(PLUGIN_NAME, PLUGIN_VERSION, i), end="")
+            of = self.temporary_file(".pdf")
+
+            # Give the user password, ebook and TemporaryPersistent file to the decryption function.
+            msg = False
+            try:
+                result = ineptpdf.decryptBook(userpassword, path_to_ebook, of.name)
+                print("done")
+                msg = True
+            except ineptpdf.ADEPTInvalidPasswordError:
+                print("invalid password".format(PLUGIN_NAME, PLUGIN_VERSION))
+                msg = True
+                result = 1
+            except:
+                print("exception\n{0} v{1}: Exception when decrypting after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+                msg = True
+                traceback.print_exc()
+                result = 1
+            if not msg:
+                print("error\n{0} v{1}: Failed to decrypt after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+
+            of.close()
+
+            if  result == 0:
+                # Decryption was successful.
+                # Return the modified PersistentTemporary file to calibre.
+                print("{0} v{1}: Successfully decrypted with password {3} after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime, i))
+                return of.name
+        
+        print("{0} v{1}: Didn't manage to decrypt PDF. Make sure the correct password is entered in the settings.".format(PLUGIN_NAME, PLUGIN_VERSION))
+
+        
+    
+    def PDFDecrypt(self,path_to_ebook):
+        import calibre_plugins.dedrm.prefs as prefs
+        import calibre_plugins.dedrm.ineptpdf as ineptpdf
+        import calibre_plugins.dedrm.lcpdedrm as lcpdedrm
+        dedrmprefs = prefs.DeDRM_Prefs()
+
+        if (lcpdedrm.isLCPbook(path_to_ebook)):
+            try: 
+                retval = lcpdedrm.decryptLCPbook(path_to_ebook, dedrmprefs['lcp_passphrases'], self)
+            except:
+                print("Looks like that didn't work:")
+                raise
+
+            return retval
+        
+        # Not an LCP book, do the normal Adobe handling.
+
+        pdf_encryption = ineptpdf.getPDFencryptionType(path_to_ebook)
+        if pdf_encryption is None:
+            print("{0} v{1}: {2} is an unencrypted PDF file - returning as is.".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
+            return path_to_ebook
+
+        print("{0} v{1}: {2} is a PDF ebook with encryption {3}".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook), pdf_encryption))
+
+        if pdf_encryption == "EBX_HANDLER":
+            # Adobe eBook / ADEPT (normal or B&N)
+            return self.PDFIneptDecrypt(path_to_ebook)
+        elif pdf_encryption == "Standard" or pdf_encryption == "Adobe.APS":
+            return self.PDFStandardDecrypt(path_to_ebook)
+        elif pdf_encryption == "FOPN_fLock" or pdf_encryption == "FOPN_foweb":
+            print("{0} v{1}: FileOpen encryption '{2}' is unsupported.".format(PLUGIN_NAME, PLUGIN_VERSION, pdf_encryption))
+            print("{0} v{1}: Try the standalone script from the 'Tetrachroma_FileOpen_ineptpdf' folder in the Github repo.".format(PLUGIN_NAME, PLUGIN_VERSION))
+        else:
+            print("{0} v{1}: Encryption '{2}' is unsupported.".format(PLUGIN_NAME, PLUGIN_VERSION, pdf_encryption))
+            return path_to_ebook
 
 
     def KindleMobiDecrypt(self,path_to_ebook):
@@ -815,7 +881,7 @@ class DeDRM(FileTypePlugin):
         # extracted to the appropriate places beforehand these routines
         # look for them.
         import calibre_plugins.dedrm.prefs as prefs
-        import calibre_plugins.dedrm.k4mobidedrm
+        import calibre_plugins.dedrm.k4mobidedrm as k4mobidedrm
 
         dedrmprefs = prefs.DeDRM_Prefs()
         pids = dedrmprefs['pids']
@@ -883,7 +949,7 @@ class DeDRM(FileTypePlugin):
     def eReaderDecrypt(self,path_to_ebook):
 
         import calibre_plugins.dedrm.prefs as prefs
-        import calibre_plugins.dedrm.erdr2pml
+        import calibre_plugins.dedrm.erdr2pml as erdr2pml
 
         dedrmprefs = prefs.DeDRM_Prefs()
         # Attempt to decrypt epub with each encryption key (generated or provided).
@@ -927,7 +993,7 @@ class DeDRM(FileTypePlugin):
             decrypted_ebook = self.eReaderDecrypt(path_to_ebook)
             pass
         elif booktype == 'pdf':
-            # Adobe Adept PDF (hopefully)
+            # Adobe PDF (hopefully)
             decrypted_ebook = self.PDFDecrypt(path_to_ebook)
             pass
         elif booktype == 'epub':

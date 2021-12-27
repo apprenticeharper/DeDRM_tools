@@ -90,6 +90,7 @@ class ConfigWidget(QWidget):
         self.tempdedrmprefs['deobfuscate_fonts'] = self.dedrmprefs['deobfuscate_fonts']
         self.tempdedrmprefs['remove_watermarks'] = self.dedrmprefs['remove_watermarks']
         self.tempdedrmprefs['lcp_passphrases'] = list(self.dedrmprefs['lcp_passphrases'])
+        self.tempdedrmprefs['adobe_pdf_passphrases'] = list(self.dedrmprefs['adobe_pdf_passphrases'])
 
         # Start Qt Gui dialog layout
         layout = QVBoxLayout(self)
@@ -122,7 +123,7 @@ class ConfigWidget(QWidget):
         self.kindle_android_button.clicked.connect(self.kindle_android)
         self.kindle_serial_button = QtGui.QPushButton(self)
         self.kindle_serial_button.setToolTip(_("Click to manage eInk Kindle serial numbers for Kindle ebooks"))
-        self.kindle_serial_button.setText("eInk Kindle ebooks")
+        self.kindle_serial_button.setText("Kindle eInk ebooks")
         self.kindle_serial_button.clicked.connect(self.kindle_serials)
         self.kindle_key_button = QtGui.QPushButton(self)
         self.kindle_key_button.setToolTip(_("Click to manage keys for Kindle for Mac/PC ebooks"))
@@ -144,14 +145,23 @@ class ConfigWidget(QWidget):
         self.lcp_button.setToolTip(_("Click to manage passphrases for Readium LCP ebooks"))
         self.lcp_button.setText("Readium LCP ebooks")
         self.lcp_button.clicked.connect(self.readium_lcp_keys)
+        self.pdf_keys_button = QtGui.QPushButton(self)
+        self.pdf_keys_button.setToolTip(_("Click to manage PDF file passphrases"))
+        self.pdf_keys_button.setText("Adobe PDF passwords")
+        self.pdf_keys_button.clicked.connect(self.pdf_passphrases)
+
         button_layout.addWidget(self.kindle_serial_button)
         button_layout.addWidget(self.kindle_android_button)
+        button_layout.addWidget(self.kindle_key_button)
+        button_layout.addSpacing(15)
+        button_layout.addWidget(self.adept_button)
         button_layout.addWidget(self.bandn_button)
+        button_layout.addWidget(self.pdf_keys_button)
+        button_layout.addSpacing(15)
         button_layout.addWidget(self.mobi_button)
         button_layout.addWidget(self.ereader_button)
-        button_layout.addWidget(self.adept_button)
-        button_layout.addWidget(self.kindle_key_button)
         button_layout.addWidget(self.lcp_button)
+        
 
         self.chkFontObfuscation = QtGui.QCheckBox(_("Deobfuscate EPUB fonts"))
         self.chkFontObfuscation.setToolTip("Deobfuscates fonts in EPUB files after DRM removal")
@@ -207,6 +217,10 @@ class ConfigWidget(QWidget):
         d = ManageKeysDialog(self,"Readium LCP passphrase",self.tempdedrmprefs['lcp_passphrases'], AddLCPKeyDialog)
         d.exec_()
 
+    def pdf_passphrases(self):
+        d = ManageKeysDialog(self,"PDF passphrase",self.tempdedrmprefs['adobe_pdf_passphrases'], AddPDFPassDialog)
+        d.exec_()
+
     def help_link_activated(self, url):
         def get_help_file_resource():
             # Copy the HTML helpfile to the plugin directory each time the
@@ -232,6 +246,7 @@ class ConfigWidget(QWidget):
         self.dedrmprefs.set('deobfuscate_fonts', self.chkFontObfuscation.isChecked())
         self.dedrmprefs.set('remove_watermarks', self.chkRemoveWatermarks.isChecked())
         self.dedrmprefs.set('lcp_passphrases', self.tempdedrmprefs['lcp_passphrases'])
+        self.dedrmprefs.set('adobe_pdf_passphrases', self.tempdedrmprefs['adobe_pdf_passphrases'])
         self.dedrmprefs.writeprefs()
 
     def load_resource(self, name):
@@ -1478,5 +1493,46 @@ class AddLCPKeyDialog(QDialog):
     def accept(self):
         if len(self.key_value) == 0 or self.key_value.isspace():
             errmsg = "Please enter your LCP passphrase or click Cancel in the dialog."
+            return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
+        QDialog.accept(self)
+
+class AddPDFPassDialog(QDialog):
+    def __init__(self, parent=None,):
+        QDialog.__init__(self, parent)
+        self.parent = parent
+        self.setWindowTitle("{0} {1}: Add new PDF passphrase".format(PLUGIN_NAME, PLUGIN_VERSION))
+        layout = QVBoxLayout(self)
+        self.setLayout(layout)
+
+        data_group_box = QGroupBox("", self)
+        layout.addWidget(data_group_box)
+        data_group_box_layout = QVBoxLayout()
+        data_group_box.setLayout(data_group_box_layout)
+
+        key_group = QHBoxLayout()
+        data_group_box_layout.addLayout(key_group)
+        key_group.addWidget(QLabel("PDF password:", self))
+        self.key_ledit = QLineEdit("", self)
+        self.key_ledit.setToolTip("Enter the PDF file password.")
+        key_group.addWidget(self.key_ledit)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+        self.resize(self.sizeHint())
+
+    @property
+    def key_name(self):
+        return None
+
+    @property
+    def key_value(self):
+        return str(self.key_ledit.text())
+
+    def accept(self):
+        if len(self.key_value) == 0 or self.key_value.isspace():
+            errmsg = "Please enter a PDF password or click Cancel in the dialog."
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
         QDialog.accept(self)
