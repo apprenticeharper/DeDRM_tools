@@ -1,1 +1,5 @@
+# Mac files
 .DS_Store
+
+# local test data
+/user_data/
