@@ -867,6 +867,7 @@ class DeDRM(FileTypePlugin):
         elif pdf_encryption == "FOPN_fLock" or pdf_encryption == "FOPN_foweb":
             print("{0} v{1}: FileOpen encryption '{2}' is unsupported.".format(PLUGIN_NAME, PLUGIN_VERSION, pdf_encryption))
             print("{0} v{1}: Try the standalone script from the 'Tetrachroma_FileOpen_ineptpdf' folder in the Github repo.".format(PLUGIN_NAME, PLUGIN_VERSION))
+            return path_to_ebook
         else:
             print("{0} v{1}: Encryption '{2}' is unsupported.".format(PLUGIN_NAME, PLUGIN_VERSION, pdf_encryption))
             return path_to_ebook

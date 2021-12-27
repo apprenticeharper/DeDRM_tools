@@ -67,6 +67,7 @@ from io import BytesIO
 from decimal import Decimal
 import itertools
 import xml.etree.ElementTree as etree
+import traceback
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -1740,12 +1741,19 @@ class PDFDocument(object):
                 k = b''.join(bytes([c ^ i]) for c in hash )
                 x = ARC4.new(k).decrypt(x)
 
-        # TODO: remove the padding string from the end of the data!
-        for ct in range(1, len(x)):
-            new_x = x[:ct]
-            enc_key = self.check_user_password(new_x, docid, param)
-            if enc_key is not None:
-                return enc_key
+        
+        # "x" is now the padded user password.
+
+        # If we wanted to recover / extract the user password, 
+        # we'd need to trim off the padding string from the end.
+        # As we just want to get access to the encryption key, 
+        # we can just hand the password into the check_user_password
+        # as it is, as that function would be adding padding anyways.
+        # This trick only works with V4 and lower.
+        
+        enc_key = self.check_user_password(x, docid, param)
+        if enc_key is not None:
+            return enc_key
 
         return False
 
@@ -2553,7 +2561,7 @@ class PDFSerializer(object):
             ### are no longer useful, as we have extracted all objects from
             ### them. Therefore leave them out from the output.
             if obj.dic.get('Type') == LITERAL_OBJSTM and not gen_xref_stm:
-                self.write('(deleted)')
+                self.write(b'(deleted)')
             else:
                 data = obj.get_decdata()
                 self.serialize_object(obj.dic)
@@ -2587,6 +2595,7 @@ def decryptBook(userkey, inpath, outpath, inept=True):
                 serializer.dump(outf)
             except Exception as e:
                 print("error writing pdf: {0}".format(e))
+                traceback.print_exc()
                 return 2
     return 0
 
