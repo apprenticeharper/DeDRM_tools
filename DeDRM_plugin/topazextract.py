@@ -175,6 +175,8 @@ def decryptRecord(data,PID):
 # Try to decrypt a dkey record (contains the bookPID)
 def decryptDkeyRecord(data,PID):
     record = decryptRecord(data,PID)
+    if isinstance(record, str):
+       record = record.encode('latin-1')
     fields = unpack('3sB8sB8s3s',record)
     if fields[0] != b'PID' or fields[5] != b'pid' :
         raise DrmException("Didn't find PID magic numbers in record")
@@ -318,6 +320,8 @@ class TopazBook:
                 raise DrmException("Error: Attempt to decrypt without bookKey")
 
         if compressed:
+            if isinstance(record, str):
+                record = bytes(record, 'latin-1')
             record = zlib.decompress(record)
 
         return record
@@ -345,6 +349,8 @@ class TopazBook:
         for pid in pidlst:
             # use 8 digit pids here
             pid = pid[0:8]
+            if isinstance(pid, str):
+                pid = pid.encode('latin-1')
             print("Trying: {0}".format(pid))
             bookKeys = []
             data = keydata
@@ -412,6 +418,8 @@ class TopazBook:
                     outputFile = os.path.join(destdir,fname)
                     print(".", end=' ')
                     record = self.getBookPayloadRecord(name,index)
+                    if isinstance(record, str):
+                        record=bytes(record, 'latin-1')
                     if record != b'':
                         open(outputFile, 'wb').write(record)
                 print(" ")
