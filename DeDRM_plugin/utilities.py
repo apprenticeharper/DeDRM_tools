@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from calibre_plugins.dedrm.ignoblekeyGenPassHash import generate_key
+import sys, os
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
+from ignoblekeyGenPassHash import generate_key
 
 __license__ = 'GPL v3'
 

@@ -16,19 +16,23 @@ from PyQt5.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
 from PyQt5 import Qt as QtGui
 from zipfile import ZipFile
 
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
 # calibre modules and constants.
 from calibre.gui2 import (error_dialog, question_dialog, info_dialog, open_url,
                             choose_dir, choose_files, choose_save_file)
 from calibre.utils.config import dynamic, config_dir, JSONConfig
 from calibre.constants import iswindows, isosx
 
-# modules from this plugin's zipfile.
-from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
-from calibre_plugins.dedrm.__init__ import RESOURCE_NAME as help_file_name
-from calibre_plugins.dedrm.utilities import uStrCmp
 
-import calibre_plugins.dedrm.prefs as prefs
-import calibre_plugins.dedrm.androidkindlekey as androidkindlekey
+from __init__ import PLUGIN_NAME, PLUGIN_VERSION
+from __init__ import RESOURCE_NAME as help_file_name
+from utilities import uStrCmp
+
+import prefs
+import androidkindlekey
 
 def checkForDeACSMkeys(): 
         try: 
@@ -868,7 +872,7 @@ class AddBandNKeyDialog(QDialog):
             errmsg = "This isn't the correct path, or the data is invalid."
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
 
-        from calibre_plugins.dedrm.ignoblekeyAndroid import dump_keys
+        from ignoblekeyAndroid import dump_keys
         store_result = dump_keys(path_to_ade_data)
 
         if len(store_result) == 0:
@@ -899,7 +903,7 @@ class AddBandNKeyDialog(QDialog):
     def accept_ade_dump_passhash(self):
         
         try: 
-            from calibre_plugins.dedrm.adobekey_get_passhash import passhash_keys
+            from adobekey_get_passhash import passhash_keys
             keys, names = passhash_keys()
         except:
             errmsg = "Failed to grab PassHash keys from ADE."
@@ -940,7 +944,7 @@ class AddBandNKeyDialog(QDialog):
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
 
         try: 
-            from calibre_plugins.dedrm.ignoblekeyWindowsStore import dump_keys
+            from ignoblekeyWindowsStore import dump_keys
             store_result = dump_keys(False)
         except:
             errmsg = "Failed to import from Nook Microsoft Store app."
@@ -948,7 +952,7 @@ class AddBandNKeyDialog(QDialog):
 
         try: 
             # Try the Nook Study app
-            from calibre_plugins.dedrm.ignoblekeyNookStudy import nookkeys
+            from ignoblekeyNookStudy import nookkeys
             study_result = nookkeys()
         except:
             errmsg = "Failed to import from Nook Study app."
@@ -1009,7 +1013,7 @@ class AddBandNKeyDialog(QDialog):
             return error_dialog(None, "{0} {1}".format(PLUGIN_NAME, PLUGIN_VERSION), errmsg, show=True, show_copy_button=False)
 
         try: 
-            from calibre_plugins.dedrm.ignoblekeyGenPassHash import generate_key
+            from ignoblekeyGenPassHash import generate_key
             self.result_data = generate_key(self.user_name, self.cc_number)
         except: 
             errmsg = "Key generation failed."
@@ -1077,7 +1081,7 @@ class AddEReaderDialog(QDialog):
 
     @property
     def key_value(self):
-        from calibre_plugins.dedrm.erdr2pml import getuser_key as generate_ereader_key
+        from erdr2pml import getuser_key as generate_ereader_key
         return codecs.encode(generate_ereader_key(self.user_name, self.cc_number),'hex')
 
     @property
@@ -1124,7 +1128,7 @@ class AddAdeptDialog():
 
         try:
             if iswindows or isosx:
-                from calibre_plugins.dedrm.adobekey import adeptkeys
+                from adobekey import adeptkeys
 
                 defaultkeys, defaultnames = adeptkeys()
             else:  # linux
@@ -1220,7 +1224,7 @@ class AddKindleDialog(QDialog):
 
         try:
             if iswindows or isosx:
-                from calibre_plugins.dedrm.kindlekey import kindlekeys
+                from kindlekey import kindlekeys
 
                 defaultkeys = kindlekeys()
             else: # linux

@@ -8,16 +8,18 @@
 #  2.1.1 - Whitespace!
 
 
-import os
+import os, sys
 import shutil
 import traceback
 import zipfile
 
 from io import BytesIO
-try:
-    from ion import DrmIon, DrmIonVoucher
-except:
-    from calibre_plugins.dedrm.ion import DrmIon, DrmIonVoucher
+
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from ion import DrmIon, DrmIonVoucher
+
 
 
 __license__ = 'GPL v3'

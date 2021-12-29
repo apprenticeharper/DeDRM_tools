@@ -5,15 +5,15 @@
 __license__ = 'GPL v3'
 
 # Standard Python modules.
-import os
+import os, sys
 import traceback
 
-from calibre.utils.config import JSONConfig
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-try: 
-    from calibre_plugins.dedrm.__init__ import PLUGIN_NAME
-except: 
-    PLUGIN_NAME = "DeDRM"
+
+from calibre.utils.config import JSONConfig
+from __init__ import PLUGIN_NAME
 
 class DeDRM_Prefs():
     def __init__(self):

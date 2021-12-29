@@ -35,25 +35,18 @@ import getopt
 from struct import pack
 from struct import unpack
 
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
 class TpzDRMError(Exception):
     pass
 
 # local support routines
-if 'calibre' in sys.modules:
-    inCalibre = True
-else:
-    inCalibre = False
-
-if inCalibre :
-    from calibre_plugins.dedrm import convert2xml
-    from calibre_plugins.dedrm import flatxml2html
-    from calibre_plugins.dedrm import flatxml2svg
-    from calibre_plugins.dedrm import stylexml2css
-else :
-    import convert2xml
-    import flatxml2html
-    import flatxml2svg
-    import stylexml2css
+import convert2xml
+import flatxml2html
+import flatxml2svg
+import stylexml2css
 
 # global switch
 buildXML = False

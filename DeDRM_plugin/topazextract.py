@@ -13,14 +13,16 @@ __version__ = '6.0'
 
 import sys
 import os, csv, getopt
+
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import zlib, zipfile, tempfile, shutil
 import traceback
 from struct import pack
 from struct import unpack
-try:
-    from calibre_plugins.dedrm.alfcrypto import Topaz_Cipher
-except:
-    from alfcrypto import Topaz_Cipher
+
+from alfcrypto import Topaz_Cipher
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -88,12 +90,7 @@ def unicode_argv():
 #global switch
 debug = False
 
-if 'calibre' in sys.modules:
-    inCalibre = True
-    from calibre_plugins.dedrm import kgenpids
-else:
-    inCalibre = False
-    import kgenpids
+import kgenpids
 
 
 class DrmException(Exception):
@@ -336,10 +333,7 @@ class TopazBook:
             self.createBookDirectory()
             self.extractFiles()
             print("Successfully Extracted Topaz contents")
-            if inCalibre:
-                from calibre_plugins.dedrm import genbook
-            else:
-                import genbook
+            import genbook
 
             rv = genbook.generateBook(self.outdir, raw, fixedimage)
             if rv == 0:
@@ -370,10 +364,7 @@ class TopazBook:
         self.createBookDirectory()
         self.extractFiles()
         print("Successfully Extracted Topaz contents")
-        if inCalibre:
-            from calibre_plugins.dedrm import genbook
-        else:
-            import genbook
+        import genbook
 
         rv = genbook.generateBook(self.outdir, raw, fixedimage)
         if rv == 0:

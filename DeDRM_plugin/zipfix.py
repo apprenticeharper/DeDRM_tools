@@ -20,14 +20,13 @@ Re-write zip (or ePub) fixing problems with file names (and mimetype entry).
 __license__ = 'GPL v3'
 __version__ = "1.1"
 
-import sys
+import sys, os
+
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import zlib
-try:
-    import zipfilerugged
-except:
-    import calibre_plugins.dedrm.zipfilerugged as zipfilerugged
-import os
-import os.path
+import zipfilerugged
 import getopt
 from struct import unpack
 

@@ -97,11 +97,19 @@ import sys, os
 import time
 import traceback
 
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 
 class DeDRMError(Exception):
     pass
 
-from calibre.customize import FileTypePlugin
+try: 
+    from calibre.customize import FileTypePlugin
+except: 
+    # Allow import without Calibre.
+    class FileTypePlugin:
+        pass
 
 try:
     from calibre.constants import iswindows, isosx
@@ -109,7 +117,10 @@ except:
     iswindows = sys.platform.startswith('win')
     isosx = sys.platform.startswith('darwin')
 
-from calibre.utils.config import config_dir
+try: 
+    from calibre.utils.config import config_dir
+except:
+    config_dir = ""
 
 
 # Wrap a stream so that output gets flushed immediately
@@ -150,6 +161,10 @@ class DeDRM(FileTypePlugin):
     priority                = 600
 
 
+    def cli_main(self, data):
+        from standalone import main
+        main(data)
+    
     def initialize(self):
         """
         Dynamic modules can't be imported/loaded from a zipfile.
@@ -216,7 +231,7 @@ class DeDRM(FileTypePlugin):
         postProcessStart = time.time()
 
         try: 
-            import calibre_plugins.dedrm.prefs as prefs
+            import prefs
             dedrmprefs = prefs.DeDRM_Prefs()
 
             if dedrmprefs["deobfuscate_fonts"] is True:
@@ -224,7 +239,7 @@ class DeDRM(FileTypePlugin):
                 path_to_ebook = self.checkFonts(path_to_ebook) or path_to_ebook
 
             if dedrmprefs["remove_watermarks"] is True:
-                import calibre_plugins.dedrm.epubwatermark as watermark
+                import epubwatermark as watermark
 
                 # Remove Tolino's CDP watermark file
                 path_to_ebook = watermark.removeCDPwatermark(self, path_to_ebook) or path_to_ebook
@@ -251,7 +266,7 @@ class DeDRM(FileTypePlugin):
         # It checks if there's fonts that need to be deobfuscated
 
         try: 
-            import calibre_plugins.dedrm.epubfontdecrypt as epubfontdecrypt
+            import epubfontdecrypt
 
             output = self.temporary_file(".epub").name
             ret = epubfontdecrypt.decryptFontsBook(path_to_ebook, output)
@@ -272,7 +287,7 @@ class DeDRM(FileTypePlugin):
     def ePubDecrypt(self,path_to_ebook):
         # Create a TemporaryPersistent file to work with.
         # Check original epub archive for zip errors.
-        import calibre_plugins.dedrm.zipfix as zipfix
+        import zipfix
 
         inf = self.temporary_file(".epub")
         try:
@@ -284,12 +299,12 @@ class DeDRM(FileTypePlugin):
             raise
 
         # import the decryption keys
-        import calibre_plugins.dedrm.prefs as prefs
+        import prefs
         dedrmprefs = prefs.DeDRM_Prefs()
 
 
         # import the LCP handler
-        import calibre_plugins.dedrm.lcpdedrm as lcpdedrm
+        import lcpdedrm
 
         if (lcpdedrm.isLCPbook(path_to_ebook)):
             try: 
@@ -304,7 +319,7 @@ class DeDRM(FileTypePlugin):
         # Not an LCP book, do the normal EPUB (Adobe) handling.
 
         # import the Adobe ePub handler
-        import calibre_plugins.dedrm.ineptepub as ineptepub
+        import ineptepub
 
         if ineptepub.adeptBook(inf.name):
 
@@ -345,11 +360,11 @@ class DeDRM(FileTypePlugin):
 
                 try:
                     if iswindows or isosx:
-                        from calibre_plugins.dedrm.ignoblekeyNookStudy import nookkeys
+                        from ignoblekeyNookStudy import nookkeys
 
                         defaultkeys_study = nookkeys()
                     else: # linux
-                        from .wineutils import WineGetKeys
+                        from wineutils import WineGetKeys
 
                         scriptpath = os.path.join(self.alfdir,"ignoblekeyNookStudy.py")
                         defaultkeys_study = WineGetKeys(scriptpath, ".b64",dedrmprefs['adobewineprefix'])
@@ -365,7 +380,7 @@ class DeDRM(FileTypePlugin):
                     if iswindows:
                         # That's a Windows store app, it won't run on Linux or MacOS anyways.
                         # No need to waste time running Wine.
-                        from calibre_plugins.dedrm.ignoblekeyWindowsStore import dump_keys as dump_nook_keys
+                        from ignoblekeyWindowsStore import dump_keys as dump_nook_keys
                         defaultkeys_store = dump_nook_keys(False)
 
                 except:
@@ -377,7 +392,7 @@ class DeDRM(FileTypePlugin):
                 try: 
                     if iswindows:
                         # Right now this is only implemented for Windows. MacOS support still needs to be added.
-                        from calibre_plugins.dedrm.adobekey_get_passhash import passhash_keys
+                        from adobekey_get_passhash import passhash_keys
                         defaultkeys_ade, names = passhash_keys()
                     if isosx:
                         print("{0} v{1}: Dumping ADE PassHash data is not yet supported on MacOS.".format(PLUGIN_NAME, PLUGIN_VERSION))
@@ -522,11 +537,11 @@ class DeDRM(FileTypePlugin):
 
                 try:
                     if iswindows or isosx:
-                        from calibre_plugins.dedrm.adobekey import adeptkeys
+                        from adobekey import adeptkeys
 
                         defaultkeys, defaultnames = adeptkeys()
                     else: # linux
-                        from .wineutils import WineGetKeys
+                        from wineutils import WineGetKeys
 
                         scriptpath = os.path.join(self.alfdir,"adobekey.py")
                         defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
@@ -546,7 +561,7 @@ class DeDRM(FileTypePlugin):
 
                 # Check for DeACSM keys:
                 try: 
-                    from calibre_plugins.dedrm.config import checkForDeACSMkeys
+                    from config import checkForDeACSMkeys
 
                     newkey, newname = checkForDeACSMkeys()
 
@@ -613,8 +628,8 @@ class DeDRM(FileTypePlugin):
     
     def PDFIneptDecrypt(self, path_to_ebook):
         # Sub function to prevent PDFDecrypt from becoming too large ...
-        import calibre_plugins.dedrm.prefs as prefs
-        import calibre_plugins.dedrm.ineptpdf as ineptpdf
+        import prefs
+        import ineptpdf
         dedrmprefs = prefs.DeDRM_Prefs()
 
         book_uuid = None
@@ -688,11 +703,11 @@ class DeDRM(FileTypePlugin):
 
         try:
             if iswindows or isosx:
-                from calibre_plugins.dedrm.adobekey import adeptkeys
+                from adobekey import adeptkeys
 
                 defaultkeys, defaultnames = adeptkeys()
             else: # linux
-                from .wineutils import WineGetKeys
+                from wineutils import WineGetKeys
 
                 scriptpath = os.path.join(self.alfdir,"adobekey.py")
                 defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",dedrmprefs['adobewineprefix'])
@@ -712,7 +727,7 @@ class DeDRM(FileTypePlugin):
 
         # Check for DeACSM keys:
         try: 
-            from calibre_plugins.dedrm.config import checkForDeACSMkeys
+            from config import checkForDeACSMkeys
 
             newkey, newname = checkForDeACSMkeys()
 
@@ -789,8 +804,8 @@ class DeDRM(FileTypePlugin):
 
     def PDFStandardDecrypt(self, path_to_ebook):
         # Sub function to prevent PDFDecrypt from becoming too large ...
-        import calibre_plugins.dedrm.prefs as prefs
-        import calibre_plugins.dedrm.ineptpdf as ineptpdf
+        import prefs
+        import ineptpdf
         dedrmprefs = prefs.DeDRM_Prefs()
 
         # Attempt to decrypt PDF with each encryption key (generated or provided).  
@@ -836,9 +851,9 @@ class DeDRM(FileTypePlugin):
         
     
     def PDFDecrypt(self,path_to_ebook):
-        import calibre_plugins.dedrm.prefs as prefs
-        import calibre_plugins.dedrm.ineptpdf as ineptpdf
-        import calibre_plugins.dedrm.lcpdedrm as lcpdedrm
+        import prefs
+        import ineptpdf
+        import lcpdedrm
         dedrmprefs = prefs.DeDRM_Prefs()
 
         if (lcpdedrm.isLCPbook(path_to_ebook)):
@@ -881,8 +896,8 @@ class DeDRM(FileTypePlugin):
         # Had to move this import here so the custom libs can be
         # extracted to the appropriate places beforehand these routines
         # look for them.
-        import calibre_plugins.dedrm.prefs as prefs
-        import calibre_plugins.dedrm.k4mobidedrm as k4mobidedrm
+        import prefs
+        import k4mobidedrm
 
         dedrmprefs = prefs.DeDRM_Prefs()
         pids = dedrmprefs['pids']
@@ -905,11 +920,11 @@ class DeDRM(FileTypePlugin):
 
             try:
                 if iswindows or isosx:
-                    from calibre_plugins.dedrm.kindlekey import kindlekeys
+                    from kindlekey import kindlekeys
 
                     defaultkeys = kindlekeys()
                 else: # linux
-                    from .wineutils import WineGetKeys
+                    from wineutils import WineGetKeys
 
                     scriptpath = os.path.join(self.alfdir,"kindlekey.py")
                     defaultkeys = WineGetKeys(scriptpath, ".k4i",dedrmprefs['kindlewineprefix'])
@@ -949,8 +964,8 @@ class DeDRM(FileTypePlugin):
 
     def eReaderDecrypt(self,path_to_ebook):
 
-        import calibre_plugins.dedrm.prefs as prefs
-        import calibre_plugins.dedrm.erdr2pml as erdr2pml
+        import prefs
+        import erdr2pml
 
         dedrmprefs = prefs.DeDRM_Prefs()
         # Attempt to decrypt epub with each encryption key (generated or provided).
@@ -1011,7 +1026,7 @@ class DeDRM(FileTypePlugin):
         return True
 
     def config_widget(self):
-        import calibre_plugins.dedrm.config as config
+        import config
         return config.ConfigWidget(self.plugin_path, self.alfdir)
 
     def save_settings(self, config_widget):

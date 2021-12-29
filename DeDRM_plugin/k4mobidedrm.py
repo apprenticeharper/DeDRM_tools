@@ -72,26 +72,18 @@ import time
 import html.entities
 import json
 
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
 class DrmException(Exception):
     pass
 
-if 'calibre' in sys.modules:
-    inCalibre = True
-else:
-    inCalibre = False
-
-if inCalibre:
-    from calibre_plugins.dedrm import mobidedrm
-    from calibre_plugins.dedrm import topazextract
-    from calibre_plugins.dedrm import kgenpids
-    from calibre_plugins.dedrm import androidkindlekey
-    from calibre_plugins.dedrm import kfxdedrm
-else:
-    import mobidedrm
-    import topazextract
-    import kgenpids
-    import androidkindlekey
-    import kfxdedrm
+import mobidedrm
+import topazextract
+import kgenpids
+import androidkindlekey
+import kfxdedrm
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -243,7 +235,7 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
     try:
         mb.processBook(totalpids)
     except:
-        mb.cleanup
+        mb.cleanup()
         raise
 
     print("Decryption succeeded after {0:.1f} seconds".format(time.time()-starttime))

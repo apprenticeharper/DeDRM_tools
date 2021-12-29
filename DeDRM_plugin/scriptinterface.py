@@ -5,15 +5,19 @@
 
 import sys
 import os
+
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
 import re
 import traceback
-import calibre_plugins.dedrm.ineptepub
-import calibre_plugins.dedrm.ignobleepub
-import calibre_plugins.dedrm.epubtest
-import calibre_plugins.dedrm.zipfix
-import calibre_plugins.dedrm.ineptpdf
-import calibre_plugins.dedrm.erdr2pml
-import calibre_plugins.dedrm.k4mobidedrm
+import ineptepub
+import epubtest
+import zipfix
+import ineptpdf
+import erdr2pml
+import k4mobidedrm
 
 def decryptepub(infile, outdir, rscpath):
     errlog = ''

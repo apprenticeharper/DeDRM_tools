@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # erdr2pml.py
-# Copyright © 2008-2020 The Dark Reverser, Apprentice Harper et al.
+# Copyright © 2008-2021 The Dark Reverser, Apprentice Harper, noDRM et al.
 #
 # Changelog
 #
@@ -64,16 +64,16 @@
 #  0.22 - Unicode and plugin support, different image folders for PMLZ and source
 #  0.23 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  1.00 - Added Python 3 compatibility for calibre 5.0
+#  1.01 - Bugfixes for standalone version.
 
 __version__='1.00'
 
 import sys, re
 import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile, traceback
 
-if 'calibre' in sys.modules:
-    inCalibre = True
-else:
-    inCalibre = False
+# Calibre stuff - so we can import from our ZIP without absolute module name
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -141,40 +141,25 @@ def unicode_argv():
 Des = None
 if iswindows:
     # first try with pycrypto
-    if inCalibre:
-        from calibre_plugins.dedrm import pycrypto_des
-    else:
-        import pycrypto_des
+    import pycrypto_des
     Des = pycrypto_des.load_pycrypto()
     if Des == None:
         # they try with openssl
-        if inCalibre:
-            from calibre_plugins.dedrm import openssl_des
-        else:
-            import openssl_des
+        import openssl_des
         Des = openssl_des.load_libcrypto()
 else:
     # first try with openssl
-    if inCalibre:
-        from calibre_plugins.dedrm import openssl_des
-    else:
-        import openssl_des
+    import openssl_des
     Des = openssl_des.load_libcrypto()
     if Des == None:
         # then try with pycrypto
-        if inCalibre:
-            from calibre_plugins.dedrm import pycrypto_des
-        else:
-            import pycrypto_des
+        import pycrypto_des
         Des = pycrypto_des.load_pycrypto()
 
 # if that did not work then use pure python implementation
 # of DES and try to speed it up with Psycho
 if Des == None:
-    if inCalibre:
-        from calibre_plugins.dedrm import python_des
-    else:
-        import python_des
+    import python_des
     Des = python_des.Des
     # Import Psyco if available
     try:
