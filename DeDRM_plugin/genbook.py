@@ -35,8 +35,7 @@ import getopt
 from struct import pack
 from struct import unpack
 
-# Calibre stuff - so we can import from our ZIP without absolute module name
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+#@@CALIBRE_COMPAT_CODE@@
 
 
 class TpzDRMError(Exception):

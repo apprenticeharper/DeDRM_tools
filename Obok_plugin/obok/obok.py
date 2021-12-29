@@ -788,7 +788,7 @@ def cli_main():
                 books = [lib.books[num - 1]]
             except (ValueError, IndexError):
                 print("Invalid choice. Exiting...")
-                exit()
+                sys.exit()
 
     results = [decrypt_book(book, lib) for book in books]
     lib.close()

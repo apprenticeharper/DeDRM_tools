@@ -5,7 +5,10 @@ __license__ = 'GPL v3'
 
 # Standard Python modules.
 import os, sys, re, hashlib, traceback
-from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
+
+#@@CALIBRE_COMPAT_CODE@@
+
+from __init__ import PLUGIN_NAME, PLUGIN_VERSION
 
 
 class NoWinePython3Exception(Exception):

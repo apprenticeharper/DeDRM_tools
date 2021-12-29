@@ -22,8 +22,7 @@ __version__ = "1.1"
 
 import sys, os
 
-# Calibre stuff - so we can import from our ZIP without absolute module name
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+#@@CALIBRE_COMPAT_CODE@@
 
 import zlib
 import zipfilerugged

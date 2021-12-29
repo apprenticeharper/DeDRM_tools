@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 # __init__.py for DeDRM_plugin
 # Copyright © 2008-2020 Apprentice Harper et al.
 # Copyright © 2021 NoDRM
@@ -97,9 +99,7 @@ import sys, os
 import time
 import traceback
 
-# Calibre stuff - so we can import from our ZIP without absolute module name
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
+#@@CALIBRE_COMPAT_CODE@@
 
 class DeDRMError(Exception):
     pass
@@ -162,7 +162,7 @@ class DeDRM(FileTypePlugin):
 
 
     def cli_main(self, data):
-        from standalone import main
+        from .standalone import main
         main(data)
     
     def initialize(self):

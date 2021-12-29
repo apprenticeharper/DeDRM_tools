@@ -3,6 +3,8 @@
 
 # CLI interface for the DeDRM plugin (useable without Calibre, too)
 
+from __future__ import absolute_import, print_function
+
 # Copyright © 2021 NoDRM
 
 OPT_SHORT_TO_LONG = [
@@ -16,15 +18,11 @@ OPT_SHORT_TO_LONG = [
     ["f", "force"]
 ]
 
-import sys, os
-IS_CALIBRE = False
-if "calibre" in sys.modules:
-    IS_CALIBRE = True
+#@@CALIBRE_COMPAT_CODE@@
 
-# Explicitly allow importing the parent folder
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Explicitly set the package identifier so we are allowed to import stuff ...
 __package__ = "DeDRM_plugin"
+import os, sys
 
 
 global _additional_data
@@ -46,7 +44,7 @@ def print_help():
     print("Based on DeDRM Calibre plugin by Apprentice Harper, Apprentice Alf and others.")
     print("See https://github.com/noDRM/DeDRM_tools for more information.")
     print()
-    if IS_CALIBRE:
+    if "calibre" in sys.modules:
         print("This plugin can be run through Calibre - like you are doing right now - ")
         print("but it can also be executed with a standalone Python interpreter.")
     else:
@@ -81,11 +79,11 @@ def handle_single_argument(arg, next):
     
     if arg == "--help":
         print_help()
-        exit(0)
+        sys.exit(0)
 
     elif arg == "--credits":
         print_credits()
-        exit(0)
+        sys.exit(0)
 
     elif arg in ["--username", "--password"]: 
         used_up = 1
@@ -93,7 +91,7 @@ def handle_single_argument(arg, next):
         if next is None: 
             print_err_header()
             print("Missing parameter for argument " + arg)
-            exit(1)
+            sys.exit(1)
         else:
             _additional_params.append(next[0])
 
@@ -104,7 +102,7 @@ def handle_single_argument(arg, next):
     else:
         print_err_header()
         print("Unknown argument: " + arg)
-        exit(1)
+        sys.exit(1)
     
     
     # Used up 0 additional arguments
@@ -132,7 +130,7 @@ def main(argv):
     skip_opts = False
 
     # First element is always the ZIP name, remove that. 
-    if not arguments[0].lower().endswith(".zip") and not IS_CALIBRE:
+    if not arguments[0].lower().endswith(".zip") and not "calibre" in sys.modules:
         print("Warning: File name does not end in .zip ...")
         print(arguments)
     arguments.pop(0)
