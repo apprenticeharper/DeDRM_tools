@@ -332,7 +332,7 @@ class TopazBook:
             keydata = self.getBookPayloadRecord(b'dkey', 0)
         except DrmException as e:
             print("no dkey record found, book may not be encrypted")
-            print("attempting to extrct files without a book key")
+            print("attempting to extract files without a book key")
             self.createBookDirectory()
             self.extractFiles()
             print("Successfully Extracted Topaz contents")
@@ -364,7 +364,7 @@ class TopazBook:
                 break
 
         if not bookKey:
-            raise DrmException("No key found in {0:d} keys tried. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(len(pidlst)))
+            raise DrmException("No key found in {0:d} keys tried. Read the FAQs at noDRM's repository: https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md".format(len(pidlst)))
 
         self.setBookKey(bookKey)
         self.createBookDirectory()

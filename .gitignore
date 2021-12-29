@@ -3,3 +3,7 @@
 
 # local test data
 /user_data/
+
+# Cache
+/DeDRM_plugin/__pycache__
+/DeDRM_plugin/standalone/__pycache__

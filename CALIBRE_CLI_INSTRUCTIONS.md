@@ -13,16 +13,16 @@ platforms.
 
 #### Install plugins
   - Download the DeDRM `.zip` archive from DeDRM_tools'
-     [latest release](https://github.com/apprenticeharper/DeDRM_tools/releases/latest).
+     [latest release](https://github.com/noDRM/DeDRM_tools/releases/latest).
      Then unzip it.
   - Add the DeDRM plugin to Calibre:
      ```
      cd *the unzipped DeDRM_tools folder*
-     calibre-customize --add DeDRM_calibre_plugin/DeDRM_plugin.zip
+     calibre-customize --add DeDRM_plugin.zip
      ```
   - Add the Obok plugin:
     ```
-    calibre-customize --add Obok_calibre_plugin/obok_plugin.zip
+    calibre-customize --add Obok_plugin.zip
     ```
 
 #### Enter your keys

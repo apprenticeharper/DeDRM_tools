@@ -994,11 +994,11 @@ class DeDRM(FileTypePlugin):
             decrypted_ebook = self.eReaderDecrypt(path_to_ebook)
             pass
         elif booktype == 'pdf':
-            # Adobe PDF (hopefully)
+            # Adobe PDF (hopefully) or LCP PDF
             decrypted_ebook = self.PDFDecrypt(path_to_ebook)
             pass
         elif booktype == 'epub':
-            # Adobe Adept or B&N ePub
+            # Adobe Adept, PassHash (B&N) or LCP ePub
             decrypted_ebook = self.ePubDecrypt(path_to_ebook)
         else:
             print("Unknown booktype {0}. Passing back to calibre unchanged".format(booktype))
