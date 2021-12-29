@@ -157,7 +157,7 @@ def getNookLogFiles():
             logpath = path +'\\Barnes & Noble\\NOOKstudy\\logs\\BNClientLog.txt'
             if os.path.isfile(logpath):
                 found = True
-                print('Found nookStudy log file: ' + logpath.encode('ascii','ignore'))
+                print('Found nookStudy log file: ' + logpath.encode('ascii','ignore'), file=sys.stderr)
                 logFiles.append(logpath)
     else:
         home = os.getenv('HOME')
@@ -165,26 +165,26 @@ def getNookLogFiles():
         testpath = home + '/Library/Application Support/Barnes & Noble/DesktopReader/logs/BNClientLog.txt'
         if os.path.isfile(testpath):
             logFiles.append(testpath)
-            print('Found nookStudy log file: ' + testpath)
+            print('Found nookStudy log file: ' + testpath, file=sys.stderr)
             found = True
         testpath = home + '/Library/Application Support/Barnes & Noble/DesktopReader/indices/BNClientLog.txt'
         if os.path.isfile(testpath):
             logFiles.append(testpath)
-            print('Found nookStudy log file: ' + testpath)
+            print('Found nookStudy log file: ' + testpath, file=sys.stderr)
             found = True
         testpath = home + '/Library/Application Support/Barnes & Noble/BNDesktopReader/logs/BNClientLog.txt'
         if os.path.isfile(testpath):
             logFiles.append(testpath)
-            print('Found nookStudy log file: ' + testpath)
+            print('Found nookStudy log file: ' + testpath, file=sys.stderr)
             found = True
         testpath = home + '/Library/Application Support/Barnes & Noble/BNDesktopReader/indices/BNClientLog.txt'
         if os.path.isfile(testpath):
             logFiles.append(testpath)
-            print('Found nookStudy log file: ' + testpath)
+            print('Found nookStudy log file: ' + testpath, file=sys.stderr)
             found = True
 
     if not found:
-        print('No nook Study log files have been found.')
+        print('No nook Study log files have been found.', file=sys.stderr)
     return logFiles
 
 
@@ -205,7 +205,7 @@ def nookkeys(files = []):
     for file in files:
         fileKeys = getKeysFromLog(file)
         if fileKeys:
-            print("Found {0} keys in the Nook Study log files".format(len(fileKeys)))
+            print("Found {0} keys in the Nook Study log files".format(len(fileKeys)), file=sys.stderr)
             keys.extend(fileKeys)
     return list(set(keys))
 
@@ -218,7 +218,7 @@ def getkey(outpath, files=[]):
             outfile = outpath
             with open(outfile, 'w') as keyfileout:
                 keyfileout.write(keys[-1])
-            print("Saved a key to {0}".format(outfile))
+            print("Saved a key to {0}".format(outfile), file=sys.stderr)
         else:
             keycount = 0
             for key in keys:
@@ -229,7 +229,7 @@ def getkey(outpath, files=[]):
                         break
                 with open(outfile, 'w') as keyfileout:
                     keyfileout.write(key)
-                print("Saved a key to {0}".format(outfile))
+                print("Saved a key to {0}".format(outfile), file=sys.stderr)
         return True
     return False
 

@@ -147,7 +147,7 @@ if iswindows:
             #print("Didn't find fingerprint for decryption ...")
             return [], []
 
-        print("Found {0:d} passhashes".format(len(keys)))
+        print("Found {0:d} passhashes".format(len(keys)), file=sys.stderr)
 
         keys_decrypted = []
 

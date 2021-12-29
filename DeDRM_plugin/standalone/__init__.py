@@ -8,14 +8,16 @@ from __future__ import absolute_import, print_function
 # Copyright © 2021 NoDRM
 
 OPT_SHORT_TO_LONG = [
-    ["h", "help"], 
-    ["t", "test"], 
-    ["v", "verbose"],
-    ["q", "quiet"],
-    ["u", "username"],
-    ["p", "password"],
+    ["c", "config"],
     ["d", "dest"],
-    ["f", "force"]
+    ["e", "extract"],
+    ["f", "force"], 
+    ["h", "help"], 
+    ["p", "password"],
+    ["q", "quiet"],
+    ["t", "test"], 
+    ["u", "username"],
+    ["v", "verbose"],
 ]
 
 #@@CALIBRE_COMPAT_CODE@@
@@ -31,6 +33,29 @@ global _function
 _additional_data = []
 _additional_params = []
 _function = None
+
+def print_fname(f, info):
+    print("  " + f.ljust(15) + " " + info)
+
+def print_opt(short, long, info):
+    if short is None:
+        short = "    "
+    else: 
+        short = "  -" + short
+    
+    if long is None: 
+        long = "            "
+    else:
+        long = "--" + long.ljust(16)
+
+    print(short + "  " + long + "  " + info, file=sys.stderr)
+
+def print_std_usage(name, param_string):
+    print("Usage: ", file=sys.stderr)
+    if "calibre" in sys.modules:
+        print("  calibre-debug -r \"DeDRM\" -- "+name+" " + param_string, file=sys.stderr)
+    else:
+        print("  python3 DeDRM_plugin.zip "+name+" "+param_string, file=sys.stderr)
 
 def print_err_header():
     from __init__ import PLUGIN_NAME, PLUGIN_VERSION # type: ignore
@@ -51,7 +76,11 @@ def print_help():
         print("This plugin can either be imported into Calibre, or be executed directly")
         print("through Python like you are doing right now.")
     print()
-    print("TODO: Parameters here ...")
+    print("Available functions:")
+    print_fname("passhash", "Manage Adobe PassHashes")
+    print()
+    
+    # TODO: All parameters that are global should be listed here.
 
 def print_credits():
     from __init__ import PLUGIN_NAME, PLUGIN_VERSION
@@ -77,31 +106,23 @@ def handle_single_argument(arg, next):
     used_up = 0
     global _additional_params
     
-    if arg == "--help":
-        print_help()
-        sys.exit(0)
-
-    elif arg == "--credits":
-        print_credits()
-        sys.exit(0)
-
-    elif arg in ["--username", "--password"]: 
+    if arg in ["--username", "--password"]: 
         used_up = 1
         _additional_params.append(arg)
         if next is None: 
             print_err_header()
-            print("Missing parameter for argument " + arg)
+            print("Missing parameter for argument " + arg, file=sys.stderr)
             sys.exit(1)
         else:
             _additional_params.append(next[0])
 
-    elif arg in ["--verbose", "--quiet"]:
+    elif arg in ["--help", "--credits", "--verbose", "--quiet", "--extract"]:
         _additional_params.append(arg)
 
         
     else:
         print_err_header()
-        print("Unknown argument: " + arg)
+        print("Unknown argument: " + arg, file=sys.stderr)
         sys.exit(1)
     
     
@@ -120,9 +141,14 @@ def handle_data(data):
         _additional_data.append(str(data))
 
 def execute_action(action, filenames, params):
-    print("Executing '{0}' on file(s) {1} with parameters {2}".format(action, str(filenames), str(params)))
+    print("Executing '{0}' on file(s) {1} with parameters {2}".format(action, str(filenames), str(params)), file=sys.stderr)
 
-    print("ERROR: This feature is still in development. Right now it can't be used yet.")
+    if action == "passhash": 
+        from standalone.passhash import perform_action
+        perform_action(params, filenames)
+    
+    else:
+        print("ERROR: This feature is still in development. Right now it can't be used yet.", file=sys.stderr)
 
 
 def main(argv):
@@ -194,9 +220,17 @@ def main(argv):
         handle_data(arg)
         
 
+    if _function is None and "--credits" in _additional_params:
+        print_credits()
+        sys.exit(0)
+
+    if _function is None and "--help" in _additional_params:
+        print_help()
+        sys.exit(0)
+    
     if _function is None:
         print_help()
-        return(1)
+        sys.exit(1)
     
     # Okay, now actually begin doing stuff.
     # This function gets told what to do and gets additional data (filenames).
