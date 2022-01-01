@@ -28,7 +28,7 @@ from calibre.constants import iswindows, isosx
 
 
 from __init__ import PLUGIN_NAME, PLUGIN_VERSION
-from __init__ import RESOURCE_NAME as help_file_name
+from __version import RESOURCE_NAME as help_file_name
 from utilities import uStrCmp
 
 import prefs

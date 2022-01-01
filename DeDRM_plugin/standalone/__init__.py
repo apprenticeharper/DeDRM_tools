@@ -9,10 +9,11 @@ from __future__ import absolute_import, print_function
 
 OPT_SHORT_TO_LONG = [
     ["c", "config"],
-    ["d", "dest"],
     ["e", "extract"],
     ["f", "force"], 
     ["h", "help"], 
+    ["i", "import"],
+    ["o", "output"],
     ["p", "password"],
     ["q", "quiet"],
     ["t", "test"], 
@@ -22,8 +23,6 @@ OPT_SHORT_TO_LONG = [
 
 #@@CALIBRE_COMPAT_CODE@@
 
-# Explicitly set the package identifier so we are allowed to import stuff ...
-__package__ = "DeDRM_plugin"
 import os, sys
 
 
@@ -33,6 +32,9 @@ global _function
 _additional_data = []
 _additional_params = []
 _function = None
+
+global config_file_path
+config_file_path = "dedrm.json"
 
 def print_fname(f, info):
     print("  " + f.ljust(15) + " " + info)
@@ -64,7 +66,7 @@ def print_err_header():
     print()
 
 def print_help():
-    from __init__ import PLUGIN_NAME, PLUGIN_VERSION
+    from __version import PLUGIN_NAME, PLUGIN_VERSION
     print(PLUGIN_NAME + " v" + PLUGIN_VERSION + " - DRM removal plugin by noDRM")
     print("Based on DeDRM Calibre plugin by Apprentice Harper, Apprentice Alf and others.")
     print("See https://github.com/noDRM/DeDRM_tools for more information.")
@@ -78,12 +80,13 @@ def print_help():
     print()
     print("Available functions:")
     print_fname("passhash", "Manage Adobe PassHashes")
+    print_fname("remove_drm", "Remove DRM from one or multiple books")
     print()
     
     # TODO: All parameters that are global should be listed here.
 
 def print_credits():
-    from __init__ import PLUGIN_NAME, PLUGIN_VERSION
+    from __version import PLUGIN_NAME, PLUGIN_VERSION
     print(PLUGIN_NAME + " v" + PLUGIN_VERSION + " - Calibre DRM removal plugin by noDRM")
     print("Based on DeDRM Calibre plugin by Apprentice Harper, Apprentice Alf and others.")
     print("See https://github.com/noDRM/DeDRM_tools for more information.")
@@ -105,18 +108,28 @@ def print_credits():
 def handle_single_argument(arg, next):
     used_up = 0
     global _additional_params
+    global config_file_path
     
-    if arg in ["--username", "--password"]: 
+    if arg in ["--username", "--password", "--output", "--outputdir"]: 
         used_up = 1
         _additional_params.append(arg)
-        if next is None: 
+        if next is None or len(next) == 0: 
             print_err_header()
             print("Missing parameter for argument " + arg, file=sys.stderr)
             sys.exit(1)
         else:
             _additional_params.append(next[0])
+    
+    elif arg == "--config":
+        if next is None or len(next) == 0: 
+            print_err_header()
+            print("Missing parameter for argument " + arg, file=sys.stderr)
+            sys.exit(1)
 
-    elif arg in ["--help", "--credits", "--verbose", "--quiet", "--extract"]:
+        config_file_path = next[0]
+        used_up = 1
+
+    elif arg in ["--help", "--credits", "--verbose", "--quiet", "--extract", "--import", "--overwrite", "--force"]:
         _additional_params.append(arg)
 
         
@@ -143,12 +156,28 @@ def handle_data(data):
 def execute_action(action, filenames, params):
     print("Executing '{0}' on file(s) {1} with parameters {2}".format(action, str(filenames), str(params)), file=sys.stderr)
 
-    if action == "passhash": 
+    if action == "help":
+        print_help()
+        sys.exit(0)
+    
+    elif action == "passhash": 
         from standalone.passhash import perform_action
         perform_action(params, filenames)
+
+    elif action == "remove_drm":
+        if not os.path.isfile(os.path.abspath(config_file_path)):
+            print("Config file missing ...")
+        
+        from standalone.remove_drm import perform_action
+        perform_action(params, filenames)
+        
+    elif action == "config":
+        import prefs
+        config = prefs.DeDRM_Prefs(os.path.abspath(config_file_path))
+        print(config["adeptkeys"])
     
     else:
-        print("ERROR: This feature is still in development. Right now it can't be used yet.", file=sys.stderr)
+        print("Command '"+action+"' is unknown.", file=sys.stderr)
 
 
 def main(argv):
@@ -236,7 +265,7 @@ def main(argv):
     # This function gets told what to do and gets additional data (filenames).
     # It also receives additional parameters.
     # The rest of the code will be in different Python files.
-    execute_action(_function, _additional_data, _additional_params)
+    execute_action(_function.lower(), _additional_data, _additional_params)
         
 
     

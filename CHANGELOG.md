@@ -54,3 +54,4 @@ List of changes since the fork of Apprentice Harper's repository:
 - ineptpdf: Support for V=5, R=5 and R=6 PDF files, and for AES256-encrypted PDFs.
 - ineptpdf: Disable cross-reference streams in the output file. This may make PDFs slightly larger, but the current code for cross-reference streams seems to be buggy and sometimes creates corrupted PDFs.
 - Drop support for importing key data from the ancient, pre "DeDRM" Calibre plugins ("Ignoble Epub DeDRM", "eReader PDB 2 PML" and "K4MobiDeDRM"). These are from 2011, I doubt anyone still has these installed, I can't even find a working link for these to test them. If you still have encryption keys in one of these plugins, you will need to update to DeDRM v10.0.2 or older (to convert the keys) before updating to DeDRM v10.0.3 or newer.
+- Some Python3 bugfixes for Amazon books (merged #10 by ableeker).

@@ -8,7 +8,6 @@ from __future__ import print_function
 # Copyright © 2021 NoDRM
 
 __license__   = 'GPL v3'
-__version__ = '10.0.2'
 __docformat__ = 'restructuredtext en'
 
 
@@ -88,18 +87,14 @@ __docformat__ = 'restructuredtext en'
 Decrypt DRMed ebooks.
 """
 
-PLUGIN_NAME = "DeDRM"
-PLUGIN_VERSION_TUPLE = tuple([int(x) for x in __version__.split(".")])
-PLUGIN_VERSION = ".".join([str(x)for x in PLUGIN_VERSION_TUPLE])
-# Include an html helpfile in the plugin's zipfile with the following name.
-RESOURCE_NAME = PLUGIN_NAME + '_Help.htm'
-
 import codecs
 import sys, os
 import time
 import traceback
 
 #@@CALIBRE_COMPAT_CODE@@
+
+import __version
 
 class DeDRMError(Exception):
     pass
@@ -146,6 +141,10 @@ class SafeUnbuffered:
             raise
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
+
+PLUGIN_NAME = __version.PLUGIN_NAME
+PLUGIN_VERSION = __version.PLUGIN_VERSION
+PLUGIN_VERSION_TUPLE = __version.PLUGIN_VERSION_TUPLE
 
 class DeDRM(FileTypePlugin):
     name                    = PLUGIN_NAME

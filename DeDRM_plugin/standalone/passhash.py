@@ -18,18 +18,19 @@ iswindows = sys.platform.startswith('win')
 isosx = sys.platform.startswith('darwin')
 
 def print_passhash_help():
-    from __init__ import PLUGIN_NAME, PLUGIN_VERSION
+    from __version import PLUGIN_NAME, PLUGIN_VERSION
     print(PLUGIN_NAME + " v" + PLUGIN_VERSION + " - Calibre DRM removal plugin by noDRM")
     print()
     print("passhash: Manage Adobe PassHashes")
     print()
-    print_std_usage("passhash", "[ -u username -p password | -e ]")
+    print_std_usage("passhash", "[ -u username -p password | -b base64str ] [ -i ] ")
     
     print()
     print("Options: ")
     print_opt("u", "username", "Generate a PassHash with the given username")
-    print_opt("p", "password", "Generate a PassHash with the given username")
-    print_opt("e", "extract", "Extract PassHashes found on this machine")
+    print_opt("p", "password", "Generate a PassHash with the given password")
+    print_opt("e", "extract", "Display PassHashes found on this machine")
+    print_opt("i", "import", "Import hashes into the JSON config file")
 
 def perform_action(params, files):
     user = None
@@ -40,6 +41,7 @@ def perform_action(params, files):
         return 0
 
     extract = False
+    import_to_json = True
 
     while len(params) > 0:
         p = params.pop(0)
@@ -52,21 +54,34 @@ def perform_action(params, files):
         elif p == "--help":
             print_passhash_help()
             return 0
+        elif p == "--import":
+            import_to_json = True
 
-    if not extract:   
+    if not extract and not import_to_json:
         if user is None: 
             print("Missing parameter: --username", file=sys.stderr)
         if pwd is None: 
             print("Missing parameter: --password", file=sys.stderr)
         if user is None or pwd is None: 
             return 1
+        
+    if user is None and pwd is not None: 
+        print("Parameter --password also requires --username", file=sys.stderr)
+        return 1
+    if user is not None and pwd is None: 
+        print("Parameter --username also requires --password", file=sys.stderr)
+        return 1
 
     if user is not None and pwd is not None:
         from ignoblekeyGenPassHash import generate_key
         key = generate_key(user, pwd)
+        if import_to_json:
+            # TODO: Import the key to the JSON
+            pass
+
         print(key.decode("utf-8"))
     
-    if extract:
+    if extract or import_to_json:
         if not iswindows and not isosx:
             print("Extracting PassHash keys not supported on Linux.", file=sys.stderr)
             return 1
@@ -92,11 +107,16 @@ def perform_action(params, files):
 
         # Print all found keys
         for k in newkeys:
-            print(k)
+            if import_to_json:
+                # TODO: Add keys to json
+                pass
+
+            if extract:
+                print(k)
 
 
     return 0
     
 
 if __name__ == "__main__":
-    print("This code is not intended to be executed directly!")
+    print("This code is not intended to be executed directly!", file=sys.stderr)

@@ -12,12 +12,20 @@ import traceback
 #@@CALIBRE_COMPAT_CODE@@
 
 
-from calibre.utils.config import JSONConfig
+try: 
+    from calibre.utils.config import JSONConfig
+except:
+    from standalone.jsonconfig import JSONConfig
+
 from __init__ import PLUGIN_NAME
 
 class DeDRM_Prefs():
-    def __init__(self):
-        JSON_PATH = os.path.join("plugins", PLUGIN_NAME.strip().lower().replace(' ', '_') + '.json')
+    def __init__(self, json_path=None):
+        if json_path is None:
+            JSON_PATH = os.path.join("plugins", PLUGIN_NAME.strip().lower().replace(' ', '_') + '.json')
+        else:
+            JSON_PATH = json_path
+
         self.dedrmprefs = JSONConfig(JSON_PATH)
 
         self.dedrmprefs.defaults['configured'] = False
