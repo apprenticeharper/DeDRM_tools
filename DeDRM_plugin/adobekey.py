@@ -124,11 +124,27 @@ if iswindows:
     except ImportError:
         import _winreg as winreg
 
+    def get_fake_windows_libcrypto_path():
+        # There seems to be a bug in Wine where a `find_library('libcrypto-1_1')` 
+        # will not return the path to the libcrypto-1_1.dll file.
+        # So if we're on Windows, and we didn't find the libcrypto the normal way,
+        # lets try a hack-y workaround. It's already over anyways at this 
+        # point, can't really make it worse. 
+        import sys, os
+        for p in sys.path:
+            if os.path.isfile(os.path.join(p, "libcrypto-1_1.dll")):
+                return os.path.join(p, "libcrypto-1_1.dll")
+            if os.path.isfile(os.path.join(p, "libeay32.dll")):
+                return os.path.join(p, "libeay.dll")
+        return None
+
     def _load_crypto_libcrypto():
         from ctypes.util import find_library
         libcrypto = find_library('libcrypto-1_1')
         if libcrypto is None:
             libcrypto = find_library('libeay32')
+        if libcrypto is None: 
+            libcrypto = get_fake_windows_libcrypto_path()
         if libcrypto is None:
             raise ADEPTError('libcrypto not found')
         libcrypto = CDLL(libcrypto)
@@ -170,7 +186,10 @@ if iswindows:
         return AES
 
     def _load_crypto_pycrypto():
-        from Crypto.Cipher import AES as _AES
+        try: 
+            from Crypto.Cipher import AES as _AES
+        except (ImportError, ModuleNotFoundError):
+            from Cryptodome.Cipher import AES as _AES
         class AES(object):
             def __init__(self, key):
                 self._aes = _AES.new(key, _AES.MODE_CBC, b'\x00'*16)
@@ -184,7 +203,7 @@ if iswindows:
             try:
                 AES = loader()
                 break
-            except (ImportError, ADEPTError):
+            except (ImportError, ModuleNotFoundError, ADEPTError):
                 pass
         return AES
 
@@ -396,7 +415,7 @@ if iswindows:
         try:
             regkey = winreg.OpenKey(cuser, DEVICE_KEY_PATH)
             device = winreg.QueryValueEx(regkey, 'key')[0]
-        except WindowsError:
+        except WindowsError, FileNotFoundError:
             raise ADEPTError("Adobe Digital Editions not activated")
         keykey = CryptUnprotectData(device, entropy)
         userkey = None
@@ -404,7 +423,7 @@ if iswindows:
         names = []
         try:
             plkroot = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_PATH)
-        except WindowsError:
+        except WindowsError, FileNotFoundError:
             raise ADEPTError("Could not locate ADE activation")
 
         i = -1

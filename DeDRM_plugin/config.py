@@ -1132,7 +1132,7 @@ class AddAdeptDialog():
 
                 defaultkeys, defaultnames = adeptkeys()
             else:  # linux
-                from .wineutils import WineGetKeys
+                from wineutils import WineGetKeys
 
                 scriptpath = os.path.join(parent.parent.alfdir,"adobekey.py")
                 defaultkeys, defaultnames = WineGetKeys(scriptpath, ".der",parent.getwineprefix())
@@ -1228,7 +1228,7 @@ class AddKindleDialog(QDialog):
 
                 defaultkeys = kindlekeys()
             else: # linux
-                from .wineutils import WineGetKeys
+                from wineutils import WineGetKeys
 
                 scriptpath = os.path.join(parent.parent.alfdir,"kindlekey.py")
                 defaultkeys = WineGetKeys(scriptpath, ".k4i",parent.getwineprefix())
