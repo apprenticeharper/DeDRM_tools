@@ -136,7 +136,7 @@ if iswindows:
             if os.path.isfile(os.path.join(p, "libcrypto-1_1.dll")):
                 return os.path.join(p, "libcrypto-1_1.dll")
             if os.path.isfile(os.path.join(p, "libeay32.dll")):
-                return os.path.join(p, "libeay.dll")
+                return os.path.join(p, "libeay32.dll")
         return None
 
     def _load_crypto_libcrypto():

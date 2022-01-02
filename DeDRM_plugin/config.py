@@ -327,7 +327,13 @@ class ManageKeysDialog(QDialog):
             self.export_key_button.setIcon(QIcon(I('save.png')))
             self.export_key_button.clicked.connect(self.export_key)
             button_layout.addWidget(self.export_key_button)
-        spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        try: 
+            # QT 6
+            spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Policy.Minimum, QtGui.QSizePolicy.Policy.Expanding)
+        except AttributeError:
+            # QT 5
+            spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+
         button_layout.addItem(spacerItem)
 
         if self.wineprefix is not None:
@@ -811,7 +817,7 @@ class AddBandNKeyDialog(QDialog):
         self.cbType.addItem("Extract passhashes from Adobe Digital Editions")
         self.cbType.addItem("Extract key from Nook Windows application")
         self.cbType.addItem("Extract key from Nook Android application")
-        self.cbType.currentIndexChanged.connect(self.update_form, self.cbType.currentIndex())
+        self.cbType.currentIndexChanged.connect(lambda: self.update_form(self.cbType.currentIndex()))
         self.layout.addWidget(self.cbType)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Cancel)

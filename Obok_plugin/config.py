@@ -118,7 +118,13 @@ class ManageKeysDialog(QDialog):
         self._delete_key_button.clicked.connect(self.delete_key)
         button_layout.addWidget(self._delete_key_button)
 
-        spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        try: 
+            # QT 6
+            spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Policy.Minimum, QtGui.QSizePolicy.Policy.Expanding)
+        except AttributeError:
+            # QT 5
+            spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+            
         button_layout.addItem(spacerItem)
 
         layout.addSpacing(5)

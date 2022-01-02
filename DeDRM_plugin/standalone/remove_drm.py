@@ -142,7 +142,7 @@ def perform_action(params, files):
             return 0
 
     if overwrite_original and (output is not None or outputdir is not None):
-        print("Can't use --overwrite together with --output or --outputdir.")
+        print("Can't use --overwrite together with --output or --outputdir.", file=sys.stderr)
         return 1
 
     if output is not None and os.path.isfile(output) and not force:
@@ -155,8 +155,8 @@ def perform_action(params, files):
         return 1
     
     if outputdir is not None and output is not None and os.path.isabs(output): 
-        print("--output parameter is absolute path despite --outputdir being set.")
-        print("Remove --outputdir, or give a relative path to --output.")
+        print("--output parameter is absolute path despite --outputdir being set.", file=sys.stderr)
+        print("Remove --outputdir, or give a relative path to --output.", file=sys.stderr)
         return 1
 
 
@@ -166,7 +166,7 @@ def perform_action(params, files):
         file = os.path.abspath(file)
 
         if not os.path.isfile(file):
-            print("Skipping file " + file + " - not found.")
+            print("Skipping file " + file + " - not found.", file=sys.stderr)
             continue
 
         if overwrite_original:
