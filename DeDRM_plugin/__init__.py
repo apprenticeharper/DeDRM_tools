@@ -393,8 +393,11 @@ class DeDRM(FileTypePlugin):
                     defaultkeys_ade = []
                     if iswindows:
                         # Right now this is only implemented for Windows. MacOS support still needs to be added.
-                        from adobekey_get_passhash import passhash_keys
-                        defaultkeys_ade, names = passhash_keys()
+                        from adobekey_get_passhash import passhash_keys, ADEPTError
+                        try: 
+                            defaultkeys_ade, names = passhash_keys()
+                        except ADEPTError:
+                            defaultkeys_ade = []
                     if isosx:
                         print("{0} v{1}: Dumping ADE PassHash data is not yet supported on MacOS.".format(PLUGIN_NAME, PLUGIN_VERSION))
                         defaultkeys_ade = []
