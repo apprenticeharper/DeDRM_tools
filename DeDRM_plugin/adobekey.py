@@ -31,13 +31,14 @@
 #   7.0 - Python 3 for calibre 5
 #   7.1 - Fix "failed to decrypt user key key" error (read username from registry)
 #   7.2 - Fix decryption error on Python2 if there's unicode in the username
+#   7.3 - Fix OpenSSL in Wine
 
 """
 Retrieve Adobe ADEPT user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '7.2'
+__version__ = '7.3'
 
 import sys, os, struct, getopt
 from base64 import b64decode
@@ -442,7 +443,7 @@ if iswindows:
             for j in range(0, 16):
                 try:
                     plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
-                except WindowsError:
+                except WindowsError, FileNotFoundError:
                     break
                 ktype = winreg.QueryValueEx(plkkey, None)[0]
                 if ktype == 'user':
