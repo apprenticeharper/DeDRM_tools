@@ -75,6 +75,8 @@ if iswindows:
             plkroot = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_PATH)
         except WindowsError:
             raise ADEPTError("Could not locate ADE activation")
+        except FileNotFoundError:
+            raise ADEPTError("Could not locate ADE activation")
 
         idx = 1
 
@@ -100,6 +102,8 @@ if iswindows:
                         plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
                     except WindowsError:
                         break
+                    except FileNotFoundError:
+                        break
                     ktype = winreg.QueryValueEx(plkkey, None)[0]
                     if ktype == 'fingerprint':
                         fp = winreg.QueryValueEx(plkkey, 'value')[0]
@@ -118,6 +122,8 @@ if iswindows:
                         plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
                     except WindowsError:
                         break
+                    except FileNotFoundError:
+                        break
                     ktype = winreg.QueryValueEx(plkkey, None)[0]
                     if ktype == 'operatorURL':
                         operatorURL = winreg.QueryValueEx(plkkey, 'value')[0]
@@ -134,6 +140,8 @@ if iswindows:
                     try:
                         plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
                     except WindowsError:
+                        break
+                    except FileNotFoundError:
                         break
                     ktype = winreg.QueryValueEx(plkkey, None)[0]
 

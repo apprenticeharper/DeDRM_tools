@@ -328,8 +328,7 @@ class DeDRM(FileTypePlugin):
 
                 # Attempt to decrypt epub with each encryption key (generated or provided).
                 for keyname, userkey in dedrmprefs['bandnkeys'].items():
-                    keyname_masked = "".join(("X" if (x.isdigit()) else x) for x in keyname)
-                    print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname_masked))
+                    print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
                     of = self.temporary_file(".epub")
 
                     # Give the user key, ebook and TemporaryPersistent file to the decryption function.
@@ -347,7 +346,7 @@ class DeDRM(FileTypePlugin):
                         # Return the modified PersistentTemporary file to calibre.
                         return self.postProcessEPUB(of.name)
 
-                    print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname_masked,time.time()-self.starttime))
+                    print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
 
                 # perhaps we should see if we can get a key from a log file
                 print("{0} v{1}: Looking for new NOOK Keys after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
@@ -358,6 +357,7 @@ class DeDRM(FileTypePlugin):
                 ###### Add keys from the NOOK Study application (ignoblekeyNookStudy.py)
 
                 try:
+                    defaultkeys_study = []
                     if iswindows or isosx:
                         from ignoblekeyNookStudy import nookkeys
 
@@ -376,6 +376,7 @@ class DeDRM(FileTypePlugin):
                 ###### Add keys from the NOOK Microsoft Store application (ignoblekeyNookStudy.py)
 
                 try:
+                    defaultkeys_store = []
                     if iswindows:
                         # That's a Windows store app, it won't run on Linux or MacOS anyways.
                         # No need to waste time running Wine.
@@ -389,12 +390,14 @@ class DeDRM(FileTypePlugin):
                 ###### Add keys from Adobe PassHash ADE activation data (adobekey_get_passhash.py)
 
                 try: 
+                    defaultkeys_ade = []
                     if iswindows:
                         # Right now this is only implemented for Windows. MacOS support still needs to be added.
                         from adobekey_get_passhash import passhash_keys
                         defaultkeys_ade, names = passhash_keys()
                     if isosx:
                         print("{0} v{1}: Dumping ADE PassHash data is not yet supported on MacOS.".format(PLUGIN_NAME, PLUGIN_VERSION))
+                        defaultkeys_ade = []
                 except:
                     print("{0} v{1}: Exception when getting PassHashes from ADE after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                     traceback.print_exc()
@@ -419,6 +422,11 @@ class DeDRM(FileTypePlugin):
                 if len(newkeys) > 0:
                     try:
                         for i,userkey in enumerate(newkeys):
+
+                            if len(userkey) == 0:
+                                print("{0} v{1}: Skipping empty key.".format(PLUGIN_NAME, PLUGIN_VERSION))    
+                                continue
+
                             print("{0} v{1}: Trying a new default key".format(PLUGIN_NAME, PLUGIN_VERSION))
 
                             of = self.temporary_file(".epub")
@@ -451,9 +459,13 @@ class DeDRM(FileTypePlugin):
                                 return self.postProcessEPUB(of.name)
 
                             print("{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+                            return inf.name
                     
                     except:
                         pass
+
+                # Looks like we were unable to decrypt the book ...
+                return inf.name
 
             else: 
                 # This is a "normal" Adobe eBook.
@@ -611,17 +623,13 @@ class DeDRM(FileTypePlugin):
                         pass
 
                 # Something went wrong with decryption.
-                print("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
-                raise DeDRMError("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
-
-            # Not a Barnes & Noble nor an Adobe Adept
-            # Probably a DRM-free EPUB, but we should still check for fonts.
-            print("{0} v{1}: “{2}” is neither an Adobe Adept nor a Barnes & Noble encrypted ePub".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
-            return self.postProcessEPUB(inf.name)
-            #raise DeDRMError("{0} v{1}: Couldn't decrypt after {2:.1f} seconds. DRM free perhaps?".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+                print("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at noDRM's repository: https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+                raise DeDRMError("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at noDRM's repository: https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
 
-        # No DRM?
+
+        # Not a Barnes & Noble nor an Adobe Adept
+        # Probably a DRM-free EPUB, but we should still check for fonts.
         return self.postProcessEPUB(inf.name)
 
     
@@ -776,8 +784,7 @@ class DeDRM(FileTypePlugin):
         # Unable to decrypt the PDF with any of the existing keys. Is it a B&N PDF?
         # Attempt to decrypt PDF with each encryption key (generated or provided).        
         for keyname, userkey in dedrmprefs['bandnkeys'].items():
-            keyname_masked = "".join(("X" if (x.isdigit()) else x) for x in keyname)
-            print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname_masked))
+            print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
             of = self.temporary_file(".pdf")
 
             # Give the user key, ebook and TemporaryPersistent file to the decryption function.
@@ -951,8 +958,8 @@ class DeDRM(FileTypePlugin):
                     pass
             if not decoded:
                 #if you reached here then no luck raise and exception
-                print("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
-                raise DeDRMError("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+                print("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at noDRM's repository: https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+                raise DeDRMError("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at noDRM's repository: https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
 
         of = self.temporary_file(book.getBookExtension())
         book.getFile(of.name)
@@ -969,8 +976,7 @@ class DeDRM(FileTypePlugin):
         dedrmprefs = prefs.DeDRM_Prefs()
         # Attempt to decrypt epub with each encryption key (generated or provided).
         for keyname, userkey in dedrmprefs['ereaderkeys'].items():
-            keyname_masked = "".join(("X" if (x.isdigit()) else x) for x in keyname)
-            print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname_masked))
+            print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
             of = self.temporary_file(".pmlz")
 
             # Give the userkey, ebook and TemporaryPersistent file to the decryption function.
@@ -981,13 +987,13 @@ class DeDRM(FileTypePlugin):
             # Decryption was successful return the modified PersistentTemporary
             # file to Calibre's import process.
             if  result == 0:
-                print("{0} v{1}: Successfully decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname_masked,time.time()-self.starttime))
+                print("{0} v{1}: Successfully decrypted with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
                 return of.name
 
-            print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname_masked,time.time()-self.starttime))
+            print("{0} v{1}: Failed to decrypt with key {2:s} after {3:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,keyname,time.time()-self.starttime))
 
-        print("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
-        raise DeDRMError("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
+        print("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at noDRM's repository: https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
+        raise DeDRMError("{0} v{1}: Ultimately failed to decrypt after {2:.1f} seconds. Read the FAQs at noDRM's repository: https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
 
     def run(self, path_to_ebook):

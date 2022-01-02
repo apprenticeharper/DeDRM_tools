@@ -521,6 +521,15 @@ def decryptBook(userkey, inpath, outpath):
                 # Normal Adobe ADEPT
                 rsa = RSA(userkey)
                 bookkey = rsa.decrypt(base64.b64decode(bookkey.encode('ascii')))
+
+                # Verify key:
+                if len(bookkey) > 16:
+                    # Padded as per RSAES-PKCS1-v1_5
+                    if verify_book_key(bookkey):
+                        bookkey = bookkey[-16:]
+                    else:
+                        print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
+                        return 2
             else: 
                 # Adobe PassHash / B&N
                 key = base64.b64decode(userkey)[:16]
@@ -533,14 +542,8 @@ def decryptBook(userkey, inpath, outpath):
                 
                 bookkey = bookkey[:-pad]
 
-
-            # Padded as per RSAES-PKCS1-v1_5
-            if len(bookkey) > 16:
-                if verify_book_key(bookkey):
+                if len(bookkey) > 16:
                     bookkey = bookkey[-16:]
-                else:
-                    print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
-                    return 2
 
             encryption = inf.read('META-INF/encryption.xml')
             decryptor = Decryptor(bookkey, encryption)
