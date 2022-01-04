@@ -461,7 +461,7 @@ class MobiBook:
             data406 = self.meta_array[406]
             val406, = struct.unpack('>Q',data406)
             if val406 != 0:
-                print("Warning: This is a library or rented ebook ({1}). Continuing ...".format(val406))
+                print("Warning: This is a library or rented ebook ({0}). Continuing ...".format(val406))
                 #raise DrmException("Cannot decode library or rented ebooks.")
 
         goodpids = []
