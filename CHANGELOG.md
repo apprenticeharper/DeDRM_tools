@@ -5,7 +5,7 @@ List of changes since the fork of Apprentice Harper's repository:
 ## Fixes in v10.0.0 (2021-11-17):
 
 - CI testing / linting removed as that always failed anyways. The CI now "just" packages the plugin.
-- Support for the Readium LCP DRM (also known as "CARE DRM" or "TEA DRM"). This supports EPUB and PDF files. It does not yet support Readium LCPDF/LPF/LCPA/LCPAU/LCPDI files, as I don't have access to any of these. If you have an LCP-protected file in one of these formats that this plugin does not work with, please open [an issue](https://github.com/noDRM/DeDRM_tools/issues) and attach the file to the report.
+- ~Support for the Readium LCP DRM (also known as "CARE DRM" or "TEA DRM"). This supports EPUB and PDF files. It does not yet support Readium LCPDF/LPF/LCPA/LCPAU/LCPDI files, as I don't have access to any of these. If you have an LCP-protected file in one of these formats that this plugin does not work with, please open [an issue](https://github.com/noDRM/DeDRM_tools/issues) and attach the file to the report.~ (removed due to a DMCA request, see #18 )
 - Add new Github issue report form which forces the user to include stuff like their Calibre version to hopefully increase the quality of bug reports.
 - Issues with PDF files in Calibre 5 should be fixed (merged [apprenticeharper/DeDRM_tools#1689](https://github.com/apprenticeharper/DeDRM_tools/pull/1689) ).
 - Fixed tons of issues with the B&N PDF DRM removal script ignoblepdf.py. It looks like that has never been tested since the move to Python3. I have integrated the B&N-specific code into ineptpdf.py, the original ignoblepdf.py is now unused. Fairly untested as I don't have any PDFs with B&N DRM.
@@ -40,7 +40,7 @@ List of changes since the fork of Apprentice Harper's repository:
 - Fix issue where importing a key from Adobe Digital Editions would fail in Python2 (Calibre < 5) if there were non-ASCII characters in the username.
 - Add code to support importing multiple decryption keys from ADE.
 - Improve epubtest.py to also detect Kobo & Apple DRM.
-- Small updates to the LCP DRM error messages.
+- ~Small updates to the LCP DRM error messages.~ (removed due to a DMCA request, see #18 ).
 - Merge ignobleepub into ineptepub so there's no duplicate code.
 - Support extracting the B&N / Nook key from the NOOK Microsoft Store application (based on [this script](https://github.com/noDRM/DeDRM_tools/discussions/9) by fesiwi).
 - Support extracting the B&N / Nook key from a data dump of the NOOK Android application.
