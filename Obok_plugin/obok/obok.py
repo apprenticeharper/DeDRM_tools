@@ -352,6 +352,7 @@ class KoboLibrary(object):
             olddb.close()
             self.newdb.close()
             self.__sqlite = sqlite3.connect(self.newdb.name)
+            self.__sqlite.text_factory = lambda b: b.decode("utf-8", errors="ignore")
             self.__cursor = self.__sqlite.cursor()
             self._userkeys = []
             self._books = []
