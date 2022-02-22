@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# Version 10.0.1 February 2022
+# Remove OpenSSL support to only support PyCryptodome; clean up the code.
+#
 # Version 10.0.0 November 2021
 # Merge https://github.com/apprenticeharper/DeDRM_tools/pull/1691 to fix
 # key fetch issues on some machines.
@@ -162,7 +165,7 @@
 """Manage all Kobo books, either encrypted or DRM-free."""
 from __future__ import print_function
 
-__version__ = '4.0.0'
+__version__ = '10.0.1'
 __about__ =  "Obok v{0}\nCopyright © 2012-2020 Physisticated et al.".format(__version__)
 
 import sys
@@ -180,6 +183,13 @@ import shutil
 import argparse
 import tempfile
 
+try:
+    from Cryptodome.Cipher import AES
+    from Cryptodome.Util.Padding import unpad
+except ImportError:
+    from Crypto.Cipher import AES
+    from Crypto.Util.Padding import unpad
+
 can_parse_xml = True
 try:
   from xml.etree import ElementTree as ET
@@ -193,88 +203,6 @@ KOBO_HASH_KEYS = ['88b3a2e13', 'XzUhGYdFp', 'NoCanLook','QJhwzAtXL']
 
 class ENCRYPTIONError(Exception):
     pass
-
-def _load_crypto_libcrypto():
-    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
-        Structure, c_ulong, create_string_buffer, cast
-    from ctypes.util import find_library
-
-    if sys.platform.startswith('win'):
-        libcrypto = find_library('libeay32')
-    else:
-        libcrypto = find_library('crypto')
-
-    if libcrypto is None:
-        raise ENCRYPTIONError('libcrypto not found')
-    libcrypto = CDLL(libcrypto)
-
-    AES_MAXNR = 14
-
-    c_char_pp = POINTER(c_char_p)
-    c_int_p = POINTER(c_int)
-
-    class AES_KEY(Structure):
-        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
-                    ('rounds', c_int)]
-    AES_KEY_p = POINTER(AES_KEY)
-
-    def F(restype, name, argtypes):
-        func = getattr(libcrypto, name)
-        func.restype = restype
-        func.argtypes = argtypes
-        return func
-
-    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
-                            [c_char_p, c_int, AES_KEY_p])
-    AES_ecb_encrypt = F(None, 'AES_ecb_encrypt',
-                        [c_char_p, c_char_p, AES_KEY_p, c_int])
-
-    class AES(object):
-        def __init__(self, userkey):
-            self._blocksize = len(userkey)
-            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                raise ENCRYPTIONError(_('AES improper key used'))
-                return
-            key = self._key = AES_KEY()
-            rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
-            if rv < 0:
-                raise ENCRYPTIONError(_('Failed to initialize AES key'))
-
-        def decrypt(self, data):
-            clear = b''
-            for i in range(0, len(data), 16):
-                out = create_string_buffer(16)
-                rv = AES_ecb_encrypt(data[i:i+16], out, self._key, 0)
-                if rv == 0:
-                    raise ENCRYPTIONError(_('AES decryption failed'))
-                clear += out.raw
-            return clear
-
-    return AES
-
-def _load_crypto_pycrypto():
-    from Crypto.Cipher import AES as _AES
-    class AES(object):
-        def __init__(self, key):
-            self._aes = _AES.new(key, _AES.MODE_ECB)
-
-        def decrypt(self, data):
-            return self._aes.decrypt(data)
-
-    return AES
-
-def _load_crypto():
-    AES = None
-    cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
-    for loader in cryptolist:
-        try:
-            AES = loader()
-            break
-        except (ImportError, ENCRYPTIONError):
-            pass
-    return AES
-
-AES = _load_crypto()
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -630,11 +558,9 @@ class KoboFile(object):
         file page key. The caller must determine if the decrypted
         data is correct."""
         # The userkey decrypts the page key (self.key)
-        keyenc = AES(userkey)
-        decryptedkey = keyenc.decrypt(self.key)
-        # The decrypted page key decrypts the content
-        pageenc = AES(decryptedkey)
-        return self.__removeaespadding(pageenc.decrypt(contents))
+        decryptedkey = AES.new(userkey, AES.MODE_ECB).decrypt(self.key)
+        # The decrypted page key decrypts the content. Padding is PKCS#7
+        return unpad(AES.new(decryptedkey, AES.MODE_ECB).decrypt(contents), 16)
 
     def check (self, contents):
         """
@@ -704,23 +630,6 @@ class KoboFile(object):
                 raise ValueError()
         return False
 
-    def __removeaespadding (self, contents):
-        """
-        Remove the trailing padding, using what appears to be the CMS
-        algorithm from RFC 5652 6.3"""
-        lastchar = binascii.b2a_hex(contents[-1:])
-        strlen = int(lastchar, 16)
-        padding = strlen
-        if strlen == 1:
-            return contents[:-1]
-        if strlen < 16:
-            for i in range(strlen):
-                testchar = binascii.b2a_hex(contents[-strlen:-(strlen-1)])
-                if testchar != lastchar:
-                    padding = 0
-        if padding > 0:
-            contents = contents[:-padding]
-        return contents
 
 def decrypt_book(book, lib):
     print("Converting {0}".format(book.title))

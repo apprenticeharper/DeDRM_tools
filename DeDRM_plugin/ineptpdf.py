@@ -3,7 +3,7 @@
 
 # ineptpdf.py
 # Copyright © 2009-2020 by i♥cabbages, Apprentice Harper et al.
-# Copyright © 2021 by noDRM
+# Copyright © 2021-2022 by noDRM et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -48,26 +48,36 @@
 #   8.0.6 - Replace use of float by Decimal for greater precision, and import tkFileDialog
 #   9.0.0 - Add Python 3 compatibility for calibre 5
 #   9.1.0 - Support for decrypting with owner password, support for V=5, R=5 and R=6 PDF files, support for AES256-encrypted PDFs.
+#   9.1.1 - Only support PyCryptodome; clean up the code
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "9.1.0"
+__version__ = "9.1.1"
 
 import codecs
+import hashlib
 import sys
 import os
 import re
 import zlib
 import struct
-import hashlib
 from io import BytesIO
 from decimal import Decimal
 import itertools
 import xml.etree.ElementTree as etree
 import traceback
+
+try:
+    from Cryptodome.Cipher import AES, ARC4, PKCS1_v1_5
+    from Cryptodome.PublicKey import RSA
+    from Cryptodome.Util.Padding import unpad
+except ImportError:
+    from Crypto.Cipher import AES, ARC4, PKCS1_v1_5
+    from Crypto.PublicKey import RSA
+    from Crypto.Util.Padding import unpad
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get
@@ -140,313 +150,8 @@ class ADEPTInvalidPasswordError(Exception):
 class ADEPTNewVersionError(Exception):
     pass
 
-
-import hashlib
-
 def SHA256(message):
-    ctx = hashlib.sha256()
-    ctx.update(message)
-    return ctx.digest()
-
-
-def _load_crypto_libcrypto():
-    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
-        Structure, c_ulong, create_string_buffer, cast
-    from ctypes.util import find_library
-
-    if sys.platform.startswith('win'):
-        libcrypto = find_library('libeay32')
-    else:
-        libcrypto = find_library('crypto')
-
-    if libcrypto is None:
-        raise ADEPTError('libcrypto not found')
-    libcrypto = CDLL(libcrypto)
-
-    AES_MAXNR = 14
-
-    RSA_NO_PADDING = 3
-
-    c_char_pp = POINTER(c_char_p)
-    c_int_p = POINTER(c_int)
-
-    class AES_KEY(Structure):
-        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))), ('rounds', c_int)]
-    AES_KEY_p = POINTER(AES_KEY)
-
-    class RC4_KEY(Structure):
-        _fields_ = [('x', c_int), ('y', c_int), ('box', c_int * 256)]
-    RC4_KEY_p = POINTER(RC4_KEY)
-
-    class RSA(Structure):
-        pass
-    RSA_p = POINTER(RSA)
-
-    def F(restype, name, argtypes):
-        func = getattr(libcrypto, name)
-        func.restype = restype
-        func.argtypes = argtypes
-        return func
-
-    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',[c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,c_int])
-    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',[c_char_p, c_int, AES_KEY_p])
-    AES_set_encrypt_key = F(c_int, 'AES_set_encrypt_key',[c_char_p, c_int, AES_KEY_p])
-
-    RC4_set_key = F(None,'RC4_set_key',[RC4_KEY_p, c_int, c_char_p])
-    RC4_crypt = F(None,'RC4',[RC4_KEY_p, c_int, c_char_p, c_char_p])
-
-    d2i_RSAPrivateKey = F(RSA_p, 'd2i_RSAPrivateKey',
-                          [RSA_p, c_char_pp, c_long])
-    RSA_size = F(c_int, 'RSA_size', [RSA_p])
-    RSA_private_decrypt = F(c_int, 'RSA_private_decrypt',
-                            [c_int, c_char_p, c_char_p, RSA_p, c_int])
-    RSA_free = F(None, 'RSA_free', [RSA_p])
-
-    class RSA(object):
-        def __init__(self, der):
-            buf = create_string_buffer(der)
-            pp = c_char_pp(cast(buf, c_char_p))
-            rsa = self._rsa = d2i_RSAPrivateKey(None, pp, len(der))
-            if rsa is None:
-                raise ADEPTError('Error parsing ADEPT user key DER')
-
-        def decrypt(self, from_):
-            rsa = self._rsa
-            to = create_string_buffer(RSA_size(rsa))
-            dlen = RSA_private_decrypt(len(from_), from_, to, rsa,
-                                       RSA_NO_PADDING)
-            if dlen < 0:
-                raise ADEPTError('RSA decryption failed')
-            return to[1:dlen]
-
-        def __del__(self):
-            if self._rsa is not None:
-                RSA_free(self._rsa)
-                self._rsa = None
-
-    class ARC4(object):
-        @classmethod
-        def new(cls, userkey):
-            self = ARC4()
-            self._blocksize = len(userkey)
-            key = self._key = RC4_KEY()
-            RC4_set_key(key, self._blocksize, userkey)
-            return self
-        def __init__(self):
-            self._blocksize = 0
-            self._key = None
-        def decrypt(self, data):
-            out = create_string_buffer(len(data))
-            RC4_crypt(self._key, len(data), data, out)
-            return out.raw
-
-    class AES(object):
-        MODE_CBC = 0
-        @classmethod
-        def new(cls, userkey, mode, iv, decrypt=True):
-            self = AES()
-            self._blocksize = len(userkey)
-            # mode is ignored since CBCMODE is only thing supported/used so far
-            self._mode = mode
-            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                raise ADEPTError('AES improper key used')
-                return
-            keyctx = self._keyctx = AES_KEY()
-            self._iv = iv
-            self._isDecrypt = decrypt
-            if decrypt: 
-                rv = AES_set_decrypt_key(userkey, len(userkey) * 8, keyctx)
-            else:
-                rv = AES_set_encrypt_key(userkey, len(userkey) * 8, keyctx)
-            if rv < 0:
-                raise ADEPTError('Failed to initialize AES key')
-            return self
-        def __init__(self):
-            self._blocksize = 0
-            self._keyctx = None
-            self._iv = 0
-            self._mode = 0
-            self._isDecrypt = None
-        def decrypt(self, data):
-            if not self._isDecrypt:
-                raise ADEPTError("AES not ready for decryption")
-            out = create_string_buffer(len(data))
-            rv = AES_cbc_encrypt(data, out, len(data), self._keyctx, self._iv, 0)
-            if rv == 0:
-                raise ADEPTError('AES decryption failed')
-            return out.raw
-        def encrypt(self, data):
-            if self._isDecrypt:
-                raise ADEPTError("AES not ready for encryption")
-            out = create_string_buffer(len(data))
-            rv = AES_cbc_encrypt(data, out, len(data), self._keyctx, self._iv, 1)
-            if rv == 0:
-                raise ADEPTError('AES decryption failed')
-            return out.raw
-
-    return (ARC4, RSA, AES)
-
-
-def _load_crypto_pycrypto():
-    from Crypto.PublicKey import RSA as _RSA
-    from Crypto.Cipher import ARC4 as _ARC4
-    from Crypto.Cipher import AES as _AES
-    from Crypto.Cipher import PKCS1_v1_5 as _PKCS1_v1_5
-    
-    # ASN.1 parsing code from tlslite
-    class ASN1Error(Exception):
-        pass
-
-    class ASN1Parser(object):
-        class Parser(object):
-            def __init__(self, bytes):
-                self.bytes = bytes
-                self.index = 0
-
-            def get(self, length):
-                if self.index + length > len(self.bytes):
-                    raise ASN1Error("Error decoding ASN.1")
-                x = 0
-                for count in range(length):
-                    x <<= 8
-                    x |= self.bytes[self.index]
-                    self.index += 1
-                return x
-
-            def getFixBytes(self, lengthBytes):
-                bytes = self.bytes[self.index : self.index+lengthBytes]
-                self.index += lengthBytes
-                return bytes
-
-            def getVarBytes(self, lengthLength):
-                lengthBytes = self.get(lengthLength)
-                return self.getFixBytes(lengthBytes)
-
-            def getFixList(self, length, lengthList):
-                l = [0] * lengthList
-                for x in range(lengthList):
-                    l[x] = self.get(length)
-                return l
-
-            def getVarList(self, length, lengthLength):
-                lengthList = self.get(lengthLength)
-                if lengthList % length != 0:
-                    raise ASN1Error("Error decoding ASN.1")
-                lengthList = int(lengthList/length)
-                l = [0] * lengthList
-                for x in range(lengthList):
-                    l[x] = self.get(length)
-                return l
-
-            def startLengthCheck(self, lengthLength):
-                self.lengthCheck = self.get(lengthLength)
-                self.indexCheck = self.index
-
-            def setLengthCheck(self, length):
-                self.lengthCheck = length
-                self.indexCheck = self.index
-
-            def stopLengthCheck(self):
-                if (self.index - self.indexCheck) != self.lengthCheck:
-                    raise ASN1Error("Error decoding ASN.1")
-
-            def atLengthCheck(self):
-                if (self.index - self.indexCheck) < self.lengthCheck:
-                    return False
-                elif (self.index - self.indexCheck) == self.lengthCheck:
-                    return True
-                else:
-                    raise ASN1Error("Error decoding ASN.1")
-
-        def __init__(self, bytes):
-            p = self.Parser(bytes)
-            p.get(1)
-            self.length = self._getASN1Length(p)
-            self.value = p.getFixBytes(self.length)
-
-        def getChild(self, which):
-            p = self.Parser(self.value)
-            for x in range(which+1):
-                markIndex = p.index
-                p.get(1)
-                length = self._getASN1Length(p)
-                p.getFixBytes(length)
-            return ASN1Parser(p.bytes[markIndex:p.index])
-
-        def _getASN1Length(self, p):
-            firstLength = p.get(1)
-            if firstLength<=127:
-                return firstLength
-            else:
-                lengthLength = firstLength & 0x7F
-                return p.get(lengthLength)
-
-    class ARC4(object):
-        @classmethod
-        def new(cls, userkey):
-            self = ARC4()
-            self._arc4 = _ARC4.new(userkey)
-            return self
-        def __init__(self):
-            self._arc4 = None
-        def decrypt(self, data):
-            return self._arc4.decrypt(data)
-
-    class AES(object):
-        MODE_CBC = _AES.MODE_CBC
-        @classmethod
-        def new(cls, userkey, mode, iv, decrypt=True):
-            self = AES()
-            self._aes = _AES.new(userkey, mode, iv)
-            self._decrypt = decrypt
-            return self
-        def __init__(self):
-            self._aes = None
-            self._decrypt = None
-        def decrypt(self, data):
-            if not self._decrypt:
-                raise ADEPTError("AES not ready for decrypt.")
-
-            return self._aes.decrypt(data)
-        def encrypt(self, data):
-            if self._decrypt:
-                raise ADEPTError("AES not ready for encrypt.")
-            return self._aes.encrypt(data)
-
-    class RSA(object):
-        def __init__(self, der):
-            key = ASN1Parser([x for x in der])
-            key = [key.getChild(x).value for x in range(1, 4)]
-            key = [self.bytesToNumber(v) for v in key]
-            self._rsa = _RSA.construct(key)
-
-        def bytesToNumber(self, bytes):
-            total = 0
-            for byte in bytes:
-                total = (total << 8) + byte
-            return total
-
-        def decrypt(self, data):
-            return _PKCS1_v1_5.new(self._rsa).decrypt(data, 172)
-
-    return (ARC4, RSA, AES)
-
-def _load_crypto():
-    ARC4 = RSA = AES = None
-    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
-    if sys.platform.startswith('win'):
-        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
-    for loader in cryptolist:
-        try:
-            ARC4, RSA, AES = loader()
-            break
-        except (ImportError, ADEPTError):
-            pass
-    return (ARC4, RSA, AES)
-ARC4, RSA, AES = _load_crypto()
-
-
-
+    return hashlib.sha256(message).digest()
 
 # Do we generate cross reference streams on output?
 # 0 = never
@@ -668,7 +373,7 @@ class PSBaseParser(object):
         if isinstance(s[j], str):
             # Python 2
             c = s[j]
-        else: 
+        else:
             # Python 3
             c = bytes([s[j]])
         self.tokenstart = self.bufpos+j
@@ -1593,14 +1298,14 @@ class PDFDocument(object):
 
     def check_user_password(self, password, docid, param):
         V = int_value(param.get('V', 0))
-        if V < 5: 
+        if V < 5:
             return self.check_user_password_V4(password, docid, param)
         else:
             return self.check_user_password_V5(password, param)
 
     def check_owner_password(self, password, docid, param):
         V = int_value(param.get('V', 0))
-        if V < 5: 
+        if V < 5:
             return self.check_owner_password_V4(password, docid, param)
         else:
             return self.check_owner_password_V5(password, param)
@@ -1664,7 +1369,7 @@ class PDFDocument(object):
             return plaintext
         else:
             aes = AES.new(key, AES.MODE_CBC, iv, False)
-            new_data = bytes(data * repetitions)           
+            new_data = bytes(data * repetitions)
             crypt = aes.encrypt(new_data)
             return crypt
 
@@ -1674,7 +1379,7 @@ class PDFDocument(object):
         K = SHA256(password + salt + userdata)
         if R < 6:
             return K
-        elif R == 6: 
+        elif R == 6:
             round_number = 0
             done = False
             while (not done):
@@ -1684,24 +1389,7 @@ class PDFDocument(object):
                     raise Exception("K1 < 32 ...")
                 #def process_with_aes(self, key: bytes, encrypt: bool, data: bytes, repetitions: int = 1, iv: bytes = None):
                 E = self.process_with_aes(K[:16], True, K1, 64, K[16:32])
-
-                E_mod_3 = 0
-                for i in range(16):
-                    E_mod_3 += E[i]
-                E_mod_3 = E_mod_3 % 3
-
-                if E_mod_3 == 0:
-                    ctx = hashlib.sha256()
-                    ctx.update(E)
-                    K = ctx.digest()
-                elif E_mod_3 == 1: 
-                    ctx = hashlib.sha384()
-                    ctx.update(E)
-                    K = ctx.digest()
-                else: 
-                    ctx = hashlib.sha512()
-                    ctx.update(E)
-                    K = ctx.digest()
+                K = (hashlib.sha256, hashlib.sha384, hashlib.sha512)[sum(E) % 3](E).digest()
 
                 if round_number >= 64:
                     ch = int.from_bytes(E[-1:], "big", signed=False)
@@ -1720,7 +1408,7 @@ class PDFDocument(object):
         V = int_value(param.get('V', 0))
         if V >= 5:
             raise Exception("compute_O_rc4_key not possible with V>= 5")
-    
+
         R = int_value(param.get('R', 0))
 
         length = int_value(param.get('Length', 40)) # Key length (bits)
@@ -1730,10 +1418,10 @@ class PDFDocument(object):
             for _ in range(50):
                 hash = hashlib.md5(hash.digest()[:length//8])
         hash = hash.digest()[:length//8]
-        
+
         # "hash" is the return value of compute_O_rc4_key
 
-        Odata = str_value(param.get('O')) 
+        Odata = str_value(param.get('O'))
         # now call iterate_rc4 ...
         x = ARC4.new(hash).decrypt(Odata) # 4
         if R >= 3:
@@ -1741,25 +1429,25 @@ class PDFDocument(object):
                 k = b''.join(bytes([c ^ i]) for c in hash )
                 x = ARC4.new(k).decrypt(x)
 
-        
+
         # "x" is now the padded user password.
 
-        # If we wanted to recover / extract the user password, 
+        # If we wanted to recover / extract the user password,
         # we'd need to trim off the padding string from the end.
-        # As we just want to get access to the encryption key, 
+        # As we just want to get access to the encryption key,
         # we can just hand the password into the check_user_password
         # as it is, as that function would be adding padding anyways.
         # This trick only works with V4 and lower.
-        
+
         enc_key = self.check_user_password(x, docid, param)
         if enc_key is not None:
             return enc_key
 
         return False
 
-        
 
-    
+
+
     def check_user_password_V4(self, password, docid, param):
 
         V = int_value(param.get('V', 0))
@@ -1803,10 +1491,10 @@ class PDFDocument(object):
             is_authenticated = (u1 == U)
         else:
             is_authenticated = (u1[:16] == U[:16])
-        
+
         if is_authenticated:
             return key
-        
+
         return None
 
     def initialize_standard(self, password, docid, param):
@@ -1842,7 +1530,7 @@ class PDFDocument(object):
                     self.decrypt_key = retval
 
         if self.decrypt_key is None or self.decrypt_key is True or self.decrypt_key is False:
-            raise ADEPTInvalidPasswordError("Password invalid.")  
+            raise ADEPTInvalidPasswordError("Password invalid.")
 
 
         P = int_value(param['P'])
@@ -1868,8 +1556,8 @@ class PDFDocument(object):
         set_decipher = False
 
         if V >= 4:
-            # Check if we need new genkey_v4 - only if we're using AES. 
-            try: 
+            # Check if we need new genkey_v4 - only if we're using AES.
+            try:
                 for key in param['CF']:
                     algo = str(param["CF"][key]["CFM"])
                     if algo == "/AESV2":
@@ -1893,46 +1581,26 @@ class PDFDocument(object):
             self.decipher = self.decrypt_rc4  # XXX may be AES
         # aes
         if not set_decipher:
-            # This should usually already be set by now. 
+            # This should usually already be set by now.
             # If it's not, assume that V4 and newer are using AES
             if V >= 4:
                 self.decipher = self.decrypt_aes
         self.ready = True
         return
 
-    def verify_book_key(self, bookkey):
-        if bookkey[-17] != '\x00' and bookkey[-17] != 0:
-            # Byte not null, invalid result
-            return False
-
-        if ((bookkey[0] != '\x02' and bookkey[0] != 2) and
-            ((bookkey[0] != '\x00' and bookkey[0] != 0) or 
-            (bookkey[1] != '\x02' and bookkey[1] != 2))):
-            # Key not starting with "00 02" or "02" -> error
-            return False
-
-        keylen = len(bookkey) - 17
-        for i in range(1, keylen):
-            if bookkey[i] == 0 or bookkey[i] == '\x00':
-                # Padding data contains a space - that's not allowed. 
-                # Probably bad decryption.
-                return False
-
-        return True
 
     def initialize_ebx_ignoble(self, keyb64, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         key = keyb64.decode('base64')[:16]
-        aes = AES.new(key,AES.MODE_CBC,"\x00" * len(key))
         length = int_value(param.get('Length', 0)) / 8
         rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
         expr = './/{http://ns.adobe.com/adept}encryptedKey'
         bookkey = ''.join(rights.findtext(expr)).decode('base64')
-        bookkey = aes.decrypt(bookkey)
-        bookkey = bookkey[:-ord(bookkey[-1])]
-        bookkey = bookkey[-16:]
+        bookkey = unpad(AES.new(key, AES.MODE_CBC, b'\x00'*16).decrypt(bookkey), 16) # PKCS#7
+        if len(bookkey) > 16:
+            bookkey = bookkey[-16:]
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
         # added because of improper booktype / decryption book session key errors
@@ -1967,7 +1635,7 @@ class PDFDocument(object):
 
     def initialize_ebx_inept(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
-        rsa = RSA(password)
+        rsakey = RSA.import_key(password) # parses the ASN1 structure
         length = int_value(param.get('Length', 0)) // 8
         rights = codecs.decode(param.get('ADEPT_LICENSE'), 'base64')
         rights = zlib.decompress(rights, -15)
@@ -1983,14 +1651,13 @@ class PDFDocument(object):
             raise ADEPTNewVersionError("Book uses new ADEPT encryption")
 
         bookkey = codecs.decode(bookkey.encode('utf-8'),'base64')
-        bookkey = rsa.decrypt(bookkey)
+        try:
+            bookkey = PKCS1_v1_5.new(rsakey).decrypt(bookkey, None) # automatically unpads
+        except ValueError:
+            bookkey = None
 
-        if len(bookkey) > 16:
-            if (self.verify_book_key(bookkey)):
-                bookkey = bookkey[-16:]
-                length = 16
-            else:
-                raise ADEPTError('error decrypting book session key')
+        if bookkey is None:
+            raise ADEPTError('error decrypting book session key')
 
         ebx_V = int_value(param.get('V', 4))
         ebx_type = int_value(param.get('EBX_ENCRYPTIONTYPE', 6))
@@ -2357,7 +2024,7 @@ class PDFObjStrmParser(PDFParser):
 # Takes a PDF file name as input, and if this is an ADE-protected PDF,
 # returns the UUID of the user that's licensed to open this file.
 def adeptGetUserUUID(inf):
-    try: 
+    try:
         doc = PDFDocument()
         inf = open(inf, 'rb')
         pars = PDFParser(doc, inf)
@@ -2376,11 +2043,11 @@ def adeptGetUserUUID(inf):
         rights = etree.fromstring(rights)
         expr = './/{http://ns.adobe.com/adept}user'
         user_uuid = ''.join(rights.findtext(expr))
-        if user_uuid[:9] != "urn:uuid:": 
+        if user_uuid[:9] != "urn:uuid:":
             return None
         return user_uuid[9:]
 
-    except: 
+    except:
         return None
 
 ###
@@ -2585,8 +2252,6 @@ class PDFSerializer(object):
 
 
 def decryptBook(userkey, inpath, outpath, inept=True):
-    if RSA is None:
-        raise ADEPTError("PyCryptodome or OpenSSL must be installed.")
     with open(inpath, 'rb') as inf:
         serializer = PDFSerializer(inf, userkey, inept)
         with open(outpath, 'wb') as outf:
@@ -2601,8 +2266,6 @@ def decryptBook(userkey, inpath, outpath, inept=True):
 
 
 def getPDFencryptionType(inpath):
-    if RSA is None:
-        raise ADEPTError("PyCryptodome or OpenSSL must be installed.")
     with open(inpath, 'rb') as inf:
         doc = doc = PDFDocument()
         parser = PDFParser(doc, inf)
@@ -2735,13 +2398,6 @@ def gui_main():
 
 
     root = tkinter.Tk()
-    if RSA is None:
-        root.withdraw()
-        tkinter.messagebox.showerror(
-            "INEPT PDF",
-            "This script requires OpenSSL or PyCrypto, which must be installed "
-            "separately.  Read the top-of-script comment for details.")
-        return 1
     root.title("Adobe Adept PDF Decrypter v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(370, 0)

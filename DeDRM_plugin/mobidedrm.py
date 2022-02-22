@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 __license__ = 'GPL v3'
-__version__ = "1.0"
+__version__ = "1.1"
 
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
@@ -74,6 +74,7 @@ __version__ = "1.0"
 #  0.41 - Fixed potential unicode problem in command line calls
 #  0.42 - Added GPL v3 licence. updated/removed some print statements
 #  1.0  - Python 3 compatibility for calibre 5.0
+#  1.1  - Speed Python PC1 implementation up a little bit
 
 import sys
 import os
@@ -175,7 +176,7 @@ def PC1(key, src, decryption=True):
     wkey = []
     for i in range(8):
         wkey.append(key[i*2]<<8 | key[i*2+1])
-    dst = b''
+    dst = bytearray(len(src))
     for i in range(len(src)):
         temp1 = 0;
         byteXorVal = 0;
@@ -194,8 +195,8 @@ def PC1(key, src, decryption=True):
             keyXorVal = curByte * 257;
         for j in range(8):
             wkey[j] ^= keyXorVal;
-        dst+=bytes([curByte])
-    return dst
+        dst[i] = curByte
+    return bytes(dst)
 
 # accepts unicode returns unicode
 def checksumPid(s):

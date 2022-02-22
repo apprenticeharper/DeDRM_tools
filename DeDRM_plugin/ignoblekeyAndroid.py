@@ -10,22 +10,16 @@ import os
 import base64
 try: 
     from Cryptodome.Cipher import AES
-except:
+    from Cryptodome.Util.Padding import unpad
+except ImportError:
     from Crypto.Cipher import AES
+    from Crypto.Util.Padding import unpad
 import hashlib
 from lxml import etree
 
 
 PASS_HASH_SECRET = "9ca588496a1bc4394553d9e018d70b9e"
 
-def unpad(data):
-
-    if sys.version_info[0] == 2:
-        pad_len = ord(data[-1])
-    else:
-        pad_len = data[-1]
-
-    return data[:-pad_len]
 
 def dump_keys(path_to_adobe_folder):
     
@@ -53,7 +47,7 @@ def dump_keys(path_to_adobe_folder):
 
     for pass_hash in activation_xml.findall(".//{http://ns.adobe.com/adept}passHash"):
         encrypted_cc_hash = base64.b64decode(pass_hash.text)
-        cc_hash = unpad(AES.new(hash_key, AES.MODE_CBC, encrypted_cc_hash[:16]).decrypt(encrypted_cc_hash[16:]))
+        cc_hash = unpad(AES.new(hash_key, AES.MODE_CBC, encrypted_cc_hash[:16]).decrypt(encrypted_cc_hash[16:]), 16)
         hashes.append(base64.b64encode(cc_hash).decode("ascii"))
         #print("Nook ccHash is %s" % (base64.b64encode(cc_hash).decode("ascii")))
 

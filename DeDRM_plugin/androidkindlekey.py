@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # androidkindlekey.py
-# Copyright © 2010-20 by Thom, Apprentice Harper et al.
+# Copyright © 2010-22 by Thom, Apprentice Harper et al.
 
 # Revision history:
 #  1.0   - AmazonSecureStorage.xml decryption to serial number
@@ -14,13 +14,14 @@
 #  1.4   - Fix some problems identified by Aldo Bleeker
 #  1.5   - Fix another problem identified by Aldo Bleeker
 #  2.0   - Python 3 compatibility
+#  2.1   - Remove OpenSSL support; only support PyCryptodome
 
 """
 Retrieve Kindle for Android Serial Number.
 """
 
 __license__ = 'GPL v3'
-__version__ = '2.0'
+__version__ = '2.1'
 
 import os
 import sys
@@ -32,6 +33,13 @@ import tarfile
 from hashlib import md5
 from io import BytesIO
 from binascii import a2b_hex, b2a_hex
+
+try:
+    from Cryptodome.Cipher import AES, DES
+    from Cryptodome.Util.Padding import pad, unpad
+except ImportError:
+    from Crypto.Cipher import AES, DES
+    from Crypto.Util.Padding import pad, unpad
 
 # Routines common to Mac and PC
 
@@ -115,24 +123,16 @@ class AndroidObfuscation(object):
 
     key = a2b_hex('0176e04c9408b1702d90be333fd53523')
 
+    def _get_cipher(self):
+        return AES.new(self.key, AES.MODE_ECB)
+
     def encrypt(self, plaintext):
-        cipher = self._get_cipher()
-        padding = len(self.key) - len(plaintext) % len(self.key)
-        plaintext += chr(padding) * padding
-        return b2a_hex(cipher.encrypt(plaintext.encode('utf-8')))
+        pt = pad(plaintext.encode('utf-8'), 16)
+        return b2a_hex(self._get_cipher().encrypt(pt))
 
     def decrypt(self, ciphertext):
-        cipher = self._get_cipher()
-        plaintext = cipher.decrypt(a2b_hex(ciphertext))
-        return plaintext[:-ord(plaintext[-1])]
-
-    def _get_cipher(self):
-        try:
-            from Crypto.Cipher import AES
-            return AES.new(self.key)
-        except ImportError:
-            from aescbc import AES, noPadding
-            return AES(self.key, padding=noPadding())
+        ct = a2b_hex(ciphertext)
+        return unpad(self._get_cipher().decrypt(ct), 16)
 
 class AndroidObfuscationV2(AndroidObfuscation):
     '''AndroidObfuscationV2
@@ -149,12 +149,7 @@ class AndroidObfuscationV2(AndroidObfuscation):
         self.iv = key[8:16]
 
     def _get_cipher(self):
-        try :
-            from Crypto.Cipher import DES
-            return DES.new(self.key, DES.MODE_CBC, self.iv)
-        except ImportError:
-            from python_des import Des, CBC
-            return Des(self.key, CBC, self.iv)
+        return DES.new(self.key, DES.MODE_CBC, self.iv)
 
 def parse_preference(path):
     ''' parse android's shared preference xml '''

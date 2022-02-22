@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # erdr2pml.py
-# Copyright © 2008-2021 The Dark Reverser, Apprentice Harper, noDRM et al.
+# Copyright © 2008-2022 The Dark Reverser, Apprentice Harper, noDRM et al.
 #
 # Changelog
 #
@@ -65,11 +65,17 @@
 #  0.23 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #  1.00 - Added Python 3 compatibility for calibre 5.0
 #  1.01 - Bugfixes for standalone version.
+#  1.02 - Remove OpenSSL support; only use PyCryptodome
 
-__version__='1.00'
+__version__='1.02'
 
 import sys, re
-import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile, traceback
+import struct, binascii, getopt, zlib, os, os.path, urllib, tempfile, traceback, hashlib
+
+try:
+    from Cryptodome.Cipher import DES
+except ImportError:
+    from Crypto.Cipher import DES
 
 #@@CALIBRE_COMPAT_CODE@@
 
@@ -135,44 +141,6 @@ def unicode_argv():
     else:
         argvencoding = sys.stdin.encoding or "utf-8"
         return [arg if (isinstance(arg, str) or isinstance(arg,unicode)) else str(arg, argvencoding) for arg in sys.argv]
-
-Des = None
-if iswindows:
-    # first try with pycrypto
-    import pycrypto_des
-    Des = pycrypto_des.load_pycrypto()
-    if Des == None:
-        # they try with openssl
-        import openssl_des
-        Des = openssl_des.load_libcrypto()
-else:
-    # first try with openssl
-    import openssl_des
-    Des = openssl_des.load_libcrypto()
-    if Des == None:
-        # then try with pycrypto
-        import pycrypto_des
-        Des = pycrypto_des.load_pycrypto()
-
-# if that did not work then use pure python implementation
-# of DES and try to speed it up with Psycho
-if Des == None:
-    import python_des
-    Des = python_des.Des
-    # Import Psyco if available
-    try:
-        # http://psyco.sourceforge.net
-        import psyco
-        psyco.full()
-    except ImportError:
-        pass
-
-try:
-    from hashlib import sha1
-except ImportError:
-    # older Python release
-    import sha
-    sha1 = lambda s: sha.new(s)
 
 import cgi
 import logging
@@ -253,7 +221,7 @@ class EreaderProcessor(object):
             raise ValueError('incorrect eReader version %d (error 1)' % version)
         data = self.section_reader(1)
         self.data = data
-        des = Des(fixKey(data[0:8]))
+        des = DES.new(fixKey(data[0:8]), DES.MODE_ECB)
         cookie_shuf, cookie_size = struct.unpack('>LL', des.decrypt(data[-8:]))
         if cookie_shuf < 3 or cookie_shuf > 0x14 or cookie_size < 0xf0 or cookie_size > 0x200:
             raise ValueError('incorrect eReader version (error 2)')
@@ -317,7 +285,7 @@ class EreaderProcessor(object):
         if (self.flags & reqd_flags) != reqd_flags:
             print("Flags: 0x%X" % self.flags)
             raise ValueError('incompatible eReader file')
-        des = Des(fixKey(user_key))
+        des = DES.new(fixKey(user_key), DES.MODE_ECB)
         if version == 259:
             if drm_sub_version != 7:
                 raise ValueError('incorrect eReader version %d (error 3)' % drm_sub_version)
@@ -393,7 +361,7 @@ class EreaderProcessor(object):
     #     return bkinfo
 
     def getText(self):
-        des = Des(fixKey(self.content_key))
+        des = DES.new(fixKey(self.content_key), DES.MODE_ECB)
         r = b''
         for i in range(self.num_text_pages):
             logging.debug('get page %d', i)
@@ -406,7 +374,7 @@ class EreaderProcessor(object):
             sect = self.section_reader(self.first_footnote_page)
             fnote_ids = deXOR(sect, 0, self.xortable)
             # the remaining records of the footnote sections need to be decoded with the content_key and zlib inflated
-            des = Des(fixKey(self.content_key))
+            des = DES.new(fixKey(self.content_key), DES.MODE_ECB)
             for i in range(1,self.num_footnote_pages):
                 logging.debug('get footnotepage %d', i)
                 id_len = ord(fnote_ids[2])
@@ -430,7 +398,7 @@ class EreaderProcessor(object):
             sect = self.section_reader(self.first_sidebar_page)
             sbar_ids = deXOR(sect, 0, self.xortable)
             # the remaining records of the sidebar sections need to be decoded with the content_key and zlib inflated
-            des = Des(fixKey(self.content_key))
+            des = DES.new(fixKey(self.content_key), DES.MODE_ECB)
             for i in range(1,self.num_sidebar_pages):
                 id_len = ord(sbar_ids[2])
                 id = sbar_ids[3:3+id_len]

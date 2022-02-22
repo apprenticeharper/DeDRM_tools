@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# adobekey.pyw, version 7.1
-# Copyright © 2009-2021 i♥cabbages, Apprentice Harper et al.
+# adobekey.pyw, version 7.4
+# Copyright © 2009-2022 i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -32,6 +32,7 @@
 #   7.1 - Fix "failed to decrypt user key key" error (read username from registry)
 #   7.2 - Fix decryption error on Python2 if there's unicode in the username
 #   7.3 - Fix OpenSSL in Wine
+#   7.4 - Remove OpenSSL support to only support PyCryptodome
 
 """
 Retrieve Adobe ADEPT user key.
@@ -125,91 +126,12 @@ if iswindows:
     except ImportError:
         import _winreg as winreg
 
-    def get_fake_windows_libcrypto_path():
-        # There seems to be a bug in Wine where a `find_library('libcrypto-1_1')` 
-        # will not return the path to the libcrypto-1_1.dll file.
-        # So if we're on Windows, and we didn't find the libcrypto the normal way,
-        # lets try a hack-y workaround. It's already over anyways at this 
-        # point, can't really make it worse. 
-        import sys, os
-        for p in sys.path:
-            if os.path.isfile(os.path.join(p, "libcrypto-1_1.dll")):
-                return os.path.join(p, "libcrypto-1_1.dll")
-            if os.path.isfile(os.path.join(p, "libeay32.dll")):
-                return os.path.join(p, "libeay32.dll")
-        return None
-
-    def _load_crypto_libcrypto():
-        from ctypes.util import find_library
-        libcrypto = find_library('libcrypto-1_1')
-        if libcrypto is None:
-            libcrypto = find_library('libeay32')
-        if libcrypto is None: 
-            libcrypto = get_fake_windows_libcrypto_path()
-        if libcrypto is None:
-            raise ADEPTError('libcrypto not found')
-        libcrypto = CDLL(libcrypto)
-        AES_MAXNR = 14
-        c_char_pp = POINTER(c_char_p)
-        c_int_p = POINTER(c_int)
-        class AES_KEY(Structure):
-            _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
-                        ('rounds', c_int)]
-        AES_KEY_p = POINTER(AES_KEY)
-
-        def F(restype, name, argtypes):
-            func = getattr(libcrypto, name)
-            func.restype = restype
-            func.argtypes = argtypes
-            return func
-
-        AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
-                                [c_char_p, c_int, AES_KEY_p])
-        AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
-                            [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
-                             c_int])
-        class AES(object):
-            def __init__(self, userkey):
-                self._blocksize = len(userkey)
-                if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                    raise ADEPTError('AES improper key used')
-                key = self._key = AES_KEY()
-                rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
-                if rv < 0:
-                    raise ADEPTError('Failed to initialize AES key')
-            def decrypt(self, data):
-                out = create_string_buffer(len(data))
-                iv = (b"\x00" * self._blocksize)
-                rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
-                if rv == 0:
-                    raise ADEPTError('AES decryption failed')
-                return out.raw
-        return AES
-
-    def _load_crypto_pycrypto():
-        try: 
-            from Crypto.Cipher import AES as _AES
-        except (ImportError, ModuleNotFoundError):
-            from Cryptodome.Cipher import AES as _AES
-        class AES(object):
-            def __init__(self, key):
-                self._aes = _AES.new(key, _AES.MODE_CBC, b'\x00'*16)
-            def decrypt(self, data):
-                return self._aes.decrypt(data)
-        return AES
-
-    def _load_crypto():
-        AES = None
-        for loader in (_load_crypto_pycrypto, _load_crypto_libcrypto):
-            try:
-                AES = loader()
-                break
-            except (ImportError, ModuleNotFoundError, ADEPTError):
-                pass
-        return AES
-
-    AES = _load_crypto()
-
+    try:
+        from Cryptodome.Cipher import AES
+        from Cryptodome.Util.Padding import unpad
+    except ImportError:
+        from Crypto.Cipher import AES
+        from Crypto.Util.Padding import unpad
 
     DEVICE_KEY_PATH = r'Software\Adobe\Adept\Device'
     PRIVATE_LICENCE_KEY_PATH = r'Software\Adobe\Adept\Activation'
@@ -402,8 +324,6 @@ if iswindows:
     CryptUnprotectData = CryptUnprotectData()
 
     def adeptkeys():
-        if AES is None:
-            raise ADEPTError("PyCrypto or OpenSSL must be installed")
         root = GetSystemDirectory().split('\\')[0] + '\\'
         serial = GetVolumeSerialNumber(root)
         vendor = cpuid0()
@@ -416,7 +336,7 @@ if iswindows:
         try:
             regkey = winreg.OpenKey(cuser, DEVICE_KEY_PATH)
             device = winreg.QueryValueEx(regkey, 'key')[0]
-        except WindowsError, FileNotFoundError:
+        except (WindowsError, FileNotFoundError):
             raise ADEPTError("Adobe Digital Editions not activated")
         keykey = CryptUnprotectData(device, entropy)
         userkey = None
@@ -424,7 +344,7 @@ if iswindows:
         names = []
         try:
             plkroot = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_PATH)
-        except WindowsError, FileNotFoundError:
+        except (WindowsError, FileNotFoundError):
             raise ADEPTError("Could not locate ADE activation")
 
         i = -1
@@ -443,7 +363,7 @@ if iswindows:
             for j in range(0, 16):
                 try:
                     plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
-                except WindowsError, FileNotFoundError:
+                except (WindowsError, FileNotFoundError):
                     break
                 ktype = winreg.QueryValueEx(plkkey, None)[0]
                 if ktype == 'user':
@@ -461,10 +381,7 @@ if iswindows:
                         pass
                 if ktype == 'privateLicenseKey':
                     userkey = winreg.QueryValueEx(plkkey, 'value')[0]
-                    userkey = b64decode(userkey)
-                    aes = AES(keykey)
-                    userkey = aes.decrypt(userkey)
-                    userkey = userkey[26:-ord(userkey[-1:])]
+                    userkey = unpad(AES.new(keykey, AES.MODE_CBC, b'\x00'*16).decrypt(b64decode(userkey)), 16)[26:]
                     # print ("found " + uuid_name + " key: " + str(userkey))
                     keys.append(userkey)
 

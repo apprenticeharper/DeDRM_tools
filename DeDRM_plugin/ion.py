@@ -30,8 +30,14 @@ import struct
 
 from io import BytesIO
 
-from Crypto.Cipher import AES
-from Crypto.Util.py3compat import bchr
+try:
+    from Cryptodome.Cipher import AES
+    from Cryptodome.Util.py3compat import bchr
+    from Cryptodome.Util.Padding import unpad
+except ImportError:
+    from Crypto.Cipher import AES
+    from Crypto.Util.Padding import unpad
+    from Crypto.Util.py3compat import bchr
 
 try:
     # lzma library from calibre 4.6.0 or later
@@ -744,23 +750,6 @@ def addprottable(ion):
     ion.addtocatalog("ProtectedData", 1, SYM_NAMES)
 
 
-def pkcs7pad(msg, blocklen):
-    paddinglen = blocklen - len(msg) % blocklen
-    padding = bchr(paddinglen) * paddinglen
-    return msg + padding
-
-
-def pkcs7unpad(msg, blocklen):
-    _assert(len(msg) % blocklen == 0)
-
-    paddinglen = msg[-1]
-
-    _assert(paddinglen > 0 and paddinglen <= blocklen, "Incorrect padding - Wrong key")
-    _assert(msg[-paddinglen:] == bchr(paddinglen) * paddinglen, "Incorrect padding - Wrong key")
-
-    return msg[:-paddinglen]
-
-
 # every VoucherEnvelope version has a corresponding "word" and magic number, used in obfuscating the shared secret
 OBFUSCATION_TABLE = {
     "V1":    (0x00, None),
@@ -876,7 +865,7 @@ class DrmIonVoucher(object):
         key = hmac.new(sharedsecret, b"PIDv3", digestmod=hashlib.sha256).digest()
         aes = AES.new(key[:32], AES.MODE_CBC, self.cipheriv[:16])
         b = aes.decrypt(self.ciphertext)
-        b = pkcs7unpad(b, 16)
+        b = unpad(b, 16)
 
         self.drmkey = BinaryIonParser(BytesIO(b))
         addprottable(self.drmkey)
@@ -1082,7 +1071,7 @@ class DrmIon(object):
     def processpage(self, ct, civ, outpages, decompress, decrypt):
         if decrypt:
             aes = AES.new(self.key[:16], AES.MODE_CBC, civ[:16])
-            msg = pkcs7unpad(aes.decrypt(ct), 16)
+            msg = unpad(aes.decrypt(ct), 16)
         else:
             msg = ct
 
