@@ -6,8 +6,8 @@ This file is to give users a quick overview of what is available and how to get 
 This archive includes calibre plugins to remove DRM from:
 
  - Kindle ebooks (files from Kindle for Mac/PC and eInk Kindles).
- - Adobe Digital Editions (v2.0.1***) ePubs (including Kobo and Google ePubs downloaded to ADE)
- - Adobe Digital Editions (v2.0.1) PDFs
+ - Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
+ - Adobe Digital Editions PDFs
  - Kobo kePubs from the Kobo Desktop application and attached Kobo readers.
 
 These tools do NOT work with Apple's iBooks FairPlay DRM. Use iBook Copy from TunesKit.

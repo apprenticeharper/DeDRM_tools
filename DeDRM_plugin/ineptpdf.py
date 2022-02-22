@@ -49,13 +49,14 @@
 #   9.0.0 - Add Python 3 compatibility for calibre 5
 #   9.1.0 - Support for decrypting with owner password, support for V=5, R=5 and R=6 PDF files, support for AES256-encrypted PDFs.
 #   9.1.1 - Only support PyCryptodome; clean up the code
+#   10.0.0 - Add support for "hardened" Adobe DRM (RMSDK >= 10)
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "9.1.1"
+__version__ = "10.0.0"
 
 import codecs
 import hashlib
@@ -69,6 +70,7 @@ from decimal import Decimal
 import itertools
 import xml.etree.ElementTree as etree
 import traceback
+from uuid import UUID
 
 try:
     from Cryptodome.Cipher import AES, ARC4, PKCS1_v1_5
@@ -1633,6 +1635,24 @@ class PDFDocument(object):
         self.ready = True
         return
 
+    @staticmethod
+    def removeHardening(rights, keytype, keydata):
+        adept = lambda tag: '{%s}%s' % ('http://ns.adobe.com/adept', tag)
+        textGetter = lambda name: ''.join(rights.findtext('.//%s' % (adept(name),)))
+
+        # Gather what we need, and generate the IV
+        resourceuuid = UUID(textGetter("resource"))
+        deviceuuid = UUID(textGetter("device"))
+        fullfillmentuuid = UUID(textGetter("fulfillment")[:36])
+        kekiv = UUID(int=resourceuuid.int ^ deviceuuid.int ^ fullfillmentuuid.int).bytes
+
+        # Derive kek from just "keytype"
+        rem = int(keytype, 10) % 16
+        H = SHA256(keytype.encode("ascii"))
+        kek = H[2*rem : 16 + rem] + H[rem : 2*rem]
+
+        return unpad(AES.new(kek, AES.MODE_CBC, kekiv).decrypt(keydata), 16)
+
     def initialize_ebx_inept(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
         rsakey = RSA.import_key(password) # parses the ASN1 structure
@@ -1641,16 +1661,12 @@ class PDFDocument(object):
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
         expr = './/{http://ns.adobe.com/adept}encryptedKey'
-        bookkey = ''.join(rights.findtext(expr))
+        bookkeyelem = rights.find(expr)
+        bookkey = codecs.decode(bookkeyelem.text.encode('utf-8'),'base64')
+        keytype = bookkeyelem.attrib.get('keyType', '0')
 
-        if len(bookkey) == 192:
-            print("This seems to be an Adobe ADEPT PDF with Adobe's new DRM")
-            print("This DRM cannot be removed yet. ")
-            print("Try getting your distributor to give you a new ACSM file, then open that in an old version of ADE (2.0).")
-            print("If your book distributor is not enforcing the new DRM yet, this will give you a copy with the old DRM.")
-            raise ADEPTNewVersionError("Book uses new ADEPT encryption")
-
-        bookkey = codecs.decode(bookkey.encode('utf-8'),'base64')
+        if int(keytype, 10) > 2:
+            bookkey = PDFDocument.removeHardening(rights, keytype, bookkey)
         try:
             bookkey = PKCS1_v1_5.new(rsakey).decrypt(bookkey, None) # automatically unpads
         except ValueError:

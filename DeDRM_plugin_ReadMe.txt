@@ -4,8 +4,8 @@ DeDRM_plugin.zip
 This plugin will remove the DRM from:
 
  - Kindle ebooks (files from Kindle for Mac/PC and eInk Kindles).
- - Adobe Digital Editions (v2.0.1***) ePubs (including Kobo and Google ePubs downloaded to ADE)
- - Adobe Digital Editions (v2.0.1) PDFs
+ - Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
+ - Adobe Digital Editions PDFs
 
 For limitations and work-arounds, see the FAQ at https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md (or the FAQ in Apprentice Harper's original repository at https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md)
 

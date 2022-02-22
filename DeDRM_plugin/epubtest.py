@@ -175,7 +175,7 @@ def getfiledata(file, zi):
     return data
 
 def encryption(infile):
-    # Supports Adobe (old & new), B&N, Kobo, Apple, Readium LCP.    
+    # Supports Adobe (old & new), B&N, Kobo, Apple, Readium LCP.
     encryption = "Error"
     try:
         with open(infile,'rb') as infileobject:
@@ -206,10 +206,8 @@ def encryption(infile):
                         adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
                         expr = './/%s' % (adept('encryptedKey'),)
                         bookkey = ''.join(rights.findtext(expr))
-                        if len(bookkey) == 172:
-                            encryption = "Adobe (old)"
-                        if len(bookkey) == 192:
-                            encryption = "Adobe (new)"
+                        if len(bookkey) >= 172:
+                            encryption = "Adobe"
                         elif len(bookkey) == 64:
                             encryption = "B&N"
                         else:

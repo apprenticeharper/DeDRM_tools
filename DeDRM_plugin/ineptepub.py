@@ -32,13 +32,14 @@
 #   7.0 - Add Python 3 compatibility for calibre 5.0
 #   7.1 - Add ignoble support, dropping the dedicated ignobleepub.py script
 #   7.2 - Only support PyCryptodome; clean up the code
+#   8.0 - Add support for "hardened" Adobe DRM (RMSDK >= 10)
 
 """
 Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "7.2"
+__version__ = "8.0"
 
 import sys
 import os
@@ -49,6 +50,8 @@ import zipfile
 from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
 from contextlib import closing
 from lxml import etree
+from uuid import UUID
+import hashlib
 
 try:
     from Cryptodome.Cipher import AES, PKCS1_v1_5
@@ -247,6 +250,23 @@ def adeptGetUserUUID(inpath):
         except:
             return None
 
+def removeHardening(rights, keytype, keydata):
+    adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+    textGetter = lambda name: ''.join(rights.findtext('.//%s' % (adept(name),)))
+
+    # Gather what we need, and generate the IV
+    resourceuuid = UUID(textGetter("resource"))
+    deviceuuid = UUID(textGetter("device"))
+    fullfillmentuuid = UUID(textGetter("fulfillment")[:36])
+    kekiv = UUID(int=resourceuuid.int ^ deviceuuid.int ^ fullfillmentuuid.int).bytes
+
+    # Derive kek from just "keytype"
+    rem = int(keytype, 10) % 16
+    H = hashlib.sha256(keytype.encode("ascii")).digest()
+    kek = H[2*rem : 16 + rem] + H[rem : 2*rem]
+
+    return unpad(AES.new(kek, AES.MODE_CBC, kekiv).decrypt(keydata), 16) # PKCS#7
+
 def decryptBook(userkey, inpath, outpath):
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
         namelist = inf.namelist()
@@ -260,15 +280,12 @@ def decryptBook(userkey, inpath, outpath):
             rights = etree.fromstring(inf.read('META-INF/rights.xml'))
             adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
             expr = './/%s' % (adept('encryptedKey'),)
-            bookkey = ''.join(rights.findtext(expr))
-            if len(bookkey) == 192:
-                print("{0:s} seems to be an Adobe ADEPT ePub with Adobe's new DRM".format(os.path.basename(inpath)))
-                print("This DRM cannot be removed yet. ")
-                print("Try getting your distributor to give you a new ACSM file, then open that in an old version of ADE (2.0).")
-                print("If your book distributor is not enforcing the new DRM yet, this will give you a copy with the old DRM.")
-                raise ADEPTNewVersionError("Book uses new ADEPT encryption")
-
-            if len(bookkey) == 172:
+            bookkeyelem = rights.find(expr)
+            bookkey = bookkeyelem.text
+            keytype = bookkeyelem.attrib.get('keyType', '0')
+            if len(bookkey) >= 172 and int(keytype, 10) > 2:
+                print("{0:s} is a secure Adobe Adept ePub with hardening.".format(os.path.basename(inpath)))
+            elif len(bookkey) == 172:
                 print("{0:s} is a secure Adobe Adept ePub.".format(os.path.basename(inpath)))
             elif len(bookkey) == 64:
                 print("{0:s} is a secure Adobe PassHash (B&N) ePub.".format(os.path.basename(inpath)))
@@ -277,9 +294,11 @@ def decryptBook(userkey, inpath, outpath):
                 return 1
 
             if len(bookkey) != 64:
-                # Normal Adobe ADEPT
+                # Normal or "hardened" Adobe ADEPT
                 rsakey = RSA.import_key(userkey) # parses the ASN1 structure
                 bookkey = base64.b64decode(bookkey)
+                if int(keytype, 10) > 2:
+                    bookkey = removeHardening(rights, keytype, bookkey)
                 try:
                     bookkey = PKCS1_v1_5.new(rsakey).decrypt(bookkey, None) # automatically unpads
                 except ValueError:
