@@ -58,3 +58,6 @@ List of changes since the fork of Apprentice Harper's repository:
 - Fix a bug where extracting an Adobe key from ADE on Linux through Wine did fail when using the OpenSSL backend (instead of PyCrypto). See #13 and #14 for details, thanks acaloiaro for the bugfix.
 - Make the plugin work on Calibre 6 (Qt 6). If you're running the Calibre 6 beta and you notice any issues, please open a bug report.
 - Fix IndexError when DeDRMing some Amazon eBooks.
+- Add support for books with the new ADE3.0+ DRM by merging #48 by a980e066a01. Thanks a lot!
+- Remove OpenSSL support, now the plugin will always use the Python crypto libraries.
+- Obok: Fix issues with invalid UTF-8 characters by merging #26 by baby-bell.
