@@ -94,7 +94,17 @@ import traceback
 
 #@@CALIBRE_COMPAT_CODE@@
 
-import __version
+try: 
+    import __version
+except ModuleNotFoundError: 
+    print("#############################")
+    print("__version not found, path is:")
+    print(sys.path)
+    print("I'm at:")
+    print(__file__)
+    print("#############################")
+    raise
+
 
 class DeDRMError(Exception):
     pass
