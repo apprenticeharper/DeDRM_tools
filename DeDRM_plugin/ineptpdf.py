@@ -1720,7 +1720,7 @@ class PDFDocument(object):
         objid = struct.pack('<L', objid ^ 0x3569ac)
         genno = struct.pack('<L', genno ^ 0xca96)
         key = self.decrypt_key
-        key += objid[0] + genno[0] + objid[1] + genno[1] + objid[2] + b'sAlT'
+        key += bytes([objid[0], genno[0], objid[1], genno[1], objid[2]]) + b'sAlT'
         hash = hashlib.md5(key)
         key = hash.digest()[:min(len(self.decrypt_key) + 5, 16)]
         return key
