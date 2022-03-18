@@ -13,6 +13,7 @@ https://github.com/noDRM/DeDRM_tools/discussions/9
 import sys, os
 import apsw
 import base64
+import traceback
 try: 
     from Cryptodome.Cipher import AES
     from Cryptodome.Util.Padding import unpad
@@ -56,11 +57,14 @@ def dump_keys(print_result=False):
     decrypted_hashes = []
 
     for pass_hash in activation_xml.findall(".//{http://ns.adobe.com/adept}passHash"):
-        encrypted_cc_hash = base64.b64decode(pass_hash.text)
-        cc_hash = unpad(AES.new(hash_key, AES.MODE_CBC, encrypted_cc_hash[:16]).decrypt(encrypted_cc_hash[16:]), 16)
-        decrypted_hashes.append((base64.b64encode(cc_hash).decode("ascii")))
-        if print_result:
-            print("Nook ccHash is %s" % (base64.b64encode(cc_hash).decode("ascii")))
+        try: 
+            encrypted_cc_hash = base64.b64decode(pass_hash.text)
+            cc_hash = unpad(AES.new(hash_key, AES.MODE_CBC, encrypted_cc_hash[:16]).decrypt(encrypted_cc_hash[16:]), 16)
+            decrypted_hashes.append((base64.b64encode(cc_hash).decode("ascii")))
+            if print_result:
+                print("Nook ccHash is %s" % (base64.b64encode(cc_hash).decode("ascii")))
+        except: 
+            traceback.print_exc()
     
     return decrypted_hashes
 
