@@ -69,7 +69,11 @@ import getopt
 import re
 import traceback
 import time
-import html.entities
+try: 
+    import html.entities as htmlentitydefs
+except:
+    import htmlentitydefs
+
 import json
 
 #@@CALIBRE_COMPAT_CODE@@
@@ -188,7 +192,7 @@ def unescape(text):
         else:
             # named entity
             try:
-                text = chr(html.entities.name2codepoint[text[1:-1]])
+                text = chr(htmlentitydefs.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
         return text # leave as is
@@ -215,8 +219,11 @@ def GetDecryptedBook(infile, kDatabases, androidFiles, serials, pids, starttime 
     else:
         mb = topazextract.TopazBook(infile)
 
-    bookname = unescape(mb.getBookTitle())
-    print("Decrypting {1} ebook: {0}".format(bookname, mb.getBookType()))
+    try: 
+        bookname = unescape(mb.getBookTitle())
+        print("Decrypting {1} ebook: {0}".format(bookname, mb.getBookType()))
+    except: 
+        print("Decrypting {0} ebook.".format(mb.getBookType()))
 
     # copy list of pids
     totalpids = list(pids)
