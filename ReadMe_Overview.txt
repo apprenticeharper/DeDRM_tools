@@ -1,7 +1,7 @@
 ﻿Welcome to the tools!
 =====================
 
-This file is to give users a quick overview of what is available and how to get started. This document is part of the DeDRM Tools archive from Apprentice Harper's github repository: https://github.com/apprenticeharper/DeDRM_tools/
+This file is to give users a quick overview of what is available and how to get started. This document is part of the DeDRM Tools archive from noDRM's github repository: https://github.com/noDRM/DeDRM_tools/
 
 This archive includes calibre plugins to remove DRM from:
 
@@ -12,21 +12,22 @@ This archive includes calibre plugins to remove DRM from:
 
 These tools do NOT work with Apple's iBooks FairPlay DRM. Use iBook Copy from TunesKit.
 These tools no longer work well with books from Barnes & Noble.
+Due to a DMCA request, these tools no longer work with LCP-encrypted books - see https://github.com/noDRM/DeDRM_tools/issues/18 for details.
 
-For limitations and work-arounds, see the FAQ at https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md
+For limitations and work-arounds, see the FAQ at https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md
 
 About the tools
 ---------------
-These tools are updated and maintained by Apprentice Harper and many others. You can find the latest updates at Apprentice Harper's github repository https://github.com/apprenticeharper/DeDRM_tools/ and get support by creating an issue at the repository (github account required) or by posting a comment at Apprentice Alf's blog: http://www.apprenticealf.wordpress.com/
+These tools are updated and maintained by noDRM and many others. They are based on Apprentice Harper's Calibre plugin. You can find the latest updates at noDRM's github repository https://github.com/noDRM/DeDRM_tools/ and get support by creating an issue at the repository (github account required).
 
-If you re-post these tools, a link to the repository and/or the blog would be appreciated.
+If you re-post these tools, a link to the repository would be appreciated.
 
 The tools are provided in the form of plugins for calibre. Calibre is an open source freeware ebook library manager. It is the best tool around for keeping track of your ebooks.
 
 
-DeDRM plugin for calibre (Mac OS X, Windows)
+DeDRM plugin for calibre (Linux, Mac OS X and Windows)
 -------------------------------------------------------
-calibe 5.x and later are now written in Python 3, and plugins must also use Python 3. If you have calibre 5, you must use version 7.x or later of the plugins. For calibre 4.x and earlier, use version 6.8.x of the plugins.
+calibe 5.x and later are now written in Python 3, and plugins must also use Python 3. 
 
 The DeDRM plugin for calibre removes DRM from your Kindle and Adobe DRM ebooks when they are imported to calibre. Just install the DeDRM plugin (DeDRM_plugin.zip), following the instructions and configuration directions provided in the ReadMe file and the help links in the plugin's configuration dialogs.
 
@@ -40,18 +41,6 @@ To import ebooks from the Kobo Desktop app or from a Kobo ebook reader, install 
 For instructions, see the obok_plugin_ReadMe.txt file.
 
 
-DeDRM application for Mac OS X users: (Mac OS X 10.6 and above)
----------------------------------------------------------------
-DeDRM application for Windows users: (Windows XP through Windows 10)
-------------------------------------------------------------------
-As of Version 6.7 of the tools, these are no longer provided or supported.
-
-
-Linux support
--------------
-It may be possible to use the plugins on a Linux system, but no support is given at this time.
-
-
 Credits
 -------
 The original inept and ignoble scripts were by i♥cabbages
@@ -61,7 +50,8 @@ The original topaz DRM removal script was by CMBDTC
 The original topaz format conversion scripts were by some_updates, clarknova and Bart Simpson
 The original KFX format decryption was by lulzkabulz, converted to python by Apprentice Naomi and integrated into the tools by tomthumb1997
 The alfcrypto library is by some_updates
-The DeDRM plugin was based on plugins by DiapDealer and is maintained by Apprentice Alf and Apprentice Harper
+The DeDRM plugin is based on plugins by DiapDealer and is currently maintained by noDRM
+The DeDRM plugin has been maintained by Apprentice Alf and Apprentice Harper until 2021.
 
 The original obok script was by Physisticated
 The plugin conversion was done anonymously.
