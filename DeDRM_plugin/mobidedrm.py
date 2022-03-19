@@ -453,7 +453,7 @@ class MobiBook:
         if crypto_type == 0:
             print("This book is not encrypted.")
             # we must still check for Print Replica
-            self.print_replica = (self.loadSection(1)[0:4] == '%MOP')
+            self.print_replica = (self.loadSection(1)[0:4] == b'%MOP')
             self.mobi_data = self.data_file
             return
         if crypto_type != 2 and crypto_type != 1:
@@ -524,7 +524,7 @@ class MobiBook:
             # print "record %d, extra_size %d" %(i,extra_size)
             decoded_data = PC1(found_key, data[0:len(data) - extra_size])
             if i==1:
-                self.print_replica = (decoded_data[0:4] == '%MOP')
+                self.print_replica = (decoded_data[0:4] == b'%MOP')
             mobidataList.append(decoded_data)
             if extra_size > 0:
                 mobidataList.append(data[-extra_size:])

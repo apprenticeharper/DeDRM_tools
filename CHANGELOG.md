@@ -61,4 +61,6 @@ List of changes since the fork of Apprentice Harper's repository:
 - Add support for books with the new ADE3.0+ DRM by merging #48 by a980e066a01. Thanks a lot!
 - Remove OpenSSL support, now the plugin will always use the Python crypto libraries.
 - Obok: Fix issues with invalid UTF-8 characters by merging #26 by baby-bell.
-- Try to fix PDF files with V3 key obfuscation algorithm.
+- ineptpdf: Fix broken V=3 key obfuscation algorithm. 
+- ineptpdf: (Hopefully) fix issues with some B&N PDF files.
+- Fix bug that corrupts output file for Print-Replica Amazon books (fixes #30).
