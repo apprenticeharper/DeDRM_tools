@@ -98,6 +98,12 @@ try:
     import __version
 except ModuleNotFoundError: 
     print("#############################")
+    print("Failed to load the DeDRM plugin")
+    print("Did you bundle this from source code yourself? If so, you'll need to run make_release.py instead to generate a valid plugin file.")
+    print("If you have no idea what the above means, please redownload the most recent version of the plugin from the Github Releases page.")
+    print("If you still receive this error with the released version, please open a bug report and attach the following information:")
+    print("#############################")
+    print("Debug information:")
     print("__version not found, path is:")
     print(sys.path)
     print("I'm at:")
