@@ -75,11 +75,19 @@ from uuid import UUID
 try:
     from Cryptodome.Cipher import AES, ARC4, PKCS1_v1_5
     from Cryptodome.PublicKey import RSA
-    from Cryptodome.Util.Padding import unpad
 except ImportError:
     from Crypto.Cipher import AES, ARC4, PKCS1_v1_5
     from Crypto.PublicKey import RSA
-    from Crypto.Util.Padding import unpad
+
+
+def unpad(data, padding=16):
+    if sys.version_info[0] == 2:
+        pad_len = ord(data[-1])
+    else:
+        pad_len = data[-1]
+
+    return data[:-pad_len]
+
 
 # Wrap a stream so that output gets flushed immediately
 # and also make sure that any unicode strings get

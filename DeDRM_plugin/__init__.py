@@ -96,7 +96,7 @@ import traceback
 
 try: 
     import __version
-except ModuleNotFoundError: 
+except: 
     print("#############################")
     print("Failed to load the DeDRM plugin")
     print("Did you bundle this from source code yourself? If so, you'll need to run make_release.py instead to generate a valid plugin file.")

@@ -39,7 +39,7 @@ Retrieve Adobe ADEPT user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '7.3'
+__version__ = '7.4'
 
 import sys, os, struct, getopt
 from base64 import b64decode
@@ -128,10 +128,16 @@ if iswindows:
 
     try:
         from Cryptodome.Cipher import AES
-        from Cryptodome.Util.Padding import unpad
     except ImportError:
         from Crypto.Cipher import AES
-        from Crypto.Util.Padding import unpad
+
+    def unpad(data, padding=16):
+        if sys.version_info[0] == 2:
+            pad_len = ord(data[-1])
+        else:
+            pad_len = data[-1]
+
+        return data[:-pad_len]
 
     DEVICE_KEY_PATH = r'Software\Adobe\Adept\Device'
     PRIVATE_LICENCE_KEY_PATH = r'Software\Adobe\Adept\Activation'
@@ -381,7 +387,7 @@ if iswindows:
                         pass
                 if ktype == 'privateLicenseKey':
                     userkey = winreg.QueryValueEx(plkkey, 'value')[0]
-                    userkey = unpad(AES.new(keykey, AES.MODE_CBC, b'\x00'*16).decrypt(b64decode(userkey)), 16)[26:]
+                    userkey = unpad(AES.new(keykey, AES.MODE_CBC, b'\x00'*16).decrypt(b64decode(userkey)))[26:]
                     # print ("found " + uuid_name + " key: " + str(userkey))
                     keys.append(userkey)
 

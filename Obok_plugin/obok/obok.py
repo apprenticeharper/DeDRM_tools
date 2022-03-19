@@ -166,7 +166,7 @@
 from __future__ import print_function
 
 __version__ = '10.0.1'
-__about__ =  "Obok v{0}\nCopyright © 2012-2020 Physisticated et al.".format(__version__)
+__about__ =  "Obok v{0}\nCopyright © 2012-2022 Physisticated et al.".format(__version__)
 
 import sys
 import os
@@ -185,10 +185,17 @@ import tempfile
 
 try:
     from Cryptodome.Cipher import AES
-    from Cryptodome.Util.Padding import unpad
 except ImportError:
     from Crypto.Cipher import AES
-    from Crypto.Util.Padding import unpad
+
+def unpad(data, padding=16):
+    if sys.version_info[0] == 2:
+        pad_len = ord(data[-1])
+    else:
+        pad_len = data[-1]
+
+    return data[:-pad_len]
+
 
 can_parse_xml = True
 try:

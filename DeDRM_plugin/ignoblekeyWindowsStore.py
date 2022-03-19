@@ -16,12 +16,18 @@ import base64
 import traceback
 try: 
     from Cryptodome.Cipher import AES
-    from Cryptodome.Util.Padding import unpad
 except:
     from Crypto.Cipher import AES
-    from Crypto.Util.Padding import unpad
 import hashlib
 from lxml import etree
+
+def unpad(data, padding=16):
+    if sys.version_info[0] == 2:
+        pad_len = ord(data[-1])
+    else:
+        pad_len = data[-1]
+
+    return data[:-pad_len]
 
 
 NOOK_DATA_FOLDER = "%LOCALAPPDATA%\\Packages\\BarnesNoble.Nook_ahnzqzva31enc\\LocalState"

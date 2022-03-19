@@ -36,10 +36,8 @@ from binascii import a2b_hex, b2a_hex
 
 try:
     from Cryptodome.Cipher import AES, DES
-    from Cryptodome.Util.Padding import pad, unpad
 except ImportError:
     from Crypto.Cipher import AES, DES
-    from Crypto.Util.Padding import pad, unpad
 
 # Routines common to Mac and PC
 
@@ -115,6 +113,20 @@ class DrmException(Exception):
 STORAGE  = "backup.ab"
 STORAGE1 = "AmazonSecureStorage.xml"
 STORAGE2 = "map_data_storage.db"
+
+
+def unpad(data, padding=16):
+    if sys.version_info[0] == 2:
+        pad_len = ord(data[-1])
+    else:
+        pad_len = data[-1]
+
+    return data[:-pad_len]
+
+def pad(data, padding_len=16):
+    padding_data_len = padding_len - (len(data) % padding_len)
+    plaintext = data + chr(padding_data_len) * padding_data_len
+    return plaintext
 
 class AndroidObfuscation(object):
     '''AndroidObfuscation

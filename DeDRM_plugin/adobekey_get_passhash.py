@@ -23,10 +23,17 @@ import sys, os, time
 import base64, hashlib
 try: 
     from Cryptodome.Cipher import AES
-    from Cryptodome.Util.Padding import unpad
 except ImportError:
     from Crypto.Cipher import AES
-    from Crypto.Util.Padding import unpad
+
+
+def unpad(data, padding=16):
+    if sys.version_info[0] == 2:
+        pad_len = ord(data[-1])
+    else:
+        pad_len = data[-1]
+
+    return data[:-pad_len]
 
 PASS_HASH_SECRET = "9ca588496a1bc4394553d9e018d70b9e"
 
@@ -48,7 +55,7 @@ def decrypt_passhash(passhash, fp):
     hash_key = hashlib.sha1(bytearray.fromhex(serial_number + PASS_HASH_SECRET)).digest()[:16]
 
     encrypted_cc_hash = base64.b64decode(passhash)
-    cc_hash = unpad(AES.new(hash_key, AES.MODE_CBC, encrypted_cc_hash[:16]).decrypt(encrypted_cc_hash[16:]), 16)
+    cc_hash = unpad(AES.new(hash_key, AES.MODE_CBC, encrypted_cc_hash[:16]).decrypt(encrypted_cc_hash[16:]))
     return base64.b64encode(cc_hash).decode("ascii")
 
 
