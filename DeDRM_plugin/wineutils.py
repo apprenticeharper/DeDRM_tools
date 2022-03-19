@@ -77,7 +77,7 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
         pyexec = WinePythonCLI(wineprefix)
     except NoWinePython3Exception:
         print('{0} v{1}: Unable to find python3 executable in WINEPREFIX="{2}"'.format(PLUGIN_NAME, PLUGIN_VERSION, wineprefix))
-        return []
+        return [], []
 
     basepath, script = os.path.split(scriptpath)
     print("{0} v{1}: Running {2} under Wine".format(PLUGIN_NAME, PLUGIN_VERSION, script))
