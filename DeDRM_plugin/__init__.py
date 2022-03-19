@@ -164,7 +164,7 @@ PLUGIN_VERSION_TUPLE = __version.PLUGIN_VERSION_TUPLE
 
 class DeDRM(FileTypePlugin):
     name                    = PLUGIN_NAME
-    description             = "Removes DRM from Amazon Kindle, Adobe Adept (including Kobo), Readium LCP, Barnes & Noble, Mobipocket and eReader ebooks. Credit given to i♥cabbages and The Dark Reverser for the original stand-alone scripts."
+    description             = "Removes DRM from Adobe Adept (including Kobo), Barnes & Noble, Amazon Kindle, Mobipocket and eReader ebooks. Credit given to i♥cabbages and The Dark Reverser for the original stand-alone scripts."
     supported_platforms     = ['linux', 'osx', 'windows']
     author                  = "Apprentice Alf, Apprentice Harper, NoDRM, The Dark Reverser and i♥cabbages"
     version                 = PLUGIN_VERSION_TUPLE
@@ -382,7 +382,7 @@ class DeDRM(FileTypePlugin):
                         from wineutils import WineGetKeys
 
                         scriptpath = os.path.join(self.alfdir,"ignoblekeyNookStudy.py")
-                        defaultkeys_study = WineGetKeys(scriptpath, ".b64",dedrmprefs['adobewineprefix'])
+                        defaultkeys_study, defaultnames_study = WineGetKeys(scriptpath, ".b64",dedrmprefs['adobewineprefix'])
 
                 except:
                     print("{0} v{1}: Exception when getting default NOOK Study Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
@@ -948,21 +948,30 @@ class DeDRM(FileTypePlugin):
                     from kindlekey import kindlekeys
 
                     defaultkeys = kindlekeys()
+                    defaultnames = []
                 else: # linux
                     from wineutils import WineGetKeys
 
                     scriptpath = os.path.join(self.alfdir,"kindlekey.py")
-                    defaultkeys = WineGetKeys(scriptpath, ".k4i",dedrmprefs['kindlewineprefix'])
+                    defaultkeys, defaultnames = WineGetKeys(scriptpath, ".k4i",dedrmprefs['kindlewineprefix'])
             except:
                 print("{0} v{1}: Exception when getting default Kindle Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
                 traceback.print_exc()
                 pass
 
-            newkeys = {}
+            newkeys = []
+            newnames = []
+
             for i,keyvalue in enumerate(defaultkeys):
-                keyname = "default_key_{0:d}".format(i+1)
+                try: 
+                    keyname = "default_key_" + defaultnames[i]
+                except:
+                    keyname = "default_key_{0:d}".format(i+1)
+
                 if keyvalue not in dedrmprefs['kindlekeys'].values():
-                    newkeys[keyname] = keyvalue
+                    newkeys.append(keyvalue)
+                    newnames.append(keyname)
+
             if len(newkeys) > 0:
                 print("{0} v{1}: Found {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), "key" if len(newkeys)==1 else "keys"))
                 try:
@@ -970,8 +979,8 @@ class DeDRM(FileTypePlugin):
                     decoded = True
                     # store the new successful keys in the defaults
                     print("{0} v{1}: Saving {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), "key" if len(newkeys)==1 else "keys"))
-                    for keyvalue in newkeys.values():
-                        dedrmprefs.addnamedvaluetoprefs('kindlekeys','default_key',keyvalue)
+                    for i,keyvalue in enumerate(newkeys):
+                        dedrmprefs.addnamedvaluetoprefs('kindlekeys',newnames[i],keyvalue)
                     dedrmprefs.writeprefs()
                 except Exception as e:
                     pass
