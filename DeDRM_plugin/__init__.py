@@ -959,30 +959,28 @@ class DeDRM(FileTypePlugin):
                 traceback.print_exc()
                 pass
 
-            newkeys = []
+            newkeys = {}
             newnames = []
 
             for i,keyvalue in enumerate(defaultkeys):
-                try: 
-                    keyname = "default_key_" + defaultnames[i]
-                except:
-                    keyname = "default_key_{0:d}".format(i+1)
-
                 if keyvalue not in dedrmprefs['kindlekeys'].values():
-                    newkeys.append(keyvalue)
-                    newnames.append(keyname)
+                    newkeys["key_{0:d}".format(i)] = keyvalue
 
             if len(newkeys) > 0:
                 print("{0} v{1}: Found {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), "key" if len(newkeys)==1 else "keys"))
                 try:
-                    book = k4mobidedrm.GetDecryptedBook(path_to_ebook,list(newkeys),[],[],[],self.starttime)
+                    book = k4mobidedrm.GetDecryptedBook(path_to_ebook,newkeys.items(),[],[],[],self.starttime)
                     decoded = True
                     # store the new successful keys in the defaults
                     print("{0} v{1}: Saving {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), "key" if len(newkeys)==1 else "keys"))
-                    for i,keyvalue in enumerate(newkeys):
-                        dedrmprefs.addnamedvaluetoprefs('kindlekeys',newnames[i],keyvalue)
+                    i = 1
+                    for keyvalue in newkeys.values():
+                        while "kindle_key_{0:d}_{1:d}".format(int(time.time()), i) in dedrmprefs['kindlekeys']:
+                            i = i + 1
+                        dedrmprefs.addnamedvaluetoprefs('kindlekeys',"kindle_key_{0:d}_{1:d}".format(int(time.time()), i),keyvalue)
                     dedrmprefs.writeprefs()
                 except Exception as e:
+                    traceback.print_exc()
                     pass
             if not decoded:
                 #if you reached here then no luck raise and exception

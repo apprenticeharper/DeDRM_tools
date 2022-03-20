@@ -6,7 +6,7 @@ __license__ = 'GPL v3'
 # Python 3, September 2020
 
 # Standard Python modules.
-import sys, os, traceback, json, codecs, base64
+import sys, os, traceback, json, codecs, base64, time
 
 from PyQt5.Qt import (Qt, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QLineEdit,
                       QGroupBox, QPushButton, QListWidget, QListWidgetItem, QCheckBox,
@@ -1237,7 +1237,7 @@ class AddKindleDialog(QDialog):
                 from wineutils import WineGetKeys
 
                 scriptpath = os.path.join(parent.parent.alfdir,"kindlekey.py")
-                defaultkeys = WineGetKeys(scriptpath, ".k4i",parent.getwineprefix())
+                defaultkeys, defaultnames = WineGetKeys(scriptpath, ".k4i",parent.getwineprefix())
 
             self.default_key = defaultkeys[0]
         except:
@@ -1255,7 +1255,7 @@ class AddKindleDialog(QDialog):
             key_group = QHBoxLayout()
             data_group_box_layout.addLayout(key_group)
             key_group.addWidget(QLabel("Unique Key Name:", self))
-            self.key_ledit = QLineEdit("default_key", self)
+            self.key_ledit = QLineEdit("default_key_" + str(int(time.time())), self)
             self.key_ledit.setToolTip("<p>Enter an identifying name for the current default Kindle for Mac/PC key.")
             key_group.addWidget(self.key_ledit)
 
