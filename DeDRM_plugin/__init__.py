@@ -975,7 +975,7 @@ class DeDRM(FileTypePlugin):
             if len(newkeys) > 0:
                 print("{0} v{1}: Found {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), "key" if len(newkeys)==1 else "keys"))
                 try:
-                    book = k4mobidedrm.GetDecryptedBook(path_to_ebook,list(newkeys.items()),[],[],[],self.starttime)
+                    book = k4mobidedrm.GetDecryptedBook(path_to_ebook,list(newkeys),[],[],[],self.starttime)
                     decoded = True
                     # store the new successful keys in the defaults
                     print("{0} v{1}: Saving {2} new {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(newkeys), "key" if len(newkeys)==1 else "keys"))
