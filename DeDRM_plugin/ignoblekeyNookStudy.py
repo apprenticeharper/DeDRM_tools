@@ -157,7 +157,7 @@ def getNookLogFiles():
             logpath = path +'\\Barnes & Noble\\NOOKstudy\\logs\\BNClientLog.txt'
             if os.path.isfile(logpath):
                 found = True
-                print('Found nookStudy log file: ' + logpath.encode('ascii','ignore'), file=sys.stderr)
+                print('Found nookStudy log file: ' + logpath, file=sys.stderr)
                 logFiles.append(logpath)
     else:
         home = os.getenv('HOME')

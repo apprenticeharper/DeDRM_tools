@@ -63,4 +63,6 @@ List of changes since the fork of Apprentice Harper's repository:
 - Obok: Fix issues with invalid UTF-8 characters by merging #26 by baby-bell.
 - ineptpdf: Fix broken V=3 key obfuscation algorithm. 
 - ineptpdf: (Hopefully) fix issues with some B&N PDF files.
+- Fix broken Amazon K4PC key retrieval (fixes #38)
 - Fix bug that corrupts output file for Print-Replica Amazon books (fixes #30).
+- Fix Nook Study key retrieval code (partially fixes #50).
