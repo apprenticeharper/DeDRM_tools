@@ -275,7 +275,7 @@ def decryptBook(infile, outdir, kDatabaseFiles, androidFiles, serials, pids):
     orig_fn_root = os.path.splitext(os.path.basename(infile))[0]
     if (
         re.match('^B[A-Z0-9]{9}(_EBOK|_EBSP|_sample)?$', orig_fn_root) or
-        re.match('^{0-9A-F-}{36}$', orig_fn_root)
+        re.match('^[0-9A-F-]{36}$', orig_fn_root)
     ):  # Kindle for PC / Mac / Android / Fire / iOS
         clean_title = cleanup_name(book.getBookTitle())
         outfilename = "{}_{}".format(orig_fn_root, clean_title)
