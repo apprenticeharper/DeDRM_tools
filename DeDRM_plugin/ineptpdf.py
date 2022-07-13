@@ -50,13 +50,14 @@
 #   9.1.0 - Support for decrypting with owner password, support for V=5, R=5 and R=6 PDF files, support for AES256-encrypted PDFs.
 #   9.1.1 - Only support PyCryptodome; clean up the code
 #   10.0.0 - Add support for "hardened" Adobe DRM (RMSDK >= 10)
+#   10.0.2 - Fix some Python2 stuff
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "10.0.0"
+__version__ = "10.0.2"
 
 import codecs
 import hashlib
@@ -65,6 +66,8 @@ import os
 import re
 import zlib
 import struct
+import binascii
+import base64
 from io import BytesIO
 from decimal import Decimal
 import itertools
@@ -1369,7 +1372,7 @@ class PDFDocument(object):
         return file_key
 
 
-    def process_with_aes(self, key: bytes, encrypt: bool, data: bytes, repetitions: int = 1, iv: bytes = None):
+    def process_with_aes(self, key, encrypt, data, repetitions = 1, iv = None):
         if iv is None:
             keylen = len(key)
             iv = bytes([0x00]*keylen)
@@ -1601,19 +1604,17 @@ class PDFDocument(object):
 
     def initialize_ebx_ignoble(self, keyb64, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
-        try: 
-            key = keyb64.decode('base64')[:16]
-            # This will probably always error, but I'm not 100% sure, so lets leave the old code in.
-        except AttributeError: 
-            key = codecs.decode(keyb64.encode("ascii"), 'base64')[:16]
+        key = keyb64.decode('base64')[:16]
 
         length = int_value(param.get('Length', 0)) / 8
-        rights = str_value(param.get('ADEPT_LICENSE')).decode('base64')
+        rights = codecs.decode(str_value(param.get('ADEPT_LICENSE')), "base64")
         rights = zlib.decompress(rights, -15)
         rights = etree.fromstring(rights)
         expr = './/{http://ns.adobe.com/adept}encryptedKey'
-        bookkey = ''.join(rights.findtext(expr)).decode('base64')
-        bookkey = unpad(AES.new(key, AES.MODE_CBC, b'\x00'*16).decrypt(bookkey), 16) # PKCS#7
+        bookkey = ''.join(rights.findtext(expr))
+        bookkey = base64.b64decode(bookkey)
+        bookkey = AES.new(key, AES.MODE_CBC, b'\x00'*16).decrypt(bookkey)
+        bookkey = unpad(bookkey, 16) # PKCS#7
         if len(bookkey) > 16:
             bookkey = bookkey[-16:]
         ebx_V = int_value(param.get('V', 4))
