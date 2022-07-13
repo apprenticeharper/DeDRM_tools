@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# Version 10.0.3 July 2022
+# Fix Calibre 6
+#
 # Version 10.0.1 February 2022
 # Remove OpenSSL support to only support PyCryptodome; clean up the code.
 #

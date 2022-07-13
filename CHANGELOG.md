@@ -35,7 +35,7 @@ List of changes since the fork of Apprentice Harper's repository:
 - Fix small issue with elibri watermark removal.
 - Adobe key name will now contain account email.
 
-## Fixes on master (not yet released):
+## Fixes in v10.0.3 (2022-07-13):
 
 - Fix issue where importing a key from Adobe Digital Editions would fail in Python2 (Calibre < 5) if there were non-ASCII characters in the username.
 - Add code to support importing multiple decryption keys from ADE.
@@ -56,9 +56,8 @@ List of changes since the fork of Apprentice Harper's repository:
 - Drop support for importing key data from the ancient, pre "DeDRM" Calibre plugins ("Ignoble Epub DeDRM", "eReader PDB 2 PML" and "K4MobiDeDRM"). These are from 2011, I doubt anyone still has these installed, I can't even find a working link for these to test them. If you still have encryption keys in one of these plugins, you will need to update to DeDRM v10.0.2 or older (to convert the keys) before updating to DeDRM v10.0.3 or newer.
 - Some Python3 bugfixes for Amazon books (merged #10 by ableeker).
 - Fix a bug where extracting an Adobe key from ADE on Linux through Wine did fail when using the OpenSSL backend (instead of PyCrypto). See #13 and #14 for details, thanks acaloiaro for the bugfix.
-- Make the plugin work on Calibre 6 (Qt 6). If you're running the Calibre 6 beta and you notice any issues, please open a bug report.
 - Fix IndexError when DeDRMing some Amazon eBooks.
-- Add support for books with the new ADE3.0+ DRM by merging #48 by a980e066a01. Thanks a lot!
+- Add support for books with the new ADE3.0+ DRM by merging #48 by a980e066a01. Thanks a lot! (Also fixes #96 on MacOS)
 - Remove OpenSSL support, now the plugin will always use the Python crypto libraries.
 - Obok: Fix issues with invalid UTF-8 characters by merging #26 by baby-bell.
 - ineptpdf: Fix broken V=3 key obfuscation algorithm. 
@@ -66,3 +65,8 @@ List of changes since the fork of Apprentice Harper's repository:
 - Fix broken Amazon K4PC key retrieval (fixes #38)
 - Fix bug that corrupts output file for Print-Replica Amazon books (fixes #30).
 - Fix Nook Study key retrieval code (partially fixes #50).
+- Make the plugin work on Calibre 6 (Qt 6). (fixes #54 and #98) If you're running Calibre 6 and you notice any issues, please open a bug report.
+
+## Fixes on master (not yet released):
+
+- (None)
