@@ -62,7 +62,7 @@ class ConfigWidget(QWidget):
 
 
     def edit_kobo_directory(self):
-        tmpkobodirectory = QFileDialog.getExistingDirectory(self, "Select Kobo directory", self.kobodirectory or "/home", QFileDialog.ShowDirsOnly)
+        tmpkobodirectory = QFileDialog.getExistingDirectory(self, "Select Kobo directory", self.kobodirectory or "/home", QFileDialog.Option.ShowDirsOnly)
 
         if tmpkobodirectory != u"" and tmpkobodirectory is not None:
             self.kobodirectory = tmpkobodirectory
