@@ -69,4 +69,4 @@ List of changes since the fork of Apprentice Harper's repository:
 
 ## Fixes on master (not yet released):
 
-- (None)
+- Fix a bug introduced with #48 that breaks DeDRM'ing on Calibre 4 (fixes #101).

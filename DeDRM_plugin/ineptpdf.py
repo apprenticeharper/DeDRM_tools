@@ -1669,7 +1669,7 @@ class PDFDocument(object):
 
     def initialize_ebx_inept(self, password, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
-        rsakey = RSA.import_key(password) # parses the ASN1 structure
+        rsakey = RSA.importKey(password) # parses the ASN1 structure
         length = int_value(param.get('Length', 0)) // 8
         rights = codecs.decode(param.get('ADEPT_LICENSE'), 'base64')
         rights = zlib.decompress(rights, -15)

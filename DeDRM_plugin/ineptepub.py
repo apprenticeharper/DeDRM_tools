@@ -302,7 +302,7 @@ def decryptBook(userkey, inpath, outpath):
 
             if len(bookkey) != 64:
                 # Normal or "hardened" Adobe ADEPT
-                rsakey = RSA.import_key(userkey) # parses the ASN1 structure
+                rsakey = RSA.importKey(userkey) # parses the ASN1 structure
                 bookkey = base64.b64decode(bookkey)
                 if int(keytype, 10) > 2:
                     bookkey = removeHardening(rights, keytype, bookkey)
