@@ -511,10 +511,10 @@ class DeDRM(FileTypePlugin):
                             continue
 
                         # Found matching key
-                        userkey = codecs.decode(userkeyhex, 'hex')
                         print("{0} v{1}: Trying UUID-matched encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
                         of = self.temporary_file(".epub")
                         try: 
+                            userkey = codecs.decode(userkeyhex, 'hex')
                             result = ineptepub.decryptBook(userkey, inf.name, of.name)
                             of.close()
                             if result == 0:
@@ -531,12 +531,13 @@ class DeDRM(FileTypePlugin):
 
                 # Attempt to decrypt epub with each encryption key (generated or provided).
                 for keyname, userkeyhex in dedrmprefs['adeptkeys'].items():
-                    userkey = codecs.decode(userkeyhex, 'hex')
+                    
                     print("{0} v{1}: Trying Encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
                     of = self.temporary_file(".epub")
 
                     # Give the user key, ebook and TemporaryPersistent file to the decryption function.
                     try:
+                        userkey = codecs.decode(userkeyhex, 'hex')
                         result = ineptepub.decryptBook(userkey, inf.name, of.name)
                     except ineptepub.ADEPTNewVersionError:
                         print("{0} v{1}: Book uses unsupported (too new) Adobe DRM.".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
@@ -673,11 +674,11 @@ class DeDRM(FileTypePlugin):
                     continue
             
                 # Found matching key
-                userkey = codecs.decode(userkeyhex, 'hex')
                 print("{0} v{1}: Trying UUID-matched encryption key {2:s}".format(PLUGIN_NAME, PLUGIN_VERSION, keyname))
                 of = self.temporary_file(".pdf")
 
                 try: 
+                    userkey = codecs.decode(userkeyhex, 'hex')
                     result = ineptpdf.decryptBook(userkey, path_to_ebook, of.name)
                     of.close()
                     if result == 0:
