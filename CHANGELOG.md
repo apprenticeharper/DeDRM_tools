@@ -70,3 +70,4 @@ List of changes since the fork of Apprentice Harper's repository:
 ## Fixes on master (not yet released):
 
 - Fix a bug introduced with #48 that breaks DeDRM'ing on Calibre 4 (fixes #101).
+- Fix some more Calibre-6 bugs in the Obok plugin (should fix #114).

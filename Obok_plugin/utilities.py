@@ -224,5 +224,5 @@ class ReadOnlyTableWidgetItem(QTableWidgetItem):
     def __init__(self, text):
         if text is None:
             text = ''
-        QTableWidgetItem.__init__(self, text, QTableWidgetItem.UserType)
+        QTableWidgetItem.__init__(self, text, QTableWidgetItem.ItemType.UserType)
         self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
