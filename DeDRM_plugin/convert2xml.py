@@ -11,8 +11,7 @@ import sys
 import csv
 import os
 import getopt
-from struct import pack
-from struct import unpack
+from struct import pack, unpack
 
 class TpzDRMError(Exception):
     pass

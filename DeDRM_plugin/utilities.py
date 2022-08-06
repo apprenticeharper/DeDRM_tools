@@ -8,18 +8,6 @@ import sys
 
 __license__ = 'GPL v3'
 
-DETAILED_MESSAGE = \
-'You have personal information stored in this plugin\'s customization '+ \
-'string from a previous version of this plugin.\n\n'+ \
-'This new version of the plugin can convert that info '+ \
-'into key data that the new plugin can then use (which doesn\'t '+ \
-'require personal information to be stored/displayed in an insecure '+ \
-'manner like the old plugin did).\n\nIf you choose NOT to migrate this data at this time '+ \
-'you will be prompted to save that personal data to a file elsewhere; and you\'ll have '+ \
-'to manually re-configure this plugin with your information.\n\nEither way... ' + \
-'this new version of the plugin will not be responsible for storing that personal '+ \
-'info in plain sight any longer.'
-
 def uStrCmp (s1, s2, caseless=False):
     import unicodedata as ud
     if sys.version_info[0] == 2:
