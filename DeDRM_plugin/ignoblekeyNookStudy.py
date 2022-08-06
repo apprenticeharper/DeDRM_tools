@@ -34,41 +34,7 @@ try:
 except:
     iswindows = sys.platform.startswith('win')
 
-def unicode_argv():
-    if iswindows:
-        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-        # strings.
-
-        # Versions 2.x of Python don't support Unicode in sys.argv on
-        # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.  So use shell32.GetCommandLineArgvW to get sys.argv
-        # as a list of Unicode strings and encode them as utf-8
-
-        from ctypes import POINTER, byref, cdll, c_int, windll
-        from ctypes.wintypes import LPCWSTR, LPWSTR
-
-        GetCommandLineW = cdll.kernel32.GetCommandLineW
-        GetCommandLineW.argtypes = []
-        GetCommandLineW.restype = LPCWSTR
-
-        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-        CommandLineToArgvW.restype = POINTER(LPWSTR)
-
-        cmd = GetCommandLineW()
-        argc = c_int(0)
-        argv = CommandLineToArgvW(cmd, byref(argc))
-        if argc.value > 0:
-            # Remove Python executable and commands if present
-            start = argc.value - len(sys.argv)
-            return [argv[i] for i in
-                    range(start, argc.value)]
-        # if we don't have any arguments at all, just pass back script name
-        # this should never happen
-        return ["ignoblekey.py"]
-    else:
-        argvencoding = sys.stdin.encoding or "utf-8"
-        return [arg if (isinstance(arg, str) or isinstance(arg,unicode)) else str(arg, argvencoding) for arg in sys.argv]
+from argv_utils import unicode_argv
 
 class DrmException(Exception):
     pass
@@ -221,7 +187,7 @@ def usage(progname):
 def cli_main():
     sys.stdout=SafeUnbuffered(sys.stdout)
     sys.stderr=SafeUnbuffered(sys.stderr)
-    argv=unicode_argv()
+    argv=unicode_argv("ignoblekeyNookStudy.py")
     progname = os.path.basename(argv[0])
     print("{0} v{1}\nCopyright © 2015 Apprentice Alf".format(progname,__version__))
 
@@ -282,7 +248,7 @@ def gui_main():
             self.text.insert(tkinter.constants.END, text)
 
 
-    argv=unicode_argv()
+    argv=unicode_argv("ignoblekeyNookStudy.py")
     root = tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
