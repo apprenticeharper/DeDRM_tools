@@ -161,12 +161,8 @@ class DeDRM(FileTypePlugin):
     
     def initialize(self):
         """
-        Dynamic modules can't be imported/loaded from a zipfile.
-        So this routine will extract the appropriate
-        library for the target OS and copy it to the 'alfcrypto' subdirectory of
-        calibre's configuration directory. That 'alfcrypto' directory is then
-        inserted into the syspath (as the very first entry) in the run function
-        so the CDLL stuff will work in the alfcrypto.py script.
+        Extracting a couple Python scripts if running on Linux, 
+        just in case we need to run them in Wine.
 
         The extraction only happens once per version of the plugin
         Also perform upgrade of preferences once per version
@@ -189,7 +185,7 @@ class DeDRM(FileTypePlugin):
             self.verdir = os.path.join(self.maindir,PLUGIN_VERSION)
             if not os.path.exists(self.verdir) and not iswindows and not isosx:
 
-                names = ["kindlekey.py","adobekey.py","ignoblekeyNookStudy.py"]
+                names = ["kindlekey.py","adobekey.py","ignoblekeyNookStudy.py","utilities.py","argv_utils.py"]
 
                 lib_dict = self.load_resources(names)
                 print("{0} v{1}: Copying needed Python scripts from plugin's zip".format(PLUGIN_NAME, PLUGIN_VERSION))
@@ -204,7 +200,7 @@ class DeDRM(FileTypePlugin):
                     try:
                         open(file_path,'wb').write(data)
                     except:
-                        print("{0} v{1}: Exception when copying needed library files".format(PLUGIN_NAME, PLUGIN_VERSION))
+                        print("{0} v{1}: Exception when copying needed python scripts".format(PLUGIN_NAME, PLUGIN_VERSION))
                         traceback.print_exc()
                         pass
 

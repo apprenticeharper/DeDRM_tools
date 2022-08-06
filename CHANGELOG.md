@@ -74,3 +74,6 @@ List of changes since the fork of Apprentice Harper's repository:
 - Fix a bug where invalid Adobe keys could cause the plugin to stop trying subsequent keys (partially fixes #109).
 - Fix DRM removal sometimes resetting the ZIP's internal "external_attr" value on Calibre 5 and newer.
 - Fix PDF decryption issues on Calibre 4 (hopefully fixes #104).
+- Small Python 2 / Calibre 4 bugfix for Obok.
+- Removing ancient AlfCrypto machine code libraries, moving all encryption / decryption to Python code.
+- General cleanup and removal of dead code.
