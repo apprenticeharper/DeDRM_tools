@@ -51,13 +51,14 @@
 #   9.1.1 - Only support PyCryptodome; clean up the code
 #   10.0.0 - Add support for "hardened" Adobe DRM (RMSDK >= 10)
 #   10.0.2 - Fix some Python2 stuff
+#   10.0.4 - Fix more Python2 stuff
 
 """
 Decrypts Adobe ADEPT-encrypted PDF files.
 """
 
 __license__ = 'GPL v3'
-__version__ = "10.0.2"
+__version__ = "10.0.4"
 
 import codecs
 import hashlib
@@ -200,7 +201,10 @@ def nunpack(s, default=0):
     elif l == 2:
         return struct.unpack('>H', s)[0]
     elif l == 3:
-        return struct.unpack('>L', bytes([0]) + s)[0]
+        if sys.version_info[0] == 2:
+            return struct.unpack('>L', '\x00'+s)[0]
+        else: 
+            return struct.unpack('>L', bytes([0]) + s)[0]
     elif l == 4:
         return struct.unpack('>L', s)[0]
     else:
@@ -459,7 +463,10 @@ class PSBaseParser(object):
             self.hex += c
             return (self.parse_literal_hex, i+1)
         if self.hex:
-            self.token += bytes([int(self.hex, 16)])
+            if sys.version_info[0] == 2: 
+                self.token += chr(int(self.hex, 16))
+            else: 
+                self.token += bytes([int(self.hex, 16)])
         return (self.parse_literal, i)
 
     def parse_number(self, s, i):
@@ -543,10 +550,18 @@ class PSBaseParser(object):
             self.oct += c
             return (self.parse_string_1, i+1)
         if self.oct:
-            self.token += bytes([int(self.oct, 8)])
+            if sys.version_info[0] == 2:
+                self.token += chr(int(self.oct, 8))
+            else: 
+                self.token += bytes([int(self.oct, 8)])  
             return (self.parse_string, i)
         if c in ESC_STRING:
-            self.token += bytes([ESC_STRING[c]])
+
+            if sys.version_info[0] == 2:
+                self.token += chr(ESC_STRING[c])
+            else: 
+                self.token += bytes([ESC_STRING[c]])
+                
         return (self.parse_string, i+1)
 
     def parse_wopen(self, s, i):
@@ -572,14 +587,19 @@ class PSBaseParser(object):
         return (self.parse_main, i)
 
     def parse_hexstring(self, s, i):
-        m1 = END_HEX_STRING.search(s, i)
-        if not m1:
+        m = END_HEX_STRING.search(s, i)
+        if not m:
             self.token += s[i:]
             return (self.parse_hexstring, len(s))
-        j = m1.start(0)
+        j = m.start(0)
         self.token += s[i:j]
-        token = HEX_PAIR.sub(lambda m2: bytes([int(m2.group(0), 16)]),
+        if sys.version_info[0] == 2:
+            token = HEX_PAIR.sub(lambda m: chr(int(m.group(0), 16)),
+                                                 SPC.sub('', self.token))
+        else: 
+            token = HEX_PAIR.sub(lambda m: bytes([int(m.group(0), 16)]),
                                                  SPC.sub(b'', self.token))
+
         self.add_token(token)
         return (self.parse_main, j)
 
