@@ -72,3 +72,4 @@ List of changes since the fork of Apprentice Harper's repository:
 - Fix a bug introduced with #48 that breaks DeDRM'ing on Calibre 4 (fixes #101).
 - Fix some more Calibre-6 bugs in the Obok plugin (should fix #114).
 - Fix a bug where invalid Adobe keys could cause the plugin to stop trying subsequent keys (partially fixes #109).
+- Fix DRM removal sometimes resetting the ZIP's internal "external_attr" value on Calibre 5 and newer.

@@ -394,6 +394,19 @@ class ZipInfo (object):
             extra = extra[ln+4:]
 
 
+class ZeroedZipInfo(ZipInfo):
+    def __init__(self, zinfo):
+        for k in self.__slots__:
+            if hasattr(zinfo, k):
+                setattr(self, k, getattr(zinfo, k))
+
+    def __getattribute__(self, name):
+        if name == "external_attr":
+            return 0
+        return object.__getattribute__(self, name)
+
+
+
 class _ZipDecrypter:
     """Class to handle decryption of files stored within a ZIP archive.
 

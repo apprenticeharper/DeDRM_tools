@@ -26,6 +26,7 @@ import sys, os
 
 import zlib
 import zipfilerugged
+from zipfilerugged import ZipInfo, ZeroedZipInfo
 import getopt
 from struct import unpack
 
@@ -36,12 +37,6 @@ _FILENAME_OFFSET = 30
 _MAX_SIZE = 64 * 1024
 _MIMETYPE = 'application/epub+zip'
 
-class ZipInfo(zipfilerugged.ZipInfo):
-    def __init__(self, *args, **kwargs):
-        if 'compress_type' in kwargs:
-            compress_type = kwargs.pop('compress_type')
-        super(ZipInfo, self).__init__(*args, **kwargs)
-        self.compress_type = compress_type
 
 class fixZip:
     def __init__(self, zinput, zoutput):
@@ -117,7 +112,8 @@ class fixZip:
         # if epub write mimetype file first, with no compression
         if self.ztype == 'epub':
             # first get a ZipInfo with current time and no compression
-            mimeinfo = ZipInfo(b'mimetype',compress_type=zipfilerugged.ZIP_STORED)
+            mimeinfo = ZipInfo(b'mimetype')
+            mimeinfo.compress_type = zipfilerugged.ZIP_STORED
             mimeinfo.internal_attr = 1 # text file
             try:
                 # if the mimetype is present, get its info, including time-stamp
@@ -129,8 +125,16 @@ class fixZip:
                 mimeinfo.internal_attr = oldmimeinfo.internal_attr
                 mimeinfo.external_attr = oldmimeinfo.external_attr
                 mimeinfo.create_system = oldmimeinfo.create_system
+                mimeinfo.create_version = oldmimeinfo.create_version
+                mimeinfo.volume = oldmimeinfo.volume
             except:
                 pass
+
+            # Python 3 has a bug where the external_attr is reset to `0o600 << 16`
+            # if it's NULL, so we need a workaround:
+            if mimeinfo.external_attr == 0: 
+                mimeinfo = ZeroedZipInfo(mimeinfo)
+
             self.outzip.writestr(mimeinfo, _MIMETYPE.encode('ascii'))
 
         # write the rest of the files
@@ -145,13 +149,23 @@ class fixZip:
                     zinfo.filename = local_name
 
                 # create new ZipInfo with only the useful attributes from the old info
-                nzinfo = ZipInfo(zinfo.filename, zinfo.date_time, compress_type=zinfo.compress_type)
+                nzinfo = ZipInfo(zinfo.filename)
+                nzinfo.date_time = zinfo.date_time
+                nzinfo.compress_type = zinfo.compress_type
                 nzinfo.comment=zinfo.comment
                 nzinfo.extra=zinfo.extra
                 nzinfo.internal_attr=zinfo.internal_attr
                 nzinfo.external_attr=zinfo.external_attr
                 nzinfo.create_system=zinfo.create_system
+                nzinfo.create_version = zinfo.create_version
+                nzinfo.volume = zinfo.volume
                 nzinfo.flag_bits = zinfo.flag_bits & 0x800  # preserve UTF-8 flag
+
+                # Python 3 has a bug where the external_attr is reset to `0o600 << 16`
+                # if it's NULL, so we need a workaround:
+                if nzinfo.external_attr == 0: 
+                    nzinfo = ZeroedZipInfo(nzinfo)
+
                 self.outzip.writestr(nzinfo,data)
 
         self.bzf.close()

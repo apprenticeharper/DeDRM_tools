@@ -25,6 +25,7 @@ import traceback
 import zlib
 import zipfile
 from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
+from zeroedzipinfo import ZeroedZipInfo
 from contextlib import closing
 from lxml import etree
 import itertools
@@ -298,12 +299,20 @@ def decryptFontsBook(inpath, outpath):
                         zi.internal_attr = oldzi.internal_attr
                         # external attributes are dependent on the create system, so copy both.
                         zi.external_attr = oldzi.external_attr
+                        zi.volume = oldzi.volume
                         zi.create_system = oldzi.create_system
+                        zi.create_version = oldzi.create_version
+
                         if any(ord(c) >= 128 for c in path) or any(ord(c) >= 128 for c in zi.comment):
                             # If the file name or the comment contains any non-ASCII char, set the UTF8-flag
                             zi.flag_bits |= 0x800
                     except:
                         pass
+
+                    # Python 3 has a bug where the external_attr is reset to `0o600 << 16`
+                    # if it's NULL, so we need a workaround:
+                    if zi.external_attr == 0: 
+                        zi = ZeroedZipInfo(zi)
 
                     if path == "mimetype":
                         outf.writestr(zi, inf.read('mimetype'))
