@@ -187,15 +187,12 @@ class DeDRM(FileTypePlugin):
                 os.mkdir(self.alfdir)
             # only continue if we've never run this version of the plugin before
             self.verdir = os.path.join(self.maindir,PLUGIN_VERSION)
-            if not os.path.exists(self.verdir):
-                if iswindows:
-                    names = ["alfcrypto.dll","alfcrypto64.dll"]
-                elif isosx:
-                    names = ["libalfcrypto.dylib"]
-                else:
-                    names = ["libalfcrypto32.so","libalfcrypto64.so","kindlekey.py","adobekey.py","subasyncio.py"]
+            if not os.path.exists(self.verdir) and not iswindows and not isosx:
+
+                names = ["kindlekey.py","adobekey.py","ignoblekeyNookStudy.py"]
+
                 lib_dict = self.load_resources(names)
-                print("{0} v{1}: Copying needed library files from plugin's zip".format(PLUGIN_NAME, PLUGIN_VERSION))
+                print("{0} v{1}: Copying needed Python scripts from plugin's zip".format(PLUGIN_NAME, PLUGIN_VERSION))
 
                 for entry, data in lib_dict.items():
                     file_path = os.path.join(self.alfdir, entry)

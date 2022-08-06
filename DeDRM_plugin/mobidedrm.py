@@ -80,10 +80,7 @@ import sys
 import os
 import struct
 import binascii
-try:
-    from alfcrypto import Pukall_Cipher
-except:
-    print("AlfCrypto not found. Using python PC1 implementation.")
+from alfcrypto import Pukall_Cipher
 
 from utilities import SafeUnbuffered
 
@@ -140,41 +137,8 @@ def PC1(key, src, decryption=True):
     # if we can get it from alfcrypto, use that
     try:
         return Pukall_Cipher().PC1(key,src,decryption)
-    except NameError:
-        pass
-    except TypeError:
-        pass
-
-    # use slow python version, since Pukall_Cipher didn't load
-    sum1 = 0;
-    sum2 = 0;
-    keyXorVal = 0;
-    if len(key)!=16:
-         DrmException ("PC1: Bad key length")
-    wkey = []
-    for i in range(8):
-        wkey.append(key[i*2]<<8 | key[i*2+1])
-    dst = bytearray(len(src))
-    for i in range(len(src)):
-        temp1 = 0;
-        byteXorVal = 0;
-        for j in range(8):
-            temp1 ^= wkey[j]
-            sum2  = (sum2+j)*20021 + sum1
-            sum1  = (temp1*346)&0xFFFF
-            sum2  = (sum2+sum1)&0xFFFF
-            temp1 = (temp1*20021+1)&0xFFFF
-            byteXorVal ^= temp1 ^ sum2
-        curByte = src[i]
-        if not decryption:
-            keyXorVal = curByte * 257;
-        curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
-        if decryption:
-            keyXorVal = curByte * 257;
-        for j in range(8):
-            wkey[j] ^= keyXorVal;
-        dst[i] = curByte
-    return bytes(dst)
+    except: 
+        raise
 
 # accepts unicode returns unicode
 def checksumPid(s):
@@ -232,12 +196,7 @@ class MobiBook:
         pass
 
     def __init__(self, infile):
-        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2020 The Dark Reverser, Apprentice Harper et al.".format(__version__))
-
-        try:
-            from alfcrypto import Pukall_Cipher
-        except:
-            print("AlfCrypto not found. Using python PC1 implementation.")
+        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2022 The Dark Reverser, Apprentice Harper et al.".format(__version__))
 
         # initial sanity check on file
         self.data_file = open(infile, 'rb').read()
