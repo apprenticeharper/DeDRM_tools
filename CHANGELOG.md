@@ -73,8 +73,9 @@ List of changes since the fork of Apprentice Harper's repository:
 - Fix some more Calibre-6 bugs in the Obok plugin (should fix #114).
 - Fix a bug where invalid Adobe keys could cause the plugin to stop trying subsequent keys (partially fixes #109).
 - Fix DRM removal sometimes resetting the ZIP's internal "external_attr" value on Calibre 5 and newer.
-- Fix PDF decryption issues on Calibre 4 (hopefully fixes #104).
+- Fix tons of PDF decryption issues (hopefully fixes #104 and other PDF-related issues).
 - Small Python 2 / Calibre 4 bugfix for Obok.
 - Removing ancient AlfCrypto machine code libraries, moving all encryption / decryption to Python code.
 - General cleanup and removal of dead code.
 - Fix a bug where ADE account keys weren't automatically imported from the DeACSM plugin when importing a PDF file.
+- Re-enable Xrefs in exported PDF files since the file corruption bug is hopefully fixed. Please open bug reports if you encounter new issues with PDF files.

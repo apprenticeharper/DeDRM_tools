@@ -117,7 +117,7 @@ def SHA256(message):
 # 1 = only if present in input
 # 2 = always
 
-GEN_XREF_STM = 0
+GEN_XREF_STM = 1
 
 # This is the value for the current document
 gen_xref_stm = False # will be set in PDFSerializer
@@ -565,7 +565,11 @@ class PSBaseParser(object):
         while 1:
             self.fillbuf()
             if eol:
-                c = bytes([self.buf[self.charpos]])
+                if sys.version_info[0] == 2: 
+                    c = self.buf[self.charpos]
+                else: 
+                    c = bytes([self.buf[self.charpos]])
+
                 # handle '\r\n'
                 if c == b'\n':
                     linebuf += c
@@ -575,10 +579,17 @@ class PSBaseParser(object):
             if m:
                 linebuf += self.buf[self.charpos:m.end(0)]
                 self.charpos = m.end(0)
-                if bytes([linebuf[-1]]) == b'\r':
-                    eol = True
-                else:
-                    break
+                if sys.version_info[0] == 2:
+                    if linebuf[-1] == b'\r':
+                        eol = True
+                    else:
+                        break
+                else: 
+                    if bytes([linebuf[-1]]) == b'\r':
+                        eol = True
+                    else:
+                        break
+                    
             else:
                 linebuf += self.buf[self.charpos:]
                 self.charpos = len(self.buf)
@@ -954,9 +965,14 @@ class PDFStream(PDFObject):
                     for i in range(0, len(data), columns+1):
                         pred = data[i]
                         ent1 = data[i+1:i+1+columns]
-                        if pred == 2:
-                            ent1 = b''.join(bytes([(a+b) & 255]) \
-                                           for (a,b) in zip(ent0,ent1))
+                        if sys.version_info[0] == 2:
+                            if pred == '\x02':
+                                ent1 = ''.join(chr((ord(a)+ord(b)) & 255) \
+                                               for (a,b) in zip(ent0,ent1))
+                        else: 
+                            if pred == 2:
+                                ent1 = b''.join(bytes([(a+b) & 255]) \
+                                            for (a,b) in zip(ent0,ent1))
                         buf += ent1
                         ent0 = ent1
                     data = buf
@@ -1070,8 +1086,6 @@ class PDFXRef(object):
         return (None, pos)
 
 
-##  PDFXRefStream
-##
 class PDFXRefStream(object):
 
     def __init__(self):
@@ -1404,7 +1418,10 @@ class PDFDocument(object):
         x = ARC4.new(hash).decrypt(Odata) # 4
         if R >= 3:
             for i in range(1,19+1):
-                k = b''.join(bytes([c ^ i]) for c in hash )
+                if sys.version_info[0] == 2:
+                    k = b''.join(chr(ord(c) ^ i) for c in hash )
+                else: 
+                    k = b''.join(bytes([c ^ i]) for c in hash )
                 x = ARC4.new(k).decrypt(x)
 
 
@@ -1462,7 +1479,10 @@ class PDFDocument(object):
             hash.update(docid[0]) # 3
             x = ARC4.new(key).decrypt(hash.digest()[:16]) # 4
             for i in range(1,19+1):
-                k = b''.join(bytes([c ^ i]) for c in key )
+                if sys.version_info[0] == 2:
+                    k = b''.join(chr(ord(c) ^ i) for c in key )
+                else: 
+                    k = b''.join(bytes([c ^ i]) for c in key )
                 x = ARC4.new(k).decrypt(x)
             u1 = x+x # 32bytes total
         if R == 2:
@@ -1490,8 +1510,8 @@ class PDFDocument(object):
 
         # check owner pass:
         retval = self.check_owner_password(password, docid, param)
-        if retval is True or retval is not None:
-            #print("Owner pass is valid - " + str(retval))
+        if retval is True or (retval is not False and retval is not None):
+            #print("Owner pass is valid")
             if retval is True:
                 self.decrypt_key = self.recover_encryption_key_with_password(password, docid, param)
             else:
@@ -1500,7 +1520,7 @@ class PDFDocument(object):
         if self.decrypt_key is None or self.decrypt_key is True or self.decrypt_key is False:
             # That's not the owner password. Check if it's the user password.
             retval = self.check_user_password(password, docid, param)
-            if retval is True or retval is not None:
+            if retval is True or (retval is not False and retval is not None):
                 #print("User pass is valid")
                 if retval is True:
                     self.decrypt_key = self.recover_encryption_key_with_password(password, docid, param)
@@ -1723,7 +1743,11 @@ class PDFDocument(object):
         data = data[16:]
         plaintext = AES.new(key,AES.MODE_CBC,ivector).decrypt(data)
         # remove pkcs#5 aes padding
-        cutter = -1 * plaintext[-1]
+        if sys.version_info[0] == 2: 
+            cutter = -1 * ord(plaintext[-1])
+        else: 
+            cutter = -1 * plaintext[-1]
+
         plaintext = plaintext[:cutter]
         return plaintext
 
@@ -2199,7 +2223,11 @@ class PDFSerializer(object):
         elif isinstance(obj, bytearray):
             self.write(b'(%s)' % self.escape_string(obj))
         elif isinstance(obj, bytes):
-            self.write(b'(%s)' % self.escape_string(obj))
+            # I'm not 100% sure if this is correct, but it seems to fix some PDFs ...
+            # If needed, revert that change.
+            self.write(b'<%s>' % binascii.hexlify(obj).upper())
+            print("ineptpdf.py: Unknown bytes element found - guessing.")            
+            print("If this PDF is corrupted and/or doesn't work, please open a bug report.")
         elif isinstance(obj, str):
             self.write(b'(%s)' % self.escape_string(obj.encode('utf-8')))
         elif isinstance(obj, bool):
@@ -2226,6 +2254,20 @@ class PDFSerializer(object):
                 self.write(b'(deleted)')
             else:
                 data = obj.get_decdata()
+
+                # Fix length:
+                # We've decompressed and then recompressed the PDF stream.
+                # Depending on the algorithm, the implementation, and the compression level, 
+                # the resulting recompressed stream is unlikely to have the same length as the original.
+                # So we need to update the PDF object to contain the new proper length.
+
+                # Without this change, all PDFs exported by this plugin are slightly corrupted - 
+                # even though most if not all PDF readers can correct that on-the-fly.
+
+                if 'Length' in obj.dic: 
+                    obj.dic['Length'] = len(data)
+
+
                 self.serialize_object(obj.dic)
                 self.write(b'stream\n')
                 self.write(data)
