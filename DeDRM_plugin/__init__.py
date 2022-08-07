@@ -134,7 +134,7 @@ except:
     config_dir = ""
 
 
-from utilities import SafeUnbuffered
+import utilities
 
 
 PLUGIN_NAME = __version.PLUGIN_NAME
@@ -998,8 +998,8 @@ class DeDRM(FileTypePlugin):
     def run(self, path_to_ebook):
 
         # make sure any unicode output gets converted safely with 'replace'
-        sys.stdout=SafeUnbuffered(sys.stdout)
-        sys.stderr=SafeUnbuffered(sys.stderr)
+        sys.stdout=utilities.SafeUnbuffered(sys.stdout)
+        sys.stderr=utilities.SafeUnbuffered(sys.stderr)
 
         print("{0} v{1}: Trying to decrypt {2}".format(PLUGIN_NAME, PLUGIN_VERSION, os.path.basename(path_to_ebook)))
         self.starttime = time.time()

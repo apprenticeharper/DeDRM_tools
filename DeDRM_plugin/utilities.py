@@ -3,7 +3,6 @@
 
 #@@CALIBRE_COMPAT_CODE@@
 
-from ignoblekeyGenPassHash import generate_key
 import sys
 
 __license__ = 'GPL v3'
@@ -22,17 +21,6 @@ def uStrCmp (s1, s2, caseless=False):
     else:
         return ud.normalize('NFC', str1) == ud.normalize('NFC', str2)
 
-def parseCustString(keystuff):
-    userkeys = []
-    ar = keystuff.split(':')
-    for i in ar:
-        try:
-            name, ccn = i.split(',')
-            # Generate Barnes & Noble EPUB user key from name and credit card number.
-            userkeys.append(generate_key(name, ccn))
-        except:
-            pass
-    return userkeys
 
 
 # Wrap a stream so that output gets flushed immediately
