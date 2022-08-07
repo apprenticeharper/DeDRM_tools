@@ -733,10 +733,10 @@ class DeDRM(FileTypePlugin):
             if newkey is not None: 
                 if codecs.encode(newkey, 'hex').decode('ascii') not in dedrmprefs['adeptkeys'].values():
                     print("{0} v{1}: Found new key '{2}' in DeACSM plugin".format(PLUGIN_NAME, PLUGIN_VERSION, newname))
-                    newkeys.append(keyvalue)
+                    newkeys.append(newkey)
                     newnames.append(newname)
         except:
-            pass
+            traceback.print_exc()
 
         if len(newkeys) > 0:
             try:
@@ -770,7 +770,7 @@ class DeDRM(FileTypePlugin):
 
                     print("{0} v{1}: Failed to decrypt with new default key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION,time.time()-self.starttime))
             except Exception as e:
-                pass
+                traceback.print_exc()
 
 
         # Unable to decrypt the PDF with any of the existing keys. Is it a B&N PDF?

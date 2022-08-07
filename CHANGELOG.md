@@ -77,3 +77,4 @@ List of changes since the fork of Apprentice Harper's repository:
 - Small Python 2 / Calibre 4 bugfix for Obok.
 - Removing ancient AlfCrypto machine code libraries, moving all encryption / decryption to Python code.
 - General cleanup and removal of dead code.
+- Fix a bug where ADE account keys weren't automatically imported from the DeACSM plugin when importing a PDF file.
