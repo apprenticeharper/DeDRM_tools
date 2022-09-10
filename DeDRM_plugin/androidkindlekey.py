@@ -396,7 +396,7 @@ def gui_main():
                 return
             self.status['text'] = "Select backup.ab file"
 
-    argv=unicode_argv()
+    argv=sys.argv()
     progpath, progname = os.path.split(argv[0])
     root = tkinter.Tk()
     root.title("Kindle for Android Key Extraction v.{0}".format(__version__))

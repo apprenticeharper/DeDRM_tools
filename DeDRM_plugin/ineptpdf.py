@@ -1086,6 +1086,8 @@ class PDFXRef(object):
         return (None, pos)
 
 
+##  PDFXRefStream
+##
 class PDFXRefStream(object):
 
     def __init__(self):
