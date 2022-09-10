@@ -1152,7 +1152,8 @@ class AddAdeptDialog():
                 zip_function = zip
 
             for key, name in zip_function(defaultkeys, defaultnames):
-                if codecs.encode(key,'hex').decode("latin-1") in self.parent.plugin_keys.values():
+                key = codecs.encode(key,'hex').decode("latin-1")
+                if key in self.parent.plugin_keys.values():
                     print("Found key '{0}' in ADE - already present, skipping.".format(name))
                 else:
                     self.new_keys.append(key)
@@ -1167,8 +1168,8 @@ class AddAdeptDialog():
             key, name = checkForDeACSMkeys()
 
             if key is not None: 
-
-                if codecs.encode(key,'hex').decode("latin-1") in self.parent.plugin_keys.values():
+                key = codecs.encode(key,'hex').decode("latin-1")
+                if key in self.parent.plugin_keys.values():
                     print("Found key '{0}' in DeACSM - already present, skipping.".format(name))
                 else: 
                     # Found new key, add that.
@@ -1202,7 +1203,7 @@ class AddAdeptDialog():
 
     @property
     def key_value(self):
-        return codecs.encode(self.new_keys[0],'hex').decode("utf-8")
+        return codecs.encode(self.new_keys[0],'hex').decode("latin-1")
 
     
     @property
