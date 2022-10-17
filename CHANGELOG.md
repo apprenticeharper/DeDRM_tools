@@ -81,3 +81,4 @@ List of changes since the fork of Apprentice Harper's repository:
 - Re-enable Xrefs in exported PDF files since the file corruption bug is hopefully fixed. Please open bug reports if you encounter new issues with PDF files.
 - Fix a bug that would sometimes cause corrupted keys to be added when adding them through the config dialog (fixes #145, #134, #119, #116, #115, #109).
 - Update the README (fixes #136) to indicate that Apprentice Harper's version is no longer being updated.
+- Fix a bug where PDFs with empty arrays (`<>`) in a PDF object failed to decrypt, fixes #183.

@@ -270,6 +270,11 @@ END_STRING = re.compile(br'[()\\]')
 OCT_STRING = re.compile(br'[0-7]')
 ESC_STRING = { b'b':8, b't':9, b'n':10, b'f':12, b'r':13, b'(':40, b')':41, b'\\':92 }
 
+class EmptyArrayValue(object):
+    def __str__(self):
+        return "<>"
+
+
 class PSBaseParser(object):
 
     '''
@@ -519,6 +524,13 @@ class PSBaseParser(object):
         if c == b'<':
             self.add_token(KEYWORD_DICT_BEGIN)
             i += 1
+        if c == b'>':
+            # Empty array without any contents. Why though?
+            # We need to add some dummy python object that will serialize to 
+            # nothing, otherwise the code removes the whole array.
+            self.add_token(EmptyArrayValue())
+            i += 1
+
         return (self.parse_main, i)
 
     def parse_wclose(self, s, i):
@@ -544,7 +556,6 @@ class PSBaseParser(object):
         else: 
             token = HEX_PAIR.sub(lambda m: bytes([int(m.group(0), 16)]),
                                                  SPC.sub(b'', self.token))
-
         self.add_token(token)
         return (self.parse_main, j)
 
@@ -1591,7 +1602,13 @@ class PDFDocument(object):
 
     def initialize_ebx_ignoble(self, keyb64, docid, param):
         self.is_printable = self.is_modifiable = self.is_extractable = True
-        key = keyb64.decode('base64')[:16]
+
+        try: 
+            key = keyb64.decode('base64')[:16]
+            # This will probably always error, but I'm not 100% sure, so lets leave the old code in.
+        except AttributeError: 
+            key = codecs.decode(keyb64.encode("ascii"), 'base64')[:16]
+
 
         length = int_value(param.get('Length', 0)) / 8
         rights = codecs.decode(str_value(param.get('ADEPT_LICENSE')), "base64")
@@ -2225,11 +2242,7 @@ class PDFSerializer(object):
         elif isinstance(obj, bytearray):
             self.write(b'(%s)' % self.escape_string(obj))
         elif isinstance(obj, bytes):
-            # I'm not 100% sure if this is correct, but it seems to fix some PDFs ...
-            # If needed, revert that change.
             self.write(b'<%s>' % binascii.hexlify(obj).upper())
-            print("ineptpdf.py: Unknown bytes element found - guessing.")            
-            print("If this PDF is corrupted and/or doesn't work, please open a bug report.")
         elif isinstance(obj, str):
             self.write(b'(%s)' % self.escape_string(obj.encode('utf-8')))
         elif isinstance(obj, bool):
