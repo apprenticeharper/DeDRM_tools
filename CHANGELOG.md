@@ -83,3 +83,5 @@ List of changes since the fork of Apprentice Harper's repository:
 - Update the README (fixes #136) to indicate that Apprentice Harper's version is no longer being updated.
 - Fix a bug where PDFs with empty arrays (`<>`) in a PDF object failed to decrypt, fixes #183.
 - Automatically strip whitespace from entered Amazon Kindle serial numbers, should fix #158.
+- Obok: Add new setting option "Add new entry" for duplicate books to always add them to the Calibre database as a new book. Untested. Should fix #148.
+- Obok: Fix where changing the Calibre UI language to some languages would cause the "duplicate book" setting to reset. Untested.

@@ -237,7 +237,10 @@ class InterfacePluginAction(InterfaceAction):
 
         :param books_to_add: List of calibre bookmaps (created in get_decrypted_kobo_books)
         '''
-        added = self.db.add_books(books_to_add, add_duplicates=False, run_hooks=False)
+
+        cfg_add_duplicates = (cfg['finding_homes_for_formats'] == 'Add new entry')
+
+        added = self.db.add_books(books_to_add, add_duplicates=cfg_add_duplicates, run_hooks=False)
         if len(added[0]):
             # Record the id(s) that got added
             for id in added[0]:

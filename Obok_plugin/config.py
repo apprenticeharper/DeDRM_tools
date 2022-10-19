@@ -39,8 +39,13 @@ class ConfigWidget(QWidget):
         self.find_homes = QComboBox()
         self.find_homes.setToolTip(_('<p>Default behavior when duplicates are detected. None of the choices will cause calibre ebooks to be overwritten'))
         layout.addWidget(self.find_homes)
-        self.find_homes.addItems([_('Ask'), _('Always'), _('Never')])
+
+        self.find_homes.addItems([_('Ask'), _('Always'), _('Never'), _('Add new entry')])
+
         index = self.find_homes.findText(plugin_prefs['finding_homes_for_formats'])
+        if index == -1:
+            index = self.find_homes.findText(_(plugin_prefs['finding_homes_for_formats']))
+
         self.find_homes.setCurrentIndex(index)
 
         self.serials_button = QtGui.QPushButton(self)
@@ -69,7 +74,24 @@ class ConfigWidget(QWidget):
 
 
     def save_settings(self):
-        plugin_prefs['finding_homes_for_formats'] = self.find_homes.currentText()
+
+
+        # Make sure the config file string is *always* english.
+        find_homes = None
+        if self.find_homes.currentText() == _('Ask'):
+            find_homes = 'Ask'
+        elif self.find_homes.currentText() == _('Always'):
+            find_homes = 'Always'
+        elif self.find_homes.currentText() == _('Never'):
+            find_homes = 'Never'
+        elif self.find_homes.currentText() == _('Add new entry'):
+            find_homes = 'Add new entry'
+        
+        if find_homes is None:
+            # Fallback
+            find_homes = self.find_homes.currentText()
+
+        plugin_prefs['finding_homes_for_formats'] = find_homes
         plugin_prefs['kobo_serials'] = self.tmpserials
         plugin_prefs['kobo_directory'] = self.kobodirectory
 
