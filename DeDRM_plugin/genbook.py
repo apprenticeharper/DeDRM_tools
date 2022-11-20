@@ -4,23 +4,7 @@
 # Python 3 for calibre 5.0
 from __future__ import print_function
 
-# Wrap a stream so that output gets flushed immediately
-# and also make sure that any unicode strings get
-# encoded using "replace" before writing them.
-class SafeUnbuffered:
-    def __init__(self, stream):
-        self.stream = stream
-        self.encoding = stream.encoding
-        if self.encoding == None:
-            self.encoding = "utf-8"
-    def write(self, data):
-        if isinstance(data, str):
-            data = data.encode(self.encoding,"replace")
-        self.stream.buffer.write(data)
-        self.stream.buffer.flush()
-
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
+from utilities import SafeUnbuffered
 
 import sys
 import csv
@@ -29,25 +13,17 @@ import getopt
 from struct import pack
 from struct import unpack
 
+#@@CALIBRE_COMPAT_CODE@@
+
+
 class TpzDRMError(Exception):
     pass
 
 # local support routines
-if 'calibre' in sys.modules:
-    inCalibre = True
-else:
-    inCalibre = False
-
-if inCalibre :
-    from calibre_plugins.dedrm import convert2xml
-    from calibre_plugins.dedrm import flatxml2html
-    from calibre_plugins.dedrm import flatxml2svg
-    from calibre_plugins.dedrm import stylexml2css
-else :
-    import convert2xml
-    import flatxml2html
-    import flatxml2svg
-    import stylexml2css
+import convert2xml
+import flatxml2html
+import flatxml2svg
+import stylexml2css
 
 # global switch
 buildXML = False

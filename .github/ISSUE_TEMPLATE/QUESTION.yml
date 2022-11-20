@@ -1,0 +1,41 @@
+name: Question
+description: Questions for DeDRM Project
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question / bug report
+      description: Please enter your question / your bug report.
+  - type: input
+    id: calibre-version
+    attributes:
+      label: Which version of Calibre are you running?
+      description: "Example: 5.32"
+      placeholder: "5.32"
+    validations: 
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Which version of the DeDRM plugin are you running?
+      description: "Example: v10.0.0"
+      placeholder: "v10.0.0"
+    validations: 
+      required: true
+  - type: input
+    id: kindle-version
+    attributes:
+      label: If applicable, which version of the Kindle software are you running?
+      description: "Example: 1.24"
+      placeholder: "Leave empty if unrelated to Kindle books"
+    validations: 
+      required: false
+  - type: textarea
+    id: log
+    attributes:
+      label: Log output
+      description: If applicable, please post your log output here - into the code block.
+      value: |
+        ```log
+        Paste log output here.
+        ```

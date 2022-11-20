@@ -276,12 +276,20 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,str) or isinstance(data,unicode):
+            # str for Python3, unicode for Python2
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        try:
+            buffer = getattr(self.stream, 'buffer', self.stream)
+            # self.stream.buffer for Python3, self.stream for Python2
+            buffer.write(data)
+            buffer.flush()
+        except:
+            # We can do nothing if a write fails
+            raise
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
+        
 
 
 class KoboLibrary(object):
@@ -346,7 +354,10 @@ class KoboLibrary(object):
         if (self.kobodir == u""):
             # step 4. we haven't found a device with serials, so try desktop apps
             if sys.platform.startswith('win'):
-                import winreg
+                try:
+                    import winreg
+                except ImportError:
+                    import _winreg as winreg
                 if sys.getwindowsversion().major > 5:
                     if 'LOCALAPPDATA' in os.environ.keys():
                         # Python 2.x does not return unicode env. Use Python 3.x
@@ -736,7 +747,7 @@ def cli_main():
                 books = [lib.books[num - 1]]
             except (ValueError, IndexError):
                 print("Invalid choice. Exiting...")
-                exit()
+                sys.exit()
 
     results = [decrypt_book(book, lib) for book in books]
     lib.close()

@@ -1,0 +1,68 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+	"http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Managing Adobe PassHash (B&N) Keys</title>
+<style type="text/css">
+span.version {font-size: 50%}
+span.bold {font-weight: bold}
+h3 {margin-bottom: 0}
+p {margin-top: 0}
+li {margin-top: 0.5em}
+</style>
+</head>
+
+<body>
+
+<h1>Managing Adobe PassHash Keys</h1>
+
+<p>Adobe PassHash is a variant of the Adobe DRM which is used by retailers like Barnes and Noble. Instead of using certificates and device-based authorization, this uses a username and password combination. In B&&Ns implementation however, the user never gets access to these credentials, just to the credential hash.</p>
+
+<h3>Changes at Barnes & Noble</h3>
+
+<p>Since 2014, Barnes & Noble is no longer using the default Adobe key generation algorithm, which used to be the full name as "username" and the full credit card number as "password" for the PassHash algorithm. 
+Instead, they started generating a random key on their server and send that to the reading application during login. This means that the old method to decrypt these books will no longer work. </p>
+
+<p>There used to be a way to use the Android app's API to simulate a login to the Barnes and Noble servers, but that API has been shut down a while ago, too, and so far nobody has reverse-engineered the new one.</p>
+
+<h3>Importing PassHash / B&N keys</h3>
+
+<p>On the right-hand side of the plugin’s customization dialog, you will see a button with an icon that looks like a green plus sign (+). Clicking this button will open a new dialog for entering the necessary data to generate a new key.</p>
+<p>Currently, the only known ways to access the key are the following:</p>
+<ul>
+	<li>B&N: The encryption key can be extracted from the NOOK reading application available in the Microsoft store, or from the old "Nook Study" application. To do that, click on the "Extract key from Nook Windows application" option.</li>
+	<li>B&N: The encryption key can also be extracted from a data backup of the NOOK Android application. To do that, you'll need to have a rooted Android device, a hacked / modified Nook APK file, or an Android emulator to be able to access the app data. If you have that, click on "Extract key from Nook Android application" and follow the instructions.</li>
+	<li>B&N: The NOOK Android application supports / accepts user-added CA certificates, so you can set up something like mitmproxy on your computer, tunnel your phone's traffic through that, and extract the ccHash key data from the server response. You can then add that hash through the "Base64-encoded PassHash key string" option.</li>
+	<li>If you already have a copy of the Nook ccHash key string (or, more general, the PassHash key string) in base64 encoding, you can either click on "Import existing keyfiles" if it's a file in b64 format, or you click on the "Base64-encoded PassHash key string" option while adding a new PassHash key.</li>
+	<li>For retailers other than B&N that are using the PassHash algorihm as intended, you can click on "Adobe PassHash username & password" to enter your credentials while adding a key. This is the same algorihm as the original credit card number based key generation for B&N.</li>
+	<li>Windows only: If you've successfully opened a PassHash-encrypted book in Adobe Digital Editions by entering username and password, you can dump the stored credentials from ADE.</li>
+</ul>
+
+
+<p>After you've selected a key retrieval method from the settings, the dialog may change and request some additional information depending on the key retrieval method. Enter that, then click the OK button to create and store the generated key. Or Cancel if you don’t want to create a key.</p>
+<p>New keys are checked against the current list of keys before being added, and duplicates are discarded.</p>
+
+<h3>Deleting Keys:</h3>
+
+<p>On the right-hand side of the plugin’s customization dialog, you will see a button with an icon that looks like a red "X". Clicking this button will delete the highlighted key in the list. You will be prompted once to be sure that’s what you truly mean to do. Once gone, it’s permanently gone.</p>
+
+<h3>Renaming Keys:</h3>
+
+<p>On the right-hand side of the plugin’s customization dialog, you will see a button with an icon that looks like a sheet of paper. Clicking this button will prompt you to enter a new name for the highlighted key in the list. Enter the new name for the encryption key and click the OK button to use the new name, or Cancel to revert to the old name..</p>
+
+<h3>Exporting Keys:</h3>
+
+<p>On the right-hand side of the plugin’s customization dialog, you will see a button with an icon that looks like a computer’s hard-drive. Use this button to export the highlighted key to a file (with a ‘.b64’ file name extension). Used for backup purposes or to migrate key data to other computers/calibre installations. The dialog will prompt you for a place to save the file.</p>
+
+<h3>Importing Existing Keyfiles:</h3>
+
+<p>At the bottom-left of the plugin’s customization dialog, you will see a button labeled "Import Existing Keyfiles". Use this button to import existing ‘.b64’ key files. Key files might come from being exported from this or older plugins, or may have been generated using the original i♥cabbages script, or you may have made it by following the instructions above.</p>
+
+<p>Once done creating/deleting/renaming/importing decryption keys, click Close to exit the customization dialogue. Your changes will only be saved permanently when you click OK in the main configuration dialog.</p>
+
+</body>
+
+</html>

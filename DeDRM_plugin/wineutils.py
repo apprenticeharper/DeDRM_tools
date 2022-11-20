@@ -5,7 +5,10 @@ __license__ = 'GPL v3'
 
 # Standard Python modules.
 import os, sys, re, hashlib, traceback
-from calibre_plugins.dedrm.__init__ import PLUGIN_NAME, PLUGIN_VERSION
+
+#@@CALIBRE_COMPAT_CODE@@
+
+from __init__ import PLUGIN_NAME, PLUGIN_VERSION
 
 
 class NoWinePython3Exception(Exception):
@@ -74,7 +77,7 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
         pyexec = WinePythonCLI(wineprefix)
     except NoWinePython3Exception:
         print('{0} v{1}: Unable to find python3 executable in WINEPREFIX="{2}"'.format(PLUGIN_NAME, PLUGIN_VERSION, wineprefix))
-        return []
+        return [], []
 
     basepath, script = os.path.split(scriptpath)
     print("{0} v{1}: Running {2} under Wine".format(PLUGIN_NAME, PLUGIN_VERSION, script))
@@ -93,6 +96,7 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
 
     # try finding winekeys anyway, even if above code errored
     winekeys = []
+    winekey_names = []
     # get any files with extension in the output dir
     files = [f for f in os.listdir(outdirpath) if f.endswith(extension)]
     for filename in files:
@@ -104,9 +108,10 @@ def WineGetKeys(scriptpath, extension, wineprefix=""):
                 else:
                     new_key_value = keyfile.read()
             winekeys.append(new_key_value)
+            winekey_names.append(filename)
         except:
             print("{0} v{1}: Error loading file {2}".format(PLUGIN_NAME, PLUGIN_VERSION, filename))
             traceback.print_exc()
         os.remove(fpath)
     print("{0} v{1}: Found and decrypted {2} {3}".format(PLUGIN_NAME, PLUGIN_VERSION, len(winekeys), "key file" if len(winekeys) == 1 else "key files"))
-    return winekeys
+    return winekeys, winekey_names

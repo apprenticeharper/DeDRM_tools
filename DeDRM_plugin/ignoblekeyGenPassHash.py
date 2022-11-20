@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# ignoblekeygen.py
-# Copyright © 2009-2020 i♥cabbages, Apprentice Harper et al.
+# ignoblekeyGenPassHash.py
+# Copyright © 2009-2022 i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -31,163 +31,31 @@
 #   2.7 - Work if TkInter is missing
 #   2.8 - Fix bug in stand-alone use (import tkFileDialog)
 #   3.0 - Added Python 3 compatibility for calibre 5.0
+#   3.1 - Remove OpenSSL support, only PyCryptodome is supported now
 
 """
 Generate Barnes & Noble EPUB user key from name and credit card number.
 """
 
 __license__ = 'GPL v3'
-__version__ = "3.0"
+__version__ = "3.1"
 
 import sys
 import os
 import hashlib
 import base64
 
-# Wrap a stream so that output gets flushed immediately
-# and also make sure that any unicode strings get
-# encoded using "replace" before writing them.
-class SafeUnbuffered:
-    def __init__(self, stream):
-        self.stream = stream
-        self.encoding = stream.encoding
-        if self.encoding == None:
-            self.encoding = "utf-8"
-    def write(self, data):
-        if isinstance(data, str):
-            data = data.encode(self.encoding,"replace")
-        self.stream.buffer.write(data)
-        self.stream.buffer.flush()
-
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
-
 try:
-    from calibre.constants import iswindows, isosx
-except:
-    iswindows = sys.platform.startswith('win')
-    isosx = sys.platform.startswith('darwin')
+    from Cryptodome.Cipher import AES
+except ImportError:
+    from Crypto.Cipher import AES
 
-def unicode_argv():
-    if iswindows:
-        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-        # strings.
+from utilities import SafeUnbuffered
 
-        # Versions 2.x of Python don't support Unicode in sys.argv on
-        # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.  So use shell32.GetCommandLineArgvW to get sys.argv
-        # as a list of Unicode strings and encode them as utf-8
-
-        from ctypes import POINTER, byref, cdll, c_int, windll
-        from ctypes.wintypes import LPCWSTR, LPWSTR
-
-        GetCommandLineW = cdll.kernel32.GetCommandLineW
-        GetCommandLineW.argtypes = []
-        GetCommandLineW.restype = LPCWSTR
-
-        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-        CommandLineToArgvW.restype = POINTER(LPWSTR)
-
-        cmd = GetCommandLineW()
-        argc = c_int(0)
-        argv = CommandLineToArgvW(cmd, byref(argc))
-        if argc.value > 0:
-            # Remove Python executable and commands if present
-            start = argc.value - len(sys.argv)
-            return [argv[i] for i in
-                    range(start, argc.value)]
-        # if we don't have any arguments at all, just pass back script name
-        # this should never happen
-        return ["ignoblekeygen.py"]
-    else:
-        argvencoding = sys.stdin.encoding or "utf-8"
-        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
-
+from argv_utils import unicode_argv
 
 class IGNOBLEError(Exception):
     pass
-
-def _load_crypto_libcrypto():
-    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
-        Structure, c_ulong, create_string_buffer, cast
-    from ctypes.util import find_library
-
-    if iswindows:
-        libcrypto = find_library('libeay32')
-    else:
-        libcrypto = find_library('crypto')
-
-    if libcrypto is None:
-        raise IGNOBLEError('libcrypto not found')
-    libcrypto = CDLL(libcrypto)
-
-    AES_MAXNR = 14
-
-    c_char_pp = POINTER(c_char_p)
-    c_int_p = POINTER(c_int)
-
-    class AES_KEY(Structure):
-        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
-                    ('rounds', c_int)]
-    AES_KEY_p = POINTER(AES_KEY)
-
-    def F(restype, name, argtypes):
-        func = getattr(libcrypto, name)
-        func.restype = restype
-        func.argtypes = argtypes
-        return func
-
-    AES_set_encrypt_key = F(c_int, 'AES_set_encrypt_key',
-                            [c_char_p, c_int, AES_KEY_p])
-    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
-                        [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
-                         c_int])
-
-    class AES(object):
-        def __init__(self, userkey, iv):
-            self._blocksize = len(userkey)
-            self._iv = iv
-            key = self._key = AES_KEY()
-            rv = AES_set_encrypt_key(userkey, len(userkey) * 8, key)
-            if rv < 0:
-                raise IGNOBLEError('Failed to initialize AES Encrypt key')
-
-        def encrypt(self, data):
-            out = create_string_buffer(len(data))
-            rv = AES_cbc_encrypt(data, out, len(data), self._key, self._iv, 1)
-            if rv == 0:
-                raise IGNOBLEError('AES encryption failed')
-            return out.raw
-
-    return AES
-
-def _load_crypto_pycrypto():
-    from Crypto.Cipher import AES as _AES
-
-    class AES(object):
-        def __init__(self, key, iv):
-            self._aes = _AES.new(key, _AES.MODE_CBC, iv)
-
-        def encrypt(self, data):
-            return self._aes.encrypt(data)
-
-    return AES
-
-def _load_crypto():
-    AES = None
-    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
-    if sys.platform.startswith('win'):
-        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
-    for loader in cryptolist:
-        try:
-            AES = loader()
-            break
-        except (ImportError, IGNOBLEError):
-            pass
-    return AES
-
-AES = _load_crypto()
 
 def normalize_name(name):
     return ''.join(x for x in name.lower() if x != ' ')
@@ -209,8 +77,7 @@ def generate_key(name, ccn):
     name_sha = hashlib.sha1(name).digest()[:16]
     ccn_sha = hashlib.sha1(ccn).digest()[:16]
     both_sha = hashlib.sha1(name + ccn).digest()
-    aes = AES(ccn_sha, name_sha)
-    crypt = aes.encrypt(both_sha + (b'\x0c' * 0x0c))
+    crypt = AES.new(ccn_sha, AES.MODE_CBC, name_sha).encrypt(both_sha + (b'\x0c' * 0x0c))
     userkey = hashlib.sha1(crypt).digest()
     return base64.b64encode(userkey)
 
@@ -218,13 +85,8 @@ def generate_key(name, ccn):
 def cli_main():
     sys.stdout=SafeUnbuffered(sys.stdout)
     sys.stderr=SafeUnbuffered(sys.stderr)
-    argv=unicode_argv()
+    argv=unicode_argv("ignoblekeyGenPassHash.py")
     progname = os.path.basename(argv[0])
-    if AES is None:
-        print("%s: This script requires OpenSSL or PyCrypto, which must be installed " \
-              "separately.  Read the top-of-script comment for details." % \
-              (progname,))
-        return 1
     if len(argv) != 4:
         print("usage: {0} <Name> <CC#> <keyfileout.b64>".format(progname))
         return 1
@@ -310,13 +172,6 @@ def gui_main():
             self.status['text'] = "Keyfile successfully generated"
 
     root = tkinter.Tk()
-    if AES is None:
-        root.withdraw()
-        tkinter.messagebox.showerror(
-            "Ignoble EPUB Keyfile Generator",
-            "This script requires OpenSSL or PyCrypto, which must be installed "
-            "separately.  Read the top-of-script comment for details.")
-        return 1
     root.title("Barnes & Noble ePub Keyfile Generator v.{0}".format(__version__))
     root.resizable(True, False)
     root.minsize(300, 0)

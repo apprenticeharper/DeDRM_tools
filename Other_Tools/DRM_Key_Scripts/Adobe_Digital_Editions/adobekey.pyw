@@ -68,12 +68,20 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,str) or isinstance(data,unicode):
+            # str for Python3, unicode for Python2
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        try:
+            buffer = getattr(self.stream, 'buffer', self.stream)
+            # self.stream.buffer for Python3, self.stream for Python2
+            buffer.write(data)
+            buffer.flush()
+        except:
+            # We can do nothing if a write fails
+            raise
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
+        
 
 try:
     from calibre.constants import iswindows, isosx
@@ -129,7 +137,10 @@ if iswindows:
         c_long, c_ulong
 
     from ctypes.wintypes import LPVOID, DWORD, BOOL
-    import winreg
+    try:
+        import winreg
+    except ImportError:
+        import _winreg as winreg
 
     def _load_crypto_libcrypto():
         from ctypes.util import find_library

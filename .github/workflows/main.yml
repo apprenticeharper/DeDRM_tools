@@ -1,0 +1,20 @@
+name: Package plugin
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Package
+        run: python3 make_release.py
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with: 
+          name: plugin
+          path: |
+            DeDRM_tools_*.zip
+            DeDRM_tools.zip

@@ -30,8 +30,12 @@ import struct
 
 from io import BytesIO
 
-from Crypto.Cipher import AES
-from Crypto.Util.py3compat import bchr
+try:
+    from Cryptodome.Cipher import AES
+    from Cryptodome.Util.py3compat import bchr
+except ImportError:
+    from Crypto.Cipher import AES
+    from Crypto.Util.py3compat import bchr
 
 try:
     # lzma library from calibre 4.6.0 or later
@@ -759,6 +763,9 @@ def pkcs7unpad(msg, blocklen):
     _assert(msg[-paddinglen:] == bchr(paddinglen) * paddinglen, "Incorrect padding - Wrong key")
 
     return msg[:-paddinglen]
+
+
+
 
 
 # every VoucherEnvelope version has a corresponding "word" and magic number, used in obfuscating the shared secret

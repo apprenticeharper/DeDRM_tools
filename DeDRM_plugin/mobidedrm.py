@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 __license__ = 'GPL v3'
-__version__ = "1.0"
+__version__ = "1.1"
 
 # This is a python script. You need a Python interpreter to run it.
 # For example, ActiveState Python, which exists for windows.
@@ -74,72 +74,17 @@ __version__ = "1.0"
 #  0.41 - Fixed potential unicode problem in command line calls
 #  0.42 - Added GPL v3 licence. updated/removed some print statements
 #  1.0  - Python 3 compatibility for calibre 5.0
+#  1.1  - Speed Python PC1 implementation up a little bit
 
 import sys
 import os
 import struct
 import binascii
-try:
-    from alfcrypto import Pukall_Cipher
-except:
-    print("AlfCrypto not found. Using python PC1 implementation.")
+from alfcrypto import Pukall_Cipher
 
-# Wrap a stream so that output gets flushed immediately
-# and also make sure that any unicode strings get
-# encoded using "replace" before writing them.
-class SafeUnbuffered:
-    def __init__(self, stream):
-        self.stream = stream
-        self.encoding = stream.encoding
-        if self.encoding == None:
-            self.encoding = "utf-8"
-    def write(self, data):
-        if isinstance(data, str):
-            data = data.encode(self.encoding,"replace")
-        self.stream.buffer.write(data)
-        self.stream.buffer.flush()
+from utilities import SafeUnbuffered
 
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
-
-iswindows = sys.platform.startswith('win')
-isosx = sys.platform.startswith('darwin')
-
-def unicode_argv():
-    if iswindows:
-        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-        # strings.
-
-        # Versions 2.x of Python don't support Unicode in sys.argv on
-        # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.
-
-
-        from ctypes import POINTER, byref, cdll, c_int, windll
-        from ctypes.wintypes import LPCWSTR, LPWSTR
-
-        GetCommandLineW = cdll.kernel32.GetCommandLineW
-        GetCommandLineW.argtypes = []
-        GetCommandLineW.restype = LPCWSTR
-
-        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-        CommandLineToArgvW.restype = POINTER(LPWSTR)
-
-        cmd = GetCommandLineW()
-        argc = c_int(0)
-        argv = CommandLineToArgvW(cmd, byref(argc))
-        if argc.value > 0:
-            # Remove Python executable and commands if present
-            start = argc.value - len(sys.argv)
-            return [argv[i] for i in
-                    range(start, argc.value)]
-        # if we don't have any arguments at all, just pass back script name
-        # this should never happen
-        return ["mobidedrm.py"]
-    else:
-        argvencoding = sys.stdin.encoding or "utf-8"
-        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
+from argv_utils import unicode_argv
 
 
 class DrmException(Exception):
@@ -155,41 +100,8 @@ def PC1(key, src, decryption=True):
     # if we can get it from alfcrypto, use that
     try:
         return Pukall_Cipher().PC1(key,src,decryption)
-    except NameError:
-        pass
-    except TypeError:
-        pass
-
-    # use slow python version, since Pukall_Cipher didn't load
-    sum1 = 0;
-    sum2 = 0;
-    keyXorVal = 0;
-    if len(key)!=16:
-         DrmException ("PC1: Bad key length")
-    wkey = []
-    for i in range(8):
-        wkey.append(key[i*2]<<8 | key[i*2+1])
-    dst = b''
-    for i in range(len(src)):
-        temp1 = 0;
-        byteXorVal = 0;
-        for j in range(8):
-            temp1 ^= wkey[j]
-            sum2  = (sum2+j)*20021 + sum1
-            sum1  = (temp1*346)&0xFFFF
-            sum2  = (sum2+sum1)&0xFFFF
-            temp1 = (temp1*20021+1)&0xFFFF
-            byteXorVal ^= temp1 ^ sum2
-        curByte = src[i]
-        if not decryption:
-            keyXorVal = curByte * 257;
-        curByte = ((curByte ^ (byteXorVal >> 8)) ^ byteXorVal) & 0xFF
-        if decryption:
-            keyXorVal = curByte * 257;
-        for j in range(8):
-            wkey[j] ^= keyXorVal;
-        dst+=bytes([curByte])
-    return dst
+    except: 
+        raise
 
 # accepts unicode returns unicode
 def checksumPid(s):
@@ -247,12 +159,7 @@ class MobiBook:
         pass
 
     def __init__(self, infile):
-        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2020 The Dark Reverser, Apprentice Harper et al.".format(__version__))
-
-        try:
-            from alfcrypto import Pukall_Cipher
-        except:
-            print("AlfCrypto not found. Using python PC1 implementation.")
+        print("MobiDeDrm v{0:s}.\nCopyright © 2008-2022 The Dark Reverser, Apprentice Harper et al.".format(__version__))
 
         # initial sanity check on file
         self.data_file = open(infile, 'rb').read()
@@ -320,6 +227,15 @@ class MobiBook:
                     elif type == 404 and size == 9:
                         # make sure text to speech is enabled
                         self.patchSection(0, b'\0', 16 + self.mobi_length + pos + 8)
+                    elif type == 405 and size == 9:
+                        # remove rented book flag
+                        self.patchSection(0, b'\0', 16 + self.mobi_length + pos + 8)
+                    elif type == 406 and size == 16:
+                        # remove rental due date
+                        self.patchSection(0, b'\0'*8, 16 + self.mobi_length + pos + 8)
+                    elif type == 208:
+                        # remove watermark (atv:kin: stuff)
+                        self.patchSection(0, b'\0'*(size-8), 16 + self.mobi_length + pos + 8)
                     # print type, size, content, content.encode('hex')
                     pos += size
         except Exception as e:
@@ -437,7 +353,7 @@ class MobiBook:
         if crypto_type == 0:
             print("This book is not encrypted.")
             # we must still check for Print Replica
-            self.print_replica = (self.loadSection(1)[0:4] == '%MOP')
+            self.print_replica = (self.loadSection(1)[0:4] == b'%MOP')
             self.mobi_data = self.data_file
             return
         if crypto_type != 2 and crypto_type != 1:
@@ -446,7 +362,8 @@ class MobiBook:
             data406 = self.meta_array[406]
             val406, = struct.unpack('>Q',data406)
             if val406 != 0:
-                raise DrmException("Cannot decode library or rented ebooks.")
+                print("Warning: This is a library or rented ebook ({0}). Continuing ...".format(val406))
+                #raise DrmException("Cannot decode library or rented ebooks.")
 
         goodpids = []
         # print("DEBUG ==== pidlist = ", pidlist)
@@ -507,7 +424,7 @@ class MobiBook:
             # print "record %d, extra_size %d" %(i,extra_size)
             decoded_data = PC1(found_key, data[0:len(data) - extra_size])
             if i==1:
-                self.print_replica = (decoded_data[0:4] == '%MOP')
+                self.print_replica = (decoded_data[0:4] == b'%MOP')
             mobidataList.append(decoded_data)
             if extra_size > 0:
                 mobidataList.append(data[-extra_size:])
@@ -527,7 +444,7 @@ def getUnencryptedBook(infile,pidlist):
 
 
 def cli_main():
-    argv=unicode_argv()
+    argv=unicode_argv("mobidedrm.py")
     progname = os.path.basename(argv[0])
     if len(argv)<3 or len(argv)>4:
         print("MobiDeDrm v{0:s}.\nCopyright © 2008-2020 The Dark Reverser, Apprentice Harper et al.".format(__version__))

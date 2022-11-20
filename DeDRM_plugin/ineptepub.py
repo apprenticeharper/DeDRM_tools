@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # ineptepub.py
-# Copyright © 2009-2020 by i♥cabbages, Apprentice Harper et al.
+# Copyright © 2009-2022 by i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -30,326 +30,96 @@
 #   6.5 - Completely remove erroneous check on DER file sanity
 #   6.6 - Import tkFileDialog, don't assume something else will import it.
 #   7.0 - Add Python 3 compatibility for calibre 5.0
+#   7.1 - Add ignoble support, dropping the dedicated ignobleepub.py script
+#   7.2 - Only support PyCryptodome; clean up the code
+#   8.0 - Add support for "hardened" Adobe DRM (RMSDK >= 10)
 
 """
 Decrypt Adobe Digital Editions encrypted ePub books.
 """
 
 __license__ = 'GPL v3'
-__version__ = "7.0"
+__version__ = "8.0"
 
-import codecs
 import sys
 import os
 import traceback
+import base64
 import zlib
 import zipfile
 from zipfile import ZipInfo, ZipFile, ZIP_STORED, ZIP_DEFLATED
+from zeroedzipinfo import ZeroedZipInfo
 from contextlib import closing
-import xml.etree.ElementTree as etree
-
-# Wrap a stream so that output gets flushed immediately
-# and also make sure that any unicode strings get
-# encoded using "replace" before writing them.
-class SafeUnbuffered:
-    def __init__(self, stream):
-        self.stream = stream
-        self.encoding = stream.encoding
-        if self.encoding == None:
-            self.encoding = "utf-8"
-    def write(self, data):
-        if isinstance(data, str):
-            data = data.encode(self.encoding,"replace")
-        self.stream.buffer.write(data)
-        self.stream.buffer.flush()
-
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
+from lxml import etree
+from uuid import UUID
+import hashlib
 
 try:
-    from calibre.constants import iswindows, isosx
-except:
-    iswindows = sys.platform.startswith('win')
-    isosx = sys.platform.startswith('darwin')
-
-def unicode_argv():
-    if iswindows:
-        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-        # strings.
-
-        # Versions 2.x of Python don't support Unicode in sys.argv on
-        # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.
+    from Cryptodome.Cipher import AES, PKCS1_v1_5
+    from Cryptodome.PublicKey import RSA
+except ImportError:
+    from Crypto.Cipher import AES, PKCS1_v1_5
+    from Crypto.PublicKey import RSA
 
 
-        from ctypes import POINTER, byref, cdll, c_int, windll
-        from ctypes.wintypes import LPCWSTR, LPWSTR
-
-        GetCommandLineW = cdll.kernel32.GetCommandLineW
-        GetCommandLineW.argtypes = []
-        GetCommandLineW.restype = LPCWSTR
-
-        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-        CommandLineToArgvW.restype = POINTER(LPWSTR)
-
-        cmd = GetCommandLineW()
-        argc = c_int(0)
-        argv = CommandLineToArgvW(cmd, byref(argc))
-        if argc.value > 0:
-            # Remove Python executable and commands if present
-            start = argc.value - len(sys.argv)
-            return [argv[i] for i in
-                    range(start, argc.value)]
-        return ["ineptepub.py"]
+def unpad(data, padding=16):
+    if sys.version_info[0] == 2:
+        pad_len = ord(data[-1])
     else:
-        argvencoding = sys.stdin.encoding or "utf-8"
-        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
+        pad_len = data[-1]
+
+    return data[:-pad_len]
+
+from utilities import SafeUnbuffered
+
+from argv_utils import unicode_argv
 
 
 class ADEPTError(Exception):
     pass
 
-def _load_crypto_libcrypto():
-    from ctypes import CDLL, POINTER, c_void_p, c_char_p, c_int, c_long, \
-        Structure, c_ulong, create_string_buffer, cast
-    from ctypes.util import find_library
+class ADEPTNewVersionError(Exception):
+    pass
 
-    if iswindows:
-        libcrypto = find_library('libeay32')
-    else:
-        libcrypto = find_library('crypto')
-
-    if libcrypto is None:
-        raise ADEPTError('libcrypto not found')
-    libcrypto = CDLL(libcrypto)
-
-    RSA_NO_PADDING = 3
-    AES_MAXNR = 14
-
-    c_char_pp = POINTER(c_char_p)
-    c_int_p = POINTER(c_int)
-
-    class RSA(Structure):
-        pass
-    RSA_p = POINTER(RSA)
-
-    class AES_KEY(Structure):
-        _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
-                    ('rounds', c_int)]
-    AES_KEY_p = POINTER(AES_KEY)
-
-    def F(restype, name, argtypes):
-        func = getattr(libcrypto, name)
-        func.restype = restype
-        func.argtypes = argtypes
-        return func
-
-    d2i_RSAPrivateKey = F(RSA_p, 'd2i_RSAPrivateKey',
-                          [RSA_p, c_char_pp, c_long])
-    RSA_size = F(c_int, 'RSA_size', [RSA_p])
-    RSA_private_decrypt = F(c_int, 'RSA_private_decrypt',
-                            [c_int, c_char_p, c_char_p, RSA_p, c_int])
-    RSA_free = F(None, 'RSA_free', [RSA_p])
-    AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
-                            [c_char_p, c_int, AES_KEY_p])
-    AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
-                        [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
-                         c_int])
-
-    class RSA(object):
-        def __init__(self, der):
-            buf = create_string_buffer(der)
-            pp = c_char_pp(cast(buf, c_char_p))
-            rsa = self._rsa = d2i_RSAPrivateKey(None, pp, len(der))
-            if rsa is None:
-                raise ADEPTError('Error parsing ADEPT user key DER')
-
-        def decrypt(self, from_):
-            rsa = self._rsa
-            to = create_string_buffer(RSA_size(rsa))
-            dlen = RSA_private_decrypt(len(from_), from_, to, rsa,
-                                       RSA_NO_PADDING)
-            if dlen < 0:
-                raise ADEPTError('RSA decryption failed')
-            return to[:dlen]
-
-        def __del__(self):
-            if self._rsa is not None:
-                RSA_free(self._rsa)
-                self._rsa = None
-
-    class AES(object):
-        def __init__(self, userkey):
-            self._blocksize = len(userkey)
-            if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                raise ADEPTError('AES improper key used')
-                return
-            key = self._key = AES_KEY()
-            rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
-            if rv < 0:
-                raise ADEPTError('Failed to initialize AES key')
-
-        def decrypt(self, data):
-            out = create_string_buffer(len(data))
-            iv = (b"\x00" * self._blocksize)
-            rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
-            if rv == 0:
-                raise ADEPTError('AES decryption failed')
-            return out.raw
-
-    return (AES, RSA)
-
-def _load_crypto_pycrypto():
-    from Crypto.Cipher import AES as _AES
-    from Crypto.PublicKey import RSA as _RSA
-    from Crypto.Cipher import PKCS1_v1_5 as _PKCS1_v1_5
-
-    # ASN.1 parsing code from tlslite
-    class ASN1Error(Exception):
-        pass
-
-    class ASN1Parser(object):
-        class Parser(object):
-            def __init__(self, bytes):
-                self.bytes = bytes
-                self.index = 0
-
-            def get(self, length):
-                if self.index + length > len(self.bytes):
-                    raise ASN1Error("Error decoding ASN.1")
-                x = 0
-                for count in range(length):
-                    x <<= 8
-                    x |= self.bytes[self.index]
-                    self.index += 1
-                return x
-
-            def getFixBytes(self, lengthBytes):
-                bytes = self.bytes[self.index : self.index+lengthBytes]
-                self.index += lengthBytes
-                return bytes
-
-            def getVarBytes(self, lengthLength):
-                lengthBytes = self.get(lengthLength)
-                return self.getFixBytes(lengthBytes)
-
-            def getFixList(self, length, lengthList):
-                l = [0] * lengthList
-                for x in range(lengthList):
-                    l[x] = self.get(length)
-                return l
-
-            def getVarList(self, length, lengthLength):
-                lengthList = self.get(lengthLength)
-                if lengthList % length != 0:
-                    raise ASN1Error("Error decoding ASN.1")
-                lengthList = int(lengthList/length)
-                l = [0] * lengthList
-                for x in range(lengthList):
-                    l[x] = self.get(length)
-                return l
-
-            def startLengthCheck(self, lengthLength):
-                self.lengthCheck = self.get(lengthLength)
-                self.indexCheck = self.index
-
-            def setLengthCheck(self, length):
-                self.lengthCheck = length
-                self.indexCheck = self.index
-
-            def stopLengthCheck(self):
-                if (self.index - self.indexCheck) != self.lengthCheck:
-                    raise ASN1Error("Error decoding ASN.1")
-
-            def atLengthCheck(self):
-                if (self.index - self.indexCheck) < self.lengthCheck:
-                    return False
-                elif (self.index - self.indexCheck) == self.lengthCheck:
-                    return True
-                else:
-                    raise ASN1Error("Error decoding ASN.1")
-
-        def __init__(self, bytes):
-            p = self.Parser(bytes)
-            p.get(1)
-            self.length = self._getASN1Length(p)
-            self.value = p.getFixBytes(self.length)
-
-        def getChild(self, which):
-            p = self.Parser(self.value)
-            for x in range(which+1):
-                markIndex = p.index
-                p.get(1)
-                length = self._getASN1Length(p)
-                p.getFixBytes(length)
-            return ASN1Parser(p.bytes[markIndex:p.index])
-
-        def _getASN1Length(self, p):
-            firstLength = p.get(1)
-            if firstLength<=127:
-                return firstLength
-            else:
-                lengthLength = firstLength & 0x7F
-                return p.get(lengthLength)
-
-    class AES(object):
-        def __init__(self, key):
-            self._aes = _AES.new(key, _AES.MODE_CBC, b'\x00'*16)
-
-        def decrypt(self, data):
-            return self._aes.decrypt(data)
-
-    class RSA(object):
-        def __init__(self, der):
-            key = ASN1Parser([x for x in der])
-            key = [key.getChild(x).value for x in range(1, 4)]
-            key = [self.bytesToNumber(v) for v in key]
-            self._rsa = _RSA.construct(key)
-
-        def bytesToNumber(self, bytes):
-            total = 0
-            for byte in bytes:
-                total = (total << 8) + byte
-            return total
-
-        def decrypt(self, data):
-            return _PKCS1_v1_5.new(self._rsa).decrypt(data, 172)
-
-    return (AES, RSA)
-
-def _load_crypto():
-    AES = RSA = None
-    cryptolist = (_load_crypto_libcrypto, _load_crypto_pycrypto)
-    if sys.platform.startswith('win'):
-        cryptolist = (_load_crypto_pycrypto, _load_crypto_libcrypto)
-    for loader in cryptolist:
-        try:
-            AES, RSA = loader()
-            break
-        except (ImportError, ADEPTError):
-            pass
-    return (AES, RSA)
-
-AES, RSA = _load_crypto()
-
-META_NAMES = ('mimetype', 'META-INF/rights.xml', 'META-INF/encryption.xml')
+META_NAMES = ('mimetype', 'META-INF/rights.xml')
 NSMAP = {'adept': 'http://ns.adobe.com/adept',
          'enc': 'http://www.w3.org/2001/04/xmlenc#'}
 
 class Decryptor(object):
     def __init__(self, bookkey, encryption):
         enc = lambda tag: '{%s}%s' % (NSMAP['enc'], tag)
-        self._aes = AES(bookkey)
+        self._aes = AES.new(bookkey, AES.MODE_CBC, b'\x00'*16)
         encryption = etree.fromstring(encryption)
         self._encrypted = encrypted = set()
+        self._otherData = otherData = set()
+
+        self._json_elements_to_remove = json_elements_to_remove = set()
+        self._has_remaining_xml = False
         expr = './%s/%s/%s' % (enc('EncryptedData'), enc('CipherData'),
                                enc('CipherReference'))
         for elem in encryption.findall(expr):
             path = elem.get('URI', None)
+            encryption_type_url = (elem.getparent().getparent().find("./%s" % (enc('EncryptionMethod'))).get('Algorithm', None))
             if path is not None:
-                path = path.encode('utf-8')
-                encrypted.add(path)
+                if (encryption_type_url == "http://www.w3.org/2001/04/xmlenc#aes128-cbc"):
+                    # Adobe
+                    path = path.encode('utf-8')
+                    encrypted.add(path)
+                    json_elements_to_remove.add(elem.getparent().getparent())
+                else:
+                    path = path.encode('utf-8')
+                    otherData.add(path)
+                    self._has_remaining_xml = True
+
+        for elem in json_elements_to_remove:
+            elem.getparent().remove(elem)
+
+    def check_if_remaining(self):
+        return self._has_remaining_xml
+
+    def get_xml(self):
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + etree.tostring(self._encryption, encoding="utf-8", pretty_print=True, xml_declaration=False).decode("utf-8")
+
 
     def decompress(self, bytes):
         dc = zlib.decompressobj(-15)
@@ -361,8 +131,8 @@ class Decryptor(object):
         except:
             # possibly not compressed by zip - just return bytes
             return bytes
-        return decompressed_bytes 
-    
+        return decompressed_bytes
+
     def decrypt(self, path, data):
         if path.encode('utf-8') in self._encrypted:
             data = self._aes.decrypt(data)[16:]
@@ -386,19 +156,68 @@ def adeptBook(inpath):
             adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
             expr = './/%s' % (adept('encryptedKey'),)
             bookkey = ''.join(rights.findtext(expr))
-            if len(bookkey) == 172:
+            if len(bookkey) in [192, 172, 64]:
                 return True
         except:
             # if we couldn't check, assume it is
             return True
     return False
 
-def decryptBook(userkey, inpath, outpath):
-    if AES is None:
-        raise ADEPTError("PyCrypto or OpenSSL must be installed.")
-    rsa = RSA(userkey)
+def isPassHashBook(inpath):
+    # If this is an Adobe book, check if it's a PassHash-encrypted book (B&N)
     with closing(ZipFile(open(inpath, 'rb'))) as inf:
         namelist = set(inf.namelist())
+        if 'META-INF/rights.xml' not in namelist or \
+           'META-INF/encryption.xml' not in namelist:
+            return False
+        try:
+            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+            expr = './/%s' % (adept('encryptedKey'),)
+            bookkey = ''.join(rights.findtext(expr))
+            if len(bookkey) == 64:
+                return True
+        except:
+            pass
+
+    return False
+
+# Checks the license file and returns the UUID the book is licensed for.
+# This is used so that the Calibre plugin can pick the correct decryption key
+# first try without having to loop through all possible keys.
+def adeptGetUserUUID(inpath):
+    with closing(ZipFile(open(inpath, 'rb'))) as inf:
+        try:
+            rights = etree.fromstring(inf.read('META-INF/rights.xml'))
+            adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+            expr = './/%s' % (adept('user'),)
+            user_uuid = ''.join(rights.findtext(expr))
+            if user_uuid[:9] != "urn:uuid:":
+                return None
+            return user_uuid[9:]
+        except:
+            return None
+
+def removeHardening(rights, keytype, keydata):
+    adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
+    textGetter = lambda name: ''.join(rights.findtext('.//%s' % (adept(name),)))
+
+    # Gather what we need, and generate the IV
+    resourceuuid = UUID(textGetter("resource"))
+    deviceuuid = UUID(textGetter("device"))
+    fullfillmentuuid = UUID(textGetter("fulfillment")[:36])
+    kekiv = UUID(int=resourceuuid.int ^ deviceuuid.int ^ fullfillmentuuid.int).bytes
+
+    # Derive kek from just "keytype"
+    rem = int(keytype, 10) % 16
+    H = hashlib.sha256(keytype.encode("ascii")).digest()
+    kek = H[2*rem : 16 + rem] + H[rem : 2*rem]
+
+    return unpad(AES.new(kek, AES.MODE_CBC, kekiv).decrypt(keydata), 16) # PKCS#7
+
+def decryptBook(userkey, inpath, outpath):
+    with closing(ZipFile(open(inpath, 'rb'))) as inf:
+        namelist = inf.namelist()
         if 'META-INF/rights.xml' not in namelist or \
            'META-INF/encryption.xml' not in namelist:
             print("{0:s} is DRM-free.".format(os.path.basename(inpath)))
@@ -409,42 +228,65 @@ def decryptBook(userkey, inpath, outpath):
             rights = etree.fromstring(inf.read('META-INF/rights.xml'))
             adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
             expr = './/%s' % (adept('encryptedKey'),)
-            bookkey = ''.join(rights.findtext(expr))
-            if len(bookkey) != 172:
-                print("{0:s} is not a secure Adobe Adept ePub.".format(os.path.basename(inpath)))
+            bookkeyelem = rights.find(expr)
+            bookkey = bookkeyelem.text
+            keytype = bookkeyelem.attrib.get('keyType', '0')
+            if len(bookkey) >= 172 and int(keytype, 10) > 2:
+                print("{0:s} is a secure Adobe Adept ePub with hardening.".format(os.path.basename(inpath)))
+            elif len(bookkey) == 172:
+                print("{0:s} is a secure Adobe Adept ePub.".format(os.path.basename(inpath)))
+            elif len(bookkey) == 64:
+                print("{0:s} is a secure Adobe PassHash (B&N) ePub.".format(os.path.basename(inpath)))
+            else:
+                print("{0:s} is not an Adobe-protected ePub!".format(os.path.basename(inpath)))
                 return 1
-            bookkey = rsa.decrypt(codecs.decode(bookkey.encode('ascii'), 'base64'))
-            # Padded as per RSAES-PKCS1-v1_5
-            if len(bookkey) > 16:
-                if bookkey[-17] == '\x00' or bookkey[-17] == 0:
-                    bookkey = bookkey[-16:]
-                else:
+
+            if len(bookkey) != 64:
+                # Normal or "hardened" Adobe ADEPT
+                rsakey = RSA.importKey(userkey) # parses the ASN1 structure
+                bookkey = base64.b64decode(bookkey)
+                if int(keytype, 10) > 2:
+                    bookkey = removeHardening(rights, keytype, bookkey)
+                try:
+                    bookkey = PKCS1_v1_5.new(rsakey).decrypt(bookkey, None) # automatically unpads
+                except ValueError:
+                    bookkey = None
+
+                if bookkey is None:
                     print("Could not decrypt {0:s}. Wrong key".format(os.path.basename(inpath)))
                     return 2
+            else:
+                # Adobe PassHash / B&N
+                key = base64.b64decode(userkey)[:16]
+                bookkey = base64.b64decode(bookkey)
+                bookkey = unpad(AES.new(key, AES.MODE_CBC, b'\x00'*16).decrypt(bookkey), 16) # PKCS#7
+
+                if len(bookkey) > 16:
+                    bookkey = bookkey[-16:]
+
             encryption = inf.read('META-INF/encryption.xml')
             decryptor = Decryptor(bookkey, encryption)
             kwds = dict(compression=ZIP_DEFLATED, allowZip64=False)
             with closing(ZipFile(open(outpath, 'wb'), 'w', **kwds)) as outf:
-                zi = ZipInfo('mimetype')
-                zi.compress_type=ZIP_STORED
-                try:
-                    # if the mimetype is present, get its info, including time-stamp
-                    oldzi = inf.getinfo('mimetype')
-                    # copy across fields to be preserved
-                    zi.date_time = oldzi.date_time
-                    zi.comment = oldzi.comment
-                    zi.extra = oldzi.extra
-                    zi.internal_attr = oldzi.internal_attr
-                    # external attributes are dependent on the create system, so copy both.
-                    zi.external_attr = oldzi.external_attr
-                    zi.create_system = oldzi.create_system
-                except:
-                    pass
-                outf.writestr(zi, inf.read('mimetype'))
-                for path in namelist:
+
+                for path in (["mimetype"] + namelist):
                     data = inf.read(path)
                     zi = ZipInfo(path)
                     zi.compress_type=ZIP_DEFLATED
+
+                    if path == "mimetype":
+                        zi.compress_type = ZIP_STORED
+
+                    elif path == "META-INF/encryption.xml":
+                        # Check if there's still something in there
+                        if (decryptor.check_if_remaining()):
+                            data = decryptor.get_xml()
+                            print("Adding encryption.xml for the remaining embedded files.")
+                            # We removed DRM, but there's still stuff like obfuscated fonts.
+                        else:
+                            continue
+
+
                     try:
                         # get the file info, including time-stamp
                         oldzi = inf.getinfo(path)
@@ -455,10 +297,27 @@ def decryptBook(userkey, inpath, outpath):
                         zi.internal_attr = oldzi.internal_attr
                         # external attributes are dependent on the create system, so copy both.
                         zi.external_attr = oldzi.external_attr
+
+                        zi.volume = oldzi.volume
                         zi.create_system = oldzi.create_system
+                        zi.create_version = oldzi.create_version
+
+                        if any(ord(c) >= 128 for c in path) or any(ord(c) >= 128 for c in zi.comment):
+                            # If the file name or the comment contains any non-ASCII char, set the UTF8-flag
+                            zi.flag_bits |= 0x800
                     except:
                         pass
-                    outf.writestr(zi, decryptor.decrypt(path, data))
+
+                    # Python 3 has a bug where the external_attr is reset to `0o600 << 16`
+                    # if it's NULL, so we need a workaround:
+                    if zi.external_attr == 0: 
+                        zi = ZeroedZipInfo(zi)
+
+
+                    if path == "META-INF/encryption.xml":
+                        outf.writestr(zi, data)
+                    else:
+                        outf.writestr(zi, decryptor.decrypt(path, data))
         except:
             print("Could not decrypt {0:s} because of an exception:\n{1:s}".format(os.path.basename(inpath), traceback.format_exc()))
             return 2
@@ -468,7 +327,7 @@ def decryptBook(userkey, inpath, outpath):
 def cli_main():
     sys.stdout=SafeUnbuffered(sys.stdout)
     sys.stderr=SafeUnbuffered(sys.stderr)
-    argv=unicode_argv()
+    argv=unicode_argv("ineptepub.py")
     progname = os.path.basename(argv[0])
     if len(argv) != 4:
         print("usage: {0} <keyfile.der> <inbook.epub> <outbook.epub>".format(progname))

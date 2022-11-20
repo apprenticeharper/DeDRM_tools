@@ -13,81 +13,25 @@ __version__ = '6.0'
 
 import sys
 import os, csv, getopt
+
+#@@CALIBRE_COMPAT_CODE@@
+
+
 import zlib, zipfile, tempfile, shutil
 import traceback
 from struct import pack
 from struct import unpack
-try:
-    from calibre_plugins.dedrm.alfcrypto import Topaz_Cipher
-except:
-    from alfcrypto import Topaz_Cipher
 
-# Wrap a stream so that output gets flushed immediately
-# and also make sure that any unicode strings get
-# encoded using "replace" before writing them.
-class SafeUnbuffered:
-    def __init__(self, stream):
-        self.stream = stream
-        self.encoding = stream.encoding
-        if self.encoding == None:
-            self.encoding = "utf-8"
-    def write(self, data):
-        if isinstance(data, str):
-            data = data.encode(self.encoding,"replace")
-        self.stream.buffer.write(data)
-        self.stream.buffer.flush()
+from alfcrypto import Topaz_Cipher
+from utilities import SafeUnbuffered
 
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
+from argv_utils import unicode_argv
 
-iswindows = sys.platform.startswith('win')
-isosx = sys.platform.startswith('darwin')
-
-def unicode_argv():
-    if iswindows:
-        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-        # strings.
-
-        # Versions 2.x of Python don't support Unicode in sys.argv on
-        # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.
-
-
-        from ctypes import POINTER, byref, cdll, c_int, windll
-        from ctypes.wintypes import LPCWSTR, LPWSTR
-
-        GetCommandLineW = cdll.kernel32.GetCommandLineW
-        GetCommandLineW.argtypes = []
-        GetCommandLineW.restype = LPCWSTR
-
-        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-        CommandLineToArgvW.restype = POINTER(LPWSTR)
-
-        cmd = GetCommandLineW()
-        argc = c_int(0)
-        argv = CommandLineToArgvW(cmd, byref(argc))
-        if argc.value > 0:
-            # Remove Python executable and commands if present
-            start = argc.value - len(sys.argv)
-            return [argv[i] for i in
-                    range(start, argc.value)]
-        # if we don't have any arguments at all, just pass back script name
-        # this should never happen
-        return ["mobidedrm.py"]
-    else:
-        argvencoding = sys.stdin.encoding or "utf-8"
-        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 #global switch
 debug = False
 
-if 'calibre' in sys.modules:
-    inCalibre = True
-    from calibre_plugins.dedrm import kgenpids
-else:
-    inCalibre = False
-    import kgenpids
+import kgenpids
 
 
 class DrmException(Exception):
@@ -172,6 +116,8 @@ def decryptRecord(data,PID):
 # Try to decrypt a dkey record (contains the bookPID)
 def decryptDkeyRecord(data,PID):
     record = decryptRecord(data,PID)
+    if isinstance(record, str):
+       record = record.encode('latin-1')
     fields = unpack('3sB8sB8s3s',record)
     if fields[0] != b'PID' or fields[5] != b'pid' :
         raise DrmException("Didn't find PID magic numbers in record")
@@ -315,6 +261,8 @@ class TopazBook:
                 raise DrmException("Error: Attempt to decrypt without bookKey")
 
         if compressed:
+            if isinstance(record, str):
+                record = bytes(record, 'latin-1')
             record = zlib.decompress(record)
 
         return record
@@ -326,14 +274,11 @@ class TopazBook:
             keydata = self.getBookPayloadRecord(b'dkey', 0)
         except DrmException as e:
             print("no dkey record found, book may not be encrypted")
-            print("attempting to extrct files without a book key")
+            print("attempting to extract files without a book key")
             self.createBookDirectory()
             self.extractFiles()
             print("Successfully Extracted Topaz contents")
-            if inCalibre:
-                from calibre_plugins.dedrm import genbook
-            else:
-                import genbook
+            import genbook
 
             rv = genbook.generateBook(self.outdir, raw, fixedimage)
             if rv == 0:
@@ -345,6 +290,8 @@ class TopazBook:
         for pid in pidlst:
             # use 8 digit pids here
             pid = pid[0:8]
+            if isinstance(pid, str):
+                pid = pid.encode('latin-1')
             print("Trying: {0}".format(pid))
             bookKeys = []
             data = keydata
@@ -358,16 +305,13 @@ class TopazBook:
                 break
 
         if not bookKey:
-            raise DrmException("No key found in {0:d} keys tried. Read the FAQs at Harper's repository: https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md".format(len(pidlst)))
+            raise DrmException("No key found in {0:d} keys tried. Read the FAQs at noDRM's repository: https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md".format(len(pidlst)))
 
         self.setBookKey(bookKey)
         self.createBookDirectory()
         self.extractFiles()
         print("Successfully Extracted Topaz contents")
-        if inCalibre:
-            from calibre_plugins.dedrm import genbook
-        else:
-            import genbook
+        import genbook
 
         rv = genbook.generateBook(self.outdir, raw, fixedimage)
         if rv == 0:
@@ -415,6 +359,8 @@ class TopazBook:
                     outputFile = os.path.join(destdir,fname)
                     print(".", end=' ')
                     record = self.getBookPayloadRecord(name,index)
+                    if isinstance(record, str):
+                        record=bytes(record, 'latin-1')
                     if record != b'':
                         open(outputFile, 'wb').write(record)
                 print(" ")
@@ -453,7 +399,7 @@ def usage(progname):
 
 # Main
 def cli_main():
-    argv=unicode_argv()
+    argv=unicode_argv("topazextract.py")
     progname = os.path.basename(argv[0])
     print("TopazExtract v{0}.".format(__version__))
 

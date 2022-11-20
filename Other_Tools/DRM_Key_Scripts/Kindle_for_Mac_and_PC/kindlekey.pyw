@@ -51,12 +51,20 @@ class SafeUnbuffered:
         if self.encoding == None:
             self.encoding = "utf-8"
     def write(self, data):
-        if isinstance(data,unicode):
+        if isinstance(data,str) or isinstance(data,unicode):
+            # str for Python3, unicode for Python2
             data = data.encode(self.encoding,"replace")
-        self.stream.write(data)
-        self.stream.flush()
+        try:
+            buffer = getattr(self.stream, 'buffer', self.stream)
+            # self.stream.buffer for Python3, self.stream for Python2
+            buffer.write(data)
+            buffer.flush()
+        except:
+            # We can do nothing if a write fails
+            raise
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
+        
 
 try:
     from calibre.constants import iswindows, isosx
@@ -177,7 +185,10 @@ if iswindows:
         create_unicode_buffer, create_string_buffer, CFUNCTYPE, addressof, \
         string_at, Structure, c_void_p, cast
 
-    import winreg
+    try:
+        import winreg
+    except ImportError:
+        import _winreg as winreg
     MAX_PATH = 255
     kernel32 = windll.kernel32
     advapi32 = windll.advapi32
@@ -289,7 +300,7 @@ if iswindows:
                 numBlocks, numExtraBytes = divmod(len(self.bytesToDecrypt), self.blockSize)
                 if more == None:  # no more calls to decrypt, should have all the data
                     if numExtraBytes  != 0:
-                        raise DecryptNotBlockAlignedError, 'Data not block aligned on decrypt'
+                        raise DecryptNotBlockAlignedError('Data not block aligned on decrypt')
 
                 # hold back some bytes in case last decrypt has zero len
                 if (more != None) and (numExtraBytes == 0) and (numBlocks >0) :
@@ -331,7 +342,7 @@ if iswindows:
             def removePad(self, paddedBinaryString, blockSize):
                 """ Remove padding from a binary string """
                 if not(0<len(paddedBinaryString)):
-                    raise DecryptNotBlockAlignedError, 'Expected More Data'
+                    raise DecryptNotBlockAlignedError('Expected More Data')
                 return paddedBinaryString[:-ord(paddedBinaryString[-1])]
 
         class noPadding(Pad):
@@ -361,8 +372,8 @@ if iswindows:
                 self.blockSize  = blockSize  # blockSize is in bytes
                 self.padding    = padding    # change default to noPadding() to get normal ECB behavior
 
-                assert( keySize%4==0 and NrTable[4].has_key(keySize/4)),'key size must be 16,20,24,29 or 32 bytes'
-                assert( blockSize%4==0 and NrTable.has_key(blockSize/4)), 'block size must be 16,20,24,29 or 32 bytes'
+                assert( keySize%4==0 and keySize/4 in NrTable[4]),'key size must be 16,20,24,29 or 32 bytes'
+                assert( blockSize%4==0 and blockSize/4 in NrTable), 'block size must be 16,20,24,29 or 32 bytes'
 
                 self.Nb = self.blockSize/4          # Nb is number of columns of 32 bit words
                 self.Nk = keySize/4                 # Nk is the key length in 32-bit words
@@ -639,7 +650,7 @@ if iswindows:
             def __init__(self, key = None, padding = padWithPadLen(), keySize=16):
                 """ Initialize AES, keySize is in bytes """
                 if  not (keySize == 16 or keySize == 24 or keySize == 32) :
-                    raise BadKeySizeError, 'Illegal AES key size, must be 16, 24, or 32 bytes'
+                    raise BadKeySizeError('Illegal AES key size, must be 16, 24, or 32 bytes')
 
                 Rijndael.__init__( self, key, padding=padding, keySize=keySize, blockSize=16 )
 
@@ -779,10 +790,11 @@ if iswindows:
             #                             [c_char_p, c_ulong, c_char_p, c_ulong, c_ulong, c_ulong, c_char_p])
             def pbkdf2(self, passwd, salt, iter, keylen):
 
-                def xorstr( a, b ):
+                def xorbytes( a, b ):
                     if len(a) != len(b):
-                        raise Exception("xorstr(): lengths differ")
-                    return ''.join((chr(ord(x)^ord(y)) for x, y in zip(a, b)))
+                        raise Exception("xorbytes(): lengths differ")
+                    return bytes([x ^ y for x, y in zip(a, b)])
+
 
                 def prf( h, data ):
                     hm = h.copy()
@@ -794,13 +806,13 @@ if iswindows:
                     T = U
                     for i in range(2, itercount+1):
                         U = prf( h, U )
-                        T = xorstr( T, U )
+                        T = xorbytes( T, U )
                     return T
 
                 sha = hashlib.sha1
                 digest_size = sha().digest_size
                 # l - number of output blocks to produce
-                l = keylen / digest_size
+                l = keylen // digest_size
                 if keylen % digest_size != 0:
                     l += 1
                 h = hmac.new( passwd, None, sha )

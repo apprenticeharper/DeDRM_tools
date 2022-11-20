@@ -209,6 +209,7 @@ def _EndRecData(fpin):
         fpin.seek(-sizeEndCentDir, 2)
     except IOError:
         return None
+        
     data = fpin.read()
     if data[0:4] == stringEndArchive and data[-2:] == "\000\000":
         # the signature is correct and there's no comment, unpack structure
@@ -391,6 +392,19 @@ class ZipInfo (object):
                     idx+=1
 
             extra = extra[ln+4:]
+
+
+class ZeroedZipInfo(ZipInfo):
+    def __init__(self, zinfo):
+        for k in self.__slots__:
+            if hasattr(zinfo, k):
+                setattr(self, k, getattr(zinfo, k))
+
+    def __getattribute__(self, name):
+        if name == "external_attr":
+            return 0
+        return object.__getattribute__(self, name)
+
 
 
 class _ZipDecrypter:
@@ -662,7 +676,8 @@ class ZipFile:
         self.comment = b''
 
         # Check if we were passed a file-like object
-        if isinstance(file, str):
+        # "str" is python3, "unicode" is python2
+        if isinstance(file, str) or isinstance(file, unicode):
             self._filePassed = 0
             self.filename = file
             modeDict = {'r' : 'rb', 'w': 'wb', 'a' : 'r+b'}

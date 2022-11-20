@@ -5,15 +5,19 @@
 
 import sys
 import os
+
+
+#@@CALIBRE_COMPAT_CODE@@
+
+
 import re
 import traceback
-import calibre_plugins.dedrm.ineptepub
-import calibre_plugins.dedrm.ignobleepub
-import calibre_plugins.dedrm.epubtest
-import calibre_plugins.dedrm.zipfix
-import calibre_plugins.dedrm.ineptpdf
-import calibre_plugins.dedrm.erdr2pml
-import calibre_plugins.dedrm.k4mobidedrm
+import ineptepub
+import epubtest
+import zipfix
+import ineptpdf
+import erdr2pml
+import k4mobidedrm
 
 def decryptepub(infile, outdir, rscpath):
     errlog = ''
@@ -50,8 +54,8 @@ def decryptepub(infile, outdir, rscpath):
                     errlog += traceback.format_exc()
                     errlog += str(e)
                     rv = 1
-    # now try with ignoble epub
-    elif  ignobleepub.ignobleBook(zippath):
+        
+        # now try with ignoble epub
         # try with any keyfiles (*.b64) in the rscpath
         files = os.listdir(rscpath)
         filefilter = re.compile("\.b64$", re.IGNORECASE)
@@ -62,7 +66,7 @@ def decryptepub(infile, outdir, rscpath):
                 userkey = open(keypath,'r').read()
                 #print userkey
                 try:
-                    rv = ignobleepub.decryptBook(userkey, zippath, outfile)
+                    rv = ineptepub.decryptBook(userkey, zippath, outfile)
                     if rv == 0:
                         print("Decrypted B&N ePub with key file {0}".format(filename))
                         break
@@ -121,7 +125,7 @@ def decryptpdb(infile, outdir, rscpath):
     rv = 1
     socialpath = os.path.join(rscpath,'sdrmlist.txt')
     if os.path.exists(socialpath):
-        keydata = file(socialpath,'r').read()
+        keydata = open(socialpath,'r').read()
         keydata = keydata.rstrip(os.linesep)
         ar = keydata.split(',')
         for i in ar:
@@ -148,7 +152,7 @@ def decryptk4mobi(infile, outdir, rscpath):
     pidnums = []
     pidspath = os.path.join(rscpath,'pidlist.txt')
     if os.path.exists(pidspath):
-        pidstr = file(pidspath,'r').read()
+        pidstr = open(pidspath,'r').read()
         pidstr = pidstr.rstrip(os.linesep)
         pidstr = pidstr.strip()
         if pidstr != '':
@@ -156,7 +160,7 @@ def decryptk4mobi(infile, outdir, rscpath):
     serialnums = []
     serialnumspath = os.path.join(rscpath,'seriallist.txt')
     if os.path.exists(serialnumspath):
-        serialstr = file(serialnumspath,'r').read()
+        serialstr = open(serialnumspath,'r').read()
         serialstr = serialstr.rstrip(os.linesep)
         serialstr = serialstr.strip()
         if serialstr != '':

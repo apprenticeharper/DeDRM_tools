@@ -4,10 +4,10 @@ DeDRM_plugin.zip
 This plugin will remove the DRM from:
 
  - Kindle ebooks (files from Kindle for Mac/PC and eInk Kindles).
- - Adobe Digital Editions (v2.0.1***) ePubs (including Kobo and Google ePubs downloaded to ADE)
- - Adobe Digital Editions (v2.0.1) PDFs
+ - Adobe Digital Editions ePubs (including Kobo and Google ePubs downloaded to ADE)
+ - Adobe Digital Editions PDFs
 
-For limitations and work-arounds, see the FAQ at https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md
+For limitations and work-arounds, see the FAQ at https://github.com/noDRM/DeDRM_tools/blob/master/FAQs.md (or the FAQ in Apprentice Harper's original repository at https://github.com/apprenticeharper/DeDRM_tools/blob/master/FAQs.md)
 
 
 Installation
@@ -31,4 +31,6 @@ If you find that the DeDRM plugin is not working for you (imported ebooks still 
  - Once calibre has re-started, import the problem ebook.
  - Now close calibre.
 
-A log will appear that you can copy and paste into a comment at Apprentice Alf's blog, http://apprenticealf.wordpress.com/ or an issue at Apprentice Harper's repository, https://github.com/apprenticeharper/DeDRM_tools/issues . You should also give details of your computer, and how you obtained the ebook file.
+A log will appear that you can copy and paste into a GitHub issue report at https://github.com/noDRM/DeDRM_tools/issues. Please also include information about the eBook file.
+
+If you're using Apprentice Harper's original version, you can also comment at Apprentice Alf's blog, http://apprenticealf.wordpress.com/ or open an issue at Apprentice Harper's repository, https://github.com/apprenticeharper/DeDRM_tools/issues.

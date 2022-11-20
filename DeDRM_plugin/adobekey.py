@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# adobekey.pyw, version 6.0
-# Copyright © 2009-2020 i♥cabbages, Apprentice Harper et al.
+# adobekey.pyw, version 7.4
+# Copyright © 2009-2022 i♥cabbages, Apprentice Harper et al.
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -29,35 +29,26 @@
 #   5.9 - moved unicode_argv call inside main for Windows DeDRM compatibility
 #   6.0 - Work if TkInter is missing
 #   7.0 - Python 3 for calibre 5
+#   7.1 - Fix "failed to decrypt user key key" error (read username from registry)
+#   7.2 - Fix decryption error on Python2 if there's unicode in the username
+#   7.3 - Fix OpenSSL in Wine
+#   7.4 - Remove OpenSSL support to only support PyCryptodome
 
 """
 Retrieve Adobe ADEPT user key.
 """
 
 __license__ = 'GPL v3'
-__version__ = '7.0'
+__version__ = '7.4'
 
 import sys, os, struct, getopt
 from base64 import b64decode
 
 
-# Wrap a stream so that output gets flushed immediately
-# and also make sure that any unicode strings get
-# encoded using "replace" before writing them.
-class SafeUnbuffered:
-    def __init__(self, stream):
-        self.stream = stream
-        self.encoding = stream.encoding
-        if self.encoding == None:
-            self.encoding = "utf-8"
-    def write(self, data):
-        if isinstance(data, str):
-            data = data.encode(self.encoding,"replace")
-        self.stream.buffer.write(data)
-        self.stream.buffer.flush()
 
-    def __getattr__(self, attr):
-        return getattr(self.stream, attr)
+from utilities import SafeUnbuffered
+from argv_utils import unicode_argv
+
 
 try:
     from calibre.constants import iswindows, isosx
@@ -65,41 +56,6 @@ except:
     iswindows = sys.platform.startswith('win')
     isosx = sys.platform.startswith('darwin')
 
-def unicode_argv():
-    if iswindows:
-        # Uses shell32.GetCommandLineArgvW to get sys.argv as a list of Unicode
-        # strings.
-
-        # Versions 2.x of Python don't support Unicode in sys.argv on
-        # Windows, with the underlying Windows API instead replacing multi-byte
-        # characters with '?'.  So use shell32.GetCommandLineArgvW to get sys.argv
-        # as a list of Unicode strings and encode them as utf-8
-
-        from ctypes import POINTER, byref, cdll, c_int, windll
-        from ctypes.wintypes import LPCWSTR, LPWSTR
-
-        GetCommandLineW = cdll.kernel32.GetCommandLineW
-        GetCommandLineW.argtypes = []
-        GetCommandLineW.restype = LPCWSTR
-
-        CommandLineToArgvW = windll.shell32.CommandLineToArgvW
-        CommandLineToArgvW.argtypes = [LPCWSTR, POINTER(c_int)]
-        CommandLineToArgvW.restype = POINTER(LPWSTR)
-
-        cmd = GetCommandLineW()
-        argc = c_int(0)
-        argv = CommandLineToArgvW(cmd, byref(argc))
-        if argc.value > 0:
-            # Remove Python executable and commands if present
-            start = argc.value - len(sys.argv)
-            return [argv[i] for i in
-                    range(start, argc.value)]
-        # if we don't have any arguments at all, just pass back script name
-        # this should never happen
-        return ["adobekey.py"]
-    else:
-        argvencoding = sys.stdin.encoding or "utf-8"
-        return [arg if isinstance(arg, str) else str(arg, argvencoding) for arg in sys.argv]
 
 class ADEPTError(Exception):
     pass
@@ -111,74 +67,23 @@ if iswindows:
         c_long, c_ulong
 
     from ctypes.wintypes import LPVOID, DWORD, BOOL
-    import winreg
+    try:
+        import winreg
+    except ImportError:
+        import _winreg as winreg
 
-    def _load_crypto_libcrypto():
-        from ctypes.util import find_library
-        libcrypto = find_library('libcrypto-1_1')
-        if libcrypto is None:
-            libcrypto = find_library('libeay32')
-        if libcrypto is None:
-            raise ADEPTError('libcrypto not found')
-        libcrypto = CDLL(libcrypto)
-        AES_MAXNR = 14
-        c_char_pp = POINTER(c_char_p)
-        c_int_p = POINTER(c_int)
-        class AES_KEY(Structure):
-            _fields_ = [('rd_key', c_long * (4 * (AES_MAXNR + 1))),
-                        ('rounds', c_int)]
-        AES_KEY_p = POINTER(AES_KEY)
+    try:
+        from Cryptodome.Cipher import AES
+    except ImportError:
+        from Crypto.Cipher import AES
 
-        def F(restype, name, argtypes):
-            func = getattr(libcrypto, name)
-            func.restype = restype
-            func.argtypes = argtypes
-            return func
+    def unpad(data, padding=16):
+        if sys.version_info[0] == 2:
+            pad_len = ord(data[-1])
+        else:
+            pad_len = data[-1]
 
-        AES_set_decrypt_key = F(c_int, 'AES_set_decrypt_key',
-                                [c_char_p, c_int, AES_KEY_p])
-        AES_cbc_encrypt = F(None, 'AES_cbc_encrypt',
-                            [c_char_p, c_char_p, c_ulong, AES_KEY_p, c_char_p,
-                             c_int])
-        class AES(object):
-            def __init__(self, userkey):
-                self._blocksize = len(userkey)
-                if (self._blocksize != 16) and (self._blocksize != 24) and (self._blocksize != 32) :
-                    raise ADEPTError('AES improper key used')
-                key = self._key = AES_KEY()
-                rv = AES_set_decrypt_key(userkey, len(userkey) * 8, key)
-                if rv < 0:
-                    raise ADEPTError('Failed to initialize AES key')
-            def decrypt(self, data):
-                out = create_string_buffer(len(data))
-                iv = (b"\x00" * self._blocksize)
-                rv = AES_cbc_encrypt(data, out, len(data), self._key, iv, 0)
-                if rv == 0:
-                    raise ADEPTError('AES decryption failed')
-                return out.raw
-        return AES
-
-    def _load_crypto_pycrypto():
-        from Crypto.Cipher import AES as _AES
-        class AES(object):
-            def __init__(self, key):
-                self._aes = _AES.new(key, _AES.MODE_CBC, b'\x00'*16)
-            def decrypt(self, data):
-                return self._aes.decrypt(data)
-        return AES
-
-    def _load_crypto():
-        AES = None
-        for loader in (_load_crypto_pycrypto, _load_crypto_libcrypto):
-            try:
-                AES = loader()
-                break
-            except (ImportError, ADEPTError):
-                pass
-        return AES
-
-    AES = _load_crypto()
-
+        return data[:-pad_len]
 
     DEVICE_KEY_PATH = r'Software\Adobe\Adept\Device'
     PRIVATE_LICENCE_KEY_PATH = r'Software\Adobe\Adept\Activation'
@@ -228,6 +133,27 @@ if iswindows:
         return GetUserName
     GetUserName = GetUserName()
 
+    def GetUserName2():
+        try:
+            from winreg import OpenKey, QueryValueEx, HKEY_CURRENT_USER
+        except ImportError:
+            # We're on Python 2
+            try:
+                # The default _winreg on Python2 isn't unicode-safe.
+                # Check if we have winreg_unicode, a unicode-safe alternative. 
+                # Without winreg_unicode, this will fail with Unicode chars in the username.
+                from adobekey_winreg_unicode import OpenKey, QueryValueEx, HKEY_CURRENT_USER
+            except:
+                from _winreg import OpenKey, QueryValueEx, HKEY_CURRENT_USER
+
+        try: 
+            DEVICE_KEY_PATH = r'Software\Adobe\Adept\Device'
+            regkey = OpenKey(HKEY_CURRENT_USER, DEVICE_KEY_PATH)
+            userREG = QueryValueEx(regkey, 'username')[0].encode('utf-16-le')[::2]
+            return userREG
+        except: 
+            return None
+
     PAGE_EXECUTE_READWRITE = 0x40
     MEM_COMMIT  = 0x1000
     MEM_RESERVE = 0x2000
@@ -265,8 +191,13 @@ if iswindows:
 
         def __del__(self):
             if self._buf is not None:
-                VirtualFree(self._buf)
-                self._buf = None
+                try: 
+                    VirtualFree(self._buf)
+                    self._buf = None
+                except TypeError:
+                    # Apparently this sometimes gets cleared on application exit
+                    # Causes a useless exception in the log, so let's just catch and ignore that.
+                    pass
 
     if struct.calcsize("P") == 4:
         CPUID0_INSNS = (
@@ -345,54 +276,76 @@ if iswindows:
     CryptUnprotectData = CryptUnprotectData()
 
     def adeptkeys():
-        if AES is None:
-            raise ADEPTError("PyCrypto or OpenSSL must be installed")
         root = GetSystemDirectory().split('\\')[0] + '\\'
         serial = GetVolumeSerialNumber(root)
         vendor = cpuid0()
         signature = struct.pack('>I', cpuid1())[1:]
-        user = GetUserName()
+        user = GetUserName2()
+        if user is None: 
+            user = GetUserName()
         entropy = struct.pack('>I12s3s13s', serial, vendor, signature, user)
         cuser = winreg.HKEY_CURRENT_USER
         try:
             regkey = winreg.OpenKey(cuser, DEVICE_KEY_PATH)
             device = winreg.QueryValueEx(regkey, 'key')[0]
-        except WindowsError:
+        except (WindowsError, FileNotFoundError):
             raise ADEPTError("Adobe Digital Editions not activated")
         keykey = CryptUnprotectData(device, entropy)
         userkey = None
         keys = []
+        names = []
         try:
             plkroot = winreg.OpenKey(cuser, PRIVATE_LICENCE_KEY_PATH)
-        except WindowsError:
+        except (WindowsError, FileNotFoundError):
             raise ADEPTError("Could not locate ADE activation")
-        for i in range(0, 16):
+
+        i = -1
+        while True:
+            i = i + 1   # start with 0
             try:
                 plkparent = winreg.OpenKey(plkroot, "%04d" % (i,))
-            except WindowsError:
+            except:
+                # No more keys
                 break
+                
             ktype = winreg.QueryValueEx(plkparent, None)[0]
             if ktype != 'credentials':
                 continue
+            uuid_name = ""
             for j in range(0, 16):
                 try:
                     plkkey = winreg.OpenKey(plkparent, "%04d" % (j,))
-                except WindowsError:
+                except (WindowsError, FileNotFoundError):
                     break
                 ktype = winreg.QueryValueEx(plkkey, None)[0]
-                if ktype != 'privateLicenseKey':
-                    continue
-                userkey = winreg.QueryValueEx(plkkey, 'value')[0]
-                userkey = b64decode(userkey)
-                aes = AES(keykey)
-                userkey = aes.decrypt(userkey)
-                userkey = userkey[26:-ord(userkey[-1:])]
-                #print "found key:",userkey.encode('hex')
-                keys.append(userkey)
+                if ktype == 'user':
+                    # Add Adobe UUID to key name
+                    uuid_name = uuid_name + winreg.QueryValueEx(plkkey, 'value')[0][9:] + "_"
+                if ktype == 'username':
+                    # Add account type & email to key name, if present
+                    try: 
+                        uuid_name = uuid_name + winreg.QueryValueEx(plkkey, 'method')[0] + "_" 
+                    except:
+                        pass
+                    try: 
+                        uuid_name = uuid_name + winreg.QueryValueEx(plkkey, 'value')[0] + "_"
+                    except:
+                        pass
+                if ktype == 'privateLicenseKey':
+                    userkey = winreg.QueryValueEx(plkkey, 'value')[0]
+                    userkey = unpad(AES.new(keykey, AES.MODE_CBC, b'\x00'*16).decrypt(b64decode(userkey)))[26:]
+                    # print ("found " + uuid_name + " key: " + str(userkey))
+                    keys.append(userkey)
+
+            if uuid_name == "":
+                names.append("Unknown")
+            else:
+                names.append(uuid_name[:-1])
+
         if len(keys) == 0:
             raise ADEPTError('Could not locate privateLicenseKey')
         print("Found {0:d} keys".format(len(keys)))
-        return keys
+        return keys, names
 
 
 elif isosx:
@@ -425,6 +378,8 @@ elif isosx:
         return None
 
     def adeptkeys():
+        # TODO: All the code to support extracting multiple activation keys
+        # TODO: seems to be Windows-only currently, still needs to be added for Mac.
         actpath = findActivationDat()
         if actpath is None:
             raise ADEPTError("Could not find ADE activation.dat file.")
@@ -432,18 +387,40 @@ elif isosx:
         adept = lambda tag: '{%s}%s' % (NSMAP['adept'], tag)
         expr = '//%s/%s' % (adept('credentials'), adept('privateLicenseKey'))
         userkey = tree.findtext(expr)
+
+        exprUUID = '//%s/%s' % (adept('credentials'), adept('user'))
+        keyName = ""
+        try: 
+            keyName = tree.findtext(exprUUID)[9:] + "_"
+        except: 
+            pass
+
+        try: 
+            exprMail = '//%s/%s' % (adept('credentials'), adept('username'))
+            keyName = keyName + tree.find(exprMail).attrib["method"] + "_"
+            keyName = keyName + tree.findtext(exprMail) + "_"
+        except:
+            pass
+
+        if keyName == "":
+            keyName = "Unknown"
+        else:
+            keyName = keyName[:-1]
+
+
+
         userkey = b64decode(userkey)
         userkey = userkey[26:]
-        return [userkey]
+        return [userkey], [keyName]
 
 else:
     def adeptkeys():
         raise ADEPTError("This script only supports Windows and Mac OS X.")
-        return []
+        return [], []
 
 # interface for Python DeDRM
 def getkey(outpath):
-    keys = adeptkeys()
+    keys, names = adeptkeys()
     if len(keys) > 0:
         if not os.path.isdir(outpath):
             outfile = outpath
@@ -452,15 +429,17 @@ def getkey(outpath):
             print("Saved a key to {0}".format(outfile))
         else:
             keycount = 0
+            name_index = 0
             for key in keys:
                 while True:
                     keycount += 1
-                    outfile = os.path.join(outpath,"adobekey_{0:d}.der".format(keycount))
+                    outfile = os.path.join(outpath,"adobekey{0:d}_uuid_{1}.der".format(keycount, names[name_index]))
                     if not os.path.exists(outfile):
                         break
                 with open(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
                 print("Saved a key to {0}".format(outfile))
+                name_index += 1
         return True
     return False
 
@@ -474,7 +453,7 @@ def usage(progname):
 def cli_main():
     sys.stdout=SafeUnbuffered(sys.stdout)
     sys.stderr=SafeUnbuffered(sys.stderr)
-    argv=unicode_argv()
+    argv=unicode_argv("adobekey.py")
     progname = os.path.basename(argv[0])
     print("{0} v{1}\nCopyright © 2009-2020 i♥cabbages, Apprentice Harper et al.".format(progname,__version__))
 
@@ -506,7 +485,7 @@ def cli_main():
     # make sure the outpath is the
     outpath = os.path.realpath(os.path.normpath(outpath))
 
-    keys = adeptkeys()
+    keys, names = adeptkeys()
     if len(keys) > 0:
         if not os.path.isdir(outpath):
             outfile = outpath
@@ -515,15 +494,17 @@ def cli_main():
             print("Saved a key to {0}".format(outfile))
         else:
             keycount = 0
+            name_index = 0
             for key in keys:
                 while True:
                     keycount += 1
-                    outfile = os.path.join(outpath,"adobekey_{0:d}.der".format(keycount))
+                    outfile = os.path.join(outpath,"adobekey{0:d}_uuid_{1}.der".format(keycount, names[name_index]))
                     if not os.path.exists(outfile):
                         break
                 with open(outfile, 'wb') as keyfileout:
                     keyfileout.write(key)
                 print("Saved a key to {0}".format(outfile))
+                name_index += 1
     else:
         print("Could not retrieve Adobe Adept key.")
     return 0
@@ -550,18 +531,21 @@ def gui_main():
             self.text.insert(tkinter.constants.END, text)
 
 
-    argv=unicode_argv()
+    argv=unicode_argv("adobekey.py")
     root = tkinter.Tk()
     root.withdraw()
     progpath, progname = os.path.split(argv[0])
     success = False
     try:
-        keys = adeptkeys()
+        keys, names = adeptkeys()
+        print(keys)
+        print(names)
         keycount = 0
+        name_index = 0
         for key in keys:
             while True:
                 keycount += 1
-                outfile = os.path.join(progpath,"adobekey_{0:d}.der".format(keycount))
+                outfile = os.path.join(progpath,"adobekey{0:d}_uuid_{1}.der".format(keycount, names[name_index]))
                 if not os.path.exists(outfile):
                     break
 
@@ -569,6 +553,7 @@ def gui_main():
                 keyfileout.write(key)
             success = True
             tkinter.messagebox.showinfo(progname, "Key successfully retrieved to {0}".format(outfile))
+            name_index += 1
     except ADEPTError as e:
         tkinter.messagebox.showerror(progname, "Error: {0}".format(str(e)))
     except Exception:

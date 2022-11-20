@@ -265,13 +265,13 @@ class ReadOnlyTableWidgetItem(QTableWidgetItem):
     def __init__(self, text):
         if text is None:
             text = ''
-        QTableWidgetItem.__init__(self, text, QTableWidgetItem.UserType)
+        QTableWidgetItem.__init__(self, text, QTableWidgetItem.ItemType.UserType)
         self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
 
 class RatingTableWidgetItem(QTableWidgetItem):
 
     def __init__(self, rating, is_read_only=False):
-        QTableWidgetItem.__init__(self, '', QTableWidgetItem.UserType)
+        QTableWidgetItem.__init__(self, '', QTableWidgetItem.ItemType.UserType)
         self.setData(Qt.DisplayRole, rating)
         if is_read_only:
             self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
@@ -284,11 +284,11 @@ class DateTableWidgetItem(QTableWidgetItem):
         if date_read is None or date_read == UNDEFINED_DATE and default_to_today:
             date_read = now()
         if is_read_only:
-            QTableWidgetItem.__init__(self, format_date(date_read, fmt), QTableWidgetItem.UserType)
+            QTableWidgetItem.__init__(self, format_date(date_read, fmt), QTableWidgetItem.ItemType.UserType)
             self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
             self.setData(Qt.DisplayRole, QDateTime(date_read))
         else:
-            QTableWidgetItem.__init__(self, '', QTableWidgetItem.UserType)
+            QTableWidgetItem.__init__(self, '', QTableWidgetItem.ItemType.UserType)
             self.setData(Qt.DisplayRole, QDateTime(date_read))
 
 from calibre.gui2.library.delegates import DateDelegate as _DateDelegate

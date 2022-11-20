@@ -237,7 +237,10 @@ class InterfacePluginAction(InterfaceAction):
 
         :param books_to_add: List of calibre bookmaps (created in get_decrypted_kobo_books)
         '''
-        added = self.db.add_books(books_to_add, add_duplicates=False, run_hooks=False)
+
+        cfg_add_duplicates = (cfg['finding_homes_for_formats'] == 'Add new entry')
+
+        added = self.db.add_books(books_to_add, add_duplicates=cfg_add_duplicates, run_hooks=False)
         if len(added[0]):
             # Record the id(s) that got added
             for id in added[0]:
@@ -375,7 +378,6 @@ class InterfacePluginAction(InterfaceAction):
         #print ('Kobo library filename: {0}'.format(book.filename))
         for userkey in self.userkeys:
             print (_('Trying key: '), codecs.encode(userkey, 'hex'))
-            check = True
             try:
                 fileout = PersistentTemporaryFile('.epub', dir=self.tdir)
                 #print ('Temp file: {0}'.format(fileout.name))
@@ -396,8 +398,7 @@ class InterfacePluginAction(InterfaceAction):
                         file = book.encryptedfiles[filename]
                         contents = file.decrypt(userkey, contents)
                         # Parse failures mean the key is probably wrong.
-                        if check:
-                            check = not file.check(contents)
+                        file.check(contents)
                     zout.writestr(filename, contents)
                 zout.close()
                 zin.close()
