@@ -89,7 +89,7 @@ class Decryptor(object):
     def __init__(self, bookkey, encryption):
         enc = lambda tag: '{%s}%s' % (NSMAP['enc'], tag)
         self._aes = AES.new(bookkey, AES.MODE_CBC, b'\x00'*16)
-        encryption = etree.fromstring(encryption)
+        self._encryption = etree.fromstring(encryption)
         self._encrypted = encrypted = set()
         self._otherData = otherData = set()
 
@@ -97,7 +97,7 @@ class Decryptor(object):
         self._has_remaining_xml = False
         expr = './%s/%s/%s' % (enc('EncryptedData'), enc('CipherData'),
                                enc('CipherReference'))
-        for elem in encryption.findall(expr):
+        for elem in self._encryption.findall(expr):
             path = elem.get('URI', None)
             encryption_type_url = (elem.getparent().getparent().find("./%s" % (enc('EncryptionMethod'))).get('Algorithm', None))
             if path is not None:
