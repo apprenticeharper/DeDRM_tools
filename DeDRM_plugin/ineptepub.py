@@ -91,6 +91,7 @@ class Decryptor(object):
         self._aes = AES.new(bookkey, AES.MODE_CBC, b'\x00'*16)
         self._encryption = etree.fromstring(encryption)
         self._encrypted = encrypted = set()
+        self._encryptedForceNoDecomp = encryptedForceNoDecomp = set()
         self._otherData = otherData = set()
 
         self._json_elements_to_remove = json_elements_to_remove = set()
@@ -105,6 +106,11 @@ class Decryptor(object):
                     # Adobe
                     path = path.encode('utf-8')
                     encrypted.add(path)
+                    json_elements_to_remove.add(elem.getparent().getparent())
+                elif (encryption_type_url == "http://ns.adobe.com/adept/xmlenc#aes128-cbc-uncompressed"):
+                    # Adobe uncompressed, for stuff like video files
+                    path = path.encode('utf-8')
+                    encryptedForceNoDecomp.add(path)
                     json_elements_to_remove.add(elem.getparent().getparent())
                 else:
                     path = path.encode('utf-8')
@@ -134,14 +140,15 @@ class Decryptor(object):
         return decompressed_bytes
 
     def decrypt(self, path, data):
-        if path.encode('utf-8') in self._encrypted:
+        if path.encode('utf-8') in self._encrypted or path.encode('utf-8') in self._encryptedForceNoDecomp:
             data = self._aes.decrypt(data)[16:]
             if type(data[-1]) != int:
                 place = ord(data[-1])
             else:
                 place = data[-1]
             data = data[:-place]
-            data = self.decompress(data)
+            if not path.encode('utf-8') in self._encryptedForceNoDecomp:
+                data = self.decompress(data)
         return data
 
 # check file to make check whether it's probably an Adobe Adept encrypted ePub

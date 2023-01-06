@@ -87,3 +87,5 @@ List of changes since the fork of Apprentice Harper's repository:
 - Obok: Fix where changing the Calibre UI language to some languages would cause the "duplicate book" setting to reset.
 - Fix Python3 bug in stylexml2css.php script, fixes #232.
 - PDF: Ignore invalid PDF objids unless the script is running in strict mode. Fixes some PDFs, apparently. Fixes #233. 
+- Bugfix: EPUBs with remaining content in the encryption.xml after decryption weren't written correctly. 
+- Support for Adobe's 'aes128-cbc-uncompressed' encryption method (fixes #242).
