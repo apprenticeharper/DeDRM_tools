@@ -90,3 +90,4 @@ List of changes since the fork of Apprentice Harper's repository:
 - Bugfix: EPUBs with remaining content in the encryption.xml after decryption weren't written correctly. 
 - Support for Adobe's 'aes128-cbc-uncompressed' encryption method (fixes #242).
 - Two bugfixes for Amazon DeDRM from Satuoni ( https://github.com/noDRM/DeDRM_tools/issues/315#issuecomment-1508305428 ) and andrewc12 ( https://github.com/andrewc12/DeDRM_tools/commit/d9233d61f00d4484235863969919059f4d0b2057 ) that might make the plugin work with newer versions.
+- Fix font decryption not working with some books (fixes #347), thanks for the patch @bydioeds. 

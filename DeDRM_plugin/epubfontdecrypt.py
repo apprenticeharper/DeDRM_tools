@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # epubfontdecrypt.py
-# Copyright © 2021 by noDRM
+# Copyright © 2021-2023 by noDRM
 
 # Released under the terms of the GNU General Public Licence, version 3
 # <http://www.gnu.org/licenses/>
@@ -10,6 +10,7 @@
 
 # Revision history:
 #   1 - Initial release
+#   2 - Bugfix for multiple book IDs, reported at #347
 
 """
 Decrypts / deobfuscates font files in EPUB files
@@ -18,7 +19,7 @@ Decrypts / deobfuscates font files in EPUB files
 from __future__ import print_function
 
 __license__ = 'GPL v3'
-__version__ = "1"
+__version__ = "2"
 
 import os
 import traceback
@@ -193,9 +194,10 @@ def decryptFontsBook(inpath, outpath):
                 pass
 
             try: 
-                identify_element = container.find(packageNS("metadata")).find(metadataDCNS("identifier"))
-                if (secret_key_name is None or secret_key_name == identify_element.get("id")):
-                    font_master_key = identify_element.text
+                identify_elements = container.find(packageNS("metadata")).findall(metadataDCNS("identifier"))
+                for element in identify_elements:
+                    if (secret_key_name is None or secret_key_name == element.get("id")):
+                        font_master_key = element.text
             except: 
                 pass
 
