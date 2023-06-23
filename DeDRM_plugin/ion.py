@@ -835,6 +835,107 @@ def obfuscate(secret, version):
     return obfuscated
 
 
+
+# scramble() and obfuscate2() from https://github.com/andrewc12/DeDRM_tools/commit/d9233d61f00d4484235863969919059f4d0b2057
+
+def scramble(st,magic):
+    ret=bytearray(len(st))
+    padlen=len(st)
+    for counter in range(len(st)):
+        ivar2=(padlen//2)-2*(counter%magic)+magic+counter-1
+        ret[ivar2%padlen]=st[counter]
+    return ret
+
+
+def obfuscate2(secret, version):
+    if version == 1:  # v1 does not use obfuscation
+        return secret
+    magic, word = OBFUSCATION_TABLE["V%d" % version]
+    # extend secret so that its length is divisible by the magic number
+    if len(secret) % magic != 0:
+        secret = secret + b'\x00' * (magic - len(secret) % magic)
+    obfuscated = bytearray(len(secret))
+    wordhash = bytearray(hashlib.sha256(word).digest()[16:])
+    #print(wordhash.hex())
+    shuffled = bytearray(scramble(secret,magic))
+    for i in range(0, len(secret)):
+        obfuscated[i] = shuffled[i] ^ wordhash[i % 16]
+    return obfuscated
+
+# scramble3() and obfuscate3() from https://github.com/Satsuoni/DeDRM_tools/commit/da6b6a0c911b6d45fe1b13042b690daebc1cc22f
+
+def scramble3(st,magic):
+  ret=bytearray(len(st))
+  padlen=len(st)
+  divs = padlen // magic
+  cntr = 0
+  iVar6 = 0
+  offset = 0
+  if (0 < ((magic - 1) + divs)):
+    while True:
+      if (offset & 1) == 0 :
+        uVar4 = divs - 1
+        if offset < divs:
+          iVar3 = 0
+          uVar4 = offset
+        else:
+          iVar3 = (offset - divs) + 1
+        if uVar4>=0:
+          iVar5 = uVar4 * magic
+          index =  ((padlen - 1) - cntr)
+          while True:
+            if (magic <= iVar3): break
+            ret[index] = st[iVar3 + iVar5]
+            iVar3 = iVar3 + 1
+            cntr = cntr + 1
+            uVar4 = uVar4 - 1
+            iVar5 = iVar5 - magic
+            index -= 1
+            if uVar4<=-1: break
+      else: 
+        if (offset < magic):
+          iVar3 = 0
+        else :
+          iVar3 = (offset - magic) + 1
+        if (iVar3 < divs):
+          uVar4 = offset
+          if (magic <= offset):
+            uVar4 = magic - 1
+
+          index = ((padlen - 1) - cntr)
+          iVar5 = iVar3 * magic
+          while True:
+            if (uVar4 < 0) : break
+            iVar3 += 1
+            ret[index] = st[uVar4 + iVar5]
+            uVar4 -= 1
+            index=index-1
+            iVar5 = iVar5 + magic;
+            cntr += 1;
+            if iVar3>=divs: break 
+      offset = offset + 1
+      if offset >= ((magic - 1) + divs) :break 
+  return ret
+
+#not sure if the third variant is used anywhere, but it is in Kindle, so I tried to add it
+def obfuscate3(secret, version):
+    if version == 1:  # v1 does not use obfuscation
+        return secret
+    magic, word = OBFUSCATION_TABLE["V%d" % version]
+    # extend secret so that its length is divisible by the magic number
+    if len(secret) % magic != 0:
+        secret = secret + b'\x00' * (magic - len(secret) % magic)
+    #secret = bytearray(secret)
+    obfuscated = bytearray(len(secret))
+    wordhash = bytearray(hashlib.sha256(word).digest())
+    #print(wordhash.hex())
+    shuffled=bytearray(scramble3(secret,magic))
+    #print(shuffled)
+    # shuffle secret and xor it with the first half of the word hash
+    for i in range(0, len(secret)):
+        obfuscated[i] = shuffled[i] ^ wordhash[i % 16]
+    return obfuscated
+
 class DrmIonVoucher(object):
     envelope = None
     version = None
@@ -878,12 +979,25 @@ class DrmIonVoucher(object):
             else:
                 _assert(False, "Unknown lock parameter: %s" % param)
 
-        sharedsecret = obfuscate(shared, self.version)
 
-        key = hmac.new(sharedsecret, b"PIDv3", digestmod=hashlib.sha256).digest()
-        aes = AES.new(key[:32], AES.MODE_CBC, self.cipheriv[:16])
-        b = aes.decrypt(self.ciphertext)
-        b = pkcs7unpad(b, 16)
+        sharedsecrets = [obfuscate(shared, self.version),obfuscate2(shared, self.version),obfuscate3(shared, self.version)]
+        decrypted=False
+        ex=None
+        for sharedsecret in sharedsecrets:
+            key = hmac.new(sharedsecret, b"PIDv3", digestmod=hashlib.sha256).digest()
+            aes = AES.new(key[:32], AES.MODE_CBC, self.cipheriv[:16])
+            try:
+                b = aes.decrypt(self.ciphertext)
+                b = pkcs7unpad(b, 16)
+                decrypted=True 
+                print("Decryption succeeded")
+                break
+            except Exception as ex:
+                print("Decryption failed, trying next fallback ")
+        if not decrypted:
+            raise ex
+
+        sharedsecret = obfuscate(shared, self.version)
 
         self.drmkey = BinaryIonParser(BytesIO(b))
         addprottable(self.drmkey)
