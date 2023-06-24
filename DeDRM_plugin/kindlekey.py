@@ -279,7 +279,10 @@ if iswindows:
         path = ""
         if 'LOCALAPPDATA' in os.environ.keys():
             # Python 2.x does not return unicode env. Use Python 3.x
-            path = winreg.ExpandEnvironmentStrings("%LOCALAPPDATA%")
+            if sys.version_info[0] == 2:
+                path = winreg.ExpandEnvironmentStrings(u"%LOCALAPPDATA%")
+            else:
+                path = winreg.ExpandEnvironmentStrings("%LOCALAPPDATA%")
             # this is just another alternative.
             # path = getEnvironmentVariable('LOCALAPPDATA')
             if not os.path.isdir(path):
