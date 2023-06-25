@@ -989,21 +989,19 @@ class DrmIonVoucher(object):
             try:
                 b = aes.decrypt(self.ciphertext)
                 b = pkcs7unpad(b, 16)
+                self.drmkey = BinaryIonParser(BytesIO(b))
+                addprottable(self.drmkey)
+
+                _assert(self.drmkey.hasnext() and self.drmkey.next() == TID_LIST and self.drmkey.gettypename() == "com.amazon.drm.KeySet@1.0",
+                    "Expected KeySet, got %s" % self.drmkey.gettypename())
                 decrypted=True 
+                
                 print("Decryption succeeded")
                 break
             except Exception as ex:
                 print("Decryption failed, trying next fallback ")
         if not decrypted:
             raise ex
-
-        sharedsecret = obfuscate(shared, self.version)
-
-        self.drmkey = BinaryIonParser(BytesIO(b))
-        addprottable(self.drmkey)
-
-        _assert(self.drmkey.hasnext() and self.drmkey.next() == TID_LIST and self.drmkey.gettypename() == "com.amazon.drm.KeySet@1.0",
-                "Expected KeySet, got %s" % self.drmkey.gettypename())
 
         self.drmkey.stepin()
         while self.drmkey.hasnext():
