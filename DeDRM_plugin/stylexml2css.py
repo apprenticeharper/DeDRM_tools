@@ -181,7 +181,7 @@ class DocParser(object):
                                 print("Scale not defined!")
                                 scale = 1.0
 
-                            if val == "":
+                            if not val:
                                 val = 0
 
                             if not ((attr == b'hang') and (int(val) == 0)):

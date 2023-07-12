@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+
 # topazextract.py
 # Mostly written by some_updates based on code from many others
 

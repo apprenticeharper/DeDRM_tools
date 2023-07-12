@@ -83,5 +83,12 @@ List of changes since the fork of Apprentice Harper's repository:
 - Update the README (fixes #136) to indicate that Apprentice Harper's version is no longer being updated.
 - Fix a bug where PDFs with empty arrays (`<>`) in a PDF object failed to decrypt, fixes #183.
 - Automatically strip whitespace from entered Amazon Kindle serial numbers, should fix #158.
-- Obok: Add new setting option "Add new entry" for duplicate books to always add them to the Calibre database as a new book. Untested. Should fix #148.
-- Obok: Fix where changing the Calibre UI language to some languages would cause the "duplicate book" setting to reset. Untested.
+- Obok: Add new setting option "Add new entry" for duplicate books to always add them to the Calibre database as a new book. Fixes #148.
+- Obok: Fix where changing the Calibre UI language to some languages would cause the "duplicate book" setting to reset.
+- Fix Python3 bug in stylexml2css.php script, fixes #232.
+- PDF: Ignore invalid PDF objids unless the script is running in strict mode. Fixes some PDFs, apparently. Fixes #233. 
+- Bugfix: EPUBs with remaining content in the encryption.xml after decryption weren't written correctly. 
+- Support for Adobe's 'aes128-cbc-uncompressed' encryption method (fixes #242).
+- Two bugfixes for Amazon DeDRM from Satuoni ( https://github.com/noDRM/DeDRM_tools/issues/315#issuecomment-1508305428 ) and andrewc12 ( https://github.com/andrewc12/DeDRM_tools/commit/d9233d61f00d4484235863969919059f4d0b2057 ) that might make the plugin work with newer versions.
+- Fix font decryption not working with some books (fixes #347), thanks for the patch @bydioeds. 
+- Fix a couple unicode errors for Python2 in Kindle and Nook code.

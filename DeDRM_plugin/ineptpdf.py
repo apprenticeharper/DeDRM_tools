@@ -1636,13 +1636,15 @@ class PDFDocument(object):
             else:
                 print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
                 print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
-                print("bookkey[0] is %d" % bookkey[0])
+                if len(bookkey) > 0:
+                    print("bookkey[0] is %d" % bookkey[0])
                 raise ADEPTError('error decrypting book session key - mismatched length')
         else:
             # proper length unknown try with whatever you have
             print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
             print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
-            print("bookkey[0] is %d" % ord(bookkey[0]))
+            if len(bookkey) > 0:
+                print("bookkey[0] is %d" % ord(bookkey[0]))
             if ebx_V == 3:
                 V = 3
             else:
@@ -1708,13 +1710,15 @@ class PDFDocument(object):
             else:
                 print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
                 print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
-                print("bookkey[0] is %d" % bookkey[0])
+                if len(bookkey) > 0:
+                    print("bookkey[0] is %d" % bookkey[0])
                 raise ADEPTError('error decrypting book session key - mismatched length')
         else:
             # proper length unknown try with whatever you have
             print("ebx_V is %d  and ebx_type is %d" % (ebx_V, ebx_type))
             print("length is %d and len(bookkey) is %d" % (length, len(bookkey)))
-            print("bookkey[0] is %d" % bookkey[0])
+            if len(bookkey) > 0:
+                print("bookkey[0] is %d" % bookkey[0])
             if ebx_V == 3:
                 V = 3
             else:
@@ -1827,7 +1831,19 @@ class PDFDocument(object):
                 try:
                     obj = objs[i]
                 except IndexError:
-                    raise PDFSyntaxError('Invalid object number: objid=%r' % (objid))
+                    # This IndexError used to just raise an exception.
+                    # Unfortunately that seems to break some PDFs, see this issue:
+                    # https://github.com/noDRM/DeDRM_tools/issues/233
+                    # I'm not sure why this is the case, but lets try only raising that exception
+                    # when in STRICT mode, and make it a warning otherwise.
+                    if STRICT:
+                        raise PDFSyntaxError('Invalid object number: objid=%r' % (objid))
+
+                    print('Invalid object number: objid=%r' % (objid))
+                    print("Continuing anyways?")
+                    print("If the resulting PDF is corrupted, please open a bug report.")
+                    return None
+
                 if isinstance(obj, PDFStream):
                     obj.set_objid(objid, 0)
             else:
