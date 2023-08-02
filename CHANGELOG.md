@@ -67,7 +67,11 @@ List of changes since the fork of Apprentice Harper's repository:
 - Fix Nook Study key retrieval code (partially fixes #50).
 - Make the plugin work on Calibre 6 (Qt 6). (fixes #54 and #98) If you're running Calibre 6 and you notice any issues, please open a bug report.
 
-## Fixes on master (not yet released):
+## Fixes in v10.0.9 (RC for v10.1.0, 2023-08-02):
+
+Note that versions v10.0.4(s), v10.0.5(s) and v10.0.6(s) were released by other people in various forks, so I have decided to make a larger version jump so there are no conflicting version numbers / different builds with the same version number. 
+
+This is v10.0.9, a release candidate for v10.1.0. I don't expect there to be major issues / bugs, but since a lot of code has changed in the last year I wanted to get some "extended testing" before this becomes v10.1.0. 
 
 - Fix a bug introduced with #48 that breaks DeDRM'ing on Calibre 4 (fixes #101).
 - Fix some more Calibre-6 bugs in the Obok plugin (should fix #114).
@@ -92,3 +96,7 @@ List of changes since the fork of Apprentice Harper's repository:
 - Two bugfixes for Amazon DeDRM from Satuoni ( https://github.com/noDRM/DeDRM_tools/issues/315#issuecomment-1508305428 ) and andrewc12 ( https://github.com/andrewc12/DeDRM_tools/commit/d9233d61f00d4484235863969919059f4d0b2057 ) that might make the plugin work with newer versions.
 - Fix font decryption not working with some books (fixes #347), thanks for the patch @bydioeds. 
 - Fix a couple unicode errors for Python2 in Kindle and Nook code.
+
+## Fixes on master (not yet released):
+
+- (none)

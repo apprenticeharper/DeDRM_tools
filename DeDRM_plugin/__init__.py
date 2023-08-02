@@ -5,7 +5,7 @@ from __future__ import print_function
 
 # __init__.py for DeDRM_plugin
 # Copyright © 2008-2020 Apprentice Harper et al.
-# Copyright © 2021 NoDRM
+# Copyright © 2021-2023 NoDRM
 
 __license__   = 'GPL v3'
 __docformat__ = 'restructuredtext en'
@@ -82,6 +82,7 @@ __docformat__ = 'restructuredtext en'
 #  10.0.0 - First forked version by NoDRM. See CHANGELOG.md for details.
 #  10.0.1 - Fixes a bug in the watermark code.
 #  10.0.2 - Fix Kindle for Mac & update Adobe key retrieval
+#  For changes made in 10.0.3 and above, see the CHANGELOG.md file
 
 """
 Decrypt DRMed ebooks.

@@ -168,8 +168,8 @@
 """Manage all Kobo books, either encrypted or DRM-free."""
 from __future__ import print_function
 
-__version__ = '10.0.1'
-__about__ =  "Obok v{0}\nCopyright © 2012-2022 Physisticated et al.".format(__version__)
+__version__ = '10.0.9'
+__about__ =  "Obok v{0}\nCopyright © 2012-2023 Physisticated et al.".format(__version__)
 
 import sys
 import os

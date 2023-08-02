@@ -10,16 +10,16 @@ body:
     id: calibre-version
     attributes:
       label: Which version of Calibre are you running?
-      description: "Example: 5.32"
-      placeholder: "5.32"
+      description: "Example: 6.23"
+      placeholder: "6.23"
     validations: 
       required: true
   - type: input
     id: plugin-version
     attributes:
       label: Which version of the DeDRM plugin are you running?
-      description: "Example: v10.0.0"
-      placeholder: "v10.0.0"
+      description: "Example: v10.0.2"
+      placeholder: "v10.0.2"
     validations: 
       required: true
   - type: input
