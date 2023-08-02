@@ -99,4 +99,4 @@ This is v10.0.9, a release candidate for v10.1.0. I don't expect there to be maj
 
 ## Fixes on master (not yet released):
 
-- (none)
+- Fix a bug where decrypting a 40-bit RC4 pdf with R=2 didn't work.
