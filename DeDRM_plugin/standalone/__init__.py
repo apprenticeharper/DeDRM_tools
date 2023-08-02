@@ -7,6 +7,18 @@ from __future__ import absolute_import, print_function
 
 # Copyright © 2021 NoDRM
 
+"""
+
+NOTE: This code is not functional (yet). I started working on it a while ago
+to make a standalone version of the plugins that could work without Calibre, 
+too, but for now there's only a rough code structure and no working code yet.
+
+Currently, to use these plugins, you will need to use Calibre. Hopwfully that'll
+change in the future. 
+
+"""
+
+
 OPT_SHORT_TO_LONG = [
     ["c", "config"],
     ["e", "extract"],
