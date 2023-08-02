@@ -1366,8 +1366,7 @@ class PDFDocument(object):
 
     def process_with_aes(self, key, encrypt, data, repetitions = 1, iv = None):
         if iv is None:
-            keylen = len(key)
-            iv = bytes([0x00]*keylen)
+            iv = bytes(bytearray(16))
 
         aes = AES.new(key, AES.MODE_CBC, iv)
 
@@ -1395,10 +1394,18 @@ class PDFDocument(object):
                     raise Exception("K1 < 32 ...")
                 #def process_with_aes(self, key: bytes, encrypt: bool, data: bytes, repetitions: int = 1, iv: bytes = None):
                 E = self.process_with_aes(K[:16], True, K1, 64, K[16:32])
-                K = (hashlib.sha256, hashlib.sha384, hashlib.sha512)[sum(E) % 3](E).digest()
+                E = bytearray(E)
+
+                E_mod_3 = 0
+                for i in range(16):
+                    E_mod_3 += E[i]
+
+                E_mod_3 %= 3
+
+                K = (hashlib.sha256, hashlib.sha384, hashlib.sha512)[E_mod_3](E).digest()
 
                 if round_number >= 64:
-                    ch = int.from_bytes(E[-1:], "big", signed=False)
+                    ch = E[-1:][0]  # get last byte
                     if ch <= round_number - 32:
                         done = True
 
