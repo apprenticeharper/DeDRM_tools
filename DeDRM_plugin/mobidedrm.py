@@ -113,7 +113,7 @@ def checksumPid(s):
     for i in (0,1):
         b = crc & 0xff
         pos = (b // l) ^ (b % l)
-        res += letters[pos%l]
+        res += bytes(bytearray([letters[pos%l]]))
         crc >>= 8
     return res
 

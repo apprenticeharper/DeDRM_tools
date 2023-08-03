@@ -243,9 +243,14 @@ if iswindows:
 
             # replace any non-ASCII values with 0xfffd
             for i in range(0,len(buffer)):
-                if buffer[i]>"\u007f":
-                    #print "swapping char "+str(i)+" ("+buffer[i]+")"
-                    buffer[i] = "\ufffd"
+                if sys.version_info[0] == 2:
+                    if buffer[i]>u"\u007f":
+                        #print "swapping char "+str(i)+" ("+buffer[i]+")"
+                        buffer[i] = u"\ufffd"
+                else: 
+                    if buffer[i]>"\u007f":
+                        #print "swapping char "+str(i)+" ("+buffer[i]+")"
+                        buffer[i] = "\ufffd"
             # return utf-8 encoding of modified username
             #print "modified username:"+buffer.value
             return buffer.value.encode('utf-8')
