@@ -115,11 +115,17 @@ def primes(n):
 def encode(data, map):
     result = b''
     for char in data:
-        value = char
+        if sys.version_info[0] == 2:
+            value = ord(char)
+        else:
+            value = char
+
         Q = (value ^ 0x80) // len(map)
         R = value % len(map)
-        result += bytes([map[Q]])
-        result += bytes([map[R]])
+
+        result += bytes(bytearray([map[Q]]))
+        result += bytes(bytearray([map[R]]))
+
     return result
 
 # Hash the bytes in data and then encode the digest with the characters in map
