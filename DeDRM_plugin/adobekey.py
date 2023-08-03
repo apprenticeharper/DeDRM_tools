@@ -44,6 +44,7 @@ __version__ = '7.4'
 import sys, os, struct, getopt
 from base64 import b64decode
 
+#@@CALIBRE_COMPAT_CODE@@
 
 
 from .utilities import SafeUnbuffered
