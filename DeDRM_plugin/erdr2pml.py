@@ -79,11 +79,8 @@ except ImportError:
 
 #@@CALIBRE_COMPAT_CODE@@
 
-try: 
-    from utilities import SafeUnbuffered
-    from argv_utils import unicode_argv
-except: 
-    from . import utilities, argv_utils
+from .utilities import SafeUnbuffered
+from .argv_utils import unicode_argv
 
 iswindows = sys.platform.startswith('win')
 isosx = sys.platform.startswith('darwin')

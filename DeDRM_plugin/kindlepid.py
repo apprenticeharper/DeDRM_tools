@@ -16,17 +16,17 @@
 import sys
 import binascii
 
-from utilities import SafeUnbuffered
+from .utilities import SafeUnbuffered
 
-from argv_utils import unicode_argv
+from .argv_utils import unicode_argv
 
-letters = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
+letters = b'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
 
 def crc32(s):
     return (~binascii.crc32(s,-1))&0xFFFFFFFF
 
 def checksumPid(s):
-    crc = crc32(s.encode('ascii'))
+    crc = crc32(s)
     crc = crc ^ (crc >> 16)
     res = s
     l = len(letters)

@@ -29,7 +29,7 @@ from calibre.constants import iswindows, isosx
 
 from __init__ import PLUGIN_NAME, PLUGIN_VERSION
 from __version import RESOURCE_NAME as help_file_name
-from utilities import uStrCmp
+from .utilities import uStrCmp
 
 import prefs
 import androidkindlekey

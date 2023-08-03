@@ -70,9 +70,8 @@ def unpad(data, padding=16):
 
     return data[:-pad_len]
 
-from utilities import SafeUnbuffered
-
-from argv_utils import unicode_argv
+from .utilities import SafeUnbuffered
+from .argv_utils import unicode_argv
 
 
 class ADEPTError(Exception):

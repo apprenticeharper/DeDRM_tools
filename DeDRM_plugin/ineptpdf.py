@@ -93,12 +93,12 @@ def unpad(data, padding=16):
     return data[:-pad_len]
 
 
-from utilities import SafeUnbuffered
+from .utilities import SafeUnbuffered
 
 iswindows = sys.platform.startswith('win')
 isosx = sys.platform.startswith('darwin')
 
-from argv_utils import unicode_argv
+from .argv_utils import unicode_argv
 
 class ADEPTError(Exception):
     pass

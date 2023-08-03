@@ -62,11 +62,8 @@ except NameError:
 
 # Routines common to Mac and PC
 
-try: 
-    from utilities import SafeUnbuffered
-    from argv_utils import unicode_argv
-except:
-    from . import utilities, argv_utils
+from .utilities import SafeUnbuffered
+from .argv_utils import unicode_argv
     
 
 try:

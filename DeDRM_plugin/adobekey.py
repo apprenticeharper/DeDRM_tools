@@ -46,8 +46,8 @@ from base64 import b64decode
 
 
 
-from utilities import SafeUnbuffered
-from argv_utils import unicode_argv
+from .utilities import SafeUnbuffered
+from .argv_utils import unicode_argv
 
 
 try:

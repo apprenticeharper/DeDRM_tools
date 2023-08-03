@@ -50,9 +50,9 @@ try:
 except ImportError:
     from Crypto.Cipher import AES
 
-from utilities import SafeUnbuffered
+from .utilities import SafeUnbuffered
 
-from argv_utils import unicode_argv
+from .argv_utils import unicode_argv
 
 class IGNOBLEError(Exception):
     pass

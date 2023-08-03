@@ -53,12 +53,12 @@ import sys, struct, os, traceback
 import zlib
 import zipfile
 import xml.etree.ElementTree as etree
-from argv_utils import unicode_argv
+from .argv_utils import unicode_argv
 
 NSMAP = {'adept': 'http://ns.adobe.com/adept',
          'enc': 'http://www.w3.org/2001/04/xmlenc#'}
 
-from utilities import SafeUnbuffered
+from .utilities import SafeUnbuffered
 
 
 _FILENAME_LEN_OFFSET = 26

@@ -88,9 +88,9 @@ import kgenpids
 import androidkindlekey
 import kfxdedrm
 
-from utilities import SafeUnbuffered
+from .utilities import SafeUnbuffered
 
-from argv_utils import unicode_argv
+from .argv_utils import unicode_argv
 
 
 # cleanup unicode filenames

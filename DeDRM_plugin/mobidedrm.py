@@ -80,11 +80,14 @@ import sys
 import os
 import struct
 import binascii
-from alfcrypto import Pukall_Cipher
 
-from utilities import SafeUnbuffered
 
-from argv_utils import unicode_argv
+#@@CALIBRE_COMPAT_CODE@@
+
+
+from .alfcrypto import Pukall_Cipher
+from .utilities import SafeUnbuffered
+from .argv_utils import unicode_argv
 
 
 class DrmException(Exception):
@@ -103,10 +106,17 @@ def PC1(key, src, decryption=True):
     except: 
         raise
 
-# accepts unicode returns unicode
+letters = b'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
+
+def crc32(s):
+    return (~binascii.crc32(s,-1))&0xFFFFFFFF
+
 def checksumPid(s):
-    letters = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'
-    crc = (~binascii.crc32(s.encode('utf-8'),-1))&0xFFFFFFFF
+
+    s = s.encode()
+
+
+    crc = crc32(s)
     crc = crc ^ (crc >> 16)
     res = s
     l = len(letters)
@@ -115,7 +125,7 @@ def checksumPid(s):
         pos = (b // l) ^ (b % l)
         res += bytes(bytearray([letters[pos%l]]))
         crc >>= 8
-    return res
+    return res.decode()
 
 # expects bytearray
 def getSizeOfTrailingDataEntries(ptr, size, flags):
