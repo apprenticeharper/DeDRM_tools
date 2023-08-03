@@ -190,6 +190,10 @@ def getKindlePids(rec209, token, serialnum):
     if isinstance(serialnum,str):
         serialnum = serialnum.encode('utf-8')
 
+    if sys.version_info[0] == 2:
+        if isinstance(serialnum,unicode):
+            serialnum = serialnum.encode('utf-8')
+
     if rec209 is None:
         return [serialnum]
 

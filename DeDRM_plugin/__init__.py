@@ -96,7 +96,10 @@ import traceback
 #@@CALIBRE_COMPAT_CODE@@
 
 try: 
-    import __version
+    try: 
+        from . import __version
+    except:
+        import __version
 except: 
     print("#############################")
     print("Failed to load the DeDRM plugin")
@@ -134,8 +137,10 @@ try:
 except:
     config_dir = ""
 
-
-import utilities
+try: 
+    from . import utilities
+except: 
+    import utilities
 
 
 PLUGIN_NAME = __version.PLUGIN_NAME
@@ -915,6 +920,9 @@ class DeDRM(FileTypePlugin):
             # perhaps we need to get a new default Kindle for Mac/PC key
             defaultkeys = []
             print("{0} v{1}: Failed to decrypt with error: {2}".format(PLUGIN_NAME, PLUGIN_VERSION,e.args[0]))
+
+            traceback.print_exc()
+
             print("{0} v{1}: Looking for new default Kindle Key after {2:.1f} seconds".format(PLUGIN_NAME, PLUGIN_VERSION, time.time()-self.starttime))
 
             try:

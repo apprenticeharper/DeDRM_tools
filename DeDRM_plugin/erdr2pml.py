@@ -79,12 +79,16 @@ except ImportError:
 
 #@@CALIBRE_COMPAT_CODE@@
 
-from utilities import SafeUnbuffered
+try: 
+    from utilities import SafeUnbuffered
+    from argv_utils import unicode_argv
+except: 
+    from . import utilities, argv_utils
 
 iswindows = sys.platform.startswith('win')
 isosx = sys.platform.startswith('darwin')
 
-from argv_utils import unicode_argv
+
 
 import cgi
 import logging
@@ -141,14 +145,20 @@ def sanitizeFileName(name):
 
 def fixKey(key):
     def fixByte(b):
+        if sys.version_info[0] == 2:
+            b = ord(b)
+
         return b ^ ((b ^ (b<<1) ^ (b<<2) ^ (b<<3) ^ (b<<4) ^ (b<<5) ^ (b<<6) ^ (b<<7) ^ 0x80) & 0x80)
-    return bytes([fixByte(a) for a in key])
+    return bytes(bytearray([fixByte(a) for a in key]))
 
 def deXOR(text, sp, table):
-    r=''
+    r=b''
     j = sp
     for i in range(len(text)):
-        r += chr(ord(table[j]) ^ ord(text[i]))
+        if sys.version_info[0] == 2:
+            r += chr(ord(table[j]) ^ ord(text[i]))
+        else: 
+            r += bytes(bytearray([table[j] ^ text[i]]))
         j = j + 1
         if j == len(table):
             j = 0

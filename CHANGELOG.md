@@ -101,4 +101,5 @@ This is v10.0.9, a release candidate for v10.1.0. I don't expect there to be maj
 
 - Fix a bug where decrypting a 40-bit RC4 pdf with R=2 didn't work.
 - Fix a bug where decrypting a 256-bit AES pdf with V=5 didn't work.
-- Fix bugs in kgenpids.py and kindlekey.py that caused it to fail on Python 2 (#380).
+- Fix bugs in kgenpids.py, alfcrypto.py, mobidedrm.py and kindlekey.py that caused it to fail on Python 2 (#380).
+- Fix some bugs (Python 2 and Python 3) in erdr2pml.py (untested).

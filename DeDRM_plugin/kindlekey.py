@@ -62,7 +62,12 @@ except NameError:
 
 # Routines common to Mac and PC
 
-from utilities import SafeUnbuffered
+try: 
+    from utilities import SafeUnbuffered
+    from argv_utils import unicode_argv
+except:
+    from . import utilities, argv_utils
+    
 
 try:
     from calibre.constants import iswindows, isosx
@@ -70,7 +75,7 @@ except:
     iswindows = sys.platform.startswith('win')
     isosx = sys.platform.startswith('darwin')
 
-from argv_utils import unicode_argv
+
 
 class DrmException(Exception):
     pass
