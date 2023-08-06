@@ -49,6 +49,8 @@
 
 __version__ = '2.0'
 
+#@@CALIBRE_COMPAT_CODE@@
+
 import sys, struct, os, traceback
 import zlib
 import zipfile

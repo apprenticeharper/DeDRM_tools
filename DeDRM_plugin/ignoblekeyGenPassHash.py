@@ -45,6 +45,8 @@ import os
 import hashlib
 import base64
 
+#@@CALIBRE_COMPAT_CODE@@
+
 try:
     from Cryptodome.Cipher import AES
 except ImportError:

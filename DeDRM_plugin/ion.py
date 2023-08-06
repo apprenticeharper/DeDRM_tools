@@ -30,6 +30,9 @@ import struct
 
 from io import BytesIO
 
+#@@CALIBRE_COMPAT_CODE@@
+
+
 try:
     from Cryptodome.Cipher import AES
     from Cryptodome.Util.py3compat import bchr
@@ -57,7 +60,7 @@ except ImportError:
                 # Windows-friendly choice: pylzma wheels
                 import pylzma as lzma
 
-from kfxtables import *
+from .kfxtables import *
 
 TID_NULL = 0
 TID_BOOLEAN = 1

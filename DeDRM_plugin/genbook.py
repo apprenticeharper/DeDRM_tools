@@ -4,7 +4,9 @@
 # Python 3 for calibre 5.0
 from __future__ import print_function
 
-from utilities import SafeUnbuffered
+#@@CALIBRE_COMPAT_CODE@@
+
+from .utilities import SafeUnbuffered
 
 import sys
 import csv

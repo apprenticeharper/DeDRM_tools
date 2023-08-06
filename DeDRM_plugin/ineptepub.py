@@ -70,6 +70,8 @@ def unpad(data, padding=16):
 
     return data[:-pad_len]
 
+#@@CALIBRE_COMPAT_CODE@@
+
 from .utilities import SafeUnbuffered
 from .argv_utils import unicode_argv
 

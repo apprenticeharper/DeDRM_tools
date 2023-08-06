@@ -27,6 +27,8 @@ import hashlib
 import getopt
 import re
 
+#@@CALIBRE_COMPAT_CODE@@
+
 from .utilities import SafeUnbuffered
 
 try:

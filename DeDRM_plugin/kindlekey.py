@@ -62,6 +62,8 @@ except NameError:
 
 # Routines common to Mac and PC
 
+#@@CALIBRE_COMPAT_CODE@@
+
 from .utilities import SafeUnbuffered
 from .argv_utils import unicode_argv
     
