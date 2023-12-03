@@ -834,7 +834,7 @@ def num_value(x):
     x = resolve1(x)
     if not (isinstance(x, int) or isinstance(x, Decimal)):
         if STRICT:
-            raise PDFTypeError('Int or Float required: %r' % x)
+            raise PDFTypeError('Int or Decimal required: %r' % x)
         return 0
     return x
 
@@ -2042,7 +2042,7 @@ class PDFParser(PSStackParser):
         except PDFNoValidXRef:
             # fallback
             self.seek(0)
-            pat = re.compile(b'^(\\d+)\\s+(\\d+)\\s+obj\\b')
+            pat = re.compile(rb'^(\\d+)\\s+(\\d+)\\s+obj\\b')
             offsets = {}
             xref = PDFXRef()
             while 1:

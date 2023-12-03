@@ -104,4 +104,5 @@ This is v10.0.9, a release candidate for v10.1.0. I don't expect there to be maj
 - Fix bugs in kgenpids.py, alfcrypto.py, mobidedrm.py and kindlekey.py that caused it to fail on Python 2 (#380).
 - Fix some bugs (Python 2 and Python 3) in erdr2pml.py (untested).
 - Fix file lock bug in androidkindlekey.py on Windows with Calibre >= 7 (untested).
+- A bunch of updates to the external FileOpen ineptpdf script, might fix #442 (untested).
 
