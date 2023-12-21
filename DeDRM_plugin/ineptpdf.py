@@ -2042,7 +2042,7 @@ class PDFParser(PSStackParser):
         except PDFNoValidXRef:
             # fallback
             self.seek(0)
-            pat = re.compile(rb'^(\\d+)\\s+(\\d+)\\s+obj\\b')
+            pat = re.compile(br'^(\\d+)\\s+(\\d+)\\s+obj\\b')
             offsets = {}
             xref = PDFXRef()
             while 1:
