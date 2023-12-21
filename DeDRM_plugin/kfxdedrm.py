@@ -74,7 +74,7 @@ class KFXZipBook:
             # Belt and braces. PIDs should be unicode strings, but just in case...
             if isinstance(pid, bytes):
                 pid = pid.decode('ascii')
-            for dsn_len,secret_len in [(0,0), (16,0), (16,40), (32,40), (40,0), (40,40)]:
+            for dsn_len,secret_len in [(0,0), (16,0), (16,40), (32,0), (32,40), (40,0), (40,40)]:
                 if len(pid) == dsn_len + secret_len:
                     break       # split pid into DSN and account secret
             else:
