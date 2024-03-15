@@ -146,6 +146,7 @@ import inspect
 import tempfile
 import sqlite3
 import httplib
+import binascii
 
 from decimal import Decimal
 import itertools
