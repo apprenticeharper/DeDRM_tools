@@ -409,7 +409,7 @@ class ReadOnlyTableWidgetItem(QTableWidgetItem):
     def __init__(self, text):
         if text is None:
             text = ''
-        QTableWidgetItem.__init__(self, text, QTableWidgetItem.UserType)
+        QTableWidgetItem.__init__(self, text, 1000)  # fallback custom type ID
         self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
 
 class AuthorTableWidgetItem(ReadOnlyTableWidgetItem):
@@ -448,7 +448,12 @@ class IconWidgetItem(ReadOnlyTableWidgetItem):
 class NumericTableWidgetItem(QTableWidgetItem):
 
     def __init__(self, number, is_read_only=False):
-        QTableWidgetItem.__init__(self, '', QTableWidgetItem.UserType)
+        try:
+            item_type = QTableWidgetItem.UserType
+        except AttributeError:
+            item_type = getattr(getattr(QTableWidgetItem, 'ItemType', QTableWidgetItem),
+                                'UserType', 1000)
+        QTableWidgetItem.__init__(self, '', item_type)
         self.setData(Qt.DisplayRole, number)
         if is_read_only:
             self.setFlags(Qt.ItemIsSelectable|Qt.ItemIsEnabled)
